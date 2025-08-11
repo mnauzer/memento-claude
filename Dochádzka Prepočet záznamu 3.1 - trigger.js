@@ -185,7 +185,7 @@ function findValidSalary(zamestnanecObject, datum) {
 // SPRACOVANIE ZAMESTNANCOV
 // ==============================================
 
-function processEmployee(zamestnanec, pracovnaDobaHodiny, datum) {
+function processEmployee(zamestnanec, index, pracovnaDobaHodiny, datum) {
     if (!zamestnanec) {
         addError("Neplatný zamestnanec na pozícii " + index, "processEmployee");
         return 0;
