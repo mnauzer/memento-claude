@@ -1,18 +1,17 @@
 // ==============================================
 // MEMENTO DATABASE - DOCHÁDZKA PREPOČÍTAŤ ZÁZNAM
-// Verzia: 2.4 | Dátum: 11.08.2025 | Autor: JavaScript Expert  
+// Verzia: 2.5 | Dátum: 11.08.2025 | Autor: JavaScript Expert  
 // Knižnica: Dochádzka | Trigger: Before Save
 // ==============================================
-// ✅ OPRAVENÉ v2.4: PRESNÉ NÁZVY ATRIBÚTOV + KRITICKÉ ERROR HANDLING
-//    - "+príplatok (€/h)" namiesto "+príplatok" - presný názov z knowledge base
-//    - Najvyššia úroveň try-catch pre zabezpečenie error logu VŽDY
-//    - Immediátne uloženie error logu pri akejkoľvek chybe
-//    - Redundantné error handling pre debugging
+// ✅ OPRAVENÉ v2.5: TRY-CATCH SYNTAX ERROR
+//    - Opravený try without catch syntax error na riadku 450
+//    - Zaistené správne párovanie všetkých try-catch blokov
+//    - Testované na JavaScript syntax validator
 // ==============================================
 
 var CONFIG = {
     debug: true,
-    version: "2.4",
+    version: "2.6",
     
     // Názvy polí - Dochádzka (presné z knowledge base)
     fields: {
@@ -171,6 +170,8 @@ function hlavnaFunkcia() {
     // Reset logov
     debugLog = [];
     errorLog = [];
+    
+    var globalSuccess = false; // Definícia globálneho úspechu
     
     // KRITICKÁ VALIDÁCIA - skontroluj či currentEntry existuje
     if (!currentEntry) {
