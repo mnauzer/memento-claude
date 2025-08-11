@@ -198,12 +198,12 @@ function processEmployee(zamestnanec, index, pracovnaDobaHodiny, datum) {
         // 1. Nájdi hodinovku
         var aktualnaHodinovka = findValidSalary(zamestnanec, datum);
         
-        // 2. Nastav atribúty cez currentEntry.setAttr s indexom
+        // 2. Nastav atribúty cez zamestnanec.setAttr s indexom
         var atributSuccess = 0;
         
         // Odpracované hodiny
         try {
-            currentEntry.setAttr(CONFIG.attributes.odpracovane, pracovnaDobaHodiny);
+            zamestnanec.setAttr(CONFIG.attributes.odpracovane, pracovnaDobaHodiny);
             addDebug("  ✅ Atribút 'odpracované': " + pracovnaDobaHodiny + " h");
             atributSuccess++;
         } catch (attrError) {
@@ -212,7 +212,7 @@ function processEmployee(zamestnanec, index, pracovnaDobaHodiny, datum) {
         
         // Hodinovka
         try {
-            currentEntry.setAttr(CONFIG.attributes.hodinovka, aktualnaHodinovka);
+            zamestnanec.setAttr(CONFIG.attributes.hodinovka, aktualnaHodinovka);
             addDebug("  ✅ Atribút 'hodinovka': " + aktualnaHodinovka + " €/h");
             atributSuccess++;
         } catch (attrError) {
@@ -221,8 +221,8 @@ function processEmployee(zamestnanec, index, pracovnaDobaHodiny, datum) {
         
         // Príplatok (default 0)
         try {
-            var priplatok = currentEntry.attr(CONFIG.attributes.priplatok) || 0;
-            currentEntry.setAttr(CONFIG.attributes.priplatok, priplatok);
+            var priplatok = zamestnanec.attr(CONFIG.attributes.priplatok) || 0;
+            zamestnanec.setAttr(CONFIG.attributes.priplatok, priplatok);
             addDebug("  ✅ Atribút 'príplatok': " + priplatok + " €/h");
             atributSuccess++;
         } catch (attrError) {
@@ -231,8 +231,8 @@ function processEmployee(zamestnanec, index, pracovnaDobaHodiny, datum) {
         
         // Prémia (default 0)
         try {
-            var premia = currentEntry.attr(CONFIG.attributes.premia) || 0;
-            currentEntry.setAttr(CONFIG.attributes.premia, premia);
+            var premia = zamestnanec.attr(CONFIG.attributes.premia) || 0;
+            zamestnanec.setAttr(CONFIG.attributes.premia, premia);
             addDebug("  ✅ Atribút 'prémia': " + premia + " €");
             atributSuccess++;
         } catch (attrError) {
@@ -241,8 +241,8 @@ function processEmployee(zamestnanec, index, pracovnaDobaHodiny, datum) {
         
         // Pokuta (default 0)
         try {
-            var pokuta = currentEntry.attr(CONFIG.attributes.pokuta) || 0;
-            currentEntry.setAttr(CONFIG.attributes.pokuta, pokuta);
+            var pokuta = zamestnanec.attr(CONFIG.attributes.pokuta) || 0;
+            zamestnanec.setAttr(CONFIG.attributes.pokuta, pokuta);
             addDebug("  ✅ Atribút 'pokuta': " + pokuta + " €");
             atributSuccess++;
         } catch (attrError) {
@@ -256,7 +256,7 @@ function processEmployee(zamestnanec, index, pracovnaDobaHodiny, datum) {
         dennaMzda = Math.round(dennaMzda * 100) / 100;
         
         try {
-            currentEntry.setAttr(CONFIG.attributes.dennaMzda, dennaMzda);
+            zamestnanec.setAttr(CONFIG.attributes.dennaMzda, dennaMzda);
             addDebug("  💰 Denná mzda: " + dennaMzda + " €");
             addDebug("     Vzorec: (" + pracovnaDobaHodiny + " × " + aktualnaHodinovka + ") + (" + 
                     pracovnaDobaHodiny + " × " + priplatok + ") + " + premia + " - " + pokuta);
