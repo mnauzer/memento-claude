@@ -70,7 +70,7 @@ function addZavazokInfo(typ, zamestnanec, suma, zavazokId) {
         zamestnanec: zamestnanec,
         suma: suma,
         zavazokId: zavazokId || "neznáme",
-        cas: moment().format("DD.MM.YY HH:mm:ss")
+        cas: moment().format("DD.MM.YY HH:mm")
     };
     vytvorenieZavazkyInfo.push(info);
 }
