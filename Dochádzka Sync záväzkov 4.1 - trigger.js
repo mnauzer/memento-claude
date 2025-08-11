@@ -1,8 +1,12 @@
 // ==============================================
 // MEMENTO DATABASE - DOCHÁDZKA SYNC ZÁVÄZKOV
-// Verzia: 4.0 | Dátum: 11.08.2025 | Autor: JavaScript Expert
+// Verzia: 4.1 | Dátum: 11.08.2025 | Autor: JavaScript Expert
 // Knižnica: Dochádzka | Trigger: After Save
 // ==============================================
+// ✅ OPRAVENÉ v4.1:
+//    - Správne vytvorenie záznamu pre JavaScript 1.7
+//    - Odstránené ES6 computed property names
+//    - Kompatibilné s Mozilla Rhino engine
 // ✅ KOMPLETNE REFAKTOROVANÉ v4.0:
 //    - Štruktúra podľa vzoru Dochádzka Prepočet 3.1
 //    - Jednotné debug/error logy s DD.MM.YY HH:mm
@@ -21,7 +25,7 @@
 
 var CONFIG = {
     debug: true,
-    version: "4.0",
+    version: "4.1",
     scriptName: "Dochádzka Sync záväzkov",
     
     // Názvy knižníc
@@ -302,25 +306,36 @@ function vytvorNovyZavazok(zavazkyLib, zamestnanec, datum, suma, identifikator) 
         infoText += "📂 Zdroj: Knižnica Dochádzka\n\n";
         infoText += "✅ ZÁVÄZOK VYTVORENÝ ÚSPEŠNE";
         
-        // Vytvor objekt pre nový záväzok
-        var novyZavazok = {
-            [CONFIG.zavazkyFields.stav]: CONFIG.stavy.neuhradene,
-            [CONFIG.zavazkyFields.datum]: datum,
-            [CONFIG.zavazkyFields.typ]: "Mzda",
-            [CONFIG.zavazkyFields.zamestnanec]: [zamestnanec],
-            [CONFIG.zavazkyFields.veritiel]: "Zamestnanec",
-            [CONFIG.zavazkyFields.dochadzka]: [currentEntry],
-            [CONFIG.zavazkyFields.popis]: popis,
-            [CONFIG.zavazkyFields.suma]: suma,
-            [CONFIG.zavazkyFields.zaplatene]: 0,
-            [CONFIG.zavazkyFields.zostatok]: suma,
-            [CONFIG.zavazkyFields.info]: infoText
-        };
+        // Vytvor objekt pre nový záväzok - SPRÁVNY SPÔSOB pre JavaScript 1.7
+        var dataZaznamu = {};
+        dataZaznamu[CONFIG.zavazkyFields.stav] = CONFIG.stavy.neuhradene;
+        dataZaznamu[CONFIG.zavazkyFields.datum] = datum;
+        dataZaznamu[CONFIG.zavazkyFields.typ] = "Mzda";
+        dataZaznamu[CONFIG.zavazkyFields.zamestnanec] = [zamestnanec];
+        dataZaznamu[CONFIG.zavazkyFields.veritiel] = "Zamestnanec";
+        dataZaznamu[CONFIG.zavazkyFields.dochadzka] = [currentEntry];
+        dataZaznamu[CONFIG.zavazkyFields.popis] = popis;
+        dataZaznamu[CONFIG.zavazkyFields.suma] = suma;
+        dataZaznamu[CONFIG.zavazkyFields.zaplatene] = 0;
+        dataZaznamu[CONFIG.zavazkyFields.zostatok] = suma;
+        dataZaznamu[CONFIG.zavazkyFields.info] = infoText;
         
-        var vytvorenyZavazok = zavazkyLib.create(novyZavazok);
+        // Vytvor nový záznam pomocou Memento API
+        var vytvorenyZavazok = zavazkyLib.create(dataZaznamu);
         
         if (vytvorenyZavazok) {
             addDebug("  ✅ Záväzok vytvorený úspešne");
+            
+            // Pokús sa získať ID nového záznamu
+            try {
+                var zavazokID = vytvorenyZavazok.field("ID");
+                if (zavazokID) {
+                    addDebug("    🆔 ID záväzku: #" + zavazokID);
+                }
+            } catch (idError) {
+                // Ignoruj chybu získania ID
+            }
+            
             return true;
         } else {
             addError("Vytvorenie záväzku zlyhalo", "vytvorNovyZavazok");
@@ -517,7 +532,8 @@ function hlavnaFunkcia() {
         infoMessage += "\n🔧 TECHNICKÉ INFO:\n";
         infoMessage += "• Script verzia: " + CONFIG.version + "\n";
         infoMessage += "• Trigger: After Save\n";
-        infoMessage += "• Knižnica: Dochádzka\n\n";
+        infoMessage += "• Knižnica: Dochádzka\n";
+        infoMessage += "• JavaScript: 1.7 (Rhino)\n\n";
         
         if (totalUspesnych === zamestnanci.length) {
             infoMessage += "✅ VŠETKY ZÁVÄZKY ÚSPEŠNE SYNCHRONIZOVANÉ";
