@@ -588,7 +588,7 @@ try {
         
         // Informuj používateľa
         if (result) {
-            var info = safeFieldAccess(currentEntry, CONFIG.fields.info, "");
+           // var info = safeFieldAccess(currentEntry, CONFIG.fields.info, "");
             var shortInfo = info.split("\n").slice(0, 10).join("\n");
             
             message("✅ Záväzky úspešne synchronizované!\n\n" + shortInfo + "\n\n" + 
