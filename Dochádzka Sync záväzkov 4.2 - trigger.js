@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - DOCHÁDZKA SYNC ZÁVÄZKOV
-// Verzia: 4.1 | Dátum: 11.08.2025 | Autor: JavaScript Expert
+// Verzia: 4.2 | Dátum: 11.08.2025 | Autor: JavaScript Expert
 // Knižnica: Dochádzka | Trigger: After Save
 // ==============================================
 // ✅ OPRAVENÉ v4.1:
@@ -25,7 +25,7 @@
 
 var CONFIG = {
     debug: true,
-    version: "4.1",
+    version: "4.2",
     scriptName: "Dochádzka Sync záväzkov",
     
     // Názvy knižníc
@@ -196,8 +196,7 @@ function getDennaMzdaZamestnanca(zamestnanec, index) {
     
     try {
         // Získaj dennú mzdu z atribútu cez currentEntry
-        var dennaMzda = currentEntry.attr(CONFIG.attributes.dennaMzda);
-        message(dennaMzda);
+        var dennaMzda = zamestnanec.attr(CONFIG.attributes.dennaMzda);
         if (dennaMzda !== null && dennaMzda !== undefined && dennaMzda > 0) {
             addDebug("  💰 Denná mzda z atribútu: " + formatCurrency(dennaMzda));
             return parseFloat(dennaMzda);
