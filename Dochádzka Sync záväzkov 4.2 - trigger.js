@@ -122,7 +122,7 @@ function addError(message, location) {
 function saveLogs() {
     try {
         // Vymaž staré logy pred zápisom nových
-        currentEntry.set(CONFIG.fields.debugLog, "");
+       // currentEntry.set(CONFIG.fields.debugLog, "");
         currentEntry.set(CONFIG.fields.errorLog, "");
         
         // Ulož nové logy
