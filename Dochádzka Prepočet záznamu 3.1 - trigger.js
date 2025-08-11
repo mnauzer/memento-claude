@@ -35,9 +35,9 @@ var CONFIG = {
     attributes: {
         odpracovane: "odpracované",
         hodinovka: "hodinovka",
-        priplatok: "príplatok (€/h)",
-        premia: "prémia (€)",
-        pokuta: "pokuta (€)",
+        priplatok: "+príplatok (€/h)",
+        premia: "+prémia (€)",
+        pokuta: "-pokuta (€)",
         dennaMzda: "denná mzda"
     },
     
