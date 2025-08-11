@@ -9,7 +9,7 @@
 	Doplnenie a výpočty atribútov objektov zamestnancov v poli Zamestnanci:
 	- odpracované: Pracovná doba
 	- hodinovka: zistiť aktuálnu hodinovú sadzbu ku dňu v poli Dátum z knižnice Zamestnanci (objekt Zamestnanec v poli Zamestnanci -> linksFrom("sadzby zamestnancov","Zamestnanec")
-	- denná mzda: "denná mzda" = ("odpracované" * "hodinovka") + ("odpracované" * "+príplatok") + "+prémia (€)" - "-pokuta (€)"
+	- denná mzda: "denná mzda" = ("odpracované" * "hodinovka") + ("odpracované" * "+príplatok (€/h)") + "+prémia (€)" - "-pokuta (€)"
 	Odpracované: Počet pracovníkov * Pracovná doba, v hodinách (desiatková sústava napríklad 7,75)
 	Mzdové náklady: súčet atribútu "denná mzda" z každého záznamu (objektu) v poli Zamestnanci
     Vyplniť pole info: informácie ako vznikol záznam a ako boli prepočítané jeho hodnoty - pozri "Dochádzka Knowledge base.md"
