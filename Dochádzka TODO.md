@@ -25,6 +25,7 @@
 		- Typ - Mzda
 		- Veriteľ - Zamestnanec
 		- Popis: vzor: "Mzda zamestnanca Nick (Priezvisko) za deň dátum"
+	pri úspešnom vytvorení záznamov v Záväzkoch označiť pole Záväzky v aktuálnom zázname ako true
 
 
 
