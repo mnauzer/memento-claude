@@ -197,7 +197,7 @@ function getDennaMzdaZamestnanca(zamestnanec, index) {
     try {
         // Získaj dennú mzdu z atribútu cez currentEntry
         var dennaMzda = currentEntry.attr(CONFIG.attributes.dennaMzda);
-        
+        message(dennaMzda);
         if (dennaMzda !== null && dennaMzda !== undefined && dennaMzda > 0) {
             addDebug("  💰 Denná mzda z atribútu: " + formatCurrency(dennaMzda));
             return parseFloat(dennaMzda);
