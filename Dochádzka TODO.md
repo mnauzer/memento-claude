@@ -12,6 +12,8 @@
 	- denná mzda: "denná mzda" = ("odpracované" * "hodinovka") + ("odpracované" * "+príplatok") + "+prémia (€)" - "-pokuta (€)"
 	Odpracované: Počet pracovníkov * Pracovná doba, v hodinách (desiatková sústava napríklad 7,75)
 	Mzdové náklady: súčet atribútu "denná mzda" z každého záznamu (objektu) v poli Zamestnanci
+    Vyplniť pole info: informácie ako vznikol záznam a ako boli prepočítané jeho hodnoty - pozri "Dochádzka Knowledge base.md"
+    Zaznamenať štandardný Debug a Error log, vždy vymazať staré údaje pred novým záznamom
 
 	-** Sync záväzky
 	vytvoriť nové záznamy v Záväzky pre každého zamestnanca v poli Zamestnanci ak neexistujú
