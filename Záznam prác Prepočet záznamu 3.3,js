@@ -1,0 +1,635 @@
+// ==============================================
+// MEMENTO DATABASE - ZÁZNAM PRÁC PREPOČET ZÁZNAMU
+// Verzia: 3.3 | Dátum: 12.08.2025 | Autor: JavaScript Expert
+// Knižnica: Záznam prác | Trigger: Before Save
+// ==============================================
+// ✅ NOVÉ v3.3 - CLEAN CODE REVOLUTION:
+//    - POVINNÁ MementoUtils knižnica - bez nej script skončí s chybou
+//    - Odstránené VŠETKY fallback implementácie 
+//    - Maximálne využitie MementoUtils funkcií
+//    - Čistý, úsporný kód bez duplicít
+//    - Jasné error handling ak MementoUtils chýba
+// ✅ FUNKCIONALITY nezmenené:
+//    - Zaokrúhľovanie časov Od/Do na 15 minút
+//    - Výpočet pracovnej doby a odpracovaných hodín
+//    - Automatické hľadanie sadzieb zamestnancov
+//    - HZS spracovanie s auto-linkovaním defaults
+//    - Výkaz prác linksFrom spracovanie
+//    - Info záznamy pre audit trail
+// ==============================================
+
+// ==============================================
+// KRITICKÁ KONTROLA - MEMENTOUTILS AVAILABILITY
+// ==============================================
+
+if (typeof MementoUtils === 'undefined') {
+    var errorMsg = "❌ KRITICKÁ CHYBA!\n\n" +
+                  "🔧 MementoUtils knižnica nie je dostupná!\n\n" +
+                  "📋 RIEŠENIE:\n" +
+                  "1. Nahraj MementoUtils.js do Libraries knižnice\n" +
+                  "2. Skontroluj či je knižnica správne importovaná\n" +
+                  "3. Spusť script znovu\n\n" +
+                  "⚠️ Script sa ukončil bez zmien.";
+    
+    message(errorMsg);
+    
+    // Pokús sa zapísať error aj do Error_Log ak je možné
+    try {
+        var timestamp = moment().format("YYYY-MM-DD HH:mm:ss");
+        var errorLog = "[" + timestamp + "] v3.3 - MementoUtils knižnica nie je dostupná! Script ukončený.";
+        var existingError = currentEntry.field("Error_Log") || "";
+        currentEntry.set("Error_Log", existingError + errorLog + "\n");
+    } catch (e) {
+        // Ak ani toto nefunguje, len message už bol zobrazený
+    }
+    
+    // Ukonči script
+    throw new Error("MementoUtils knižnica nie je dostupná");
+}
+
+// Overenie verzie MementoUtils
+if (!MementoUtils.version || MementoUtils.version < "2.0") {
+    var versionError = "❌ NEKOMPATIBILNÁ VERZIA!\n\n" +
+                      "🔧 Potrebujem MementoUtils v2.0 alebo vyššiu\n" +
+                      "📋 Aktuálna verzia: " + (MementoUtils.version || "neznáma") + "\n\n" +
+                      "⚠️ Aktualizuj MementoUtils knižnicu!";
+    
+    message(versionError);
+    MementoUtils.addError(currentEntry, "Nekompatibilná MementoUtils verzia: " + (MementoUtils.version || "neznáma"), "3.3");
+    throw new Error("Nekompatibilná MementoUtils verzia");
+}
+
+// ==============================================
+// KONFIGURÁCIA
+// ==============================================
+
+var CONFIG = {
+    debug: true,
+    version: "3.3",
+    scriptName: "Záznam prác Prepočet",
+    
+    // Názvy polí - Záznam prác
+    fields: {
+        zamestnanci: "Zamestnanci",
+        datum: "Dátum",
+        od: "Od",
+        do: "Do",  // Skúsime najprv "Do", potom "Dp" ako fallback
+        zakazka: "Zákazka",
+        pracovnaDoba: "Pracovná doba",
+        pocetPracovnikov: "Počet pracovníkov",
+        odpracovane: "Odpracované",
+        mzdoveNaklady: "Mzdové náklady",
+        hodinovaZuctovacia: "Hodinová zúčtovacia sadzba",
+        sumaHZS: "Suma HZS",
+        vykonanePrace: "Vykonané práce",
+        info: "info"
+    },
+    
+    // Názvy atribútov pre zamestnancov
+    attributes: {
+        odpracovane: "odpracované",
+        hodinovka: "hodinovka",
+        mzdoveNaklady: "mzdové náklady"
+    },
+    
+    // Názvy atribútov pre HZS
+    hzsAttributes: {
+        cena: "cena"
+    },
+    
+    // Názvy atribútov pre Výkaz prác
+    vykazAttributes: {
+        vykonanePrace: "vykonané práce",
+        pocetHodin: "počet hodín",
+        uctoovanaSadzba: "účtovaná sadzba",
+        cenaCelkom: "cena celkom"
+    },
+    
+    // Názvy knižníc
+    libraries: {
+        sadzbyZamestnancov: "sadzby zamestnancov",
+        cennikPrac: "Cenník prác",
+        cenyPrac: "ceny prác",
+        defaulty: "ASISTANTO Defaults",
+        vykazPrac: "Výkaz prác"
+    },
+    
+    // Názvy polí v súvisiacich knižniciach
+    vykazFields: {
+        zakazka: "Zákazka",
+        praceHZS: "Práce HZS"
+    },
+    
+    // Emoji ikony
+    icons: {
+        start: "🚀",
+        step: "📋",
+        time: "⏰",
+        person: "👤",
+        money: "💰", 
+        success: "✅",
+        warning: "⚠️",
+        error: "❌",
+        info: "📋",
+        work: "🔧"
+    }
+};
+
+// ==============================================
+// BUSINESS LOGIC FUNKCIE
+// ==============================================
+
+/**
+ * Spracovanie zamestnancov - výpočet odpracovaných hodín a mzdových nákladov
+ * @param {Array} zamestnanci - Array zamestnancov
+ * @param {Date} datum - Dátum práce
+ * @param {number} pracovnaDobaHodiny - Pracovná doba v hodinách
+ * @return {Object} {odpracovaneTotal: number, celkoveMzdy: number}
+ */
+function spracujZamestnancov(zamestnanci, datum, pracovnaDobaHodiny) {
+    var vysledok = {
+        odpracovaneTotal: 0,
+        celkoveMzdy: 0
+    };
+    
+    if (!zamestnanci || zamestnanci.length === 0) {
+        MementoUtils.addDebug(currentEntry, "  Žiadni zamestnanci na spracovanie");
+        return vysledok;
+    }
+    
+    MementoUtils.addDebug(currentEntry, "  Spracúvam " + zamestnanci.length + " zamestnancov...");
+    
+    for (var i = 0; i < zamestnanci.length; i++) {
+        try {
+            var zamestnanec = zamestnanci[i];
+            if (!zamestnanec) {
+                MementoUtils.addDebug(currentEntry, "    [" + i + "] Prázdny zamestnanec - preskakujem");
+                continue;
+            }
+            
+            var displayName = MementoUtils.formatEmployeeName(zamestnanec);
+            MementoUtils.addDebug(currentEntry, "    [" + i + "] Spracúvam: " + displayName);
+            
+            // LinksFrom volanie s error handlingom
+            var sadzby = MementoUtils.safeLinksFrom(zamestnanec, CONFIG.libraries.sadzbyZamestnancov, "Zamestnanec");
+            
+            var aktualnaHodinovka = 0;
+            if (sadzby && sadzby.length > 0) {
+                aktualnaHodinovka = MementoUtils.findValidSalaryForDate(sadzby, datum);
+                MementoUtils.addDebug(currentEntry, "      Našiel " + sadzby.length + " sadzieb, platná: " + aktualnaHodinovka + " €/h");
+            } else {
+                MementoUtils.addDebug(currentEntry, "      Žiadne sadzby nenájdené, použijem 0 €/h");
+            }
+            
+            // Výpočty
+            var odpracovaneHodiny = pracovnaDobaHodiny;
+            var mzdaNaklady = aktualnaHodinovka * odpracovaneHodiny;
+            
+            // Nastav atribúty - používame MementoUtils
+            MementoUtils.safeSetAttr(currentEntry, CONFIG.fields.zamestnanci, i, CONFIG.attributes.odpracovane, odpracovaneHodiny);
+            MementoUtils.safeSetAttr(currentEntry, CONFIG.fields.zamestnanci, i, CONFIG.attributes.hodinovka, aktualnaHodinovka);
+            MementoUtils.safeSetAttr(currentEntry, CONFIG.fields.zamestnanci, i, CONFIG.attributes.mzdoveNaklady, mzdaNaklady);
+            
+            // Akumuluj totaly
+            vysledok.odpracovaneTotal += odpracovaneHodiny;
+            vysledok.celkoveMzdy += mzdaNaklady;
+            
+            MementoUtils.addDebug(currentEntry, "      " + CONFIG.icons.success + " Odpracované: " + odpracovaneHodiny + "h, mzda: " + MementoUtils.formatMoney(mzdaNaklady));
+            
+        } catch (zamestnanecError) {
+            MementoUtils.addError(currentEntry, "Chyba pri spracovaní zamestnanca[" + i + "]: " + zamestnanecError.toString(), CONFIG.version);
+        }
+    }
+    
+    MementoUtils.addDebug(currentEntry, "  " + CONFIG.icons.success + " Zamestnanci spracovaní - celkom " + vysledok.odpracovaneTotal + "h, " + MementoUtils.formatMoney(vysledok.celkoveMzdy));
+    return vysledok;
+}
+
+/**
+ * Spracovanie HZS s auto-linkovaním defaults
+ * @param {Date} datum - Dátum pre hľadanie ceny
+ * @return {Object} {hzsCena: number, sumaHZS: number, success: boolean}
+ */
+function spracujHZS(datum) {
+    var vysledok = {
+        hzsCena: 0,
+        sumaHZS: 0,
+        success: false
+    };
+    
+    try {
+        MementoUtils.addDebug(currentEntry, "  Kontrolujem HZS pole...");
+        
+        // Načítaj HZS pole s auto-default linkovaním
+        var hzsPole = MementoUtils.setDefaultAndReload(currentEntry, CONFIG.fields.hodinovaZuctovacia, CONFIG.libraries.defaulty, "HZS");
+        
+        if (!hzsPole || hzsPole.length === 0) {
+            MementoUtils.addError(currentEntry, "HZS pole zostáva prázdne aj po auto-linkovaní", CONFIG.version);
+            return vysledok;
+        }
+        
+        var hzsZaznam = hzsPole[0];
+        MementoUtils.addDebug(currentEntry, "    Mám HZS záznam, hľadám aktuálnu cenu...");
+        
+        // LinksFrom na ceny prác
+        var ceny = MementoUtils.safeLinksFrom(hzsZaznam, CONFIG.libraries.cenyPrac, "Práca");
+        
+        var aktualnaCena = 0;
+        if (ceny && ceny.length > 0) {
+            // Nájdi najnovšiu platnú cenu
+            aktualnaCena = MementoUtils.findValidSalaryForDate(ceny, datum);
+            MementoUtils.addDebug(currentEntry, "    " + CONFIG.icons.success + " Aktuálna HZS cena z " + ceny.length + " cien: " + MementoUtils.formatMoney(aktualnaCena));
+        } else {
+            // Fallback na základnú cenu z HZS záznamu
+            aktualnaCena = MementoUtils.safeGet(hzsZaznam, "Cena bez DPH", 0);
+            MementoUtils.addDebug(currentEntry, "    Používam základnú cenu z HZS: " + MementoUtils.formatMoney(aktualnaCena));
+        }
+        
+        if (aktualnaCena > 0) {
+            vysledok.hzsCena = aktualnaCena;
+            vysledok.sumaHZS = aktualnaCena; // Pre jeden záznam suma = cena
+            vysledok.success = true;
+            
+            // Nastav atribút ceny
+            MementoUtils.safeSetAttr(currentEntry, CONFIG.fields.hodinovaZuctovacia, 0, CONFIG.hzsAttributes.cena, aktualnaCena);
+            
+            MementoUtils.addDebug(currentEntry, "    " + CONFIG.icons.success + " HZS spracované úspešne: " + MementoUtils.formatMoney(aktualnaCena));
+        } else {
+            MementoUtils.addError(currentEntry, "Žiadna platná cena HZS nenájdená pre dátum " + moment(datum).format("DD.MM.YYYY"), CONFIG.version);
+        }
+        
+        return vysledok;
+        
+    } catch (error) {
+        MementoUtils.addError(currentEntry, "Chyba pri spracovaní HZS: " + error.toString(), CONFIG.version);
+        return vysledok;
+    }
+}
+
+/**
+ * Spracovanie výkazu prác - linkovanie a atribúty
+ * @param {Entry} zakazkaObj - Objekt zákazky
+ * @param {Entry} currentEntry - Aktuálny záznam prác
+ * @param {number} hzsCena - Aktuálna HZS cena
+ * @param {number} odpracovaneHodiny - Odpracované hodiny
+ */
+function processVykazPrac(zakazkaObj, currentEntry, hzsCena, odpracovaneHodiny) {
+    try {
+        MementoUtils.addDebug(currentEntry, "  Kontrolujem výkaz prác pre zákazku...");
+        
+        if (!zakazkaObj) {
+            MementoUtils.addDebug(currentEntry, "  Žiadna zákazka - preskakujem výkaz prác");
+            return;
+        }
+        
+        // Získaj výkazy prác linknuté na zákazku
+        var vykazyPrac = MementoUtils.safeLinksFrom(zakazkaObj, CONFIG.libraries.vykazPrac, CONFIG.vykazFields.zakazka);
+        
+        if (!vykazyPrac || vykazyPrac.length === 0) {
+            MementoUtils.addDebug(currentEntry, "  Žiadny výkaz prác nenájdený pre túto zákazku");
+            return;
+        }
+        
+        MementoUtils.addDebug(currentEntry, "  Našiel som " + vykazyPrac.length + " výkaz(ov) prác");
+        
+        // Spracuj prvý výkaz (zvyčajne je len jeden na zákazku)
+        var vykaz = vykazyPrac[0];
+        
+        // Pridaj link na aktuálny záznam prác
+        var existujucePrace = MementoUtils.safeGet(vykaz, CONFIG.vykazFields.praceHZS, []);
+        if (!Array.isArray(existujucePrace)) existujucePrace = [];
+        
+        existujucePrace.push(currentEntry);
+        MementoUtils.safeSet(vykaz, CONFIG.vykazFields.praceHZS, existujucePrace);
+        
+        // Nastav atribúty linku - index je length - 1
+        var linkIndex = existujucePrace.length - 1;
+        
+        // Získaj vykonané práce
+        var vykonanePrace = MementoUtils.safeGet(currentEntry, CONFIG.fields.vykonanePrace, "");
+        
+        // Vypočítaj cenu celkom
+        var cenaCelkom = odpracovaneHodiny * hzsCena;
+        
+        // Nastav všetky atribúty
+        MementoUtils.safeSetAttr(vykaz, CONFIG.vykazFields.praceHZS, linkIndex, CONFIG.vykazAttributes.vykonanePrace, vykonanePrace);
+        MementoUtils.safeSetAttr(vykaz, CONFIG.vykazFields.praceHZS, linkIndex, CONFIG.vykazAttributes.pocetHodin, odpracovaneHodiny);
+        MementoUtils.safeSetAttr(vykaz, CONFIG.vykazFields.praceHZS, linkIndex, CONFIG.vykazAttributes.uctoovanaSadzba, hzsCena);
+        MementoUtils.safeSetAttr(vykaz, CONFIG.vykazFields.praceHZS, linkIndex, CONFIG.vykazAttributes.cenaCelkom, cenaCelkom);
+        
+        MementoUtils.addDebug(currentEntry, "  " + CONFIG.icons.success + " Výkaz prác aktualizovaný:");
+        MementoUtils.addDebug(currentEntry, "    • Vykonané práce: " + (vykonanePrace ? (vykonanePrace.length > 50 ? vykonanePrace.substring(0, 50) + "..." : vykonanePrace) : "N/A"));
+        MementoUtils.addDebug(currentEntry, "    • Počet hodín: " + odpracovaneHodiny + "h");
+        MementoUtils.addDebug(currentEntry, "    • Účtovaná sadzba: " + MementoUtils.formatMoney(hzsCena));
+        MementoUtils.addDebug(currentEntry, "    • Cena celkom: " + MementoUtils.formatMoney(cenaCelkom));
+        
+    } catch (error) {
+        MementoUtils.addError(currentEntry, "Chyba pri spracovaní výkazu prác: " + error.toString(), CONFIG.version);
+    }
+}
+
+// ==============================================
+// HLAVNÁ FUNKCIA
+// ==============================================
+
+function hlavnaFunkcia() {
+    MementoUtils.addDebug(currentEntry, CONFIG.icons.start + " === ŠTART PREPOČTU ZÁZNAMU PRÁC v" + CONFIG.version + " ===");
+    MementoUtils.addDebug(currentEntry, "📱 Používam MementoUtils v" + MementoUtils.version);
+    
+    // Premenné pre sledovanie úspešnosti krokov
+    var step1Success = false;
+    var step2Success = false;
+    var step3Success = false;
+    var step4Success = false;
+    var step5Success = false;
+    var step6Success = false;
+    var step7Success = false;
+    
+    // Základné premenné
+    var datum = null;
+    var odRaw = null;
+    var doRaw = null;
+    var odRounded = null;
+    var doRounded = null;
+    var zamestnanci = null;
+    var zakazka = null;
+    var pracovnaDobaHodiny = 0;
+    var pocetPracovnikov = 0;
+    var odpracovaneTotal = 0;
+    var celkoveMzdy = 0;
+    var hzsVysledok = null;
+    
+    // KROK 1: Načítanie a validácia vstupných dát
+    try {
+        MementoUtils.addDebug(currentEntry, CONFIG.icons.step + " KROK 1: Načítavam vstupné dáta...");
+        
+        datum = MementoUtils.safeGet(currentEntry, CONFIG.fields.datum);
+        odRaw = MementoUtils.safeGet(currentEntry, CONFIG.fields.od);
+        
+        // Skús najprv "Do", ak nefunguje, skús "Dp"
+        doRaw = MementoUtils.safeGet(currentEntry, CONFIG.fields.do);
+        if (!doRaw) {
+            doRaw = MementoUtils.safeGet(currentEntry, "Dp");
+            if (doRaw) {
+                MementoUtils.addDebug(currentEntry, "  📝 Poznámka: Pole 'Dp' použité namiesto 'Do'");
+            }
+        }
+        
+        zamestnanci = MementoUtils.safeGet(currentEntry, CONFIG.fields.zamestnanci, []);
+        zakazka = MementoUtils.safeGet(currentEntry, CONFIG.fields.zakazka, []);
+        
+        MementoUtils.addDebug(currentEntry, "  📅 Dátum: " + (datum ? moment(datum).format("DD.MM.YYYY") : "NULL"));
+        MementoUtils.addDebug(currentEntry, "  🕐 Od (raw): " + MementoUtils.formatTime(odRaw));
+        MementoUtils.addDebug(currentEntry, "  🕐 Do (raw): " + MementoUtils.formatTime(doRaw));
+        MementoUtils.addDebug(currentEntry, "  " + CONFIG.icons.person + " Zamestnanci: " + (zamestnanci ? zamestnanci.length : 0));
+        MementoUtils.addDebug(currentEntry, "  📦 Zákazka: " + (zakazka && zakazka.length > 0 ? "Áno" : "Nie"));
+        
+        // Validácia cez MementoUtils
+        var validation = MementoUtils.validateRequiredFields(currentEntry, [CONFIG.fields.datum, CONFIG.fields.od, CONFIG.fields.zamestnanci]);
+        if (!validation.isValid) {
+            MementoUtils.addError(currentEntry, "Chýbajú povinné polia: " + validation.missingFields.join(", "), CONFIG.version);
+            return false;
+        }
+        
+        if (!doRaw) {
+            MementoUtils.addError(currentEntry, "Čas 'Do' ani 'Dp' nie je vyplnený", CONFIG.version);
+            return false;
+        }
+        
+        if (!zamestnanci || zamestnanci.length === 0) {
+            MementoUtils.addError(currentEntry, "Žiadni zamestnanci nie sú vybraní", CONFIG.version);
+            return false;
+        }
+        
+        step1Success = true;
+        MementoUtils.addDebug(currentEntry, "  " + CONFIG.icons.success + " Vstupné dáta sú v poriadku");
+        
+    } catch (error) {
+        MementoUtils.addError(currentEntry, "Chyba pri načítaní vstupných dát: " + error.toString(), CONFIG.version);
+        return false;
+    }
+    
+    // KROK 2: Zaokrúhľovanie časov na 15 minút
+    if (step1Success) {
+        try {
+            MementoUtils.addDebug(currentEntry, CONFIG.icons.step + " KROK 2: Zaokrúhľujem časy na 15 minút...");
+            
+            odRounded = MementoUtils.roundToQuarter(odRaw);
+            doRounded = MementoUtils.roundToQuarter(doRaw);
+            
+            MementoUtils.addDebug(currentEntry, "  🕐 Od zaokrúhlené: " + MementoUtils.formatTime(odRounded));
+            MementoUtils.addDebug(currentEntry, "  🕐 Do zaokrúhlené: " + MementoUtils.formatTime(doRounded));
+            
+            // Ulož zaokrúhlené časy
+            MementoUtils.safeSet(currentEntry, CONFIG.fields.od, odRounded);
+            MementoUtils.safeSet(currentEntry, CONFIG.fields.do, doRounded);
+            
+            step2Success = true;
+            MementoUtils.addDebug(currentEntry, "  " + CONFIG.icons.success + " Časy zaokrúhlené a uložené");
+            
+        } catch (error) {
+            MementoUtils.addError(currentEntry, "Chyba pri zaokrúhľovaní časov: " + error.toString(), CONFIG.version);
+            step2Success = false;
+        }
+    }
+    
+    // KROK 3: Výpočet pracovnej doby
+    if (step1Success && step2Success) {
+        try {
+            MementoUtils.addDebug(currentEntry, CONFIG.icons.step + " KROK 3: Výpočet pracovnej doby...");
+            
+            pracovnaDobaHodiny = MementoUtils.calculateTimeDifference(odRounded, doRounded);
+            pocetPracovnikov = zamestnanci.length;
+            
+            MementoUtils.addDebug(currentEntry, "  " + CONFIG.icons.time + " Pracovná doba: " + pracovnaDobaHodiny + " hodín");
+            MementoUtils.addDebug(currentEntry, "  " + CONFIG.icons.person + " Počet pracovníkov: " + pocetPracovnikov);
+            
+            // Ulož vypočítané hodnoty
+            MementoUtils.safeSet(currentEntry, CONFIG.fields.pracovnaDoba, pracovnaDobaHodiny);
+            MementoUtils.safeSet(currentEntry, CONFIG.fields.pocetPracovnikov, pocetPracovnikov);
+            
+            if (pracovnaDobaHodiny <= 0) {
+                MementoUtils.addError(currentEntry, "Pracovná doba je 0 alebo záporná", CONFIG.version);
+                return false;
+            }
+            
+            step3Success = true;
+            MementoUtils.addDebug(currentEntry, "  " + CONFIG.icons.success + " Pracovná doba vypočítaná");
+            
+        } catch (error) {
+            MementoUtils.addError(currentEntry, "Chyba pri výpočte pracovnej doby: " + error.toString(), CONFIG.version);
+            step3Success = false;
+        }
+    }
+    
+    // KROK 4: Spracovanie zamestnancov
+    if (step1Success && step2Success && step3Success) {
+        try {
+            MementoUtils.addDebug(currentEntry, CONFIG.icons.step + " KROK 4: Spracúvam zamestnancov...");
+            
+            var zamestnanciVysledok = spracujZamestnancov(zamestnanci, datum, pracovnaDobaHodiny);
+            odpracovaneTotal = zamestnanciVysledok.odpracovaneTotal;
+            celkoveMzdy = zamestnanciVysledok.celkoveMzdy;
+            
+            // Ulož súhrny
+            MementoUtils.safeSet(currentEntry, CONFIG.fields.odpracovane, odpracovaneTotal);
+            MementoUtils.safeSet(currentEntry, CONFIG.fields.mzdoveNaklady, celkoveMzdy);
+            
+            step4Success = true;
+            MementoUtils.addDebug(currentEntry, "  " + CONFIG.icons.success + " Zamestnanci spracovaní - " + odpracovaneTotal + "h, " + MementoUtils.formatMoney(celkoveMzdy));
+            
+        } catch (error) {
+            MementoUtils.addError(currentEntry, "Chyba pri spracovaní zamestnancov: " + error.toString(), CONFIG.version);
+            step4Success = false;
+        }
+    }
+    
+    // KROK 5: HZS spracovanie
+    if (step1Success && step2Success && step3Success) {
+        try {
+            MementoUtils.addDebug(currentEntry, CONFIG.icons.step + " KROK 5: Spracúvam HZS...");
+            
+            hzsVysledok = spracujHZS(datum);
+            
+            if (hzsVysledok.success) {
+                MementoUtils.safeSet(currentEntry, CONFIG.fields.sumaHZS, hzsVysledok.sumaHZS);
+                step5Success = true;
+                MementoUtils.addDebug(currentEntry, "  " + CONFIG.icons.success + " HZS spracované - " + MementoUtils.formatMoney(hzsVysledok.hzsCena));
+            } else {
+                MementoUtils.addError(currentEntry, "HZS spracovanie zlyhalo", CONFIG.version);
+                step5Success = false;
+            }
+            
+        } catch (error) {
+            MementoUtils.addError(currentEntry, "Chyba pri spracovaní HZS: " + error.toString(), CONFIG.version);
+            step5Success = false;
+        }
+    }
+    
+    // KROK 6: Výkaz prác spracovanie (nie je kritické)
+    if (step1Success && step5Success && zakazka && zakazka.length > 0) {
+        try {
+            MementoUtils.addDebug(currentEntry, CONFIG.icons.step + " KROK 6: Spracúvam výkaz prác...");
+            
+            var zakazkaObj = zakazka[0]; // Prvý objekt z poľa
+            processVykazPrac(zakazkaObj, currentEntry, hzsVysledok.hzsCena, odpracovaneTotal);
+            step6Success = true;
+            
+        } catch (error) {
+            MementoUtils.addError(currentEntry, "Chyba pri spracovaní výkazu prác: " + error.toString(), CONFIG.version);
+            step6Success = true; // Nie je to kritická chyba
+        }
+    } else {
+        step6Success = true; // Nie je zákazka, tak OK
+        MementoUtils.addDebug(currentEntry, CONFIG.icons.step + " KROK 6: Výkaz prác - preskakujem (žiadna zákazka)");
+    }
+    
+    // KROK 7: Vytvorenie info záznamu
+    if (step1Success && step2Success && step3Success) {
+        try {
+            MementoUtils.addDebug(currentEntry, CONFIG.icons.step + " KROK 7: Vytváram info záznam...");
+            
+            var infoMessage = CONFIG.icons.work + " ZÁZNAM PRÁC - AUTOMATICKÝ PREPOČET\n" +
+                            "=====================================\n\n" +
+                            "📅 Dátum: " + moment(datum).format("DD.MM.YYYY") + "\n" +
+                            CONFIG.icons.time + " Pracovný čas: " + MementoUtils.formatTime(odRounded) + " - " + MementoUtils.formatTime(doRounded) + "\n" +
+                            CONFIG.icons.time + " Pracovná doba: " + pracovnaDobaHodiny + " hodín\n";
+            
+            if (zakazka && zakazka.length > 0) {
+                var zakazkaObj = zakazka[0];
+                var cisloZakazky = MementoUtils.safeGet(zakazkaObj, "Číslo", "");
+                var nazovZakazky = MementoUtils.safeGet(zakazkaObj, "Názov záznamu", "");
+                infoMessage += "📦 Zákazka: " + cisloZakazky + " - " + nazovZakazky + "\n";
+            }
+            
+            infoMessage += "\n" + CONFIG.icons.person + " ZAMESTNANCI:\n" +
+                         "• Počet: " + pocetPracovnikov + " osôb\n" +
+                         "• Odpracované spolu: " + odpracovaneTotal + " hodín\n\n" +
+                         CONFIG.icons.money + " MZDOVÉ NÁKLADY:\n" +
+                         "• Celkom: " + MementoUtils.formatMoney(celkoveMzdy) + "\n" +
+                         "• Priemer na osobu: " + (pocetPracovnikov > 0 ? MementoUtils.formatMoney(celkoveMzdy / pocetPracovnikov) : "0 €") + "\n\n";
+            
+            if (hzsVysledok && hzsVysledok.success) {
+                infoMessage += "💼 HZS - HODINOVÁ ZÚČTOVACIA SADZBA:\n" +
+                             "• Sadzba: " + MementoUtils.formatMoney(hzsVysledok.hzsCena) + "/h\n" +
+                             "• Suma HZS: " + MementoUtils.formatMoney(hzsVysledok.sumaHZS) + "\n\n";
+            }
+            
+            infoMessage += "🤖 Automaticky vygenerované v" + CONFIG.version + " o " + moment().format("HH:mm:ss");
+            
+            // Ulož info cez MementoUtils
+            MementoUtils.addInfo(currentEntry, "Záznam prác prepočítaný", {
+                libraryName: "Záznam prác",
+                method: "Automatický prepočet v" + CONFIG.version,
+                result: "Úspešne dokončené"
+            });
+            
+            MementoUtils.safeSet(currentEntry, CONFIG.fields.info, infoMessage);
+            
+            step7Success = true;
+            MementoUtils.addDebug(currentEntry, "  " + CONFIG.icons.success + " Info záznam vytvorený");
+            
+        } catch (error) {
+            MementoUtils.addError(currentEntry, "Chyba pri vytváraní info záznamu: " + error.toString(), CONFIG.version);
+            step7Success = false;
+        }
+    }
+    
+    // Final cleanup a úspešné dokončenie
+    if (step1Success && step2Success && step3Success) {
+        try {
+            // Ulož logy
+            MementoUtils.saveLogs(currentEntry);
+            
+            MementoUtils.addDebug(currentEntry, CONFIG.icons.success + " === PREPOČET DOKONČENÝ ÚSPEŠNE ===");
+            return true;
+            
+        } catch (error) {
+            MementoUtils.addError(currentEntry, "Chyba pri finalizácii: " + error.toString(), CONFIG.version);
+            return false;
+        }
+    } else {
+        MementoUtils.addError(currentEntry, "Prepočet zlyhal - niektoré kroky neboli úspešné", CONFIG.version);
+        return false;
+    }
+}
+
+// ==============================================
+// SPUSTENIE SCRIPTU
+// ==============================================
+
+try {
+    // Vyčisti staré debug logy na začiatku
+    MementoUtils.clearLogs(currentEntry, false); // Len debug, error nech zostávajú
+    
+    // Spustenie hlavnej funkcie
+    var result = hlavnaFunkcia();
+    
+    // Informuj používateľa
+    if (result) {
+        var successMessage = CONFIG.icons.success + " Záznam prác prepočítaný úspešne!\n\n" +
+                           CONFIG.icons.time + " Časy zaokrúhlené na 15 min\n" +
+                           "📊 Pracovná doba: " + MementoUtils.safeGet(currentEntry, CONFIG.fields.pracovnaDoba, 0) + " h\n" +
+                           CONFIG.icons.person + " Zamestnanci: " + MementoUtils.safeGet(currentEntry, CONFIG.fields.pocetPracovnikov, 0) + " osôb\n" +
+                           CONFIG.icons.money + " Mzdové náklady: " + MementoUtils.formatMoney(MementoUtils.safeGet(currentEntry, CONFIG.fields.mzdoveNaklady, 0)) + "\n" +
+                           "💼 Suma HZS: " + MementoUtils.formatMoney(MementoUtils.safeGet(currentEntry, CONFIG.fields.sumaHZS, 0)) + "\n\n" +
+                           CONFIG.icons.info + " Detaily v poli 'info'";
+        
+        message(successMessage);
+    } else {
+        var errorMessage = CONFIG.icons.error + " Prepočet záznamu prác zlyhal!\n\n" +
+                          "🔍 Skontroluj Error_Log pre detaily\n" +
+                          CONFIG.icons.step + " Over vstupné dáta a skús znovu";
+        
+        message(errorMessage);
+    }
+    
+} catch (kritickachyba) {
+    // Posledná záchrana
+    try {
+        MementoUtils.addError(currentEntry, "KRITICKÁ CHYBA: " + kritickachyba.toString(), CONFIG.version);
+        message(CONFIG.icons.error + " KRITICKÁ CHYBA!\n\nScript zlyhal. Pozri Error_Log.");
+    } catch (finalError) {
+        message(CONFIG.icons.error + " FATÁLNA CHYBA!\n\n" + kritickachyba.toString());
+    }
+}
