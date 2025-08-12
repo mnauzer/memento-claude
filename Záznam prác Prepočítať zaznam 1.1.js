@@ -782,4 +782,4 @@ try {
     } catch (finalError) {
         message(CONFIG.icons.error + " FATÁLNA CHYBA!\n\n" + kritickachyba.toString());
     }
-} "
+}
