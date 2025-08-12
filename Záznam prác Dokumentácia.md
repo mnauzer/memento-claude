@@ -51,8 +51,10 @@ Vyberie poslednú platnú sadzbu k dátumu **Dátum**.
 
 ## 4️⃣ Väzby na „Výkaz prác“
 
+Pri novom zázname **Záznam prác** sa kontroluje existencia záznamu vo **Výkaz prác** takto:
+Kontroluje sa zázname zákazky v poli Zákazka linksFrom prepojenie z knižnice Výkaz prác na tento záznam(objekt). Prepojenie zákazka[0].linksFrom("Výkaz prác", "Zákazka")
+
 ### 4.1 Ak výkaz existuje
-Pri novom zázname **Záznam prác** sa kontroluje existencia záznamu vo **Výkaz prác**:
 - Ak existuje:
   - Do poľa **Práce HZS** vo výkaze sa pridá link na nový záznam.
   - Atribúty linku:
