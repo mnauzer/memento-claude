@@ -286,7 +286,7 @@ var MementoUtils = (function() {
             try {
                 var links = entry.field(fieldName);
                 if (links && links[index]) {
-                    return links[index].attr(attrName) || defaultValue || null;
+                    return links[index].field(field name).attr(attrName) || defaultValue || null;
                 }
             } catch (e2) {
                 return defaultValue || null;
