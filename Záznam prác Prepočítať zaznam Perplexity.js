@@ -1,194 +1,330 @@
-// After Save trigger script for "Záznam prác"
-var utils = MementoUtils;
+// ==============================================
+// MEMENTO DATABASE - ZÁZNAM PRÁC - AFTER SAVE TRIGGER
+// Verzia: 1.0 | Dátum: 12.08.2025
+// ==============================================
 
-try {
-    // Vyčisti debug log pre nový zápis
-    utils.clearLogs(entry(), false);
-    utils.addDebug(entry(), "🚀 Spúšťam spracovanie záznamu práce");
-
-    var e = entry();
-
-    // 1. Zaokrúhlenie času Od a Do na 15 minút
-    var odRaw = utils.safeFieldAccess(e, "Od");
-    var doRaw = utils.safeFieldAccess(e, "Do");
-
-    var odMoment = odRaw ? moment(odRaw) : null;
-    var doMoment = doRaw ? moment(doRaw) : null;
-
-    if (odMoment && doMoment) {
-        var odRounded = utils.roundToQuarter(odMoment);
-        var doRounded = utils.roundToQuarter(doMoment);
-
-        e.set("Od", odRounded.toDate());
-        e.set("Do", doRounded.toDate());
-
-        utils.addDebug(e, "⏰ Časy zaokrúhlené na 15 minút (Od: " + odRounded.format("HH:mm") + ", Do: " + doRounded.format("HH:mm") + ")");
-    } else {
-        utils.addError(e, "⚠️ Chýba platný čas v Od alebo Do");
+var CONFIG = {
+    debug: true,
+    version: "1.0",
+    fields: {
+        datum: "Dátum",
+        zakazka: "Zákazka",
+        od: "Od",
+        do: "Do",
+        zamestnanci: "Zamestnanci",
+        hzs: "Hodinová zúčtovacia sadzba",
+        vykonanePrace: "Vykonané práce",
+        pracovnaDoba: "Pracovná doba",
+        odpracovane: "Odpracované",
+        pocetPracovnikov: "Počet pracovníkov",
+        mzdoveNaklady: "Mzdové náklady",
+        sumaHZS: "Suma HZS",
+        info: "info",
+        debugLog: "Debug_Log",
+        errorLog: "Error_Log"
+    },
+    attributes: {
+        odpracovane: "odpracované",
+        hodinovka: "hodinovka",
+        mzdoveNaklady: "mzdové náklady",
+        cena: "cena"
+    },
+    libraries: {
+        sadzbyZam: "sadzby zamestnancov",
+        vykazPrac: "Výkaz prác",
+        cenyPrac: "ceny prác"
+    },
+    sadzbyFields: {
+        zamestnanec: "Zamestnanec",
+        platnostOd: "Platnosť od",
+        sadzba: "Sadzba"
     }
+};
 
-    // 2. Výpočet pracovnej doby v hodinách
-    var pracovnadoba = (odRounded && doRounded) ? doRounded.diff(odRounded, "minutes") / 60 : 0;
-    pracovnadoba = pracovnadoba > 0 ? Math.round(pracovnadoba * 100) / 100 : 0;
-    e.set("Pracovná doba", pracovnadoba);
-    utils.addDebug(e, "🕒 Pracovná doba vypočítaná: " + pracovnadoba + " hodín");
+// Lokálne logy
+var debugLog = [];
+var errorLog = [];
+var e = entry();
 
-    // 3. Spracovanie poľa Zamestnanci
-    var zamestnanci = utils.safeGetLinks(e, "Zamestnanci");
-    var pocetPracovnikov = zamestnanci.length;
-    e.set("Počet pracovníkov", pocetPracovnikov);
-    utils.addDebug(e, "👥 Počet zamestnancov: " + pocetPracovnikov);
+function logDebug(msg) {
+    if (CONFIG.debug) {
+        var ts = moment().format("DD.MM.YY HH:mm:ss");
+        debugLog.push("[" + ts + "] " + msg);
+    }
+}
 
-    var odpracovaneCelkom = 0;
-    var mzdoveNakladyCelkom = 0;
+function logError(msg, loc) {
+    var ts = moment().format("DD.MM.YY HH:mm:ss");
+    errorLog.push("[" + ts + "] ❌ " + msg + (loc ? " (Loc: " + loc + ")" : ""));
+}
 
-    for (var i = 0; i < pocetPracovnikov; i++) {
-        var zam = zamestnanci[i];
+function saveLogs() {
+    try {
+        e.set(CONFIG.fields.debugLog, debugLog.join("\n"));
+        e.set(CONFIG.fields.errorLog, errorLog.join("\n"));
+    } catch (_) {}
+}
 
-        // Atribút odpracované - pracovná doba (v hodinách)
-        zam.setAttr("odpracované", pracovnadoba);
+function safeVal(val, defVal) {
+    return (val !== null && val !== undefined) ? val : defVal;
+}
 
-        // Zistenie hodinovej sadzby k dátumu Dátum
-        var sadzby = zam.linksFrom("sadzby zamestnancov", "Zamestnanec") || [];
-        var datum = utils.safeFieldAccess(e, "Dátum", null);
-        var hodinovka = 0;
+function roundToQuarter(ms) {
+    if (!ms) return null;
+    var q = 15 * 60 * 1000;
+    return Math.round(ms / q) * q;
+}
 
-        // Vyber poslednú platnú sadzbu podľa dátumu
-        var validSadzba = null;
-        for (var j = 0; j < sadzby.length; j++) {
-            var s = sadzby[j];
-            var platnostOd = moment(utils.safeFieldAccess(s, "Platnosť od"));
-            if (datum && platnostOd.isValid() && datum >= platnostOd.toDate()) {
-                if (!validSadzba || platnostOd.isAfter(moment(utils.safeFieldAccess(validSadzba, "Platnosť od")))) {
-                    validSadzba = s;
+function calcHours(msStart, msEnd) {
+    if (!msStart || !msEnd) return 0;
+    if (msEnd < msStart) {
+        msEnd += 24 * 60 * 60 * 1000;
+        logDebug("⏰ Práca cez polnoc");
+    }
+    return Math.round(((msEnd - msStart) / 3600000) * 100) / 100;
+}
+
+function findValidSalary(zamEntry, workDate) {
+    try {
+        var sadzby = zamEntry.linksFrom(CONFIG.libraries.sadzbyZam, CONFIG.sadzbyFields.zamestnanec) || [];
+        if (!sadzby.length) {
+            logDebug("⚠️ Žiadne sadzby pre zamestnanca: " + zamEntry.field("Nick"));
+            return 0;
+        }
+        var sel = 0, latest = null;
+        for (var i=0; i<sadzby.length; i++) {
+            var platOd = sadzby[i].field(CONFIG.sadzbyFields.platnostOd);
+            var sadzba = parseFloat(sadzby[i].field(CONFIG.sadzbyFields.sadzba) || 0);
+            if (platOd && sadzba && platOd <= workDate) {
+                if (!latest || platOd > latest) {
+                    latest = platOd;
+                    sel = sadzba;
                 }
             }
         }
-        if (validSadzba) {
-            hodinovka = parseFloat(utils.safeFieldAccess(validSadzba, "Sadzba hodinová", 0)) || 0;
-        }
-        zam.setAttr("hodinovka", hodinovka);
-
-        // Výpočet mzdových nákladov = odpracované * hodinovka
-        var mzdoveNaklady = pracovnadoba * hodinovka;
-        zam.setAttr("mzdové náklady", mzdoveNaklady);
-
-        odpracovaneCelkom += pracovnadoba;
-        mzdoveNakladyCelkom += mzdoveNaklady;
-
-        utils.addDebug(e, "🧑 Zamestnanec #" + (i+1) + ": hodinovka=" + hodinovka + ", mzdové náklady=" + mzdoveNaklady.toFixed(2));
+        logDebug("✅ Hodinovka: " + sel);
+        return sel;
+    } catch(err) {
+        logError("Chyba pri hľadaní hodnoty hodinovky: " + err, "findValidSalary");
+        return 0;
     }
+}
 
-    // 4. Výpočet Odpracované (Pracovná doba * počet zamestnancov)
-    var odpracovaneTotal = pracovnadoba * pocetPracovnikov;
-    e.set("Odpracované", odpracovaneTotal);
-    utils.addDebug(e, "🔢 Odpracované celkom: " + odpracovaneTotal + " hodín");
+function processEmployee(zam, idx, workHours, datum) {
+    try {
+        var n = zam.field("Nick") || "Neznámy";
+        logDebug("👤 Zamestnanec #" + (idx+1) + ": " + n);
 
-    // 5. Výpočet Mzdové náklady (súčet atribútov)
-    e.set("Mzdové náklady", Math.round(mzdoveNakladyCelkom * 100) / 100);
-    utils.addDebug(e, "💰 Mzdové náklady celkom: " + mzdoveNakladyCelkom.toFixed(2) + " €");
+        var hodinovka = findValidSalary(zam, datum);
+        var naklady = workHours * hodinovka;
+        
+        zam.setAttr(CONFIG.attributes.odpracovane, workHours);
+        zam.setAttr(CONFIG.attributes.hodinovka, hodinovka);
+        zam.setAttr(CONFIG.attributes.mzdoveNaklady, naklady);
 
-    // 6. Spracovanie Hodinová zúčtovacia sadzba
-    var hzs = utils.safeGetFirstLink(e, "Hodinová zúčtovacia sadzba");
-    var cenaHZS = 0;
-    if (hzs) {
-        // Zisťovanie ceny cez linksFrom "ceny prác"
-        var cenyPrac = hzs.linksFrom("ceny prác", "Cenník prác") || [];
-        if (cenyPrac.length > 0) {
-            var poslednaCena = cenyPrac[cenyPrac.length - 1];
-            cenaHZS = parseFloat(utils.safeFieldAccess(poslednaCena, "Cena", 0));
-            // Doplníme cenu do HZS záznamu
-            poslednaCena.set("Cena", cenaHZS);
-        } else {
-            // Žiadne ceny prác - použije sa Cena v HZS
-            cenaHZS = parseFloat(utils.safeFieldAccess(hzs, "Cena", 0));
-        }
-        // Zapíš cenu ako atribút "cena"
-        hzs.setAttr("cena", cenaHZS);
+        logDebug("  odpracované=" + workHours + " h, hodinovka=" + hodinovka + " €, mzdové náklady=" + naklady);
+        return naklady;
+    } catch(ex) {
+        logError("Chyba spracovania zamestnanca idx=" + idx + ": " + ex, "processEmployee");
+        return 0;
     }
-    utils.addDebug(e, "💵 Hodinová zúčtovacia sadzba (cena): " + cenaHZS);
+}
 
-    // 7. Výpočet Suma HZS
-    var sumaHZS = odpracovaneTotal * cenaHZS;
-    e.set("Suma HZS", Math.round(sumaHZS * 100) / 100);
-    utils.addDebug(e, "💸 Suma HZS vypočítaná: " + sumaHZS.toFixed(2) + " €");
-
-    // 8. Automatické prepojenie s Výkaz prác
-    var zakazka = utils.safeGetFirstLink(e, "Zákazka");
-    var vymazanyVyrokPrac = null;
-
-    if (zakazka) {
-        // Skontrolujeme existujúci Výkaz prác pre túto zákazku
-        var vyzPracLib = libByName("Výkaz prác");
-        var existujuceVyroky = vyzPracLib ? vyzPracLib.find("Zákazka", zakazka) : [];
-        if (neexistujuceVyroky && existujuceVyroky.length > 0) {
-            vymazanyVyrokPrac = existujuceVyroky[0]; // Prvý existujúci výkaz
-        } else {
-            vymazanyVyrokPrac = null;
-        }
+function generateIdentifikator(zakazka) {
+    try {
+        var zakazkaID = zakazka.field("ID") || "XXX";
+        var datum = moment().format("YYYYMM");
+        return "VYK-" + zakazkaID + "-" + datum;
+    } catch (e) {
+        return "VYK-" + moment().format("YYYYMMDD");
     }
+}
 
-    if (!vymazanyVyrokPrac) {
-        // Vytvoríme nový Výkaz prác
-        var vyzPracLib = libByName("Výkaz prác");
-        if (vyzPracLib) {
-            var newVyrok = vyzPracLib.create();
-            newVyrok.set("Dátum", e.field("Dátum") || null);
-            // Nastav ostatné polia podľa popisu (používaj default hodnoty ak treba)
-            newVyrok.set("Identifikátor", ""); // uprav podľa pravidiel
-            newVyrok.set("Popis", "");
-            var typVykazu = utils.safeFieldAccess(zakazka, "Typ výkazu", "Hodinovka");
-            newVyrok.set("Typ výkazu", typVykazu);
-            newVyrok.set("Ceny počítať", "Z cenovej ponuky");
-            var cenPonuka = utils.safeGetFirstLink(zakazka, "Cenová ponuka");
-            if (cenPonuka) {
-                newVyrok.set("Cenová ponuka", cenPonuka);
+function generatePopis(zakazka) {
+    try {
+        var zakazkaNazov = zakazka.field("Názov") || "Neznáma zákazka";
+        var mesiac = moment().format("MMMM YYYY");
+        return "Výkaz prác pre zákazku " + zakazkaNazov + " - " + mesiac;
+    } catch (e) {
+        return "Výkaz prác - " + moment().format("MMMM YYYY");
+    }
+}
+
+function syncVykazPrac(currentEntry) {
+    try {
+        var zakazka = currentEntry.field(CONFIG.fields.zakazka);
+        if (!zakazka) {
+            logError("Chýba pole Zákazka, nemôžem synchronizovať Výkaz prác", "syncVykazPrac");
+            return false;
+        }
+
+        logDebug("🔍 Kontrolujem existenciu Výkazu prác pre zákazku...");
+
+        var existujuceVyroky = zakazka.linksFrom("Výkaz prác", "Zákazka") || [];
+        var vykazPrac = existujuceVyroky.length > 0 ? existujuceVyroky[0] : null;
+
+        if (!vykazPrac) {
+            logDebug("💡 Vytváram nový Výkaz prác pre zákazku...");
+            
+            var vykazLib = libByName("Výkaz prác");
+            if (!vykazLib) {
+                logError("Knižnica 'Výkaz prác' neexistuje", "syncVykazPrac");
+                return false;
             }
-            newVyrok.set("Vydané", "Zákazka");
-            newVyrok.set("Zákazka", zakazka);
-            vymazanyVyrokPrac = newVyrok;
-            utils.addInfo(e, "💡 Vytvorený nový Výkaz prác");
-        } else {
-            utils.addError(e, "❌ Knižnica Výkaz prác neexistuje");
-        }
-    }
 
-    // Pridaj spätný link do Výkazu prác v poli "Práce HZS"
-    if (vymazanyVyrokPrac) {
-        var praceHZS = vymazanyVyrokPrac.field("Práce HZS") || [];
-        var existsLink = false;
+            vykazPrac = vykazLib.create();
 
-        // Skontroluj, či už link na tento záznam existuje
-        for (var k = 0; k < praceHZS.length; k++) {
-            if (praceHZS[k].id === e.id) {
-                existsLink = true;
-                break;
+            vykazPrac.set("Dátum", currentEntry.field(CONFIG.fields.datum) || null);
+            vykazPrac.set("Identifikátor", generateIdentifikator(zakazka));
+            vykazPrac.set("Popis", generatePopis(zakazka));
+            
+            var typVykazu = safeVal(zakazka.field("Typ výkazu"), "Hodinovka");
+            vykazPrac.set("Typ výkazu", typVykazu);
+            vykazPrac.set("Ceny počítať", "Z cenovej ponuky");
+            
+            var cenovaPonuka = zakazka.field("Cenová ponuka");
+            if (cenovaPonuka) {
+                vykazPrac.set("Cenová ponuka", cenovaPonuka);
             }
-        }
-        if (!existsLink) {
-            praceHZS.push(e);
-            vymazanyVyrokPrac.set("Práce HZS", praceHZS);
+            
+            vykazPrac.set("Vydané", "Zákazka");
+            vykazPrac.set(CONFIG.fields.zakazka, zakazka);
 
-            // Nastav atribúty linku
-            vymazanyVyrokPrac.setAttr("Práce HZS", praceHZS.length -1, "vykonané práce", utils.safeFieldAccess(e, "Vykonané práce", ""));
-            vymazanyVyrokPrac.setAttr("Práce HZS", praceHZS.length -1, "počet hodín", utils.safeFieldAccess(e, "Odpracované", 0));
+            logDebug("✅ Nový Výkaz prác vytvorený a vyplnený");
+        } else {
+            logDebug("ℹ️ Existujúci Výkaz prác nájdený pre zákazku");
+        }
+
+        var praceHZS = vykazPrac.field("Práce HZS") || [];
+        if (!praceHZS) praceHZS = [];
+
+        var linkExists = praceHZS.some(function(linkedEntry) {
+            return linkedEntry.id === currentEntry.id;
+        });
+
+        if (!linkExists) {
+            praceHZS.push(currentEntry);
+            vykazPrac.set("Práce HZS", praceHZS);
+
+            var lastIndex = praceHZS.length - 1;
+
+            vykazPrac.setAttr("Práce HZS", lastIndex, "vykonané práce", safeVal(currentEntry.field(CONFIG.fields.vykonanePrace), ""));
+            vykazPrac.setAttr("Práce HZS", lastIndex, "počet hodín", safeVal(currentEntry.field(CONFIG.fields.odpracovane), 0));
             
             var cenaUc = 0;
-            if (hzs) {
-                cenaUc = parseFloat(hzs.attr("cena")) || 0;
+            var hzsLink = currentEntry.field(CONFIG.fields.hzs);
+            if (hzsLink && hzsLink.attr) {
+                cenaUc = parseFloat(hzsLink.attr("cena") || 0);
             }
-            vymazanyVyrokPrac.setAttr("Práce HZS", praceHZS.length -1, "účtovaná sadzba", cenaUc);
-            var cenaCelk = (utils.safeFieldAccess(e, "Odpracované", 0) * cenaUc);
-            vymazanyVyrokPrac.setAttr("Práce HZS", praceHZS.length -1, "cena celkom", Math.round(cenaCelk * 100) / 100);
+            vykazPrac.setAttr("Práce HZS", lastIndex, "účtovaná sadzba", cenaUc);
+            
+            var cenaCelk = safeVal(currentEntry.field(CONFIG.fields.odpracovane), 0) * cenaUc;
+            vykazPrac.setAttr("Práce HZS", lastIndex, "cena celkom", Math.round(cenaCelk * 100) / 100);
 
-            utils.addInfo(e, "🔗 Pridaný spätný link do Výkazu prác s atribútmi");
+            logDebug("🔗 Spätný link pridaný do Výkazu prác s atribútmi");
         } else {
-            utils.addDebug(e, "ℹ️ Spätný link už v existujúcom Výkaze prác");
+            logDebug("ℹ️ Spätný link už existuje vo Výkaze prác");
         }
+
+        return true;
+
+    } catch (e) {
+        logError("Chyba pri synchronizácii Výkazu prác: " + e.toString(), "syncVykazPrac");
+        return false;
     }
+}
 
-    utils.addDebug(e, "🏁 Spracovanie záznamu práce dokončené");
+function safeVal(val, def) {
+    return (val !== undefined && val !== null) ? val : def;
+}
 
-} catch (ex) {
-    utils.addError(entry(), "❌ Výnimka v spracovaní záznamu práce: " + ex.toString());
+function main() {
+    logDebug("🚀 Štart spracovania Záznamu prác v verzii " + CONFIG.version);
+    try {
+        var datum = safeVal(e.field(CONFIG.fields.datum), null);
+        var odRaw = e.field(CONFIG.fields.od);
+        var doRaw = e.field(CONFIG.fields.do);
+        var zam = safeVal(e.field(CONFIG.fields.zamestnanci), []);
+
+        if (!datum || !odRaw || !doRaw || zam.length === 0) {
+            logError("Chýbajú povinné polia: Dátum, Od, Do alebo Zamestnanci");
+            return false;
+        }
+
+        var odMs = roundToQuarter(new Date(odRaw).getTime());
+        var doMs = roundToQuarter(new Date(doRaw).getTime());
+        e.set(CONFIG.fields.od, new Date(odMs));
+        e.set(CONFIG.fields.do, new Date(doMs));
+        logDebug("⏰ Časy zaokrúhlené na 15 min: Od=" + moment(odMs).format("HH:mm") + ", Do=" + moment(doMs).format("HH:mm"));
+
+        var pracovnadoba = calcHours(odMs, doMs);
+        e.set(CONFIG.fields.pracovnaDoba, pracovnadoba);
+        logDebug("🕒 Pracovná doba: " + pracovnadoba + " h");
+
+        var pocetPracovnikov = zam.length;
+        e.set(CONFIG.fields.pocetPracovnikov, pocetPracovnikov);
+
+        var odpracovaneTotal = pracovnadoba * pocetPracovnikov;
+        e.set(CONFIG.fields.odpracovane, odpracovaneTotal);
+        logDebug("👥 Počet pracovníkov: " + pocetPracovnikov);
+        logDebug("🔢 Odpracované spolu: " + odpracovaneTotal + " h");
+
+        var mzdoveNakladyTotal = 0;
+        var uspechCount = 0;
+        for (var i=0; i<pocetPracovnikov; i++) {
+            var mzda = processEmployee(zam[i], i, pracovnadoba, datum);
+            if(mzda>0) {
+                mzdoveNakladyTotal += mzda;
+                uspechCount++;
+            } else {
+                logDebug("⚠️ Zamestnanec #" + (i+1) + " má nulové mzdové náklady");
+            }
+        }
+        e.set(CONFIG.fields.mzdoveNaklady, mzdoveNakladyTotal);
+        logDebug("💰 Mzdové náklady spolu: " + mzdoveNakladyTotal.toFixed(2) + " €");
+        logDebug("📈 Spracovaných zamestnancov: " + uspechCount + "/" + pocetPracovnikov);
+
+        var hzsEntry = e.field(CONFIG.fields.hzs);
+        var cenaHZS = 0;
+        if (hzsEntry) {
+            var cenyPracEntries = hzsEntry.linksFrom(CONFIG.libraries.cenyPrac, "Cenník prác") || [];
+            if (cenyPracEntries.length > 0) {
+                cenaHZS = parseFloat(cenyPracEntries[cenyPracEntries.length-1].field("Cena") || 0);
+            } else {
+                cenaHZS = parseFloat(hzsEntry.field("Cena") || 0);
+            }
+            hzsEntry.setAttr(CONFIG.attributes.cena, cenaHZS);
+            logDebug("📏 Hodinová zúčtovacia sadzba: " + cenaHZS.toFixed(2) + " €");
+        }
+        var sumaHZS = odpracovaneTotal * cenaHZS;
+        e.set(CONFIG.fields.sumaHZS, sumaHZS);
+        logDebug("Σ Suma HZS: " + sumaHZS.toFixed(2) + " €");
+
+        var syncResult = syncVykazPrac(e);
+        if (syncResult) {
+            logDebug("✅ Výkaz prác synchronizovaný úspešne");
+        } else {
+            logError("❌ Synchronizácia Výkazu prác zlyhala");
+        }
+
+        return true;
+    } catch (ex) {
+        logError("Výnimka počas spracovania: " + ex.toString());
+        return false;
+    }
+}
+
+// Spustenie skriptu a uloženie logov
+try {
+    var success = main();
+    saveLogs();
+    if (success) {
+        message("✅ Záznam prác bol úspešne prepočítaný");
+    } else {
+        message("❌ Pri prepočte Záznamu prác došlo k chybe, skontrolujte Error_Log");
+    }
+} catch (fatalErr) {
+    logError("Kritická chyba skriptu: " + fatalErr.toString());
+    saveLogs();
+    message("💥 Kritická chyba počas spracovania záznamu prác");
 }
