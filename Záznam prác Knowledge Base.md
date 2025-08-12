@@ -31,3 +31,12 @@ Prepojené knižnice (linksFrom):
         - "počet hodín" - currentEntry pole "Odpracované"
         - "účtovaná sadzba" - currentEntry pole "Hodinová zúčtovacia sadzba" atribút "cena"
         - "cena celkom" - "cena celkom" = "počet hodín" * "účtovaná sadzba"
+    Ak "Výkaz prác" neexistuje (prvý záznam práce pre túto zákazku) tak ho vytvor. Vyplň v ňom následovné polia:
+        - "Dátum" - dátum ako v currentEntry 
+        - "Identifikátor" -
+        - "Popis" - 
+        - "Typ výkazu" - options - "Položky", "Hodinovka" vyplň podľa poľa v Zákazke currentEntry
+        - "Ceny počítať" - single dropdown - "Z cenovej ponuky", "Z cenníka" - vyber "Z cenovej ponuky"
+        - "Cenová ponuka" - linkToEntry knižnice "Cenové ponuky", nastav link na cenovú ponuku ako je link v poli "Cenová ponuka" v zázname zákazky v currentEntry
+        - "Vydané" - single dropdown - "Zákazka", "Klient", "Partner" - vyber "Zákazka"
+        - "Zákazka" - linkToEntry knižnice "Zákazky" vytvor link na zákazku ako je v poli "Zákazka" v currentEntry
