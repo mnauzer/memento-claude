@@ -250,6 +250,7 @@ var MementoUtils = (function() {
         index = index || 0;
         
         try {
+            message(attrName)
             entry.field(fieldName).setAttr(attrName, value);
             return true;
         } catch (e) {
