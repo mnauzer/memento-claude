@@ -571,105 +571,35 @@ var MementoUtils = (function() {
      * @param {Entry} debugEntry - Entry pre debug log
      * @return {string|null} API kľúč alebo null
      */
-   /**
- * Načítanie API kľúča z knižnice ASISTANTO API podľa štruktúry:
- * provider = názov API providera (napr. "OpenAi")
- * názov = interný názov kľúča
- * api = samotný API kľúč
- * @param {string} providerName - Názov providera (case-insensitive)
- * @param {Entry} debugEntry - Entry pre debug log
- * @return {string|null} API kľúč alebo null
- */
-function getApiKey(providerName, debugEntry) {
-    if (!providerName) return null;
-    
-    try {
-        var apiLib = libByName("ASISTANTO API");
-        if (!apiLib) {
-            if (debugEntry) addError(debugEntry, "❌ Knižnica 'ASISTANTO API' neexistuje", "getApiKey");
-            return null;
-        }
+    function getApiKey(providerName, debugEntry) {
+        if (!providerName) return null;
         
-        var entries = apiLib.entries();
-        if (!entries || entries.length === 0) {
-            if (debugEntry) addError(debugEntry, "❌ Knižnica 'ASISTANTO API' je prázdna", "getApiKey");
-            return null;
-        }
-        
-        if (debugEntry) {
-            addDebug(debugEntry, `🔍 Hľadám API kľúč pre provider: ${providerName}`);
-        }
-        
-        for (var i = 0; i < entries.length; i++) {
-            var prov = safeFieldAccess(entries[i], "provider", "");
-            var apiKeyVal = safeFieldAccess(entries[i], "api", "");
-            var nazov = safeFieldAccess(entries[i], "názov", "");
-            
-            if (prov && prov.toLowerCase() === providerName.toLowerCase()) {
-                if (apiKeyVal && apiKeyVal.trim() !== "") {
-                    if (debugEntry) {
-                        addDebug(debugEntry, `✅ API kľúč pre '${prov}' nájdený (názov: ${nazov}, dĺžka: ${apiKeyVal.length})`);
-                    }
-                    return apiKeyVal.trim();
-                } else {
-                    if (debugEntry) addError(debugEntry, `❌ Záznam pre '${prov}' má prázdny kľúč`, "getApiKey");
-                    return null;
-                }
+        try {
+            var apiLib = libByName("ASISTANTO API");
+            if (!apiLib) {
+                if (debugEntry) addError(debugEntry, "ASISTANTO API knižnica nenájdená", "getApiKey");
+                return null;
             }
-        }
-        
-        if (debugEntry) addError(debugEntry, `❌ API kľúč pre provider '${providerName}' nebol nájdený`, "getApiKey");
-        return null;
-        
-    } catch (e) {
-        if (debugEntry) addError(debugEntry, `❌ Chyba pri hľadaní API kľúča: ${e}`, "getApiKey");
-        return null;
-    }
-}
-
-/**
- * Cached verzia getApiKey() s časovou expiráciou
- */
-function getCachedApiKey(providerName, debugEntry) {
-    var now = Date.now();
-    var cacheKey = providerName.toLowerCase();
-    
-    if (apiKeyCache[cacheKey] && (now - apiKeyCache[cacheKey].timestamp) < DEFAULT_CONFIG.apiCacheTimeout) {
-        if (debugEntry) addDebug(debugEntry, `💾 API kľúč pre '${providerName}' načítaný z cache`);
-        return apiKeyCache[cacheKey].key;
-    }
-    
-    var apiKey = getApiKey(providerName, debugEntry);
-    if (apiKey) {
-        apiKeyCache[cacheKey] = { key: apiKey, timestamp: now };
-        if (debugEntry) addDebug(debugEntry, `💾 API kľúč pre '${providerName}' uložený do cache`);
-    }
-    return apiKey;
-}
-
-/**
- * Test dostupnosti API kľúčov
- */
-function testApiKeys(providers, debugEntry) {
-    var results = { success: [], failed: [], total: 0 };
-    
-    if (!providers) providers = Object.keys(AI_PROVIDERS);
-    results.total = providers.length;
-    
-    for (var i = 0; i < providers.length; i++) {
-        var p = providers[i];
-        var k = getCachedApiKey(p, debugEntry);
-        if (k) {
-            results.success.push(p);
-            if (debugEntry) addDebug(debugEntry, `✅ '${p}' kľúč OK (${k.length} znakov)`);
-        } else {
-            results.failed.push(p);
-            if (debugEntry) addDebug(debugEntry, `❌ '${p}' kľúč chýba`);
+            
+            var providers = apiLib.find("Provider", providerName);
+            if (!providers || providers.length === 0) {
+                if (debugEntry) addError(debugEntry, "API kľúč pre " + providerName + " nenájdený", "getApiKey");
+                return null;
+            }
+            
+            var apiKey = providers[0].field("API_Key");
+            if (!apiKey) {
+                if (debugEntry) addError(debugEntry, "Prázdny API kľúč pre " + providerName, "getApiKey");
+                return null;
+            }
+            
+            return apiKey;
+            
+        } catch (e) {
+            if (debugEntry) addError(debugEntry, "Chyba pri načítaní API kľúča: " + e.toString(), "getApiKey");
+            return null;
         }
     }
-    return results;
-}
-
     
     /**
      * Cached verzia getApiKey s timeout
