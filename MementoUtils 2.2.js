@@ -154,26 +154,41 @@ var MementoUtils = (function() {
      * @param {string} message - Debug správa
      * @param {Object} config - Konfigurácia (optional)
      */
-    function addDebug(entry, message, config) {
-        config = config || DEFAULT_CONFIG;
-        if (!entry || !message) return;
-        
-        try {
-            var timestamp = moment().format(config.timestampFormat || DEFAULT_CONFIG.timestampFormat);
-            var debugMessage = "[" + timestamp + "] " + message;
-            
-            var fieldName = config.debugFieldName || DEFAULT_CONFIG.debugFieldName;
-            var existingDebug = safeFieldAccess(entry, fieldName, "");
-            entry.set(fieldName, existingDebug + debugMessage + "\n");
-        } catch (e) {
-            try {
-                message("Debug failed: " + e);
-            } catch (e2) {
-                // Last resort - silent fail
-            }
+    function addDebug(entry, message, ctx, config) {
+    config = config || DEFAULT_CONFIG;
+    if (!entry) return;
+    try {
+        var ts = moment().format(config.dateFormat);
+        var log = "[" + ts + "] " + message;
+        if (ctx) {
+            if (ctx.location) log += " (" + ctx.location + ")";
+            if (config.includeLineNumbers && ctx.lineNumber)
+                log += " [Riadok: " + ctx.lineNumber + "]";
+            if (ctx.data) log += " | Data: " + JSON.stringify(ctx.data);
         }
+        var existing = safeFieldAccess(entry, config.debugFieldName || DEFAULT_CONFIG.debugFieldName, "");
+        entry.set(config.debugFieldName || DEFAULT_CONFIG.debugFieldName, existing + log + "\n");
+    } catch (e) {
+        //addError(entry, e2, "addDebug", config);
+        addError(entry, e, "safeSet:" + fieldName);
+        return false;
     }
+    }
+
     
+    function extractErrorInfo(errorObj) {
+    var info = { type: "Error", message: String(errorObj), lineNumber: null, stack: null };
+    try {
+        if (typeof errorObj === "object" && errorObj) {
+            if (errorObj.name) info.type = errorObj.name;
+            if (errorObj.message) info.message = errorObj.message;
+            if (typeof errorObj.lineNumber === "number") info.lineNumber = errorObj.lineNumber;
+            if (errorObj.stack) info.stack = errorObj.stack;
+        }
+    } catch(_) {}
+    return info;
+    }
+
     /**
      * Pridá error správu do Error_Log poľa
      * @param {Entry} entry - Entry objekt
@@ -181,26 +196,31 @@ var MementoUtils = (function() {
      * @param {string} version - Verzia scriptu (optional)
      * @param {Object} config - Konfigurácia (optional)
      */
-    function addError(entry, errorMessage, version, config) {
-        config = config || DEFAULT_CONFIG;
-        if (!entry || !errorMessage) return;
-        
-        try {
-            var timestamp = moment().format(config.fullTimestampFormat || DEFAULT_CONFIG.fullTimestampFormat);
-            var versionString = version ? " v" + version + " -" : "";
-            var errorLog = "[" + timestamp + "]" + versionString + " " + errorMessage;
-            
-            var fieldName = config.errorFieldName || DEFAULT_CONFIG.errorFieldName;
-            var existingError = safeFieldAccess(entry, fieldName, "");
-            entry.set(fieldName, existingError + errorLog + "\n");
-        } catch (e) {
-            try {
-                message("Error logging failed: " + e);
-            } catch (e2) {
-                // Silent fail
-            }
+    function addError(entry, errorObj, location, config) {
+    config = config || DEFAULT_CONFIG;
+    if (!entry) return;
+    try {
+        var ts = moment().format(config.fullTimestampFormat || DEFAULT_CONFIG.fullTimestampFormat);
+        var log = "[" + ts + "] ❌ ";
+        if (typeof errorObj === "object") {
+            var ei = extractErrorInfo(errorObj);
+            log += ei.type;
+            if (location) log += " (" + location + ")";
+            if (config.includeLineNumbers && ei.lineNumber != null)
+                log += " [Riadok: " + ei.lineNumber + "]";
+            log += ": " + ei.message;
+            if (config.includeStackTrace && ei.stack) log += "\n" + ei.stack;
+        } else {
+            if (location) log += "(" + location + ")";
+            log += ": " + String(errorObj);
         }
+        var existing = safeFieldAccess(entry, config.errorFieldName || DEFAULT_CONFIG.errorFieldName, "");
+        entry.set(config.errorFieldName || DEFAULT_CONFIG.errorFieldName, existing + log + "\n");
+    } catch (e) {
+        message("Log error failed: " + e);
     }
+    }
+
     
     /**
      * Pridá info záznam s detailmi o automatickej akcii
@@ -229,7 +249,7 @@ var MementoUtils = (function() {
             var existingInfo = safeFieldAccess(entry, fieldName, "");
             entry.set(fieldName, existingInfo + infoMessage + "\n");
         } catch (e) {
-            addError(entry, "Info logging failed: " + e, null, config);
+            addError(entry, e, "Info logging failed: " + e, null, config);
         }
     }
     
@@ -280,7 +300,7 @@ var MementoUtils = (function() {
             entry.set(fieldName, value);
             return true;
         } catch (error) {
-            addError(entry, "Failed to set field '" + fieldName + "': " + error.toString(), "safeSet");
+            addError(entry, e, "Failed to set field '" + fieldName + "': " + error.toString(), "safeSet");
             return false;
         }
     }
@@ -388,7 +408,9 @@ var MementoUtils = (function() {
             entry.setAttr(fieldName, index, attributeName, value);
             return true;
         } catch (error) {
-            addError(entry, "Failed to set attribute '" + attributeName + "' on field '" + fieldName + "[" + index + "]': " + error.toString(), "safeSetAttribute");
+            
+            addError(entry, e, "Failed to set attribute '" + attributeName + "' on field '" + fieldName + "[" + index + "]': " + error.toString(), "safeSetAttribute");
+            //addError(entry, e, "safeSet:" + fieldName);
             return false;
         }
     }
@@ -1476,12 +1498,16 @@ var MementoUtils = (function() {
         calculateHours: calculateHours,
         isWeekend: isWeekend,
         
+        // v2.2 - Additional error handling
+        includeLineNumbers: true,
+        includeStackTrace: false,
+
         // Configuration access
         DEFAULT_CONFIG: DEFAULT_CONFIG,
         AI_PROVIDERS: AI_PROVIDERS,
         
         // Version info
-        version: "2.1"
+        version: "2.2"
     };
 })();
 
