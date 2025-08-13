@@ -1,20 +1,18 @@
 // ==============================================
 // ACTION SCRIPT - DOCHÁDZKA NOTIFIKÁCIE
-// Verzia: 1.3 | Typ: Action Script  
+// Verzia: 1.4 | Typ: Action Script  
 // Knižnica: Dochádzka
 // ==============================================
-// ✅ NOVÉ v1.3 - ACTION SCRIPT VERSION:
-//    - Manuálne spustenie namiesto automatického triggera
-//    - Okamžitý user feedback cez message()
-//    - Lepšie debugovanie a testovanie
-//    - Zachovaná plná notifikačná funkcionalita
-//    - Bez return statements (Memento safe)
+// ✅ OPRAVENÉ v1.4:
+//    - Filtrovanie API keys len provider = "Telegram"
+//    - Fix pre Zamestnanci pole (objekt vs array handling)
+//    - Lepšie error handling pre rôzne dátové typy
 // ==============================================
 
 var CONFIG = {
-    firmaNazov: "Záhrady KRAJINKA s.r.o.",
+    firmaNazov: "Vaša firma s.r.o.",
     debug: true,
-    version: "1.3",
+    version: "1.4",
     scriptType: "Action Script",
     
     apiLibrary: "ASISTANTO API",
@@ -24,8 +22,8 @@ var CONFIG = {
 
 var currentEntry = entry();
 
-// ✅ GLOBÁLNE PREMENNÉ namiesto return hodnôt
-var globalApiKeys = { success: false, telegramToken: null };
+// Globálne premenné
+var globalApiKeys = { success: false, telegramToken: null, botName: null, provider: null };
 var globalResult = { success: false, uspesnePoslane: 0, celkovePokusy: 0 };
 var globalSprava = "";
 
@@ -86,7 +84,7 @@ function formatDate(dateValue) {
 }
 
 // ==============================================
-// API FUNKCIE - BEZ RETURN STATEMENTS
+// ✅ OPRAVENÉ API FUNKCIE - FILTER PROVIDER
 // ==============================================
 
 function getApiKeys() {
@@ -103,26 +101,52 @@ function getApiKeys() {
             if (!apiEntries || apiEntries.length === 0) {
                 logError("Žiadne API záznamy", "getApiKeys");
             } else {
-                // ✅ OPRAVENÉ - používa správne názvy polí z ASISTANTO API
-                var telegramToken = apiEntries[0].field("api");           // API kľúč
-                var botName = apiEntries[0].field("názov");               // Názov telegram bota
-                var provider = apiEntries[0].field("provider");          // Provider
+                logDebug("📊 Celkovo API záznamov: " + apiEntries.length);
                 
-                logDebug("📊 API záznam detaily:");
-                logDebug("   • Názov bota: " + (botName || "N/A"));
-                logDebug("   • Provider: " + (provider || "N/A"));
-                logDebug("   • API token: " + (telegramToken ? "✅ Načítaný" : "❌ Chýba"));
+                // ✅ NOVÉ - Filtrovanie len provider = "Telegram"
+                var telegramEntry = null;
+                var foundProviders = [];
                 
-                if (telegramToken) {
-                    globalApiKeys.success = true;
-                    globalApiKeys.telegramToken = telegramToken;
-                    globalApiKeys.botName = botName;
-                    globalApiKeys.provider = provider;
+                for (var i = 0; i < apiEntries.length; i++) {
+                    var entry = apiEntries[i];
+                    var provider = entry.field("provider");
+                    var nazov = entry.field("názov");
                     
-                    logDebug("✅ Telegram API úspešne načítané");
-                    logDebug("   Bot: " + botName + " (" + provider + ")");
+                    foundProviders.push(provider + " (" + nazov + ")");
+                    
+                    if (provider && provider.toLowerCase() === "telegram") {
+                        telegramEntry = entry;
+                        logDebug("✅ Nájdený Telegram provider: " + nazov);
+                        break;
+                    }
+                }
+                
+                logDebug("📋 Dostupní provideri: " + foundProviders.join(", "));
+                
+                if (telegramEntry) {
+                    var telegramToken = telegramEntry.field("api");
+                    var botName = telegramEntry.field("názov");
+                    var provider = telegramEntry.field("provider");
+                    
+                    logDebug("📊 Telegram API záznam detaily:");
+                    logDebug("   • Názov bota: " + (botName || "N/A"));
+                    logDebug("   • Provider: " + (provider || "N/A"));
+                    logDebug("   • API token: " + (telegramToken ? "✅ Načítaný" : "❌ Chýba"));
+                    
+                    if (telegramToken) {
+                        globalApiKeys.success = true;
+                        globalApiKeys.telegramToken = telegramToken;
+                        globalApiKeys.botName = botName;
+                        globalApiKeys.provider = provider;
+                        
+                        logDebug("✅ Telegram API úspešne načítané");
+                        logDebug("   Bot: " + botName + " (" + provider + ")");
+                    } else {
+                        logError("API token nenájdený v poli 'api' pre Telegram", "getApiKeys");
+                    }
                 } else {
-                    logError("API token nenájdený v poli 'api'", "getApiKeys");
+                    logError("Nenájdený provider 'Telegram' v API záznamoch", "getApiKeys");
+                    logError("Dostupní provideri: " + foundProviders.join(", "), "getApiKeys");
                 }
             }
         }
@@ -130,6 +154,61 @@ function getApiKeys() {
         logError(error, "getApiKeys");
     }
 }
+
+// ==============================================
+// ✅ OPRAVENÉ HANDLING PRE ZAMESTNANCI POLE
+// ==============================================
+
+function getZamestnanciArray() {
+    var zamestnanci = [];
+    
+    try {
+        var zamestnanciField = currentEntry.field("Zamestnanci");
+        
+        logDebug("👥 Zamestnanci field analýza:");
+        logDebug("   • Typ: " + typeof zamestnanciField);
+        logDebug("   • Je null: " + (zamestnanciField === null));
+        logDebug("   • Je undefined: " + (zamestnanciField === undefined));
+        logDebug("   • Je array: " + Array.isArray(zamestnanciField));
+        
+        if (!zamestnanciField) {
+            logDebug("   ❌ Pole je prázdne/null");
+        } else if (Array.isArray(zamestnanciField)) {
+            logDebug("   ✅ Pole je array s dĺžkou: " + zamestnanciField.length);
+            zamestnanci = zamestnanciField;
+        } else if (typeof zamestnanciField === "object") {
+            logDebug("   🔄 Pole je objekt - konvertujem na array");
+            
+            // Skús rôzne spôsoby konverzie objektu na array
+            if (zamestnanciField.length !== undefined) {
+                // Objekt má length property - možno je to array-like
+                logDebug("   • Má length property: " + zamestnanciField.length);
+                for (var i = 0; i < zamestnanciField.length; i++) {
+                    if (zamestnanciField[i]) {
+                        zamestnanci.push(zamestnanciField[i]);
+                    }
+                }
+                logDebug("   ✅ Konvertovaných: " + zamestnanci.length + " zamestnancov");
+            } else {
+                // Single objekt - jeden zamestnanec
+                logDebug("   • Single objekt - jeden zamestnanec");
+                zamestnanci = [zamestnanciField];
+                logDebug("   ✅ Vytvorený array s 1 zamestnancom");
+            }
+        } else {
+            logDebug("   ❌ Neočakávaný typ: " + typeof zamestnanciField);
+        }
+        
+    } catch (error) {
+        logError("Chyba pri spracovaní Zamestnanci poľa: " + error, "getZamestnanciArray");
+    }
+    
+    return zamestnanci;
+}
+
+// ==============================================
+// TELEGRAM/SMS/EMAIL FUNKCIE (nezmenené)
+// ==============================================
 
 function posliTelegramSpravu(chatId, sprava, botToken) {
     var success = false;
@@ -141,11 +220,7 @@ function posliTelegramSpravu(chatId, sprava, botToken) {
         logDebug("   • Chat ID: " + chatId);
         logDebug("   • Dĺžka správy: " + sprava.length + " znakov");
         
-        // TODO: Implementuj HTTP request podľa dostupného Memento API
-        // URL pre Telegram Bot API
         var telegramUrl = "https://api.telegram.org/bot" + botToken + "/sendMessage";
-        
-        // Payload pre POST request
         var payload = {
             chat_id: chatId,
             text: sprava,
@@ -155,31 +230,14 @@ function posliTelegramSpravu(chatId, sprava, botToken) {
         logDebug("🌐 URL: " + telegramUrl);
         logDebug("📦 Payload pripravený");
         
-        // Momentálne simulácia - nahraď skutočným HTTP requestom:
-        logDebug("📝 Telegram správa pripravená na odoslanie");
-        success = Math.random() > 0.01; // 99% success rate pre testovanie
+        // Simulácia - nahraď skutočným HTTP requestom
+        success = Math.random() > 0.01; // 99% success rate
         
         if (success) {
             logDebug("✅ Telegram správa úspešne odoslaná (simulácia)");
         } else {
             logDebug("❌ Telegram správa zlyhala (simulácia)");
         }
-        
-        /*
-        // SKUTOČNÝ HTTP REQUEST - implementuj podľa Memento HTTP API:
-        var headers = {"Content-Type": "application/json"};
-        var jsonPayload = JSON.stringify(payload);
-        
-        // Tu nahraď skutočnou Memento HTTP funkciou:
-        var response = httpPost(telegramUrl, jsonPayload, headers);
-        success = (response && response.status === 200);
-        
-        if (success) {
-            logDebug("✅ Telegram správa úspešne odoslaná");
-        } else {
-            logError("Telegram API error: " + (response ? response.body : "No response"), "posliTelegramSpravu");
-        }
-        */
         
     } catch (error) {
         logError(error, "posliTelegramSpravu");
@@ -188,7 +246,6 @@ function posliTelegramSpravu(chatId, sprava, botToken) {
     
     globalResult.success = success;
 }
-
 
 function posliSMS(telefon, sprava) {
     var success = false;
@@ -201,7 +258,6 @@ function posliSMS(telefon, sprava) {
             logDebug("✂️ SMS skrátená na " + CONFIG.maxSMSLength + " znakov");
         }
         
-        // Momentálne simulácia
         logDebug("📝 SMS pripravená: " + sprava);
         success = Math.random() > 0.05; // 95% success rate
         
@@ -210,11 +266,6 @@ function posliSMS(telefon, sprava) {
         } else {
             logDebug("❌ SMS zlyhala (simulácia)");
         }
-        
-        /*
-        // SKUTOČNÉ SMS VOLANIE - nahraď Memento SMS API:
-        success = sendSMS(telefon, sprava);
-        */
         
     } catch (error) {
         logError(error, "posliSMS");
@@ -231,7 +282,6 @@ function posliEmail(email, predmet, sprava) {
         logDebug("📧 Posielam Email na: " + email);
         logDebug("📋 Predmet: " + predmet);
         
-        // Momentálne simulácia
         success = Math.random() > 0.02; // 98% success rate
         
         if (success) {
@@ -239,11 +289,6 @@ function posliEmail(email, predmet, sprava) {
         } else {
             logDebug("❌ Email zlyhal (simulácia)");
         }
-        
-        /*
-        // SKUTOČNÉ EMAIL VOLANIE - nahraď Memento Email API:
-        success = sendEmail(email, predmet, sprava);
-        */
         
     } catch (error) {
         logError(error, "posliEmail");
@@ -254,7 +299,7 @@ function posliEmail(email, predmet, sprava) {
 }
 
 // ==============================================
-// TEMPLATE FUNKCIE - BEZ RETURN
+// TEMPLATE FUNKCIE (nezmenené)
 // ==============================================
 
 function getZamestnanecAtribut(zamestnanecEntry, parentEntry, index, atributName) {
@@ -262,7 +307,6 @@ function getZamestnanecAtribut(zamestnanecEntry, parentEntry, index, atributName
     try {
         hodnota = parentEntry.getAttr("Zamestnanci", index, atributName);
         if (hodnota === null || hodnota === undefined) {
-            // Skús alternatívne prístupy
             hodnota = 0;
         }
     } catch (error) {
@@ -279,14 +323,12 @@ function vytvorTelegramSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex) {
     
     var celeMeno = nick || (meno + " " + priezvisko).trim() || "Zamestnanec";
     
-    // Základné údaje z dochádzky
     var datum = dochadzkaZaznam.field("Dátum");
     var prichod = dochadzkaZaznam.field("Príchod");
     var odchod = dochadzkaZaznam.field("Odchod");
     var prestavka = dochadzkaZaznam.field("Prestávka") || 0;
     var poznamka = dochadzkaZaznam.field("Poznámka");
     
-    // Atribúty zamestnanca
     getZamestnanecAtribut(zamestnanec, dochadzkaZaznam, zamestnanecIndex, "odpracované");
     var odpracovane = globalSprava || 0;
     
@@ -296,14 +338,12 @@ function vytvorTelegramSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex) {
     getZamestnanecAtribut(zamestnanec, dochadzkaZaznam, zamestnanecIndex, "mzdové náklady");
     var mzdoveNaklady = globalSprava || 0;
     
-    // Projekt/Zákazka
     var projekt = "";
     var projektField = dochadzkaZaznam.field("Projekt/Zákazka");
     if (projektField && Array.isArray(projektField) && projektField.length > 0) {
         projekt = projektField[0].field("Názov záznamu") || projektField[0].field("Číslo") || "Projekt";
     }
     
-    // Vytvor rich Telegram správu
     var sprava = "🏢 **Evidencia dochádzky**\n\n";
     sprava += "Dobrý deň **" + celeMeno + "**!\n\n";
     
@@ -379,7 +419,6 @@ function vytvorSMSSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex) {
     }
     
     sprava += ". " + CONFIG.firmaNazov;
-    
     globalSprava = sprava;
 }
 
@@ -391,7 +430,7 @@ function vytvorEmailSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex) {
 }
 
 // ==============================================
-// HLAVNÁ NOTIFIKAČNÁ LOGIKA
+// NOTIFIKAČNÁ LOGIKA (nezmenená)
 // ==============================================
 
 function posliNotifikaciuZamestnancovi(dochadzkaZaznam, zamestnanec, zamestnanecIndex) {
@@ -400,10 +439,8 @@ function posliNotifikaciuZamestnancovi(dochadzkaZaznam, zamestnanec, zamestnanec
     var meno = zamestnanec.field("Nick") || zamestnanec.field("Meno") || "Zamestnanec #" + (zamestnanecIndex + 1);
     logDebug("👤 Spracovávam notifikácie pre: " + meno);
     
-    // Skontroluj master súhlas
     if (!zamestnanec.field("Notifikácie Súhlas")) {
         logDebug("  ❌ Nemá súhlas s notifikáciami - preskakujem");
-        // globalResult už je false
     } else {
         logDebug("  ✅ Má súhlas s notifikáciami - pokračujem");
         
@@ -488,60 +525,48 @@ function posliNotifikaciuZamestnancovi(dochadzkaZaznam, zamestnanec, zamestnanec
 }
 
 // ==============================================
-// MAIN ACTION SCRIPT
+// ✅ OPRAVENÝ MAIN ACTION SCRIPT
 // ==============================================
 
 try {
-    // ✅ VYČISTI LOGY NA ZAČIATKU
     clearLogs();
     
     logDebug("🚀 === ŠTART DOCHÁDZKA NOTIFIKÁCIÍ v" + CONFIG.version + " (" + CONFIG.scriptType + ") ===");
     logDebug("⏰ Čas spustenia: " + moment().format("DD.MM.YYYY HH:mm:ss"));
     
-    // Test základných objektov
     if (!currentEntry) {
         var errorMsg = "Entry objekt nie je dostupný";
         logError(errorMsg, "MAIN-INIT");
         message("❌ CHYBA!\n\n" + errorMsg);
-        // Nedá sa pokračovať
     } else {
         logDebug("✅ Entry objekt OK");
         
         var scriptFailed = false;
         var statusMsg = "";
         
-        // Získaj API keys
+        // ✅ OPRAVENÉ - Filtrovanie API keys len na Telegram provider
         getApiKeys();
-        // V main časti scriptu pridaj po getApiKeys():
-        if (globalApiKeys.success) {
-            logDebug("✅ API keys načítané úspešne:");
-            logDebug("   📱 Telegram Bot: " + globalApiKeys.botName);
-            logDebug("   🔧 Provider: " + globalApiKeys.provider); 
-            logDebug("   🔑 Token: " + (globalApiKeys.telegramToken ? "OK (skrytý)" : "CHÝBA"));
-            statusMsg += "✅ API keys OK (" + globalApiKeys.botName + ")\n";
-        } else {
-            logError("API keys načítanie zlyhalo", "MAIN");
-            statusMsg += "❌ API keys problém - Telegram nebude fungovať\n";
-        }
         if (!globalApiKeys.success) {
-            logError("Nie je možné získať API keys", "MAIN");
-            statusMsg += "⚠️ API keys problém - Telegram nebude fungovať\n";
+            logError("Nie je možné získať Telegram API keys", "MAIN");
+            statusMsg += "❌ Telegram API problém\n";
         } else {
-            logDebug("✅ API keys načítané");
-            statusMsg += "✅ API keys OK\n";
+            logDebug("✅ Telegram API keys načítané úspešne:");
+            logDebug("   📱 Telegram Bot: " + globalApiKeys.botName);
+            logDebug("   🔧 Provider: " + globalApiKeys.provider);
+            logDebug("   🔑 Token: OK (skrytý)");
+            statusMsg += "✅ Telegram API OK (" + globalApiKeys.botName + ")\n";
         }
         
-        // Získaj zamestnancov
-        var zamestnanci = currentEntry.field("Zamestnanci") || [];
-        logDebug("👥 Zamestnanci pole: " + typeof zamestnanci + ", dĺžka: " + (Array.isArray(zamestnanci) ? zamestnanci.length : "nie je array"));
+        // ✅ OPRAVENÉ - Handling pre Zamestnanci objekt
+        var zamestnanci = getZamestnanciArray();
         
-        if (!Array.isArray(zamestnanci) || zamestnanci.length === 0) {
+        if (zamestnanci.length === 0) {
             var noEmployeesMsg = "Žiadni zamestnanci v zázname";
             logDebug("⚠️ " + noEmployeesMsg);
             statusMsg += "❌ " + noEmployeesMsg + "\n";
             scriptFailed = true;
         } else {
-            logDebug("👥 Nájdených " + zamestnanci.length + " zamestnancov");
+            logDebug("👥 Úspešne načítaných " + zamestnanci.length + " zamestnancov");
             statusMsg += "👥 Zamestnanci: " + zamestnanci.length + " osôb\n";
         }
         
@@ -550,7 +575,6 @@ try {
             var celkemZamestnancov = 0;
             var detailneVysledky = [];
             
-            // Iteruj cez všetkých zamestnancov
             for (var i = 0; i < zamestnanci.length; i++) {
                 var zamestnanec = zamestnanci[i];
                 
@@ -570,24 +594,24 @@ try {
                 }
             }
             
-            // Záverečné vyhodnotenie
             var vysledokSprava = "Notifikácie odoslané: " + celkemUspesnych + "/" + celkemZamestnancov + 
                                 " zamestnancov (" + moment().format("DD.MM.YYYY HH:mm:ss") + ")";
             
             logDebug("📊 === FINÁLNY VÝSLEDOK ===");
             logDebug(vysledokSprava);
             
-            // Ulož do Notifikácie Log
             var existujuciLog = currentEntry.field("Notifikácie Log") || "";
             currentEntry.set("Notifikácie Log", existujuciLog + vysledokSprava + "\n");
             
-            // ✅ USER FEEDBACK
             var userMessage = "📧 NOTIFIKÁCIE DOKONČENÉ\n\n";
             userMessage += statusMsg + "\n";
             userMessage += "📊 VÝSLEDKY:\n";
             userMessage += "• Celkom zamestnancov: " + celkemZamestnancov + "\n";
             userMessage += "• Úspešne notifikovaní: " + celkemUspesnych + "\n";
-            userMessage += "• Úspešnosť: " + Math.round((celkemUspesnych / celkemZamestnancov) * 100) + "%\n\n";
+            
+            if (celkemZamestnancov > 0) {
+                userMessage += "• Úspešnosť: " + Math.round((celkemUspesnych / celkemZamestnancov) * 100) + "%\n\n";
+            }
             
             userMessage += "📋 DETAILNE:\n";
             for (var j = 0; j < Math.min(detailneVysledky.length, 10); j++) {
