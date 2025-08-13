@@ -587,67 +587,34 @@ var MementoUtils = (function() {
     // v2.1 - AI API KEY MANAGEMENT
     // ========================================
  
-    /**
-     * Načítanie API kľúča z knižnice ASISTANTO API
-     * OPRAVENÉ: Používa správne názvy polí ako v scripte 2.5
-     * @param {string} providerName - Názov providera ("Telegram", "OpenAi", "Perplexity", "OpenRouter")
-     * @param {string} libraryName - Názov API knižnice (default "ASISTANTO API")
-     * @return {string|null} API kľúč alebo null
-     */
-    function getApiKey(providerName, libraryName, debugEntry) {
-    libraryName = libraryName || "ASISTANTO API";
-    
-    if (!providerName) return null;
-    
+   // Ak je možné upraviť MementoUtils, funkcia getApiKey by mala:
+    function getApiKey(serviceName, libraryName, logEntry) {
     try {
-        if (debugEntry) addDebug(debugEntry, "🔑 Načítavam API kľúč pre " + providerName + " z " + libraryName);
-        
         var apiLib = libByName(libraryName);
         if (!apiLib) {
-            if (debugEntry) addError(debugEntry, libraryName + " knižnica nenájdená", "getApiKey");
-            return null;
+            this.addError(logEntry, "API knižnica nenájdená: " + libraryName, "getApiKey");
+            return "";
         }
         
-        var apiEntries = apiLib.entries();
-        if (!apiEntries || apiEntries.length === 0) {
-            if (debugEntry) addError(debugEntry, "Žiadne API záznamy v knižnici", "getApiKey");
-            return null;
+        var entries = apiLib.entries();
+        if (entries.length === 0) {
+            this.addError(logEntry, "Žiadne záznamy v API knižnici", "getApiKey");
+            return "";
         }
         
-        // OPRAVENÉ: Hľadáme v poli "provider" (nie "Provider")
-        var matchingEntry = null;
-        for (var i = 0; i < apiEntries.length; i++) {
-            var entry = apiEntries[i];
-            var provider = safeGet(entry, "provider", ""); // ✅ OPRAVA
-            
-            if (provider && provider.toLowerCase() === providerName.toLowerCase()) {
-                matchingEntry = entry;
-                break;
-            }
+        // Hľadať presný názov poľa
+        var apiToken = this.safeGet(entries[0], serviceName, "");
+        if (!apiToken) {
+            this.addDebug(logEntry, "API token pre " + serviceName + " nie je nastavený");
         }
-        
-        if (matchingEntry) {
-            // OPRAVENÉ: Čítame z poľa "api" (nie "API_Key")
-            var apiKey = safeGet(matchingEntry, "api", ""); // ✅ OPRAVA
-            var name = safeGet(matchingEntry, "názov", ""); // ✅ OPRAVA
-            
-            if (apiKey && apiKey.trim() !== "") {
-                if (debugEntry) addDebug(debugEntry, "✅ API kľúč načítaný: " + name);
-                return apiKey;
-            } else {
-                if (debugEntry) addError(debugEntry, "Prázdny API kľúč pre " + providerName, "getApiKey");
-                return null;
-            }
-        } else {
-            if (debugEntry) addError(debugEntry, "Provider " + providerName + " nenájdený v API knižnici", "getApiKey");
-            return null;
-        }
+        return apiToken;
         
     } catch (e) {
-        if (debugEntry) addError(debugEntry, e, "getApiKey");
-        return null;
+        this.addError(logEntry, e, "getApiKey");
+        return "";
     }
-    }
+}
+
 
     /**
      * Cached verzia getApiKey s timeout
