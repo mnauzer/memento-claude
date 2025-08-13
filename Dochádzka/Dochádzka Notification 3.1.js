@@ -1,15 +1,7 @@
 // ==============================================
 // MEMENTO DATABASE - DOCHÁDZKA NOTIFIKÁCIE
-// Verzia: 3.1 | Dátum: 13.08.2025 | Autor: ASISTANTO
+// Verzia: 3.1 OPRAVENÁ | Dátum: 13.08.2025 | Autor: ASISTANTO
 // Knižnica: Dochádzka | Typ: Action Script
-// ==============================================
-// ✅ NOVÉ v3.1:
-//    - Kompletná integrácia s MementoUtils 2.2
-//    - Odstránené duplicitné funkcie
-//    - Využitie utils API volaní
-//    - Štruktúra podľa vzoru Dochádzka Prepočet 3.2
-//    - Rozšírené error handling s try/catch
-//    - Využitie safe field access funkcií
 // ==============================================
 
 // Import MementoUtils knižnice
@@ -19,7 +11,7 @@ var currentEntry = entry();
 // Konfigurácia
 var CONFIG = {
     debug: true,
-    version: "3.1",
+    version: "3.1 OPRAVENÁ",
     scriptName: "Dochádzka Notifikácie",
     scriptType: "Action Script",
     
@@ -33,11 +25,10 @@ var CONFIG = {
     fields: {
         zamestnanci: "Zamestnanci",
         datum: "Dátum",
-        prichod: "Príchod",
+        prichod: "Príchod", 
         odchod: "Odchod",
-        prestavka: "Prestávka",
-        projekt: "Projekt/Zákazka",
         poznamka: "Poznámka",
+        pracovnaDoba: "Pracovná doba",
         info: "info",
         debugLog: "Debug_Log",
         errorLog: "Error_Log"
@@ -51,18 +42,20 @@ var CONFIG = {
         mobil: "Mobil",
         email: "Email",
         telegramId: "Telegram ID",
-        // Notifikačné polia
         telegram: "telegram",
         sms: "sms",
         emailNotif: "email"
     },
     
-    // Názvy atribútov
-    attributes: {
-        dni: ["pondelok", "utorok", "streda", "štvrtok", "piatok", "sobota", "nedeľa"],
-        prace: ["odpracované"],
-        mzda: ["hodinovka", "prémia (€)", "príplatok (€/h)", "*pokuta (€)", "denná mzda", "mzdové náklady"]
-    },
+    // Atribúty zamestnancov ktoré chceme
+    wantedAttributes: [
+        "hodinovka",
+        "+príplatok (€/h)",
+        "+prémia (€)",
+        "-pokuta (€)",
+        "denná mzda",
+        "poznámka"
+    ],
     
     // API konfigurácia
     api: {
@@ -75,7 +68,7 @@ var CONFIG = {
     // Ikony pre správy
     icons: {
         start: "🚀",
-        step: "📋",
+        step: "📋", 
         success: "✅",
         error: "💥",
         warning: "⚠️",
@@ -88,15 +81,14 @@ var CONFIG = {
 };
 
 // ==============================================
-// UTILITY FUNKCIE (využívajúce MementoUtils)
+// UTILITY FUNKCIE
 // ==============================================
 
 /**
  * Formátovanie času
  */
 function formatTime(timeValue) {
-    if (!timeValue) return "00:00";
-    
+    if (!timeValue) return null;
     try {
         if (typeof timeValue === 'number') {
             var hours = Math.floor(timeValue);
@@ -105,7 +97,7 @@ function formatTime(timeValue) {
         }
         return moment(timeValue).format("HH:mm");
     } catch (e) {
-        return "00:00";
+        return null;
     }
 }
 
@@ -113,12 +105,11 @@ function formatTime(timeValue) {
  * Formátovanie dátumu
  */
 function formatDate(dateValue) {
-    if (!dateValue) return moment().format("DD.MM.YYYY");
-    
+    if (!dateValue) return null;
     try {
         return moment(dateValue).format("DD.MM.YYYY");
     } catch (e) {
-        return moment().format("DD.MM.YYYY");
+        return null;
     }
 }
 
@@ -126,12 +117,11 @@ function formatDate(dateValue) {
  * Formátovanie peňazí
  */
 function formatMoney(amount) {
-    if (!amount && amount !== 0) return "0.00 €";
-    
+    if (!amount && amount !== 0) return null;
     try {
         return parseFloat(amount).toFixed(2) + " €";
     } catch (e) {
-        return "0.00 €";
+        return null;
     }
 }
 
@@ -148,7 +138,7 @@ function getNazovFirmy() {
         
         var defaultsEntries = defaultsLib.entries();
         if (defaultsEntries && defaultsEntries.length > 0) {
-            var nazov = utils.safeFieldAccess(defaultsEntries[0], "Názov firmy", "Firma");
+            var nazov = utils.safeGet(defaultsEntries[0], "Názov firmy", "Firma");
             utils.addDebug(currentEntry, "✅ Názov firmy: " + nazov);
             return nazov;
         }
@@ -165,9 +155,9 @@ function getNazovFirmy() {
 function getEmployeeName(zamestnanec) {
     if (!zamestnanec) return "Zamestnanec";
     
-    var nick = utils.safeFieldAccess(zamestnanec, CONFIG.zamFields.nick, "");
-    var meno = utils.safeFieldAccess(zamestnanec, CONFIG.zamFields.meno, "");
-    var priezvisko = utils.safeFieldAccess(zamestnanec, CONFIG.zamFields.priezvisko, "");
+    var nick = utils.safeGet(zamestnanec, CONFIG.zamFields.nick, "");
+    var meno = utils.safeGet(zamestnanec, CONFIG.zamFields.meno, "");
+    var priezvisko = utils.safeGet(zamestnanec, CONFIG.zamFields.priezvisko, "");
     
     if (nick) {
         return priezvisko ? nick + " (" + priezvisko + ")" : nick;
@@ -177,43 +167,66 @@ function getEmployeeName(zamestnanec) {
 }
 
 // ==============================================
-// API FUNKCIE (využívajúce MementoUtils)
+// OPRAVENÉ API FUNKCIE
 // ==============================================
 
 /**
- * Získanie API kľúčov z ASISTANTO API knižnice
+ * Získanie API kľúčov z ASISTANTO API knižnice - OPRAVENÉ
  */
 function getApiKeys() {
     var result = {
         success: false,
         telegramToken: null,
-        smsApiKey: null,
-        emailApiKey: null
+        botName: null,
+        provider: null
     };
     
     try {
-        // Použitie MementoUtils funkcie na získanie API kľúča
-        var telegramKey = utils.getApiKey("Telegram", CONFIG.libraries.apiLibrary);
-        if (telegramKey) {
-            result.telegramToken = telegramKey;
-            result.success = true;
-            utils.addDebug(currentEntry, "✅ Telegram API kľúč načítaný");
+        utils.addDebug(currentEntry, "🔑 Načítavam API kľúče z " + CONFIG.libraries.apiLibrary + "...");
+        
+        var apiLib = libByName(CONFIG.libraries.apiLibrary);
+        if (!apiLib) {
+            utils.addError(currentEntry, "API knižnica nenájdená: " + CONFIG.libraries.apiLibrary, "getApiKeys");
+            return result;
+        }
+        
+        var apiEntries = apiLib.entries();
+        if (!apiEntries || apiEntries.length === 0) {
+            utils.addError(currentEntry, "Žiadne API záznamy v knižnici", "getApiKeys");
+            return result;
+        }
+        
+        // OPRAVENÉ: Hľadáme Telegram provider
+        var telegramEntry = null;
+        for (var i = 0; i < apiEntries.length; i++) {
+            var apiEntry = apiEntries[i];
+            var provider = utils.safeGet(apiEntry, "provider", "") ||
+                          utils.safeGet(apiEntry, "Provider", "");
+            
+            if (provider && provider.toLowerCase() === "telegram") {
+                telegramEntry = apiEntry;
+                break;
+            }
+        }
+        
+        if (telegramEntry) {
+            var telegramToken = utils.safeGet(telegramEntry, "api", "") ||
+                               utils.safeGet(telegramEntry, "API_Key", "") ||
+                               utils.safeGet(telegramEntry, "Telegram Bot Token", "");
+            var botName = utils.safeGet(telegramEntry, "názov", "") ||
+                         utils.safeGet(telegramEntry, "Názov", "");
+            
+            if (telegramToken && telegramToken.trim() !== "") {
+                result.success = true;
+                result.telegramToken = telegramToken;
+                result.botName = botName;
+                result.provider = "telegram";
+                utils.addDebug(currentEntry, "✅ Telegram API kľúč načítaný: " + botName);
+            } else {
+                utils.addError(currentEntry, "Prázdny Telegram API kľúč", "getApiKeys");
+            }
         } else {
-            utils.addDebug(currentEntry, "⚠️ Telegram API kľúč nenájdený");
-        }
-        
-        // SMS API (ak existuje)
-        var smsKey = utils.getApiKey("SMS", CONFIG.libraries.apiLibrary);
-        if (smsKey) {
-            result.smsApiKey = smsKey;
-            utils.addDebug(currentEntry, "✅ SMS API kľúč načítaný");
-        }
-        
-        // Email API (ak existuje)
-        var emailKey = utils.getApiKey("Email", CONFIG.libraries.apiLibrary);
-        if (emailKey) {
-            result.emailApiKey = emailKey;
-            utils.addDebug(currentEntry, "✅ Email API kľúč načítaný");
+            utils.addError(currentEntry, "Telegram provider nenájdený v API knižnici", "getApiKeys");
         }
         
     } catch (e) {
@@ -224,7 +237,62 @@ function getApiKeys() {
 }
 
 /**
- * Poslanie Telegram správy
+ * Username to Chat ID konverzia s fallback
+ */
+function getUserChatId(username, botToken) {
+    try {
+        if (!username || typeof username !== 'string') {
+            utils.addDebug(currentEntry, "💬 Chat ID je prázdny alebo nie je string");
+            return null;
+        }
+        
+        if (!username.startsWith('@')) {
+            utils.addDebug(currentEntry, "💬 Chat ID je už číselný: " + username);
+            return username;
+        }
+        
+        utils.addDebug(currentEntry, "🔍 Konvertujem username " + username + " na Chat ID...");
+        
+        var url = "https://api.telegram.org/bot" + botToken + "/getUpdates";
+        var httpObj = http();
+        var response = httpObj.get(url);
+        
+        if (response.code !== 200) {
+            utils.addDebug(currentEntry, "❌ getUpdates HTTP chyba " + response.code);
+            return null;
+        }
+        
+        var data = JSON.parse(response.body);
+        if (!data.ok || !data.result) {
+            utils.addDebug(currentEntry, "❌ getUpdates response nie je OK");
+            return null;
+        }
+        
+        var updates = data.result;
+        utils.addDebug(currentEntry, "📡 Načítaných " + updates.length + " updates");
+        
+        var targetUsername = username.substring(1).toLowerCase();
+        for (var i = 0; i < updates.length; i++) {
+            var update = updates[i];
+            var chat = update.message && update.message.chat;
+            if (chat && chat.username && chat.username.toLowerCase() === targetUsername) {
+                var foundChatId = chat.id.toString();
+                utils.addDebug(currentEntry, "✅ Nájdený Chat ID: " + foundChatId + " pre " + username);
+                return foundChatId;
+            }
+        }
+        
+        utils.addDebug(currentEntry, "❌ Username " + username + " nenájdený v updates");
+        return null;
+        
+    } catch (e) {
+        utils.addError(currentEntry, e, "getUserChatId");
+        return null;
+    }
+}
+
+/**
+ * Poslanie Telegram správy s fallback
  */
 function posliTelegramSpravu(chatId, sprava, token) {
     if (!chatId || !sprava || !token) {
@@ -233,28 +301,28 @@ function posliTelegramSpravu(chatId, sprava, token) {
     }
     
     try {
-        var url = "https://api.telegram.org/bot" + token + "/sendMessage";
+        var finalChatId = getUserChatId(chatId, token);
+        if (!finalChatId) {
+            utils.addError(currentEntry, "Nepodarilo sa získať platný Chat ID pre " + chatId, "posliTelegramSpravu");
+            return false;
+        }
         
+        var url = "https://api.telegram.org/bot" + token + "/sendMessage";
         var payload = {
-            chat_id: chatId,
+            chat_id: finalChatId,
             text: sprava,
             parse_mode: CONFIG.api.telegramParseMode
         };
         
-        // Použitie MementoUtils HTTP funkcie
-        var response = utils.makeHttpRequest({
-            url: url,
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify(payload),
-            timeout: CONFIG.api.timeout
-        });
+        var httpObj = http();
+        httpObj.headers({"Content-Type": "application/json"});
+        var response = httpObj.post(url, JSON.stringify(payload));
         
-        if (response && response.code === 200) {
-            utils.addDebug(currentEntry, "✅ Telegram správa poslaná do " + chatId);
+        if (response.code === 200) {
+            utils.addDebug(currentEntry, "✅ Telegram správa úspešne odoslaná do " + finalChatId);
             return true;
         } else {
-            utils.addError(currentEntry, "Telegram API error: " + (response ? response.code : "No response"), "telegram");
+            utils.addError(currentEntry, "Telegram API error " + response.code + ": " + response.body, "posliTelegramSpravu");
             return false;
         }
         
@@ -264,49 +332,28 @@ function posliTelegramSpravu(chatId, sprava, token) {
     }
 }
 
-/**
- * Simulácia poslania SMS (placeholder)
- */
-function posliSMS(telefon, sprava, apiKey) {
-    // Simulácia - v reálnej implementácii by tu bolo volanie SMS API
-    utils.addDebug(currentEntry, "📱 SMS simulácia pre " + telefon);
-    return true;
-}
-
-/**
- * Simulácia poslania emailu (placeholder)
- */
-function posliEmail(email, predmet, sprava, apiKey) {
-    // Simulácia - v reálnej implementácii by tu bolo volanie Email API
-    utils.addDebug(currentEntry, "📧 Email simulácia pre " + email);
-    return true;
-}
-
 // ==============================================
-// ZÍSKANIE ATRIBÚTOV ZAMESTNANCA
+// ZÍSKANIE ATRIBÚTOV - OPRAVENÉ A ZJEDNODUŠENÉ
 // ==============================================
 
 /**
- * Získanie atribútov zamestnanca s nenulovými hodnotami
+ * Získanie atribútov zamestnanca s nenulovými hodnotami - OPRAVENÉ
  */
 function getZamestnanecAtributy(zamestnanecIndex) {
     var atributy = {};
     
     try {
-        // Získaj všetky atribúty
-        var allAttributes = [];
-        allAttributes = allAttributes.concat(CONFIG.attributes.dni);
-        allAttributes = allAttributes.concat(CONFIG.attributes.prace);
-        allAttributes = allAttributes.concat(CONFIG.attributes.mzda);
+        utils.addDebug(currentEntry, "🔍 Získavam atribúty pre zamestnanca #" + zamestnanecIndex);
         
-        for (var i = 0; i < allAttributes.length; i++) {
-            var attrName = allAttributes[i];
-            var value = utils.safeGetAttr(currentEntry, CONFIG.fields.zamestnanci, attrName, zamestnanecIndex, 0);
+        // Prechádzaj len požadované atribúty
+        for (var i = 0; i < CONFIG.wantedAttributes.length; i++) {
+            var attrName = CONFIG.wantedAttributes[i];
+            var value = utils.safeGetAttr(currentEntry, CONFIG.fields.zamestnanci, attrName, zamestnanecIndex, null);
             
             // Pridaj len nenulové hodnoty
-            if (value && value !== 0) {
+            if (value !== null && value !== undefined && value !== 0 && value !== "") {
                 atributy[attrName] = value;
-                utils.addDebug(currentEntry, "  📊 Atribút '" + attrName + "': " + value);
+                utils.addDebug(currentEntry, " 📊 Atribút '" + attrName + "': " + value);
             }
         }
         
@@ -318,79 +365,71 @@ function getZamestnanecAtributy(zamestnanecIndex) {
 }
 
 // ==============================================
-// VYTVORENIE SPRÁV
+// VYTVORENIE SPRÁV - ZJEDNODUŠENÉ
 // ==============================================
 
 /**
- * Vytvorenie Telegram správy
+ * Vytvorenie Telegram správy - ZJEDNODUŠENÉ
  */
 function vytvorTelegramSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex, firmaNazov) {
     var menoZamestnanca = getEmployeeName(zamestnanec);
-    var datum = utils.safeFieldAccess(dochadzkaZaznam, CONFIG.fields.datum, null);
-    var prichod = utils.safeFieldAccess(dochadzkaZaznam, CONFIG.fields.prichod, null);
-    var odchod = utils.safeFieldAccess(dochadzkaZaznam, CONFIG.fields.odchod, null);
-    var prestavka = utils.safeFieldAccess(dochadzkaZaznam, CONFIG.fields.prestavka, 0);
-    var poznamka = utils.safeFieldAccess(dochadzkaZaznam, CONFIG.fields.poznamka, "");
     
-    // Získaj nenulové atribúty
+    // Získaj základné polia - pridaj len ak majú hodnotu
+    var datum = utils.safeGet(dochadzkaZaznam, CONFIG.fields.datum, null);
+    var prichod = utils.safeGet(dochadzkaZaznam, CONFIG.fields.prichod, null);
+    var odchod = utils.safeGet(dochadzkaZaznam, CONFIG.fields.odchod, null);
+    var poznamka = utils.safeGet(dochadzkaZaznam, CONFIG.fields.poznamka, "");
+    var pracovnaDoba = utils.safeGet(dochadzkaZaznam, CONFIG.fields.pracovnaDoba, null);
+    
+    // Získaj atribúty zamestnanca
     var atributy = getZamestnanecAtributy(zamestnanecIndex);
-    
-    // Získaj projekt
-    var projekt = "";
-    var projektField = utils.safeFieldAccess(dochadzkaZaznam, CONFIG.fields.projekt, null);
-    if (projektField && Array.isArray(projektField) && projektField.length > 0) {
-        projekt = utils.safeFieldAccess(projektField[0], "Názov záznamu", "") || 
-                 utils.safeFieldAccess(projektField[0], "Číslo", "") || "Projekt";
-    }
     
     // Vytvor správu
     var sprava = CONFIG.icons.building + " **Evidencia dochádzky**\n\n";
     sprava += "Dobrý deň **" + menoZamestnanca + "**!\n\n";
     
-    sprava += CONFIG.icons.step + " **Dochádzka " + formatDate(datum) + ":**\n";
-    sprava += CONFIG.icons.time + " Príchod: **" + formatTime(prichod) + "**\n";
+    // Pridaj polia len ak majú hodnotu
+    if (datum) {
+        sprava += CONFIG.icons.step + " **Dochádzka " + formatDate(datum) + ":**\n";
+    }
+    
+    if (prichod) {
+        sprava += CONFIG.icons.time + " Príchod: **" + formatTime(prichod) + "**\n";
+    }
     
     if (odchod) {
         sprava += CONFIG.icons.time + " Odchod: **" + formatTime(odchod) + "**\n";
-        
-        // Pridaj odpracované hodiny ak existujú
-        if (atributy["odpracované"]) {
-            sprava += "⏱️ Odpracované: **" + atributy["odpracované"] + "h**\n";
-            
-            var nadcasy = Math.max(0, atributy["odpracované"] - 8);
-            if (nadcasy > 0) {
-                sprava += "⚡ Nadčasy: **" + nadcasy.toFixed(2) + "h**\n";
-            }
-        }
     }
     
-    if (prestavka > 0) {
-        sprava += "☕ Prestávka: " + prestavka + " min\n";
+    if (pracovnaDoba) {
+        sprava += "⏱️ Pracovná doba: **" + pracovnaDoba + "h**\n";
     }
     
-    if (projekt) {
-        sprava += "📦 Projekt: " + projekt + "\n";
+    if (poznamka) {
+        sprava += "📝 **Poznámka:** _" + poznamka + "_\n";
     }
     
-    // Pridaj nenulové mzdové údaje
+    // Pridaj atribúty zamestnanca ak existujú
     var mzdoveUdaje = [];
+    
     if (atributy["hodinovka"]) {
-        mzdoveUdaje.push("• Hodinovka: " + atributy["hodinovka"] + " €/h");
+        mzdoveUdaje.push("• Hodinovka: **" + formatMoney(atributy["hodinovka"]) + "/h**");
     }
-    if (atributy["prémia (€)"]) {
-        mzdoveUdaje.push("• Prémia: **" + formatMoney(atributy["prémia (€)"]) + "**");
+    
+    if (atributy["+príplatok (€/h)"]) {
+        mzdoveUdaje.push("• Príplatok: **+" + formatMoney(atributy["+príplatok (€/h)"]) + "/h**");
     }
-    if (atributy["príplatok (€/h)"]) {
-        mzdoveUdaje.push("• Príplatok: " + atributy["príplatok (€/h)"] + " €/h");
+    
+    if (atributy["+prémia (€)"]) {
+        mzdoveUdaje.push("• Prémia: **+" + formatMoney(atributy["+prémia (€)"]) + "**");
     }
-    if (atributy["*pokuta (€)"]) {
-        mzdoveUdaje.push("• Pokuta: **-" + formatMoney(atributy["*pokuta (€)"]) + "**");
+    
+    if (atributy["-pokuta (€)"]) {
+        mzdoveUdaje.push("• Pokuta: **-" + formatMoney(atributy["-pokuta (€)"]) + "**");
     }
+    
     if (atributy["denná mzda"]) {
         mzdoveUdaje.push("• Denná mzda: **" + formatMoney(atributy["denná mzda"]) + "**");
-    }
-    if (atributy["mzdové náklady"]) {
-        mzdoveUdaje.push("• Celkové náklady: **" + formatMoney(atributy["mzdové náklady"]) + "**");
     }
     
     if (mzdoveUdaje.length > 0) {
@@ -398,22 +437,9 @@ function vytvorTelegramSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex, fi
         sprava += mzdoveUdaje.join("\n") + "\n";
     }
     
-    // Pridaj dni v týždni ak sú nenulové
-    var dniTyzdna = [];
-    for (var i = 0; i < CONFIG.attributes.dni.length; i++) {
-        var den = CONFIG.attributes.dni[i];
-        if (atributy[den]) {
-            dniTyzdna.push(den.charAt(0).toUpperCase() + den.slice(1) + ": " + atributy[den] + "h");
-        }
-    }
-    
-    if (dniTyzdna.length > 0) {
-        sprava += "\n📅 **Týždenný rozpis:**\n";
-        sprava += "• " + dniTyzdna.join("\n• ") + "\n";
-    }
-    
-    if (poznamka) {
-        sprava += "\n📝 **Poznámka:** _" + poznamka + "_\n";
+    // Pridaj poznámku zamestnanca ak existuje
+    if (atributy["poznámka"]) {
+        sprava += "\n💭 **Poznámka zamestnanca:** _" + atributy["poznámka"] + "_\n";
     }
     
     sprava += "\n---\n";
@@ -423,28 +449,29 @@ function vytvorTelegramSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex, fi
 }
 
 /**
- * Vytvorenie SMS správy
+ * Vytvorenie SMS správy - ZJEDNODUŠENÉ
  */
 function vytvorSMSSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex, firmaNazov) {
     var menoZamestnanca = getEmployeeName(zamestnanec);
-    var prichod = utils.safeFieldAccess(dochadzkaZaznam, CONFIG.fields.prichod, null);
-    var odchod = utils.safeFieldAccess(dochadzkaZaznam, CONFIG.fields.odchod, null);
+    var prichod = utils.safeGet(dochadzkaZaznam, CONFIG.fields.prichod, null);
+    var odchod = utils.safeGet(dochadzkaZaznam, CONFIG.fields.odchod, null);
+    var pracovnaDoba = utils.safeGet(dochadzkaZaznam, CONFIG.fields.pracovnaDoba, null);
     var atributy = getZamestnanecAtributy(zamestnanecIndex);
     
     var sprava = menoZamestnanca + ", ";
     
-    if (odchod) {
-        sprava += "dochádzka: " + formatTime(prichod) + "-" + formatTime(odchod);
-        
-        if (atributy["odpracované"]) {
-            sprava += " (" + atributy["odpracované"] + "h)";
-        }
-        
-        if (atributy["mzdové náklady"]) {
-            sprava += ", náklady " + formatMoney(atributy["mzdové náklady"]);
-        }
-    } else {
+    if (prichod) {
         sprava += "príchod: " + formatTime(prichod);
+        if (odchod) {
+            sprava += "-" + formatTime(odchod);
+        }
+        if (pracovnaDoba) {
+            sprava += " (" + pracovnaDoba + "h)";
+        }
+    }
+    
+    if (atributy["denná mzda"]) {
+        sprava += ", mzda " + formatMoney(atributy["denná mzda"]);
     }
     
     sprava += ". " + firmaNazov;
@@ -468,7 +495,7 @@ function vytvorEmailSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex, firma
 }
 
 // ==============================================
-// NOTIFIKAČNÁ LOGIKA
+// NOTIFIKAČNÁ LOGIKA - OPRAVENÁ
 // ==============================================
 
 /**
@@ -486,83 +513,70 @@ function posliNotifikaciuZamestnancovi(dochadzkaZaznam, zamestnanec, zamestnanec
     utils.addDebug(currentEntry, "\n" + CONFIG.icons.person + " Spracovávam notifikácie pre: " + menoZamestnanca);
     
     // TELEGRAM
-    var telegramNotif = utils.safeFieldAccess(zamestnanec, CONFIG.zamFields.telegram, false);
+    var telegramNotif = utils.safeGet(zamestnanec, CONFIG.zamFields.telegram, false);
     if (telegramNotif) {
-        var chatId = utils.safeFieldAccess(zamestnanec, CONFIG.zamFields.telegramId, "");
+        var chatId = utils.safeGet(zamestnanec, CONFIG.zamFields.telegramId, "");
         if (chatId && apiKeys.telegramToken) {
             result.celkovePokusy++;
-            
             var telegramSprava = vytvorTelegramSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex, firmaNazov);
-            
             if (posliTelegramSpravu(chatId, telegramSprava, apiKeys.telegramToken)) {
                 result.uspesnePoslane++;
                 result.detaily.push("Telegram ✅");
-                utils.addDebug(currentEntry, "  ✅ Telegram správa ÚSPEŠNE poslaná");
+                utils.addDebug(currentEntry, " ✅ Telegram správa ÚSPEŠNE poslaná");
             } else {
                 result.detaily.push("Telegram ❌");
-                utils.addDebug(currentEntry, "  ❌ Telegram správa ZLYHALA");
+                utils.addDebug(currentEntry, " ❌ Telegram správa ZLYHALA");
             }
         } else {
-            utils.addDebug(currentEntry, "  ⚠️ Telegram zapnutý ale chýba Chat ID alebo token");
+            utils.addDebug(currentEntry, " ⚠️ Telegram zapnutý ale chýba Chat ID alebo token");
         }
     }
     
-    // SMS
-    var smsNotif = utils.safeFieldAccess(zamestnanec, CONFIG.zamFields.sms, false);
+    // SMS (simulácia)
+    var smsNotif = utils.safeGet(zamestnanec, CONFIG.zamFields.sms, false);
     if (smsNotif) {
-        var telefon = utils.safeFieldAccess(zamestnanec, CONFIG.zamFields.mobil, "");
+        var telefon = utils.safeGet(zamestnanec, CONFIG.zamFields.mobil, "");
         if (telefon) {
             result.celkovePokusy++;
-            
             var smsSprava = vytvorSMSSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex, firmaNazov);
-            
-            if (posliSMS(telefon, smsSprava, apiKeys.smsApiKey)) {
-                result.uspesnePoslane++;
-                result.detaily.push("SMS ✅");
-                utils.addDebug(currentEntry, "  ✅ SMS simulácia úspešná");
-            } else {
-                result.detaily.push("SMS ❌");
-                utils.addDebug(currentEntry, "  ❌ SMS zlyhala");
-            }
+            // Simulácia SMS
+            utils.addDebug(currentEntry, " 📱 SMS simulácia: " + smsSprava);
+            result.uspesnePoslane++;
+            result.detaily.push("SMS ✅");
+            utils.addDebug(currentEntry, " ✅ SMS simulácia úspešná");
         } else {
-            utils.addDebug(currentEntry, "  ⚠️ SMS zapnutá ale chýba telefónne číslo");
+            utils.addDebug(currentEntry, " ⚠️ SMS zapnutá ale chýba telefónne číslo");
         }
     }
     
-    // EMAIL
-    var emailNotif = utils.safeFieldAccess(zamestnanec, CONFIG.zamFields.emailNotif, false);
+    // EMAIL (simulácia)
+    var emailNotif = utils.safeGet(zamestnanec, CONFIG.zamFields.emailNotif, false);
     if (emailNotif) {
-        var email = utils.safeFieldAccess(zamestnanec, CONFIG.zamFields.email, "");
+        var email = utils.safeGet(zamestnanec, CONFIG.zamFields.email, "");
         if (email) {
             result.celkovePokusy++;
-            
             var emailSprava = vytvorEmailSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex, firmaNazov);
-            var predmet = "Dochádzka " + formatDate(utils.safeFieldAccess(dochadzkaZaznam, CONFIG.fields.datum, null));
-            
-            if (posliEmail(email, predmet, emailSprava, apiKeys.emailApiKey)) {
-                result.uspesnePoslane++;
-                result.detaily.push("Email ✅");
-                utils.addDebug(currentEntry, "  ✅ Email simulácia úspešná");
-            } else {
-                result.detaily.push("Email ❌");
-                utils.addDebug(currentEntry, "  ❌ Email zlyhal");
-            }
+            var predmet = "Dochádzka " + formatDate(utils.safeGet(dochadzkaZaznam, CONFIG.fields.datum, null));
+            // Simulácia Email
+            utils.addDebug(currentEntry, " 📧 Email simulácia: " + predmet);
+            result.uspesnePoslane++;
+            result.detaily.push("Email ✅");
+            utils.addDebug(currentEntry, " ✅ Email simulácia úspešná");
         } else {
-            utils.addDebug(currentEntry, "  ⚠️ Email zapnutý ale chýba emailová adresa");
+            utils.addDebug(currentEntry, " ⚠️ Email zapnutý ale chýba emailová adresa");
         }
     }
     
     result.success = result.uspesnePoslane > 0;
-    
     if (result.celkovePokusy === 0) {
-        utils.addDebug(currentEntry, "  ℹ️ Žiadne notifikácie nie sú zapnuté");
+        utils.addDebug(currentEntry, " ℹ️ Žiadne notifikácie nie sú zapnuté");
     }
     
     return result;
 }
 
 // ==============================================
-// HLAVNÁ FUNKCIA - ACTION SCRIPT
+// HLAVNÁ FUNKCIA - OPRAVENÁ
 // ==============================================
 
 function hlavnaFunkcia() {
@@ -582,14 +596,13 @@ function hlavnaFunkcia() {
         // Získaj API kľúče
         utils.addDebug(currentEntry, "\n" + CONFIG.icons.step + " KROK 1: Získavam API kľúče");
         var apiKeys = getApiKeys();
-        
         if (!apiKeys.success) {
             utils.addDebug(currentEntry, CONFIG.icons.warning + " Žiadne API kľúče nenájdené - niektoré notifikácie nebudú fungovať");
         }
         
         // Získaj zamestnancov
         utils.addDebug(currentEntry, "\n" + CONFIG.icons.step + " KROK 2: Získavam zamestnancov");
-        var zamestnanci = utils.safeFieldAccess(currentEntry, CONFIG.fields.zamestnanci, []);
+        var zamestnanci = utils.safeGet(currentEntry, CONFIG.fields.zamestnanci, []);
         
         if (!zamestnanci || zamestnanci.length === 0) {
             utils.addError(currentEntry, "Žiadni zamestnanci v zázname", "main");
@@ -601,18 +614,16 @@ function hlavnaFunkcia() {
         
         // Spracuj notifikácie
         utils.addDebug(currentEntry, "\n" + CONFIG.icons.step + " KROK 3: Posielam notifikácie");
-        
         var celkemUspesnych = 0;
         var celkemNeuspesnych = 0;
         var detailyNotifikacii = [];
         
         for (var i = 0; i < zamestnanci.length; i++) {
             var zamestnanec = zamestnanci[i];
-            
             if (zamestnanec) {
                 var vysledok = posliNotifikaciuZamestnancovi(
                     currentEntry,
-                    zamestnanec,
+                    zamestnanec, 
                     i,
                     apiKeys,
                     firmaNazov
@@ -634,19 +645,26 @@ function hlavnaFunkcia() {
         
         // Vytvor info správu
         utils.addDebug(currentEntry, "\n" + CONFIG.icons.step + " KROK 4: Vytváram súhrn");
-        
         var infoMessage = CONFIG.icons.info + " DOCHÁDZKA NOTIFIKÁCIE v" + CONFIG.version + "\n";
         infoMessage += "=====================================\n\n";
         infoMessage += CONFIG.icons.building + " Firma: " + firmaNazov + "\n";
-        infoMessage += "📅 Dátum: " + formatDate(utils.safeFieldAccess(currentEntry, CONFIG.fields.datum, null)) + "\n";
-        infoMessage += CONFIG.icons.time + " Čas: " + formatTime(utils.safeFieldAccess(currentEntry, CONFIG.fields.prichod, null));
         
-        var odchod = utils.safeFieldAccess(currentEntry, CONFIG.fields.odchod, null);
-        if (odchod) {
-            infoMessage += " - " + formatTime(odchod);
+        var datum = utils.safeGet(currentEntry, CONFIG.fields.datum, null);
+        if (datum) {
+            infoMessage += "📅 Dátum: " + formatDate(datum) + "\n";
         }
-        infoMessage += "\n\n";
         
+        var prichod = utils.safeGet(currentEntry, CONFIG.fields.prichod, null);
+        if (prichod) {
+            infoMessage += CONFIG.icons.time + " Čas: " + formatTime(prichod);
+            var odchod = utils.safeGet(currentEntry, CONFIG.fields.odchod, null);
+            if (odchod) {
+                infoMessage += " - " + formatTime(odchod);
+            }
+            infoMessage += "\n";
+        }
+        
+        infoMessage += "\n";
         infoMessage += "📊 VÝSLEDOK NOTIFIKÁCIÍ:\n";
         infoMessage += "• Úspešné: " + celkemUspesnych + "/" + zamestnanci.length + "\n";
         if (celkemNeuspesnych > 0) {
@@ -682,7 +700,7 @@ function hlavnaFunkcia() {
         // Vytvor info záznam pre MementoUtils
         utils.addInfo(currentEntry, "Notifikácie odoslané", {
             method: CONFIG.scriptName,
-            sourceId: utils.safeFieldAccess(currentEntry, "ID", "N/A"),
+            sourceId: utils.safeGet(currentEntry, "ID", "N/A"),
             result: "Úspešne: " + celkemUspesnych + "/" + zamestnanci.length,
             libraryName: "Dochádzka"
         });
@@ -702,19 +720,19 @@ function hlavnaFunkcia() {
         // Zobraz správu používateľovi
         if (celkemUspesnych === zamestnanci.length) {
             message("🎉 Notifikácie úspešne odoslané!\n\n" +
-                   "✅ Všetkým " + zamestnanci.length + " zamestnancom\n" +
-                   "📧 Detaily v poli 'info'");
+                    "✅ Všetkým " + zamestnanci.length + " zamestnancom\n" +
+                    "📧 Detaily v poli 'info'");
         } else if (celkemUspesnych > 0) {
             message("⚠️ Notifikácie čiastočne odoslané\n\n" +
-                   "✅ Úspešné: " + celkemUspesnych + "/" + zamestnanci.length + "\n" +
-                   "❌ Neúspešné: " + celkemNeuspesnych + "\n\n" +
-                   "📋 Detaily v poli 'info'");
+                    "✅ Úspešné: " + celkemUspesnych + "/" + zamestnanci.length + "\n" +
+                    "❌ Neúspešné: " + celkemNeuspesnych + "\n\n" +
+                    "📋 Detaily v poli 'info'");
         } else {
             message("❌ Notifikácie neboli odoslané!\n\n" +
-                   "🔍 Skontroluj:\n" +
-                   "• Nastavenia notifikácií u zamestnancov\n" +
-                   "• API kľúče v ASISTANTO API\n" +
-                   "• Debug_Log pre detaily");
+                    "🔍 Skontroluj:\n" +
+                    "• Nastavenia notifikácií u zamestnancov\n" +
+                    "• API kľúče v ASISTANTO API\n" +
+                    "• Debug_Log pre detaily");
         }
         
         return true;

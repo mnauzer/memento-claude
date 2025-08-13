@@ -586,52 +586,78 @@ var MementoUtils = (function() {
     // ========================================
     // v2.1 - AI API KEY MANAGEMENT
     // ========================================
-    
+ 
     /**
      * Načítanie API kľúča z knižnice ASISTANTO API
-     * @param {string} providerName - Názov providera ("OpenAi", "Perplexity", "OpenRouter")
-     * @param {Entry} debugEntry - Entry pre debug log
+     * OPRAVENÉ: Používa správne názvy polí ako v scripte 2.5
+     * @param {string} providerName - Názov providera ("Telegram", "OpenAi", "Perplexity", "OpenRouter")
+     * @param {string} libraryName - Názov API knižnice (default "ASISTANTO API")
      * @return {string|null} API kľúč alebo null
      */
-    function getApiKey(providerName, debugEntry) {
-        if (!providerName) return null;
+    function getApiKey(providerName, libraryName, debugEntry) {
+    libraryName = libraryName || "ASISTANTO API";
+    
+    if (!providerName) return null;
+    
+    try {
+        if (debugEntry) addDebug(debugEntry, "🔑 Načítavam API kľúč pre " + providerName + " z " + libraryName);
         
-        try {
-            var apiLib = libByName("ASISTANTO API");
-            if (!apiLib) {
-                if (debugEntry) addError(debugEntry, "ASISTANTO API knižnica nenájdená", "getApiKey");
-                return null;
-            }
+        var apiLib = libByName(libraryName);
+        if (!apiLib) {
+            if (debugEntry) addError(debugEntry, libraryName + " knižnica nenájdená", "getApiKey");
+            return null;
+        }
+        
+        var apiEntries = apiLib.entries();
+        if (!apiEntries || apiEntries.length === 0) {
+            if (debugEntry) addError(debugEntry, "Žiadne API záznamy v knižnici", "getApiKey");
+            return null;
+        }
+        
+        // OPRAVENÉ: Hľadáme v poli "provider" (nie "Provider")
+        var matchingEntry = null;
+        for (var i = 0; i < apiEntries.length; i++) {
+            var entry = apiEntries[i];
+            var provider = safeGet(entry, "provider", ""); // ✅ OPRAVA
             
-            var providers = apiLib.find("Provider", providerName);
-            if (!providers || providers.length === 0) {
-                if (debugEntry) addError(debugEntry, "API kľúč pre " + providerName + " nenájdený", "getApiKey");
-                return null;
+            if (provider && provider.toLowerCase() === providerName.toLowerCase()) {
+                matchingEntry = entry;
+                break;
             }
+        }
+        
+        if (matchingEntry) {
+            // OPRAVENÉ: Čítame z poľa "api" (nie "API_Key")
+            var apiKey = safeGet(matchingEntry, "api", ""); // ✅ OPRAVA
+            var name = safeGet(matchingEntry, "názov", ""); // ✅ OPRAVA
             
-            var apiKey = providers[0].field("API_Key");
-            if (!apiKey) {
+            if (apiKey && apiKey.trim() !== "") {
+                if (debugEntry) addDebug(debugEntry, "✅ API kľúč načítaný: " + name);
+                return apiKey;
+            } else {
                 if (debugEntry) addError(debugEntry, "Prázdny API kľúč pre " + providerName, "getApiKey");
                 return null;
             }
-            
-            return apiKey;
-            
-        } catch (e) {
-            if (debugEntry) addError(debugEntry, "Chyba pri načítaní API kľúča: " + e.toString(), "getApiKey");
+        } else {
+            if (debugEntry) addError(debugEntry, "Provider " + providerName + " nenájdený v API knižnici", "getApiKey");
             return null;
         }
+        
+    } catch (e) {
+        if (debugEntry) addError(debugEntry, e, "getApiKey");
+        return null;
     }
-    
+    }
+
     /**
      * Cached verzia getApiKey s timeout
-     * @param {string} providerName - Názov providera
-     * @param {Entry} debugEntry - Entry pre debug log
-     * @return {string|null} API kľúč alebo null
+     * OPRAVENÉ: Podporuje všetky parametre
      */
-    function getCachedApiKey(providerName, debugEntry) {
+    function getCachedApiKey(providerName, libraryName, debugEntry) {
+        libraryName = libraryName || "ASISTANTO API";
+        
         var now = new Date().getTime();
-        var cacheKey = "apikey_" + providerName;
+        var cacheKey = "apikey_" + providerName + "_" + libraryName;
         
         // Check cache
         if (apiKeyCache[cacheKey] && 
@@ -640,7 +666,7 @@ var MementoUtils = (function() {
         }
         
         // Load fresh key
-        var apiKey = getApiKey(providerName, debugEntry);
+        var apiKey = getApiKey(providerName, libraryName, debugEntry);
         if (apiKey) {
             apiKeyCache[cacheKey] = {
                 key: apiKey,
@@ -650,33 +676,26 @@ var MementoUtils = (function() {
         
         return apiKey;
     }
-    
-    /**
-     * Vyčistenie cache API kľúčov
-     */
-    function clearApiKeyCache() {
-        apiKeyCache = {};
-    }
-    
+
     /**
      * Test dostupnosti API kľúčov
-     * @param {Array} providers - Array názvov providerov na test
-     * @param {Entry} debugEntry - Entry pre debug log
-     * @return {Object} Výsledky testov
+     * OPRAVENÉ: Aktualizované pre nové parametre
      */
-    function testApiKeys(providers, debugEntry) {
+    function testApiKeys(providers, libraryName, debugEntry) {
+        libraryName = libraryName || "ASISTANTO API";
+        
         var results = {
             success: [],
             failed: [],
             total: 0
         };
         
-        if (!providers) providers = Object.keys(AI_PROVIDERS);
+        if (!providers) providers = ["OpenAi", "Perplexity", "OpenRouter", "Telegram"];
         results.total = providers.length;
         
         for (var i = 0; i < providers.length; i++) {
             var provider = providers[i];
-            var apiKey = getCachedApiKey(provider, debugEntry);
+            var apiKey = getCachedApiKey(provider, libraryName, debugEntry);
             
             if (apiKey) {
                 results.success.push(provider);
@@ -689,7 +708,19 @@ var MementoUtils = (function() {
         
         return results;
     }
+
+
+    //----------------
+
+
     
+    /**
+     * Vyčistenie cache API kľúčov
+     */
+    function clearApiKeyCache() {
+        apiKeyCache = {};
+    }
+
     // ========================================
     // v2.1 - AI FUNCTIONS
     // ========================================
@@ -1443,6 +1474,184 @@ var MementoUtils = (function() {
     }
     
     // ========================================
+    // v2.2 - HTTP KOMUNIKÁCIA (z Dochádzka script)
+    // ========================================
+
+    /**
+     * Univerzálny HTTP GET wrapper s error handlingom
+     */
+    function httpGet(url, headers, debugEntry) {
+        try {
+            if (debugEntry) addDebug(debugEntry, "🌐 HTTP GET: " + url);
+            
+            var httpObj = http();
+            
+            if (headers) {
+                for (var key in headers) {
+                    httpObj.header(key, headers[key]);
+                }
+            }
+            
+            var response = httpObj.get(url);
+            
+            if (response.code === 200) {
+                if (debugEntry) addDebug(debugEntry, "✅ HTTP GET úspešný");
+                return {
+                    success: true,
+                    data: JSON.parse(response.body),
+                    code: response.code
+                };
+            } else {
+                if (debugEntry) addError(debugEntry, "HTTP GET chyba " + response.code + ": " + response.body, "httpGet");
+                return {success: false, error: "HTTP " + response.code, code: response.code};
+            }
+            
+        } catch (e) {
+            if (debugEntry) addError(debugEntry, e, "httpGet");
+            return {success: false, error: e.toString()};
+        }
+    }
+
+    /**
+     * Univerzálny HTTP POST JSON wrapper
+     */
+    function httpPostJSON(url, payload, headers, debugEntry) {
+        try {
+            if (debugEntry) addDebug(debugEntry, "🌐 HTTP POST JSON: " + url);
+            
+            var httpObj = http();
+            
+            // Default JSON headers
+            httpObj.header("Content-Type", "application/json");
+            
+            if (headers) {
+                for (var key in headers) {
+                    httpObj.header(key, headers[key]);
+                }
+            }
+            
+            var response = httpObj.post(url, JSON.stringify(payload));
+            
+            if (response.code >= 200 && response.code < 300) {
+                if (debugEntry) addDebug(debugEntry, "✅ HTTP POST úspešný");
+                return {
+                    success: true,
+                    data: response.body ? JSON.parse(response.body) : null,
+                    code: response.code
+                };
+            } else {
+                if (debugEntry) addError(debugEntry, "HTTP POST chyba " + response.code + ": " + response.body, "httpPostJSON");
+                return {success: false, error: "HTTP " + response.code, code: response.code};
+            }
+            
+        } catch (e) {
+            if (debugEntry) addError(debugEntry, e, "httpPostJSON");
+            return {success: false, error: e.toString()};
+        }
+    }
+
+    /**
+     * Username to Chat ID konverzia (z scriptu 2.5)
+     */
+    function getUserChatId(username, botToken, debugEntry) {
+        try {
+            if (!username || typeof username !== 'string') {
+                if (debugEntry) addDebug(debugEntry, "💬 Chat ID je prázdny alebo nie je string");
+                return null;
+            }
+            
+            if (!username.startsWith('@')) {
+                if (debugEntry) addDebug(debugEntry, "💬 Chat ID je už číselný: " + username);
+                return username;
+            }
+            
+            if (debugEntry) addDebug(debugEntry, "🔍 Konvertujem username " + username + " na Chat ID...");
+            
+            var updatesResult = httpGet(
+                "https://api.telegram.org/bot" + botToken + "/getUpdates",
+                null,
+                debugEntry
+            );
+            
+            if (!updatesResult.success) {
+                if (debugEntry) addError(debugEntry, "getUpdates API volanie zlyhalo", "getUserChatId");
+                return null;
+            }
+            
+            var data = updatesResult.data;
+            if (!data.ok || !data.result) {
+                if (debugEntry) addError(debugEntry, "getUpdates response nie je OK", "getUserChatId");
+                return null;
+            }
+            
+            var updates = data.result;
+            if (debugEntry) addDebug(debugEntry, "📡 Načítaných " + updates.length + " updates");
+            
+            var targetUsername = username.substring(1).toLowerCase();
+            
+            for (var i = 0; i < updates.length; i++) {
+                var update = updates[i];
+                var chat = update.message && update.message.chat;
+                
+                if (chat && chat.username && chat.username.toLowerCase() === targetUsername) {
+                    var foundChatId = chat.id.toString();
+                    if (debugEntry) addDebug(debugEntry, "✅ Nájdený Chat ID: " + foundChatId + " pre " + username);
+                    return foundChatId;
+                }
+            }
+            
+            if (debugEntry) addError(debugEntry, "Username " + username + " nenájdený v updates", "getUserChatId");
+            return null;
+            
+        } catch (e) {
+            if (debugEntry) addError(debugEntry, e, "getUserChatId");
+            return null;
+        }
+    }
+
+    /**
+     * Telegram správa s fallback Chat ID
+     */
+    function sendTelegramMessage(chatId, message, botToken, parseMode, debugEntry) {
+        parseMode = parseMode || "Markdown";
+        
+        try {
+            if (debugEntry) addDebug(debugEntry, "📱 Posielam Telegram správu...");
+            
+            var finalChatId = getUserChatId(chatId, botToken, debugEntry);
+            if (!finalChatId) {
+                if (debugEntry) addError(debugEntry, "Nepodarilo sa získať platný Chat ID pre " + chatId, "sendTelegramMessage");
+                return false;
+            }
+            
+            var payload = {
+                chat_id: finalChatId,
+                text: message,
+                parse_mode: parseMode
+            };
+            
+            var result = httpPostJSON(
+                "https://api.telegram.org/bot" + botToken + "/sendMessage",
+                payload,
+                null,
+                debugEntry
+            );
+            
+            if (result.success) {
+                if (debugEntry) addDebug(debugEntry, "✅ Telegram správa úspešne odoslaná");
+                return true;
+            } else {
+                if (debugEntry) addError(debugEntry, "Telegram správa zlyhala: " + result.error, "sendTelegramMessage");
+                return false;
+            }
+            
+        } catch (e) {
+            if (debugEntry) addError(debugEntry, e, "sendTelegramMessage");
+            return false;
+        }
+    }
+
+    // ========================================
     // PUBLIC API
     // ========================================
     return {
@@ -1478,6 +1687,12 @@ var MementoUtils = (function() {
         getDefaultHZS: getDefaultHZS,
         saveLogs: saveLogs,
         clearLogs: clearLogs,
+
+           // v2.2 - HTTP funkcie
+        httpGet: httpGet,
+        httpPostJSON: httpPostJSON,
+        getUserChatId: getUserChatId,
+        sendTelegramMessage: sendTelegramMessage,
         
         // v2.1 - AI Functions
         callAI: callAI,
