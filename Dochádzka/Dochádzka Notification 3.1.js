@@ -89,7 +89,7 @@ function getApiKeys() {
     try {
         utils.addDebug(currentEntry, "🔑 Načítavam API kľúče...");
         
-        var telegramToken = utils.getCachedApiKey("Telegram", "ASISTANTO API", currentEntry);
+        var telegramToken = utils.getApiKey("Telegram", "ASISTANTO API", currentEntry);
         
         if (telegramToken) {
             utils.addDebug(currentEntry, "✅ Telegram API kľúč načítaný");
