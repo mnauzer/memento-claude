@@ -1,18 +1,18 @@
 // ==============================================
 // ACTION SCRIPT - DOCHÁDZKA NOTIFIKÁCIE
-// Verzia: 1.4 | Typ: Action Script  
+// Verzia: 1.5 | Typ: Action Script  
 // Knižnica: Dochádzka
 // ==============================================
-// ✅ OPRAVENÉ v1.4:
-//    - Filtrovanie API keys len provider = "Telegram"
-//    - Fix pre Zamestnanci pole (objekt vs array handling)
-//    - Lepšie error handling pre rôzne dátové typy
+// ✅ OPRAVENÉ v1.5:
+//    - Fix pre názvy polí s diakritikou a medzerami
+//    - Bezpečný prístup k všetkým poliam
+//    - Alternatívne názvy polí pre kompatibilitu
 // ==============================================
 
 var CONFIG = {
     firmaNazov: "Vaša firma s.r.o.",
     debug: true,
-    version: "1.4",
+    version: "1.5",
     scriptType: "Action Script",
     
     apiLibrary: "ASISTANTO API",
@@ -59,6 +59,66 @@ function clearLogs() {
     }
 }
 
+// ✅ NOVÁ FUNKCIA - bezpečný prístup k poliam
+function safeFieldGet(entryObj, fieldName, defaultValue) {
+    try {
+        // Skús rôzne spôsoby prístupu
+        var value = null;
+        
+        // Metóda 1: Priamy prístup
+        try {
+            value = entryObj.field(fieldName);
+        } catch (e1) {
+            // Metóda 2: Skús bez diakritiky
+            try {
+                var simpleName = fieldName
+                    .replace(/á/g, 'a').replace(/é/g, 'e').replace(/í/g, 'i')
+                    .replace(/ó/g, 'o').replace(/ú/g, 'u').replace(/ý/g, 'y')
+                    .replace(/ň/g, 'n').replace(/ť/g, 't').replace(/ď/g, 'd')
+                    .replace(/ľ/g, 'l').replace(/š/g, 's').replace(/č/g, 'c')
+                    .replace(/ž/g, 'z').replace(/ô/g, 'o').replace(/ä/g, 'a')
+                    .replace(/Á/g, 'A').replace(/É/g, 'E').replace(/Í/g, 'I')
+                    .replace(/Ó/g, 'O').replace(/Ú/g, 'U').replace(/Ý/g, 'Y')
+                    .replace(/Ň/g, 'N').replace(/Ť/g, 'T').replace(/Ď/g, 'D')
+                    .replace(/Ľ/g, 'L').replace(/Š/g, 'S').replace(/Č/g, 'C')
+                    .replace(/Ž/g, 'Z').replace(/Ô/g, 'O').replace(/Ä/g, 'A');
+                value = entryObj.field(simpleName);
+            } catch (e2) {
+                // Metóda 3: Skús anglický názov
+                var englishNames = {
+                    "Notifikácie Súhlas": "Notifications Consent",
+                    "Telegram Notifikácie": "Telegram Notifications", 
+                    "SMS Notifikácie": "SMS Notifications",
+                    "Email Notifikácie": "Email Notifications",
+                    "Telegram Chat ID": "Telegram Chat ID",
+                    "Telefón": "Phone",
+                    "E-mail": "Email"
+                };
+                
+                if (englishNames[fieldName]) {
+                    try {
+                        value = entryObj.field(englishNames[fieldName]);
+                    } catch (e3) {
+                        value = defaultValue;
+                    }
+                } else {
+                    value = defaultValue;
+                }
+            }
+        }
+        
+        if (value === null || value === undefined) {
+            value = defaultValue;
+        }
+        
+        return value;
+        
+    } catch (error) {
+        logDebug("⚠️ Chyba pri čítaní poľa '" + fieldName + "': " + error);
+        return defaultValue;
+    }
+}
+
 function formatTime(timeValue) {
     if (!timeValue) {
         globalSprava = "N/A";
@@ -84,7 +144,7 @@ function formatDate(dateValue) {
 }
 
 // ==============================================
-// ✅ OPRAVENÉ API FUNKCIE - FILTER PROVIDER
+// API FUNKCIE - FILTROVANIE TELEGRAM PROVIDER
 // ==============================================
 
 function getApiKeys() {
@@ -103,14 +163,15 @@ function getApiKeys() {
             } else {
                 logDebug("📊 Celkovo API záznamov: " + apiEntries.length);
                 
-                // ✅ NOVÉ - Filtrovanie len provider = "Telegram"
                 var telegramEntry = null;
                 var foundProviders = [];
                 
                 for (var i = 0; i < apiEntries.length; i++) {
                     var entry = apiEntries[i];
-                    var provider = entry.field("provider");
-                    var nazov = entry.field("názov");
+                    
+                    // ✅ OPRAVENÉ - bezpečný prístup k poliam
+                    var provider = safeFieldGet(entry, "provider", "");
+                    var nazov = safeFieldGet(entry, "názov", "") || safeFieldGet(entry, "nazov", "");
                     
                     foundProviders.push(provider + " (" + nazov + ")");
                     
@@ -124,9 +185,9 @@ function getApiKeys() {
                 logDebug("📋 Dostupní provideri: " + foundProviders.join(", "));
                 
                 if (telegramEntry) {
-                    var telegramToken = telegramEntry.field("api");
-                    var botName = telegramEntry.field("názov");
-                    var provider = telegramEntry.field("provider");
+                    var telegramToken = safeFieldGet(telegramEntry, "api", "");
+                    var botName = safeFieldGet(telegramEntry, "názov", "") || safeFieldGet(telegramEntry, "nazov", "");
+                    var provider = safeFieldGet(telegramEntry, "provider", "");
                     
                     logDebug("📊 Telegram API záznam detaily:");
                     logDebug("   • Názov bota: " + (botName || "N/A"));
@@ -156,14 +217,15 @@ function getApiKeys() {
 }
 
 // ==============================================
-// ✅ OPRAVENÉ HANDLING PRE ZAMESTNANCI POLE
+// HANDLING PRE ZAMESTNANCI POLE  
 // ==============================================
 
 function getZamestnanciArray() {
     var zamestnanci = [];
     
     try {
-        var zamestnanciField = currentEntry.field("Zamestnanci");
+        // ✅ OPRAVENÉ - bezpečný prístup
+        var zamestnanciField = safeFieldGet(currentEntry, "Zamestnanci", null);
         
         logDebug("👥 Zamestnanci field analýza:");
         logDebug("   • Typ: " + typeof zamestnanciField);
@@ -179,9 +241,7 @@ function getZamestnanciArray() {
         } else if (typeof zamestnanciField === "object") {
             logDebug("   🔄 Pole je objekt - konvertujem na array");
             
-            // Skús rôzne spôsoby konverzie objektu na array
             if (zamestnanciField.length !== undefined) {
-                // Objekt má length property - možno je to array-like
                 logDebug("   • Má length property: " + zamestnanciField.length);
                 for (var i = 0; i < zamestnanciField.length; i++) {
                     if (zamestnanciField[i]) {
@@ -190,7 +250,6 @@ function getZamestnanciArray() {
                 }
                 logDebug("   ✅ Konvertovaných: " + zamestnanci.length + " zamestnancov");
             } else {
-                // Single objekt - jeden zamestnanec
                 logDebug("   • Single objekt - jeden zamestnanec");
                 zamestnanci = [zamestnanciField];
                 logDebug("   ✅ Vytvorený array s 1 zamestnancom");
@@ -207,7 +266,7 @@ function getZamestnanciArray() {
 }
 
 // ==============================================
-// TELEGRAM/SMS/EMAIL FUNKCIE (nezmenené)
+// TELEGRAM/SMS/EMAIL FUNKCIE  
 // ==============================================
 
 function posliTelegramSpravu(chatId, sprava, botToken) {
@@ -299,7 +358,7 @@ function posliEmail(email, predmet, sprava) {
 }
 
 // ==============================================
-// TEMPLATE FUNKCIE (nezmenené)
+// TEMPLATE FUNKCIE
 // ==============================================
 
 function getZamestnanecAtribut(zamestnanecEntry, parentEntry, index, atributName) {
@@ -317,18 +376,21 @@ function getZamestnanecAtribut(zamestnanecEntry, parentEntry, index, atributName
 }
 
 function vytvorTelegramSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex) {
-    var meno = zamestnanec.field("Meno") || "";
-    var priezvisko = zamestnanec.field("Priezvisko") || "";
-    var nick = zamestnanec.field("Nick") || "";
+    // ✅ OPRAVENÉ - bezpečný prístup k poliam zamestnanca
+    var meno = safeFieldGet(zamestnanec, "Meno", "");
+    var priezvisko = safeFieldGet(zamestnanec, "Priezvisko", "");
+    var nick = safeFieldGet(zamestnanec, "Nick", "");
     
     var celeMeno = nick || (meno + " " + priezvisko).trim() || "Zamestnanec";
     
-    var datum = dochadzkaZaznam.field("Dátum");
-    var prichod = dochadzkaZaznam.field("Príchod");
-    var odchod = dochadzkaZaznam.field("Odchod");
-    var prestavka = dochadzkaZaznam.field("Prestávka") || 0;
-    var poznamka = dochadzkaZaznam.field("Poznámka");
+    // Základné údaje z dochádzky
+    var datum = safeFieldGet(dochadzkaZaznam, "Dátum", null);
+    var prichod = safeFieldGet(dochadzkaZaznam, "Príchod", null);
+    var odchod = safeFieldGet(dochadzkaZaznam, "Odchod", null);
+    var prestavka = safeFieldGet(dochadzkaZaznam, "Prestávka", 0);
+    var poznamka = safeFieldGet(dochadzkaZaznam, "Poznámka", "");
     
+    // Atribúty zamestnanca
     getZamestnanecAtribut(zamestnanec, dochadzkaZaznam, zamestnanecIndex, "odpracované");
     var odpracovane = globalSprava || 0;
     
@@ -338,12 +400,15 @@ function vytvorTelegramSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex) {
     getZamestnanecAtribut(zamestnanec, dochadzkaZaznam, zamestnanecIndex, "mzdové náklady");
     var mzdoveNaklady = globalSprava || 0;
     
+    // Projekt/Zákazka
     var projekt = "";
-    var projektField = dochadzkaZaznam.field("Projekt/Zákazka");
+    var projektField = safeFieldGet(dochadzkaZaznam, "Projekt/Zákazka", null);
     if (projektField && Array.isArray(projektField) && projektField.length > 0) {
-        projekt = projektField[0].field("Názov záznamu") || projektField[0].field("Číslo") || "Projekt";
+        projekt = safeFieldGet(projektField[0], "Názov záznamu", "") || 
+                 safeFieldGet(projektField[0], "Číslo", "") || "Projekt";
     }
     
+    // Vytvor rich Telegram správu
     var sprava = "🏢 **Evidencia dochádzky**\n\n";
     sprava += "Dobrý deň **" + celeMeno + "**!\n\n";
     
@@ -390,9 +455,10 @@ function vytvorTelegramSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex) {
 }
 
 function vytvorSMSSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex) {
-    var nick = zamestnanec.field("Nick") || zamestnanec.field("Meno") || "Zamestnanec";
-    var prichod = dochadzkaZaznam.field("Príchod");
-    var odchod = dochadzkaZaznam.field("Odchod");
+    var nick = safeFieldGet(zamestnanec, "Nick", "") || 
+               safeFieldGet(zamestnanec, "Meno", "") || "Zamestnanec";
+    var prichod = safeFieldGet(dochadzkaZaznam, "Príchod", null);
+    var odchod = safeFieldGet(dochadzkaZaznam, "Odchod", null);
     
     getZamestnanecAtribut(zamestnanec, dochadzkaZaznam, zamestnanecIndex, "mzdové náklady");
     var mzdoveNaklady = globalSprava || 0;
@@ -430,23 +496,35 @@ function vytvorEmailSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex) {
 }
 
 // ==============================================
-// NOTIFIKAČNÁ LOGIKA (nezmenená)
+// NOTIFIKAČNÁ LOGIKA - OPRAVENÉ
 // ==============================================
 
 function posliNotifikaciuZamestnancovi(dochadzkaZaznam, zamestnanec, zamestnanecIndex) {
     globalResult = { success: false, uspesnePoslane: 0, celkovePokusy: 0 };
     
-    var meno = zamestnanec.field("Nick") || zamestnanec.field("Meno") || "Zamestnanec #" + (zamestnanecIndex + 1);
+    // ✅ OPRAVENÉ - bezpečný prístup k meno/nick
+    var meno = safeFieldGet(zamestnanec, "Nick", "") || 
+               safeFieldGet(zamestnanec, "Meno", "") || 
+               "Zamestnanec #" + (zamestnanecIndex + 1);
+    
     logDebug("👤 Spracovávam notifikácie pre: " + meno);
     
-    if (!zamestnanec.field("Notifikácie Súhlas")) {
+    // ✅ OPRAVENÉ - bezpečný prístup k súhlasu
+    var notifikacieSuhlas = safeFieldGet(zamestnanec, "Notifikácie Súhlas", false);
+    
+    logDebug("   🔍 Kontrolujem súhlas s notifikáciami...");
+    logDebug("   • Súhlas hodnota: " + notifikacieSuhlas);
+    logDebug("   • Súhlas typ: " + typeof notifikacieSuhlas);
+    
+    if (!notifikacieSuhlas) {
         logDebug("  ❌ Nemá súhlas s notifikáciami - preskakujem");
     } else {
         logDebug("  ✅ Má súhlas s notifikáciami - pokračujem");
         
-        // TELEGRAM
-        if (zamestnanec.field("Telegram Notifikácie")) {
-            var chatId = zamestnanec.field("Telegram Chat ID");
+        // ✅ TELEGRAM - bezpečný prístup
+        var telegramNotif = safeFieldGet(zamestnanec, "Telegram Notifikácie", false);
+        if (telegramNotif) {
+            var chatId = safeFieldGet(zamestnanec, "Telegram Chat ID", "");
             if (chatId && globalApiKeys.success && globalApiKeys.telegramToken) {
                 globalResult.celkovePokusy++;
                 logDebug("  📱 Telegram: Vytváram správu...");
@@ -468,9 +546,10 @@ function posliNotifikaciuZamestnancovi(dochadzkaZaznam, zamestnanec, zamestnanec
             logDebug("  ⏭️ Telegram notifikácie vypnuté");
         }
         
-        // SMS
-        if (zamestnanec.field("SMS Notifikácie")) {
-            var telefon = zamestnanec.field("Telefón");
+        // ✅ SMS - bezpečný prístup
+        var smsNotif = safeFieldGet(zamestnanec, "SMS Notifikácie", false);
+        if (smsNotif) {
+            var telefon = safeFieldGet(zamestnanec, "Telefón", "");
             if (telefon) {
                 globalResult.celkovePokusy++;
                 logDebug("  📲 SMS: Vytváram správu...");
@@ -492,9 +571,10 @@ function posliNotifikaciuZamestnancovi(dochadzkaZaznam, zamestnanec, zamestnanec
             logDebug("  ⏭️ SMS notifikácie vypnuté");
         }
         
-        // EMAIL
-        if (zamestnanec.field("Email Notifikácie")) {
-            var email = zamestnanec.field("E-mail");
+        // ✅ EMAIL - bezpečný prístup
+        var emailNotif = safeFieldGet(zamestnanec, "Email Notifikácie", false);
+        if (emailNotif) {
+            var email = safeFieldGet(zamestnanec, "E-mail", "");
             if (email) {
                 globalResult.celkovePokusy++;
                 logDebug("  📧 Email: Vytváram správu...");
@@ -502,7 +582,7 @@ function posliNotifikaciuZamestnancovi(dochadzkaZaznam, zamestnanec, zamestnanec
                 vytvorEmailSpravu(dochadzkaZaznam, zamestnanec, zamestnanecIndex);
                 var emailSprava = globalSprava;
                 
-                formatDate(dochadzkaZaznam.field("Dátum"));
+                formatDate(safeFieldGet(dochadzkaZaznam, "Dátum", new Date()));
                 var predmet = "Evidencia dochádzky - " + globalSprava;
                 
                 posliEmail(email, predmet, emailSprava);
@@ -525,7 +605,7 @@ function posliNotifikaciuZamestnancovi(dochadzkaZaznam, zamestnanec, zamestnanec
 }
 
 // ==============================================
-// ✅ OPRAVENÝ MAIN ACTION SCRIPT
+// MAIN ACTION SCRIPT - OPRAVENÝ
 // ==============================================
 
 try {
@@ -533,6 +613,7 @@ try {
     
     logDebug("🚀 === ŠTART DOCHÁDZKA NOTIFIKÁCIÍ v" + CONFIG.version + " (" + CONFIG.scriptType + ") ===");
     logDebug("⏰ Čas spustenia: " + moment().format("DD.MM.YYYY HH:mm:ss"));
+    logDebug("🔧 Oprava: Bezpečný prístup k poliam s diakritikou");
     
     if (!currentEntry) {
         var errorMsg = "Entry objekt nie je dostupný";
@@ -544,7 +625,7 @@ try {
         var scriptFailed = false;
         var statusMsg = "";
         
-        // ✅ OPRAVENÉ - Filtrovanie API keys len na Telegram provider
+        // Získaj API keys
         getApiKeys();
         if (!globalApiKeys.success) {
             logError("Nie je možné získať Telegram API keys", "MAIN");
@@ -557,7 +638,7 @@ try {
             statusMsg += "✅ Telegram API OK (" + globalApiKeys.botName + ")\n";
         }
         
-        // ✅ OPRAVENÉ - Handling pre Zamestnanci objekt
+        // Získaj zamestnancov
         var zamestnanci = getZamestnanciArray();
         
         if (zamestnanci.length === 0) {
@@ -582,7 +663,10 @@ try {
                     celkemZamestnancov++;
                     posliNotifikaciuZamestnancovi(currentEntry, zamestnanec, i);
                     
-                    var meno = zamestnanec.field("Nick") || zamestnanec.field("Meno") || "Zamestnanec #" + (i + 1);
+                    var meno = safeFieldGet(zamestnanec, "Nick", "") || 
+                              safeFieldGet(zamestnanec, "Meno", "") || 
+                              "Zamestnanec #" + (i + 1);
+                    
                     if (globalResult.success) {
                         celkemUspesnych++;
                         detailneVysledky.push("✅ " + meno + ": " + globalResult.uspesnePoslane + "/" + globalResult.celkovePokusy);
@@ -600,10 +684,10 @@ try {
             logDebug("📊 === FINÁLNY VÝSLEDOK ===");
             logDebug(vysledokSprava);
             
-            var existujuciLog = currentEntry.field("Notifikácie Log") || "";
+            var existujuciLog = safeFieldGet(currentEntry, "Notifikácie Log", "");
             currentEntry.set("Notifikácie Log", existujuciLog + vysledokSprava + "\n");
             
-            var userMessage = "📧 NOTIFIKÁCIE DOKONČENÉ\n\n";
+            var userMessage = "📧 NOTIFIKÁCIE DOKONČENÉ v" + CONFIG.version + "\n\n";
             userMessage += statusMsg + "\n";
             userMessage += "📊 VÝSLEDKY:\n";
             userMessage += "• Celkom zamestnancov: " + celkemZamestnancov + "\n";
@@ -614,11 +698,11 @@ try {
             }
             
             userMessage += "📋 DETAILNE:\n";
-            for (var j = 0; j < Math.min(detailneVysledky.length, 10); j++) {
+            for (var j = 0; j < Math.min(detailneVysledky.length, 5); j++) {
                 userMessage += detailneVysledky[j] + "\n";
             }
-            if (detailneVysledky.length > 10) {
-                userMessage += "... a ďalší " + (detailneVysledky.length - 10) + " zamestnanci\n";
+            if (detailneVysledky.length > 5) {
+                userMessage += "... a ďalší " + (detailneVysledky.length - 5) + " zamestnanci\n";
             }
             
             userMessage += "\n💡 Pozri Debug_Log pre detaily";
