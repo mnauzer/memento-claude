@@ -1838,6 +1838,7 @@ var MementoUtils = (function() {
         
         // v2.1 - AI Functions
         callAI: callAI,
+        callAIWithRetry: callAIWithRetry,
         aiAnalyzeEntry: aiAnalyzeEntry,
         aiGenerateSQL: aiGenerateSQL,
         
