@@ -584,7 +584,7 @@ var MementoUtils = (function() {
     }
     
     // ========================================
-    // v2.1 - AI API KEY MANAGEMENT
+    // v2.2 - AI API KEY MANAGEMENT
     // ========================================
  
     /**
@@ -711,10 +711,7 @@ var MementoUtils = (function() {
         return results;
     }
 
-
     //----------------
-
-
     
     /**
      * Vyčistenie cache API kľúčov
