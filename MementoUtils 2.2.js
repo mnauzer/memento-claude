@@ -727,8 +727,13 @@ var MementoUtils = (function() {
     // v2.1 - AI FUNCTIONS
     // ========================================
     
+ // ==============================================
+// MementoUtils HTTP HEADERS FIX
+// ==============================================
+// Nahraď funkciu callAI v MementoUtils týmto kódom:
+
     /**
-     * Univerzálne volanie AI providera
+     * Univerzálne volanie AI providera - OPRAVENÁ VERZIA
      * @param {string} provider - Názov providera ("OpenAi", "Perplexity", "OpenRouter")
      * @param {string} prompt - Prompt pre AI
      * @param {Object} options - Nastavenia {model, maxTokens, temperature, debugEntry}
@@ -768,12 +773,10 @@ var MementoUtils = (function() {
             
             // Priprav HTTP request
             var httpObj = http();
-            var headers = providerConfig.headers(apiKey);
             
-            // Nastav headers
-            for (var headerName in headers) {
-                httpObj.header(headerName, headers[headerName]);
-            }
+            // OPRAVA: V Memento Database sa headers nastavujú takto:
+            var headers = providerConfig.headers(apiKey);
+            httpObj.headers(headers);  // ✅ SPRÁVNE - headers() nie header()
             
             // Priprav request body
             options.model = options.model || providerConfig.defaultModel;
@@ -807,6 +810,143 @@ var MementoUtils = (function() {
             if (debugEntry) addError(debugEntry, error, "callAI");
             return {success: false, error: error, response: null};
         }
+    }
+
+    // ==============================================
+    // ALTERNATÍVNE: Kompletná oprava s retry logikou
+    // ==============================================
+
+    /**
+     * Univerzálne volanie AI providera s retry logikou
+     * @param {string} provider - Názov providera
+     * @param {string} prompt - Prompt pre AI
+     * @param {Object} options - Nastavenia
+     * @return {Object} {success: boolean, response: string, error: string}
+     */
+    function callAIWithRetry(provider, prompt, options) {
+        options = options || {};
+        var debugEntry = options.debugEntry;
+        var maxRetries = options.maxRetries || DEFAULT_CONFIG.maxApiRetries || 2;
+        var retryDelay = options.retryDelay || 1000; // 1 sekunda
+        
+        if (!provider || !prompt) {
+            var error = "Missing provider or prompt";
+            if (debugEntry) addError(debugEntry, "AI Call failed: " + error, "callAI");
+            return {success: false, error: error, response: null};
+        }
+        
+        // Získaj API kľúč
+        var apiKey = getCachedApiKey(provider, debugEntry);
+        if (!apiKey) {
+            var error = "API key not found for " + provider;
+            if (debugEntry) addError(debugEntry, "AI Call failed: " + error, "callAI");
+            return {success: false, error: error, response: null};
+        }
+        
+        // Získaj konfiguráciu providera
+        var providerConfig = AI_PROVIDERS[provider];
+        if (!providerConfig) {
+            var error = "Unsupported AI provider: " + provider;
+            if (debugEntry) addError(debugEntry, "AI Call failed: " + error, "callAI");
+            return {success: false, error: error, response: null};
+        }
+        
+        // Retry loop
+        for (var attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                if (debugEntry && attempt > 0) {
+                    addDebug(debugEntry, "🔄 Retry attempt " + attempt + "/" + maxRetries);
+                }
+                
+                if (debugEntry) {
+                    addDebug(debugEntry, "🤖 AI Call: " + provider + " (" + (options.model || providerConfig.defaultModel) + ")");
+                    if (attempt === 0) {
+                        addDebug(debugEntry, "📝 Prompt: " + prompt.substring(0, 100) + "...");
+                    }
+                }
+                
+                // Priprav HTTP request
+                var httpObj = http();
+                
+                // SPRÁVNE nastavenie headers pre Memento
+                var headers = providerConfig.headers(apiKey);
+                httpObj.headers(headers);
+                
+                // Timeout ak je podporovaný
+                if (httpObj.setTimeout) {
+                    httpObj.setTimeout(options.timeout || DEFAULT_CONFIG.apiTimeout || 30000);
+                }
+                
+                // Priprav request body
+                options.model = options.model || providerConfig.defaultModel;
+                var requestBody = providerConfig.requestBody(prompt, options);
+                
+                // Debug request body pre troubleshooting
+                if (debugEntry && options.debugVerbose) {
+                    addDebug(debugEntry, "📤 Request body: " + JSON.stringify(requestBody).substring(0, 200) + "...");
+                }
+                
+                // Vykonaj API call
+                var response = httpObj.post(providerConfig.baseUrl, JSON.stringify(requestBody));
+                
+                if (response.code === 200) {
+                    var data = JSON.parse(response.body);
+                    var aiResponse = providerConfig.extractResponse(data);
+                    
+                    if (!aiResponse || aiResponse.length === 0) {
+                        throw new Error("Empty response from AI provider");
+                    }
+                    
+                    if (debugEntry) {
+                        addDebug(debugEntry, "✅ AI response received: " + aiResponse.substring(0, 100) + "...");
+                    }
+                    
+                    return {
+                        success: true,
+                        response: aiResponse,
+                        provider: provider,
+                        model: options.model,
+                        attempts: attempt + 1
+                    };
+                    
+                } else if (response.code >= 500 && attempt < maxRetries) {
+                    // Server error - retry
+                    if (debugEntry) {
+                        addDebug(debugEntry, "⚠️ Server error " + response.code + ", will retry...");
+                    }
+                    // Wait before retry
+                    java.lang.Thread.sleep(retryDelay);
+                    continue;
+                    
+                } else {
+                    // Client error or final attempt
+                    var error = "HTTP " + response.code + ": " + response.body;
+                    if (debugEntry) addError(debugEntry, "AI API error: " + error, "callAI");
+                    
+                    // Ak je to posledný pokus, vráť chybu
+                    if (attempt === maxRetries) {
+                        return {success: false, error: error, response: null};
+                    }
+                }
+                
+            } catch (e) {
+                var error = "AI Call exception: " + e.toString();
+                if (debugEntry) addError(debugEntry, error + " (attempt " + (attempt + 1) + ")", "callAI");
+                
+                // Ak je to posledný pokus, vráť chybu
+                if (attempt === maxRetries) {
+                    return {success: false, error: error, response: null};
+                }
+                
+                // Wait before retry
+                if (attempt < maxRetries) {
+                    java.lang.Thread.sleep(retryDelay);
+                }
+            }
+        }
+        
+        // Should not reach here
+        return {success: false, error: "Max retries exceeded", response: null};
     }
     
     /**
