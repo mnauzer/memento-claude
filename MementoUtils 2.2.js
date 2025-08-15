@@ -587,32 +587,67 @@ var MementoUtils = (function() {
     // v2.1 - AI API KEY MANAGEMENT
     // ========================================
  
-   // Ak je možné upraviť MementoUtils, funkcia getApiKey by mala:
-    function getApiKey(serviceName, libraryName, logEntry) {
-    try {
-        var apiLib = libByName(libraryName);
-        if (!apiLib) {
-            this.addError(logEntry, "API knižnica nenájdená: " + libraryName, "getApiKey");
-            return "";
-        }
+    /**
+     * Získanie API kľúča z knižnice ASISTANTO API s podporou rôznych názvov polí
+     * @param {string} providerName - Názov providera ("OpenAi", "Perplexity", "OpenRouter")
+     * @param {Entry} debugEntry - Entry pre debug log
+     * @return {string|null} API kľúč alebo null
+     */
+    function getApiKey(providerName, debugEntry) {
+        if (!providerName) return null;
         
-        var entries = apiLib.entries();
-        if (entries.length === 0) {
-            this.addError(logEntry, "Žiadne záznamy v API knižnici", "getApiKey");
-            return "";
+        try {
+            var apiLib = libByName("ASISTANTO API");
+            if (!apiLib) {
+                if (debugEntry) addError(debugEntry, "ASISTANTO API knižnica nenájdená", "getApiKey");
+                return null;
+            }
+            
+            // Možné názvy polí pre Provider
+            var providerFieldNames = ["Provider", "provider", "PROVIDER"];
+            var apiKeyFieldNames = ["API_Key", "api", "api_key", "API"];
+            
+            var allEntries = apiLib.entries();
+            if (debugEntry) addDebug(debugEntry, "🔍 Hľadám API kľúč pre " + providerName + " v " + allEntries.length + " záznamoch");
+            
+            for (var i = 0; i < allEntries.length; i++) {
+                var apiEntry = allEntries[i];
+                
+                // Skús nájsť provider field
+                var provider = null;
+                for (var p = 0; p < providerFieldNames.length; p++) {
+                    try {
+                        provider = apiEntry.field(providerFieldNames[p]);
+                        if (provider) break;
+                    } catch (e) {}
+                }
+                
+                // Ak sa provider zhoduje
+                if (provider && provider === providerName) {
+                    // Skús nájsť API key field
+                    var apiKey = null;
+                    for (var k = 0; k < apiKeyFieldNames.length; k++) {
+                        try {
+                            apiKey = apiEntry.field(apiKeyFieldNames[k]);
+                            if (apiKey && apiKey.length > 0) {
+                                if (debugEntry) addDebug(debugEntry, "✅ API kľúč pre " + providerName + " nájdený (pole: " + apiKeyFieldNames[k] + ")");
+                                return apiKey;
+                            }
+                        } catch (e) {}
+                    }
+                    
+                    if (debugEntry) addError(debugEntry, "Prázdny API kľúč pre " + providerName, "getApiKey");
+                    return null;
+                }
+            }
+            
+            if (debugEntry) addError(debugEntry, "API kľúč pre " + providerName + " nenájdený v žiadnom zázname", "getApiKey");
+            return null;
+            
+        } catch (e) {
+            if (debugEntry) addError(debugEntry, "Chyba pri načítaní API kľúča: " + e.toString(), "getApiKey");
+            return null;
         }
-        
-        // Hľadať presný názov poľa
-        var apiToken = this.safeGet(entries[0], serviceName, "");
-        if (!apiToken) {
-            this.addDebug(logEntry, "API token pre " + serviceName + " nie je nastavený");
-        }
-        return apiToken;
-        
-    } catch (e) {
-        this.addError(logEntry, e, "getApiKey");
-        return "";
-    }
 }
 
 
