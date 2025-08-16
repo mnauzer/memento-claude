@@ -76,6 +76,14 @@ var CONFIG = {
         pokusovOdoslanie: "Pokusov o odoslanie",
         poslednaChyba: "Posledná chyba",
         responseData: "Response Data",
+
+         // Statusy
+        statusWaiting: "Čaká",
+        statusSent: "Odoslané",
+        statusFailed: "Zlyhalo",
+        
+        // Max pokusov
+        maxRetries: 3,
         
         // DEBUG SEKCIA
         errorLog: "Error_Log",
@@ -202,6 +210,102 @@ function createNotification(data) {
         
     } catch (error) {
         utils.addError(entry(), error, "createNotification");
+        return null;
+    }
+}
+
+/**
+ * Vytvorí nový záznam notifikácie BEZ automatického odoslania
+ * @param {Object} data - Dáta pre notifikáciu
+ * @returns {Entry|null} - Vytvorený záznam alebo null
+ */
+function createNotificationOnly(data) {
+    try {
+        utils.addDebug(entry(), "📝 Vytváranie novej notifikácie (bez odoslania)");
+        
+        var notifLib = libByName(CONFIG.notificationsLibrary);
+        if (!notifLib) {
+            utils.addError(entry(), "Knižnica " + CONFIG.notificationsLibrary + " nenájdená", "createNotificationOnly");
+            return null;
+        }
+        
+        // Predvolené hodnoty - POUŽÍVAME EXISTUJÚCI CONFIG.fields
+        var notificationData = {};
+        
+        // Povinné polia
+        notificationData[CONFIG.fields.typSpravy] = data.typSpravy || "Systémová";
+        notificationData[CONFIG.fields.zdrojSpravy] = data.zdrojSpravy || "Automatická";
+        notificationData[CONFIG.fields.sprava] = data.sprava || "";
+        notificationData[CONFIG.fields.status] = "Čaká";
+        notificationData[CONFIG.fields.formatovanie] = data.formatovanie || "Markdown";
+        notificationData[CONFIG.fields.priorita] = data.priorita || "Normálna";
+        
+        // Metadata
+        notificationData[CONFIG.fields.vytvoril] = user();
+        notificationData[CONFIG.fields.vytvorene] = moment().toDate();
+        notificationData[CONFIG.fields.zdrojovaKniznica] = data.zdrojovaKniznica || lib().name();
+        notificationData[CONFIG.fields.zdrojovyId] = data.zdrojovyId || entry().field("ID");
+        
+        // Info záznam
+        notificationData[CONFIG.fields.info] = utils.formatDate(new Date()) + " | Vytvorené automaticky\n" +
+               "Zdroj: " + (data.zdrojovaKniznica || lib().name()) + " #" + (data.zdrojovyId || entry().field("ID")) + "\n" +
+               "Script: " + CONFIG.scriptName + " v" + CONFIG.version;
+        
+        // Voliteľné polia
+        if (data.predmet) notificationData[CONFIG.fields.predmet] = data.predmet;
+        if (data.priloha) notificationData[CONFIG.fields.priloha] = data.priloha;
+        if (data.adresat) notificationData[CONFIG.fields.adresat] = data.adresat;
+        if (data.poslatO) notificationData[CONFIG.fields.poslatO] = data.poslatO;
+        if (data.vyprsat) notificationData[CONFIG.fields.vyprsat] = data.vyprsat;
+        if (data.opakovat) notificationData[CONFIG.fields.opakovat] = data.opakovat;
+        
+        // Adresáti podľa typu
+        if (data.zamestnanec) {
+            notificationData[CONFIG.fields.zamestnanec] = data.zamestnanec;
+            var telegramId = getTelegramIdForEmployee(data.zamestnanec);
+            if (telegramId) {
+                notificationData[CONFIG.fields.telegramId] = telegramId;
+                notificationData[CONFIG.fields.chatId] = telegramId;
+            }
+        }
+        
+        if (data.skupinaTema) {
+            notificationData[CONFIG.fields.skupinaTema] = data.skupinaTema;
+            var groupInfo = getGroupInfo(data.skupinaTema);
+            if (groupInfo) {
+                notificationData[CONFIG.fields.chatId] = groupInfo.chatId;
+                notificationData[CONFIG.fields.temaId] = groupInfo.threadId;
+                notificationData[CONFIG.fields.temaNazov] = groupInfo.name;
+            }
+        }
+        
+        if (data.klient) notificationData[CONFIG.fields.klient] = data.klient;
+        if (data.partner) notificationData[CONFIG.fields.partner] = data.partner;
+        if (data.zakazka) notificationData[CONFIG.fields.zakazka] = data.zakazka;
+        
+        // Explicitné Chat ID (pre skupiny bez LinkToEntry)
+        if (data.chatId) notificationData[CONFIG.fields.chatId] = data.chatId;
+        if (data.temaId) notificationData[CONFIG.fields.temaId] = data.temaId;
+        
+        // Vytvor záznam
+        var novyZaznam = notifLib.create(notificationData);
+        
+        if (novyZaznam) {
+            utils.addDebug(entry(), "✅ Záznam notifikácie vytvorený (čaká na trigger): ID " + novyZaznam.field("ID"));
+            
+            // Debug info
+            utils.addDebug(novyZaznam, "📋 Notifikácia vytvorená pomocou createNotificationOnly()");
+            utils.addDebug(novyZaznam, "⏳ Status: Čaká na odoslanie");
+            utils.addDebug(novyZaznam, "🔄 Trigger sa spustí automaticky");
+            
+            return novyZaznam;
+        } else {
+            utils.addError(entry(), "Nepodarilo sa vytvoriť notifikáciu", "createNotificationOnly");
+            return null;
+        }
+        
+    } catch (error) {
+        utils.addError(entry(), error, "createNotificationOnly");
         return null;
     }
 }
@@ -519,6 +623,72 @@ function canCreateNotifications() {
 }
 
 // ==============================================
+// POMOCNÉ FUNKCIE
+// ==============================================
+
+/**
+ * Aktualizuje status notifikácie
+ * @param {string} newStatus - Nový status
+ * @param {string} error - Chybová správa (voliteľné)
+ */
+function updateStatus(newStatus, error) {
+    try {
+        currentEntry.set("Status", newStatus);
+        
+        if (error) {
+            currentEntry.set("Posledná chyba", error);
+            
+            // Pridaj do Error_Log
+            var timestamp = moment().format("DD.MM.YY HH:mm:ss");
+            var errorMsg = "[" + timestamp + "] Status → " + newStatus + ": " + error;
+            var existingError = currentEntry.field("Error_Log") || "";
+            currentEntry.set("Error_Log", existingError + errorMsg + "\n");
+        }
+        
+        // Info log
+        var infoMsg = moment().format("YYYY-MM-DD HH:mm:ss") + " | Status zmenený na: " + newStatus;
+        if (error) infoMsg += " | Dôvod: " + error;
+        var existingInfo = currentEntry.field("info") || "";
+        currentEntry.set("info", existingInfo + "\n" + infoMsg);
+        
+    } catch (e) {
+        if (utils) {
+            utils.addError(currentEntry, e, "updateStatus");
+        }
+    }
+}
+
+/**
+ * Kontroluje či má byť notifikácia automaticky vymazaná po odoslaní
+ */
+function checkAutoDelete() {
+    try {
+        // Tu môžeš implementovať logiku pre auto-delete
+        // Napríklad podľa typu správy alebo nastavení
+        
+        var typSpravy = currentEntry.field("Typ správy");
+        if (typSpravy === "Systémová") {
+            // Systémové správy sa môžu automaticky mazať
+            // currentEntry.trash();
+            // utils.addDebug(currentEntry, "🗑️ Systémová správa - automaticky vymazaná");
+        }
+        
+    } catch (error) {
+        if (utils) {
+            utils.addError(currentEntry, error, "checkAutoDelete");
+        }
+    }
+}
+
+/**
+ * Kontroluje či je správa urgentná a potrebuje špeciálne spracovanie
+ * @returns {boolean}
+ */
+function isUrgent() {
+    var priorita = currentEntry.field("Priorita");
+    return priorita === "Urgentná";
+}
+// ==============================================
 // EXPORT FUNKCIÍ (pre použitie v iných scriptoch)
 // ==============================================
 
@@ -546,7 +716,11 @@ var ASISTANTONotifications = {
     formatTelegramMessage: formatTelegramMessage,
     getTelegramIdForEmployee: getTelegramIdForEmployee,
     getGroupInfo: getGroupInfo,
-    canCreateNotifications: canCreateNotifications
+    canCreateNotifications: canCreateNotifications,
+
+    updateStatus: updateStatus,
+    checkAutoDelete: checkAutoDelete,
+    isUrgent: isUrgent
 };
 
 // ==============================================
