@@ -781,9 +781,19 @@ var MementoUtils = (function() {
             // Priprav request body
             options.model = options.model || providerConfig.defaultModel;
             var requestBody = providerConfig.requestBody(prompt, options);
+
+// OPRAVA: Explicitná konverzia na string pre Memento
+var requestBodyString = JSON.stringify(requestBody);
+// Debug request body pre troubleshooting
+if (debugEntry && options.debugVerbose) {
+    addDebug(debugEntry, "📤 Request body: " + requestBodyString.substring(0, 200) + "...");
+}
             
             // Vykonaj API call
-            var response = httpObj.post(providerConfig.baseUrl, JSON.stringify(requestBody));
+           // var response = httpObj.post(providerConfig.baseUrl, JSON.stringify(requestBody));
+// Vykonaj API call - použij už skonvertovaný string
+var response = httpObj.post(providerConfig.baseUrl, requestBodyString);
+
             
             if (response.code === 200) {
                 var data = JSON.parse(response.body);
