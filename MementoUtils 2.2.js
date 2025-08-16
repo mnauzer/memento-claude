@@ -41,8 +41,14 @@ var MementoUtils = (function() {
         quarterRoundingMinutes: 15,
         maxWorkHours: 24,
         minWorkHours: 0.5,
+    
+        // Default Libraries
         defaultLibraryName: "ASISTANTO Defaults",
-        
+						 apiKeysLibrary: "ASISTANTO API",
+        telegramNotificationsLibrary: "ASISTANTO Notifications",
+        telegramGroupsLibrary: "ASISTANTO Telegram Groups",
+        logsLibrary: "ASISTANTO Logs",
+
         // v2.1 - AI konfigurácie
         defaultAIProvider: "OpenAi",
         apiCacheTimeout: 3600000, // 1 hodina v ms
