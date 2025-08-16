@@ -1,0 +1,163 @@
+{
+  "libraryName": "ASISTANTO Telegram Groups",
+  "totalFields": 24,
+  "analysisMethod": "enhanced_mock_v2.0",
+  "generatedAt": "2025-08-16 11:44:36",
+  "note": "Enhanced analysis using real field type detection, Link to Entry relationships, and attributes analysis",
+  "realTypeDetection": true,
+  "scriptVersion": "2.0",
+  "linkToEntryFields": [],
+  "fieldDetails": [
+    {
+      "name": "Názov skupiny",
+      "type": "Text",
+      "required": false,
+      "description": "Pole typu Text - Názov skupiny (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Typ skupiny",
+      "type": "Text",
+      "required": false,
+      "description": "Pole typu Text - Typ skupiny (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "ID Skupiny",
+      "type": "Number",
+      "required": false,
+      "description": "Pole typu Number - ID Skupiny (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Má tému",
+      "type": "Boolean",
+      "required": false,
+      "description": "Pole typu Boolean - Má tému (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Názov témy",
+      "type": "Text",
+      "required": false,
+      "description": "Pole typu Text - Názov témy (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "ID Témy",
+      "type": "Number",
+      "required": false,
+      "description": "Pole typu Number - ID Témy (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Popis skupiny",
+      "type": "Text",
+      "required": false,
+      "description": "Pole typu Text - Popis skupiny (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "info",
+      "type": "Memo (System)",
+      "required": false,
+      "description": "Pole typu Memo (System) - info (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Povoliť notifikácie",
+      "type": "Boolean",
+      "required": false,
+      "description": "Boolean pole pre riadenie odosielania notifikácií"
+    },
+    {
+      "name": "Pracovný čas od",
+      "type": "Date",
+      "required": false,
+      "description": "Pole typu Date - Pracovný čas od (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Pracovný čas do",
+      "type": "Date",
+      "required": false,
+      "description": "Pole typu Date - Pracovný čas do (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Víkend povolený",
+      "type": "Boolean",
+      "required": false,
+      "description": "Pole typu Boolean - Víkend povolený (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Priorita správ",
+      "type": "Text",
+      "required": false,
+      "description": "Pole typu Text - Priorita správ (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Denný limit správ",
+      "type": "Text",
+      "required": false,
+      "description": "Pole typu Text - Denný limit správ (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Tichá správa",
+      "type": "Boolean",
+      "required": false,
+      "description": "Pole typu Boolean - Tichá správa (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Posledná správa",
+      "type": "Text",
+      "required": false,
+      "description": "Pole typu Text - Posledná správa (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Počet správ",
+      "type": "Integer",
+      "required": false,
+      "description": "Pole typu Integer - Počet správ (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Celkový počet správ",
+      "type": "Integer",
+      "required": false,
+      "description": "Pole typu Integer - Celkový počet správ (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Posledná chyba",
+      "type": "Text",
+      "required": false,
+      "description": "Pole typu Text - Posledná chyba (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Vytvorené",
+      "type": "Date",
+      "required": false,
+      "description": "Pole typu Date - Vytvorené (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Posledná aktualizácia",
+      "type": "Date",
+      "required": false,
+      "description": "Pole typu Date - Posledná aktualizácia (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Error_Log",
+      "type": "Memo (System)",
+      "required": false,
+      "description": "Pole typu Memo (System) - Error_Log (automaticky detekovaný typ a popis)"
+    },
+    {
+      "name": "Debug_Log",
+      "type": "Memo (System)",
+      "required": false,
+      "description": "Systémové pole pre debug informácie a technické logy"
+    },
+    {
+      "name": "ID",
+      "type": "Integer",
+      "required": true,
+      "description": "Pole typu Integer - ID (automaticky detekovaný typ a popis)"
+    }
+  ],
+  "detectedPatterns": {
+    "timeFields": 4,
+    "linkFields": 0,
+    "numericFields": 3,
+    "systemFields": 3,
+    "booleanFields": 4
+  }
+}
