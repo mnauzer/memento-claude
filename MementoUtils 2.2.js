@@ -51,7 +51,6 @@ var MementoUtils = (function() {
     };
     
 function isNewRecord(currenEntry) {
-    var currentEntry
     var recordId = currentEntry.id;
     
     // Nový záznam má null alebo undefined ID
