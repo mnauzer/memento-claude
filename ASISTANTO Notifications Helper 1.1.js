@@ -628,64 +628,64 @@ function canCreateNotifications() {
 
 /**
  * Aktualizuje status notifikácie
+ * @param {Entry} entry - Záznam notifikácie
  * @param {string} newStatus - Nový status
  * @param {string} error - Chybová správa (voliteľné)
  */
-function updateStatus(newStatus, error) {
+function updateStatus(entry, newStatus, error) {
     try {
-        currentEntry.set("Status", newStatus);
+        entry.set("Status", newStatus);
         
         if (error) {
-            currentEntry.set("Posledná chyba", error);
+            entry.set("Posledná chyba", error);
             
             // Pridaj do Error_Log
             var timestamp = moment().format("DD.MM.YY HH:mm:ss");
             var errorMsg = "[" + timestamp + "] Status → " + newStatus + ": " + error;
-            var existingError = currentEntry.field("Error_Log") || "";
-            currentEntry.set("Error_Log", existingError + errorMsg + "\n");
+            var existingError = entry.field("Error_Log") || "";
+            entry.set("Error_Log", existingError + errorMsg + "\n");
         }
         
         // Info log
         var infoMsg = moment().format("YYYY-MM-DD HH:mm:ss") + " | Status zmenený na: " + newStatus;
         if (error) infoMsg += " | Dôvod: " + error;
-        var existingInfo = currentEntry.field("info") || "";
-        currentEntry.set("info", existingInfo + "\n" + infoMsg);
+        var existingInfo = entry.field("info") || "";
+        entry.set("info", existingInfo + "\n" + infoMsg);
         
     } catch (e) {
         if (utils) {
-            utils.addError(currentEntry, e, "updateStatus");
+            utils.addError(entry, e, "updateStatus");
         }
     }
 }
 
 /**
  * Kontroluje či má byť notifikácia automaticky vymazaná po odoslaní
+ * @param {Entry} entry - Záznam notifikácie
  */
-function checkAutoDelete() {
+function checkAutoDelete(entry) {
     try {
-        // Tu môžeš implementovať logiku pre auto-delete
-        // Napríklad podľa typu správy alebo nastavení
-        
-        var typSpravy = currentEntry.field("Typ správy");
+        var typSpravy = entry.field("Typ správy");
         if (typSpravy === "Systémová") {
             // Systémové správy sa môžu automaticky mazať
-            // currentEntry.trash();
-            // utils.addDebug(currentEntry, "🗑️ Systémová správa - automaticky vymazaná");
+            // entry.trash();
+            // utils.addDebug(entry, "🗑️ Systémová správa - automaticky vymazaná");
         }
         
     } catch (error) {
         if (utils) {
-            utils.addError(currentEntry, error, "checkAutoDelete");
+            utils.addError(entry, error, "checkAutoDelete");
         }
     }
 }
 
 /**
  * Kontroluje či je správa urgentná a potrebuje špeciálne spracovanie
+ * @param {Entry} entry - Záznam notifikácie
  * @returns {boolean}
  */
-function isUrgent() {
-    var priorita = currentEntry.field("Priorita");
+function isUrgent(entry) {
+    var priorita = entry.field("Priorita");
     return priorita === "Urgentná";
 }
 // ==============================================
@@ -698,6 +698,7 @@ var ASISTANTONotifications = {
     
     // Hlavné funkcie
     createNotification: createNotification,
+    createNotificationOnly: createNotificationOnly,
     sendNotification: sendNotification,
     deleteNotificationWithMessage: deleteNotificationWithMessage,
     
@@ -717,13 +718,10 @@ var ASISTANTONotifications = {
     getTelegramIdForEmployee: getTelegramIdForEmployee,
     getGroupInfo: getGroupInfo,
     canCreateNotifications: canCreateNotifications,
-
-    createNotificationOnly: createNotificationOnly,
-    updateStatus: updateStatus,
+    isUrgent: isUrgent,
     checkAutoDelete: checkAutoDelete,
-    isUrgent: isUrgent
+    updateStatus: updateStatus
 };
-
 // ==============================================
 // PRÍKLAD POUŽITIA
 // ==============================================
