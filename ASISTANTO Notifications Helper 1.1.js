@@ -23,7 +23,7 @@ var utils = MementoUtils;
 
 var CONFIG = {
     debug: true,
-    version: "1.0",
+    version: "1.1",
     scriptName: "ASISTANTO Notifications Helper",
     
     // Knižnice
@@ -718,6 +718,7 @@ var ASISTANTONotifications = {
     getGroupInfo: getGroupInfo,
     canCreateNotifications: canCreateNotifications,
 
+    createNotificationOnly: createNotificationOnly,
     updateStatus: updateStatus,
     checkAutoDelete: checkAutoDelete,
     isUrgent: isUrgent
