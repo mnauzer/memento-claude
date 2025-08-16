@@ -41,8 +41,14 @@ var MementoUtils = (function() {
         quarterRoundingMinutes: 15,
         maxWorkHours: 24,
         minWorkHours: 0.5,
+    
+        // Default Libraries
         defaultLibraryName: "ASISTANTO Defaults",
-        
+						 apiKeysLibrary: "ASISTANTO API",
+        telegramNotificationsLibrary: "ASISTANTO Notifications",
+        telegramGroupsLibrary: "ASISTANTO Telegram Groups",
+        logsLibrary: "ASISTANTO Logs",
+
         // v2.1 - AI konfigurácie
         defaultAIProvider: "OpenAi",
         apiCacheTimeout: 3600000, // 1 hodina v ms
@@ -50,6 +56,21 @@ var MementoUtils = (function() {
         apiTimeout: 30000 // 30 sekúnd
     };
     
+function isNewRecord(currenEntry) {
+    currentEntry = currentEntry;
+    var recordId = currentEntry.id;
+    
+    // Nový záznam má null alebo undefined ID
+    if (recordId === null || recordId === undefined) {
+        addDebug("✅ NOVÝ ZÁZNAM - ID je null/undefined");
+        return true;
+    } else {
+        addDebug("📝 EDITÁCIA ZAZNAMU - ID: " + recordId);
+        return false;
+    }
+}
+
+
     // ========================================
     // v2.1 - AI PROVIDER CONFIGURATION
     // ========================================
@@ -778,9 +799,19 @@ var MementoUtils = (function() {
             // Priprav request body
             options.model = options.model || providerConfig.defaultModel;
             var requestBody = providerConfig.requestBody(prompt, options);
+
+// OPRAVA: Explicitná konverzia na string pre Memento
+var requestBodyString = JSON.stringify(requestBody);
+// Debug request body pre troubleshooting
+if (debugEntry && options.debugVerbose) {
+    addDebug(debugEntry, "📤 Request body: " + requestBodyString.substring(0, 200) + "...");
+}
             
             // Vykonaj API call
-            var response = httpObj.post(providerConfig.baseUrl, JSON.stringify(requestBody));
+           // var response = httpObj.post(providerConfig.baseUrl, JSON.stringify(requestBody));
+// Vykonaj API call - použij už skonvertovaný string
+var response = httpObj.post(providerConfig.baseUrl, requestBodyString);
+
             
             if (response.code === 200) {
                 var data = JSON.parse(response.body);
@@ -1861,6 +1892,7 @@ var MementoUtils = (function() {
         DEFAULT_CONFIG: DEFAULT_CONFIG,
         AI_PROVIDERS: AI_PROVIDERS,
         
+						isNewRecord: isNewRecord,
         // Version info
         version: "2.2"
     };
