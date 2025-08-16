@@ -44,7 +44,7 @@ var MementoUtils = (function() {
     
         // Default Libraries
         defaultLibraryName: "ASISTANTO Defaults",
-						 apiKeysLibrary: "ASISTANTO API",
+        apiKeysLibrary: "ASISTANTO API",
         telegramNotificationsLibrary: "ASISTANTO Notifications",
         telegramGroupsLibrary: "ASISTANTO Telegram Groups",
         logsLibrary: "ASISTANTO Logs",
@@ -56,19 +56,23 @@ var MementoUtils = (function() {
         apiTimeout: 30000 // 30 sekúnd
     };
     
-function isNewRecord(currenEntry) {
-    currentEntry = currentEntry;
-    var recordId = currentEntry.id;
-    
-    // Nový záznam má null alebo undefined ID
-    if (recordId === null || recordId === undefined) {
-        addDebug("✅ NOVÝ ZÁZNAM - ID je null/undefined");
-        return true;
-    } else {
-        addDebug("📝 EDITÁCIA ZAZNAMU - ID: " + recordId);
-        return false;
+    // ========================================
+    // CUSTOM FUNCTIONS
+    // ========================================
+
+    function isNewRecord(currentEntry) {
+        currentEntry = currentEntry;
+        var recordId = currentEntry.id;
+        var id = currentEntry.safeFieldAccess(currentEntry, "ID", recordId);
+        // Nový záznam má null alebo undefined ID
+        if (recordId === null || recordId === undefined) {
+            addDebug("✅ NOVÝ ZÁZNAM - ID je null/undefined");
+            return true;
+        } else {
+            addDebug("📝 EDITÁCIA ZAZNAMU - ID: " + id);
+            return false;
+        }
     }
-}
 
 
     // ========================================
