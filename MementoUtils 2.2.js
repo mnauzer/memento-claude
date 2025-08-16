@@ -50,6 +50,21 @@ var MementoUtils = (function() {
         apiTimeout: 30000 // 30 sekúnd
     };
     
+function isNewRecord(currenEntry) {
+    var currentEntry
+    var recordId = currentEntry.id;
+    
+    // Nový záznam má null alebo undefined ID
+    if (recordId === null || recordId === undefined) {
+        addDebug("✅ NOVÝ ZÁZNAM - ID je null/undefined");
+        return true;
+    } else {
+        addDebug("📝 EDITÁCIA ZAZNAMU - ID: " + recordId);
+        return false;
+    }
+}
+
+
     // ========================================
     // v2.1 - AI PROVIDER CONFIGURATION
     // ========================================
@@ -1873,6 +1888,7 @@ var response = httpObj.post(providerConfig.baseUrl, requestBodyString);
         DEFAULT_CONFIG: DEFAULT_CONFIG,
         AI_PROVIDERS: AI_PROVIDERS,
         
+						isNewRecord: isNewRecord,
         // Version info
         version: "2.2"
     };
