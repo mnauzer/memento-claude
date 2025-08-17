@@ -23,7 +23,7 @@ var notifHelper = null;
 // Konfigurácia
 var CONFIG = {
     debug: true,
-    version: "2.0",
+    version: "2.2",
     scriptName: "ASISTANTO Notifications Creating Trigger",
     
     // Knižnice
@@ -42,8 +42,8 @@ var CONFIG = {
 
     telegramID: "Telegram ID", // Pole s Telegram ID zamestnancov, partnerov a klientov
     telegramEnabled: "telegram", // Pole pre povolenie Telegram notifikácií
-    chatId: CONFIG.chatId, // Pole pre Chat ID skupín a tém
-    threadId: CONFIG.threadId, // CONFIG.threadIdD témy v skupinách
+    chatId: "Chat ID", // Pole pre Chat ID skupín a tém
+    threadId: "Thread ID", // CONFIG.threadIdD témy v skupinách
 
     maxRetries: 3,
     
