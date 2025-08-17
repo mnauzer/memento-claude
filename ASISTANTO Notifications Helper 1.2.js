@@ -746,4 +746,79 @@ var ASISTANTONotifications = {
 // 1. Vytvorenie jednoduchej notifikácie pre zamestnanca
 var notifData = {
     typSpravy: "Dochádzka",
-    sprava: "
+    sprava: "Vaša dochádzka bola zaznamenaná. Príchod: {prichod}, Odchod: {odchod}",
+    zamestnanec: [zamestnanecEntry],
+    adresat: "Zamestnanec"
+};
+var notifikacia = ASISTANTONotifications.createNotification(notifData);
+
+// 2. Vytvorenie notifikácie pre skupinu s témou
+var groupNotif = {
+    typSpravy: "Systémová",
+    sprava: ASISTANTONotifications.formatTelegramMessage("Denný report", {
+        "Počet zamestnancov": 15,
+        "Odpracované hodiny": 120,
+        "Mzdové náklady": "1,234.56 €"
+    }),
+    skupinaTema: [telegramGroupEntry],
+    adresat: "Skupina-Téma"
+};
+ASISTANTONotifications.createNotification(groupNotif);
+
+// 3. Bulk notifikácie pre všetkých aktívnych zamestnancov
+var baseData = {
+    typSpravy: "ToDo",
+    sprava: "Nezabudnite vyplniť mesačný report do {termin}",
+    priorita: "Vysoká",
+    vyprsat: moment().endOf('month').toDate()
+};
+var recipients = lib("Zamestnanci").find("Status", "Aktívny");
+ASISTANTONotifications.createBulkNotifications(baseData, recipients);
+
+// 4. Naplánovaná notifikácia s opakovaním
+var scheduledNotif = {
+    typSpravy: "Systémová",
+    predmet: "Týždenná porada",
+    sprava: "Pripomíname týždennú poradu o 10:00 v zasadačke",
+    poslatO: moment().day(1).hour(9).minute(0).toDate(), // Pondelok 9:00
+    opakovat: "Každý týždeň",
+    adresat: "Skupina",
+    skupinaTema: [poradaGroupEntry]
+};
+ASISTANTONotifications.createNotification(scheduledNotif);
+
+// 5. Použitie template pre dochádzku
+var dochadzkaTemplate = ASISTANTONotifications.createDochadzkaTemplate(dochadzkaEntry);
+dochadzkaTemplate.zamestnanec = dochadzkaEntry.field("Zamestnanci");
+dochadzkaTemplate.adresat = "Zamestnanec";
+ASISTANTONotifications.createBulkNotifications(dochadzkaTemplate, dochadzkaTemplate.zamestnanec);
+
+// 6. Zrušenie notifikácií pri vymazaní záznamu
+var cancelled = ASISTANTONotifications.cancelNotificationsBySource(
+    entry().field("ID"),
+    lib().name()
+);
+
+// 7. Spracovanie vypršaných notifikácií (napr. v scheduled action)
+var expiredStats = ASISTANTONotifications.processExpiredNotifications();
+message("Spracované: " + expiredStats.processed + ", Vypršané: " + expiredStats.expired);
+
+// 8. Získanie štatistík za tento mesiac
+var stats = ASISTANTONotifications.getNotificationStats({
+    dateFrom: moment().startOf('month').toDate(),
+    dateTo: moment().endOf('month').toDate()
+});
+message("Odoslané: " + stats.sent + "/" + stats.total);
+*/
+
+// ==============================================
+// INICIALIZÁCIA
+// ==============================================
+
+// Vypíš informáciu o načítaní
+utils.addDebug(entry(), "✅ ASISTANTO Notifications Helper v" + CONFIG.version + " načítaný");
+
+// Pre kompatibilitu s globálnym namespace
+if (typeof global !== 'undefined') {
+    global.ASISTANTONotifications = ASISTANTONotifications;
+}
