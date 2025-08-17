@@ -17,8 +17,8 @@
 
 // Globálne premenné
 var currentEntry = entry();
-var utils = null;
-var notifHelper = null;
+var utils = MementoUtils;
+var notifHelper = ASISTANTONotifications;
 
 // Konfigurácia
 var CONFIG = {

@@ -40,6 +40,14 @@ var CONFIG = {
     statusScheduled: "Naplánované",
     statusExpired: "Vypršané",
     
+    
+    telegramEnabled: "telegram", // Pole pre povolenie Telegram notifikácií
+    telegramID: "Telegram ID", // Pole s Telegram ID zamestnancov, partnerov a klientov
+    chatId: "Chat ID", // Pole pre Chat ID skupín a tém
+    threadId: "Thread ID", // CONFIG.threadIdD témy v skupinách
+    messageId: "Message ID", // Pole pre ID odoslanej správy
+
+
     // Max pokusov
     maxRetries: 3,
     retryDelayMs: [1000, 5000, 15000], // 1s, 5s, 15s
@@ -267,7 +275,7 @@ function checkDailyLimit(target) {
         
         // Nájdi všetky dnešné odoslané správy pre tento chat
         var sentToday = notifLib.entries().filter(function(e) {
-            var chatId = e.field("Chat ID");
+            var chatId = e.field(CONFIG.chatId);
             var sentDate = e.field("Odoslané o");
             var status = e.field("Status");
             
@@ -351,8 +359,8 @@ function getEmployeeTargets() {
     
     for (var i = 0; i < employees.length; i++) {
         var employee = employees[i];
-        var telegramId = utils.safeGet(employee, "Telegram ID", "");
-        var telegramEnabled = utils.safeGet(employee, "telegram", false);
+        var telegramId = utils.safeGet(employee, CONFIG.telegramID, "");
+        var telegramEnabled = utils.safeGet(employee, CONFIG.telegramEnabled, false);
         
         if (telegramId && telegramEnabled) {
             targets.push({
@@ -377,13 +385,13 @@ function getGroupTargets(includeThread) {
     
     if (!groups || groups.length === 0) {
         // Skús získať priame Chat ID
-        var directChatId = currentEntry.field("Chat ID");
+        var directChatId = currentEntry.field(CONFIG.chatId);
         if (directChatId) {
             targets.push({
                 type: includeThread ? "thread" : "group",
                 name: "Direct Chat ID",
                 chatId: directChatId,
-                threadId: includeThread ? currentEntry.field("Thread ID") : null,
+                threadId: includeThread ? currentEntry.field(CONFIG.threadId) : null,
                 settings: getDefaultGroupSettings()
             });
             utils.addDebug(currentEntry, "✅ Použitý priamy Chat ID: " + directChatId);
@@ -393,8 +401,8 @@ function getGroupTargets(includeThread) {
     
     for (var i = 0; i < groups.length; i++) {
         var group = groups[i];
-        var chatId = utils.safeGet(group, "Chat ID", "");
-        var threadId = includeThread ? utils.safeGet(group, "Thread ID", "") : null;
+        var chatId = utils.safeGet(group, CONFIG.chatId, "");
+        var threadId = includeThread ? utils.safeGet(group, CONFIG.threadId, "") : null;
         var enabled = utils.safeGet(group, "Povoliť notifikácie", true);
         
         if (chatId && enabled) {
@@ -425,8 +433,8 @@ function getOrderTargets() {
         var order = orders[i];
         
         // Získaj Chat ID a Thread ID priamo zo zákazky
-        var chatId = utils.safeGet(order, "Chat ID", "");
-        var threadId = utils.safeGet(order, "Thread ID", "");
+        var chatId = utils.safeGet(order, CONFIG.chatId, "");
+        var threadId = utils.safeGet(order, CONFIG.threadId, "");
         
         if (chatId) {
             // Ak má zákazka priame Chat ID, použi ho
@@ -446,8 +454,8 @@ function getOrderTargets() {
         
         for (var j = 0; j < telegramGroups.length; j++) {
             var group = telegramGroups[j];
-            var groupChatId = utils.safeGet(group, "Chat ID", "");
-            var groupThreadId = utils.safeGet(group, "Thread ID", "");
+            var groupChatId = utils.safeGet(group, CONFIG.chatId, "");
+            var groupThreadId = utils.safeGet(group, CONFIG.threadId, "");
             
             if (groupChatId) {
                 targets.push({
@@ -477,7 +485,7 @@ function getClientTargets() {
     
     for (var i = 0; i < clients.length; i++) {
         var client = clients[i];
-        var telegramId = utils.safeGet(client, "Telegram ID", "");
+        var telegramId = utils.safeGet(client, CONFIG.telegramID, "");
         
         if (telegramId) {
             targets.push({
@@ -503,7 +511,7 @@ function getPartnerTargets() {
     
     for (var i = 0; i < partners.length; i++) {
         var partner = partners[i];
-        var telegramId = utils.safeGet(partner, "Telegram ID", "");
+        var telegramId = utils.safeGet(partner, CONFIG.telegramID, "");
         
         if (telegramId) {
             targets.push({
@@ -611,7 +619,7 @@ function sendToTarget(target) {
         }
         
         // Kontrola API kľúča
-        var apiKey = utils.getApiKey ? utils.getApiKey("Telegram") : null;
+        var apiKey = utils.getApiKey ? utils.getApiKey(CONFIG.telegramEnabled) : null;
         if (!apiKey) {
             utils.addDebug(currentEntry, "⚠️ API kľúč možno chýba - pokračujem");
         }
@@ -655,13 +663,13 @@ function sendToTarget(target) {
             utils.addDebug(currentEntry, "✅ Odoslané - Message ID: " + result.messageId);
             
             // Aktualizuj response data
-            if (!currentEntry.field("Message ID")) {
-                currentEntry.set("Message ID", result.messageId);
+            if (!currentEntry.field(CONFIG.messageId)) {
+                currentEntry.set(CONFIG.messageId, result.messageId);
             }
             currentEntry.set("Odoslané o", moment().toDate());
             
             // Ulož Chat ID pre daily limit kontrolu
-            currentEntry.set("Chat ID", target.chatId);
+            currentEntry.set(CONFIG.chatId, target.chatId);
             
             // Pridaj info o odoslaní
             var info = currentEntry.field("info") || "";
