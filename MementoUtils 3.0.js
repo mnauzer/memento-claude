@@ -44,7 +44,10 @@ var MementoUtils = (function() {
         notificationsLibrary: "ASISTANTO Notifications",
         
         // AI Providers
-        defaultAIProvider: "OpenAi"
+        defaultAIProvider: "OpenAi",
+
+        // API Field Names
+        provider: "provider",
     };
     
     var AI_PROVIDERS = {
@@ -605,7 +608,7 @@ var MementoUtils = (function() {
             
             var entries = apiLib.entries();
             for (var i = 0; i < entries.length; i++) {
-                var providerName = safeGet(entries[i], "provider", "").toLowerCase();
+                var providerName = safeGet(entries[i], CONFIG.provider, "").toLowerCase();
                 if (providerName === provider.toLowerCase()) {
                     var apiKey = safeGet(entries[i], "api", "");
                     
