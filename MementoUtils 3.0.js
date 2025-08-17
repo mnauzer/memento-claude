@@ -130,7 +130,7 @@ var MementoUtils = (function() {
     function addError(entry, error, context) {
         if (!entry) return;
         
-        var timestamp = moment().format("YYYY-MM-DD HH:mm:ss");
+        var timestamp = moment().format("DD.MM.YY HH:mm:ss");
         var errorMessage = "[" + timestamp + "] v" + config.version;
         
         if (context) {
@@ -161,7 +161,7 @@ var MementoUtils = (function() {
     function addInfo(entry, message, details) {
         if (!entry) return;
         
-        var timestamp = moment().format("YYYY-MM-DD HH:mm:ss");
+        var timestamp = moment().format("DD.MM.YY HH:mm:ss");
         var infoMessage = "[" + timestamp + "] " + message;
         
         if (details && typeof details === "object") {

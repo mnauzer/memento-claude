@@ -688,6 +688,37 @@ function isUrgent(entry) {
     var priorita = entry.field("Priorita");
     return priorita === "Urgentná";
 }
+
+/**
+ * Odošle dáta notifikácie na N8N webhook.
+ * @param {Entry} notifikacia - Záznam notifikácie na odoslanie.
+ */
+function sendToN8N(notifikacia) {
+    // Nahraďte URL adresou vášho N8N webhooku
+    var n8nWebhookUrl = "https://n8n.infamous.chat/webhook/17b60750-4ff0-4482-a169-1b36846b0569"; 
+    
+    // Pripravíme dáta, ktoré pošleme
+    var payload = {
+        notificationId: notifikacia.field("ID"),
+        message: notifikacia.field("Správa"),
+        chatId: notifikacia.field("Chat ID") || notifikacia.field("Telegram ID"),
+        formatting: notifikacia.field("Formátovanie") || "Markdown"
+    };
+    
+    try {
+        utils.addDebug(notifikacia, "📤 Odosielam dáta na N8N webhook...");
+        var response = utils.httpPost(n8nWebhookUrl, payload, { "Content-Type": "application/json" });
+        
+        // Memento nevracia priamo response.body, takže kontrolujeme len úspešnosť requestu
+        utils.addDebug(notifikacia, "✅ Dáta úspešne odoslané na N8N.");
+        notifikacia.set("Status", "Odoslané do N8N");
+
+    } catch (error) {
+        utils.addError(notifikacia, "Chyba pri odosielaní na N8N: " + error, "sendToN8N");
+        notifikacia.set("Status", "Chyba N8N");
+    }
+}
+
 // ==============================================
 // EXPORT FUNKCIÍ (pre použitie v iných scriptoch)
 // ==============================================
@@ -720,7 +751,8 @@ var ASISTANTONotifications = {
     canCreateNotifications: canCreateNotifications,
     isUrgent: isUrgent,
     checkAutoDelete: checkAutoDelete,
-    updateStatus: updateStatus
+    updateStatus: updateStatus,
+    sendToN8N: sendToN8N
 };
 // ==============================================
 // PRÍKLAD POUŽITIA
