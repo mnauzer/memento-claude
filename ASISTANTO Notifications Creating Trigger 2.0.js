@@ -51,7 +51,7 @@ var CONFIG = {
         CLIENT: "Klient",
         PARTNER: "Partner",
         GROUP: "Skupina",
-        GROUP_THREAD: "Skupina-Thread",
+        GROUP_THREAD: "Skupina-Téma",
         ORDER: "Zákazka"
     }
 };
