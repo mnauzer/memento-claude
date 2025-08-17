@@ -38,6 +38,8 @@ var CONFIG = {
     statusSent: "Odoslané",
     statusFailed: "Zlyhalo",
     statusCancelled: "Zrušené",
+
+
     telegramID: "Telegram ID", // Pole s Telegram ID zamestnancov, partnerov a klientov
     telegramEnabled: "telegram", // Pole pre povolenie Telegram notifikácií
     chatId: CONFIG.chatId, // Pole pre Chat ID skupín a tém
@@ -361,14 +363,17 @@ function getOrderTargets() {
     
     if (!orders || orders.length === 0) {
         return targets;
+        utils.addDebug(currentEntry, "❌ Žiadne zákazky v poli 'Zákazka'");
     }
     
     for (var i = 0; i < orders.length; i++) {
         var order = orders[i];
+        utils.addDebug(currentEntry, "📦 Spracovávam zákazku: " + utils.safeGet(order, "Názov", "Neznáma zákazka"));
         var telegramGroups = utils.safeGet(order, "Telegram skupina", []);
         
         for (var j = 0; j < telegramGroups.length; j++) {
             var group = telegramGroups[j];
+            utils.addDebug(currentEntry, "🔍 Skupina: " + utils.safeGet(group, "Názov záznamu", "Neznáma skupina"));
             var chatId = utils.safeGet(group, CONFIG.chatId, "");
             
             if (chatId) {
@@ -379,6 +384,7 @@ function getOrderTargets() {
                     settings: extractGroupSettings(group),
                     entry: group
                 });
+                utils.addDebug(currentEntry, "✅ Pridaná zákazka: " + targets[targets.length - 1].name);
             }
         }
     }
