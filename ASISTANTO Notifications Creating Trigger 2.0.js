@@ -540,7 +540,7 @@ function sendToTarget(target) {
             
             // Pridaj info o odoslaní
             var info = currentEntry.field("info") || "";
-            info += "\n" + moment().format("YYYY-MM-DD HH:mm:ss") + " | Odoslané: " + target.name;
+            info += "\n" + moment().format("DD.MM.YY HH:mm:ss") + " | Odoslané: " + target.name;
             currentEntry.set("info", info);
             
             return true;
@@ -577,7 +577,7 @@ function updateStatus(newStatus, error) {
         currentEntry.set("Pokusov o odoslanie", pokusy + 1);
         
         // Info log
-        var infoMsg = moment().format("YYYY-MM-DD HH:mm:ss") + " | Status: " + newStatus;
+        var infoMsg = moment().format("DD.MM.YY HH:mm:ss") + " | Status: " + newStatus;
         if (error) infoMsg += " | " + error;
         var existingInfo = currentEntry.field("info") || "";
         currentEntry.set("info", existingInfo + "\n" + infoMsg);
