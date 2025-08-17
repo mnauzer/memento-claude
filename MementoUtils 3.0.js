@@ -629,7 +629,7 @@ var MementoUtils = (function() {
         return null;
     }
     
-    function httpRequest(url, options) {
+function httpRequest(url, options) {
         options = options || {};
         var method = options.method || "GET";
         var headers = options.headers || {};

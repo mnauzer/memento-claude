@@ -5,7 +5,7 @@
 // ==============================================
 // 📋 FUNKCIA:
 //    - Automaticky spracováva novo vytvorené notifikácie
-//    - Routing podľa typu adresáta (Zamestnanec, Skupina, Téma, Zákazka)
+//    - Routing podľa typu adresáta (Zamestnanec, Skupina, Thread ID Zákazka)
 //    - Synchronizácia nastavení z ASISTANTO Telegram Groups
 //    - Odošle správy cez Telegram API s retry logikou
 // ✅ v2.0 FEATURES:
@@ -38,8 +38,11 @@ var CONFIG = {
     statusSent: "Odoslané",
     statusFailed: "Zlyhalo",
     statusCancelled: "Zrušené",
-    
-    // Max pokusov
+    telegramID: "Telegram ID", // Pole s Telegram ID zamestnancov, partnerov a klientov
+    telegramEnabled: "telegram", // Pole pre povolenie Telegram notifikácií
+    chatId: CONFIG.chatId, // Pole pre Chat ID skupín a tém
+    threadId: CONFIG.threadId, // CONFIG.threadIdD témy v skupinách
+
     maxRetries: 3,
     
     // Typy adresátov
@@ -48,7 +51,7 @@ var CONFIG = {
         CLIENT: "Klient",
         PARTNER: "Partner",
         GROUP: "Skupina",
-        GROUP_THREAD: "Skupina-Téma",
+        GROUP_THREAD: "Skupina-Thread",
         ORDER: "Zákazka"
     }
 };
@@ -290,8 +293,8 @@ function getEmployeeTargets() {
     
     for (var i = 0; i < employees.length; i++) {
         var employee = employees[i];
-        var telegramId = utils.safeGet(employee, "Telegram ID", "");
-        var telegramEnabled = utils.safeGet(employee, "telegram", false);
+        var telegramId = utils.safeGet(employee, CONFIG.telegramID, "");
+        var telegramEnabled = utils.safeGet(employee, CONFIG.telegramEnabled, false);
         
         if (telegramId && telegramEnabled) {
             targets.push({
@@ -312,17 +315,17 @@ function getEmployeeTargets() {
 
 function getGroupTargets(includeThread) {
     var targets = [];
-    var groups = currentEntry.field("Skupina/Téma");
+    var groups = currentEntry.field("Skupina-Téma");
     
     if (!groups || groups.length === 0) {
         // Skús získať priame Chat ID
-        var directChatId = currentEntry.field("Chat ID");
+        var directChatId = currentEntry.field(CONFIG.chatId);
         if (directChatId) {
-            targets.push({
+        targets.push({
                 type: includeThread ? "thread" : "group",
                 name: "Direct Chat ID",
                 chatId: directChatId,
-                threadId: includeThread ? currentEntry.field("Téma ID") : null,
+                threadId: includeThread ? currentEntry.field(CONFIG.threadId) : null,
                 settings: getDefaultGroupSettings()
             });
             utils.addDebug(currentEntry, "✅ Použitý priamy Chat ID: " + directChatId);
@@ -332,8 +335,8 @@ function getGroupTargets(includeThread) {
     
     for (var i = 0; i < groups.length; i++) {
         var group = groups[i];
-        var chatId = utils.safeGet(group, "ID Skupiny", "");
-        var threadId = includeThread ? utils.safeGet(group, "ID Témy", "") : null;
+        var chatId = utils.safeGet(group, CONFIG.chatId, "");
+        var threadId = includeThread ? utils.safeGet(group, CONFIG.threadId, "") : null;
         var enabled = utils.safeGet(group, "Povoliť notifikácie", true);
         
         if (chatId && enabled) {
@@ -366,12 +369,12 @@ function getOrderTargets() {
         
         for (var j = 0; j < telegramGroups.length; j++) {
             var group = telegramGroups[j];
-            var chatId = utils.safeGet(group, "ID Skupiny", "");
+            var chatId = utils.safeGet(group, CONFIG.chatId, "");
             
             if (chatId) {
                 targets.push({
                     type: "order",
-                    name: utils.safeGet(order, "Názov záznamu", "Zákazka"),
+                    name: utils.safeGet(order, "Názov", "Zákazka"),
                     chatId: chatId,
                     settings: extractGroupSettings(group),
                     entry: group
@@ -394,12 +397,12 @@ function getClientTargets() {
     
     for (var i = 0; i < clients.length; i++) {
         var client = clients[i];
-        var telegramId = utils.safeGet(client, "Telegram ID", "");
+        var telegramId = utils.safeGet(client, CONFIG.telegramID, "");
         
         if (telegramId) {
             targets.push({
                 type: "client",
-                name: utils.safeGet(client, "Názov záznamu", "Klient"),
+                name: utils.safeGet(client, "Nick", "Klient"),
                 chatId: telegramId,
                 entry: client
             });
@@ -420,12 +423,12 @@ function getPartnerTargets() {
     
     for (var i = 0; i < partners.length; i++) {
         var partner = partners[i];
-        var telegramId = utils.safeGet(partner, "Telegram ID", "");
+        var telegramId = utils.safeGet(partner, CONFIG.telegramID, "");
         
         if (telegramId) {
             targets.push({
                 type: "partner",
-                name: utils.safeGet(partner, "Názov záznamu", "Partner"),
+                name: utils.safeGet(partner, "Nick", "Partner"),
                 chatId: telegramId,
                 entry: partner
             });
