@@ -723,7 +723,7 @@ var ASISTANTONotifications = {
     isUrgent: isUrgent,
     checkAutoDelete: checkAutoDelete,
     updateStatus: updateStatus,
-    sendToN8N: sendToN8N
+    
 };
 // ==============================================
 // PRÍKLAD POUŽITIA
