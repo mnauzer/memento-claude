@@ -237,6 +237,7 @@ var MementoUtils = (function() {
                 var field = fields[i];
                 addDebug(entry(), "Setting fields: " + fields.length + ", processing field: " + field.name);
                 settings[field.name] = settingsEntry.field(field.name);
+                addDebug(entry(), "Successfully processed field: " + field.name);
              }
             
              return settings;
