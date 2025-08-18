@@ -236,13 +236,14 @@ var MementoUtils = (function() {
             for (var i = 0; i < fields.length; i++) {
                 var field = fields[i];
                 addDebug(entry(), "Setting fields: " + fields.length + ", processing field: " + field.name);
-                 settings[field.name] = settingsEntry.field(field.name);
+                settings[field.name] = settingsEntry.field(field.name);
              }
             
              return settings;
             
         } catch (error) {
             addError(entry(), error, "getSettings");
+            addError(entry(), "Line: " + error.lineNumber, "getSettings" );
             return null;
         }
     }
