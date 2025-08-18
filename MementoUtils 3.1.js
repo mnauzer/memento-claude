@@ -222,10 +222,10 @@ var MementoUtils = (function() {
             }
             
             var settingsEntry = entries[0];
-            
-            // if (fieldName) {
-            //     return safeGet(settingsEntry, fieldName, null);
-            // }
+            message(safeGet(settingsEntry, fieldName, null) || "No settings found");
+            if (fieldName) {
+                return safeGet(settingsEntry, fieldName, null);
+            }
             
             // // Return whole settings object
             // var settings = {};
@@ -238,7 +238,7 @@ var MementoUtils = (function() {
             // return settings;
             
 
-            return safeGet(settingsEntry, fieldName, null);
+            
 
         } catch (error) {
             addError(entry(), error, "getSettings");
