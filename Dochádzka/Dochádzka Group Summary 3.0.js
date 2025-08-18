@@ -78,7 +78,7 @@ function main() {
             return;
         }
         
-        var enabled = settings[CONFIG.defaultsFields.dochadzkaGroupEnabled];
+        var enabled = utils.getSettings(CONFIG.defaultsLibrary,CONFIG.defaultsFields.dochadzkaGroupEnabled); // Kontrola povolenia skupinových notifikácií
         utils.addDebug(currentEntry, "Skupinové notifikácie povolené: " + enabled);
         if (!enabled) {
             utils.addDebug(currentEntry, "ℹ️ Skupinové notifikácie sú vypnuté");
