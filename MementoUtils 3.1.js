@@ -1231,6 +1231,6 @@ var MementoUtils = (function() {
 })();
 
 // Pre kompatibilitu s require() - ak Memento podporuje
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = MementoUtils;
-}
+//if (typeof module !== 'undefined' && module.exports) {
+//    module.exports = MementoUtils;
+//}
