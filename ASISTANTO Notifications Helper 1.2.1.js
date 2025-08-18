@@ -115,7 +115,7 @@ function getUtils() {
 
 var CONFIG = {
     debug: true,
-    version: "1.2",
+    version: "1.2.1",
     scriptName: "ASISTANTO Notifications Helper",
     
     // Knižnice
