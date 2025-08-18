@@ -223,22 +223,22 @@ var MementoUtils = (function() {
             
             var settingsEntry = entries[0];
             
-            // if (fieldName) {
-            //     return safeGet(settingsEntry, fieldName, null);
-            // }
+            if (fieldName) {
+                 return safeGet(settingsEntry, fieldName, null);
+            }
             
-            // // Return whole settings object
-            // var settings = {};
-            // var fields = settingsEntry.fields();
-            // for (var i = 0; i < fields.length; i++) {
-            //     var field = fields[i];
-            //     settings[field.name] = settingsEntry.field(field.name);
-            // }
+            // Return whole settings object
+            var settings = {};
+            var fields = settingsEntry.fields();
+            for (var i = 0; i < fields.length; i++) {
+                var field = fields[i];
+                 settings[field.name] = settingsEntry.field(field.name);
+             }
             
-            // return settings;
+             return settings;
             
-
-            return safeGet(settingsEntry, fieldName, null);
+            //message(fieldName + 
+            //return safeGet(settingsEntry, fieldName, null);
 
         } catch (error) {
             addError(entry(), error, "getSettings");
