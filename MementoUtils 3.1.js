@@ -18,7 +18,7 @@ var MementoUtils = (function() {
     // ==============================================
     
     var config = {
-        version: "3.1",
+        version: "3.1.1",
         debug: true,
         includeLineNumbers: true,
         includeStackTrace: false,
@@ -223,7 +223,7 @@ var MementoUtils = (function() {
             }
             
             var settingsEntry = entries[0];
-            message(safeGet(settingsEntry, fieldName, null) || "No settings found");
+            message(safeGet(settingsEntry, fieldName, null) || "No settings found in library '" + libraryName + "'");
             if (fieldName) {
                 return safeGet(settingsEntry, fieldName, null);
             }
