@@ -71,7 +71,7 @@ function main() {
         utils.addDebug(currentEntry, "🚀 === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
         
         // 1. Kontrola či sú povolené skupinové notifikácie
-        var settings = utils.getSettings(CONFIG.defaultsLibrary);
+        var settings = utils.getSettings(CONFIG.defaultsLibrary, CONFIG.defaultsFields.dochadzkaGroupEnabled);
         utils.addDebug(currentEntry, "Nastavenia načítané z knižnice: " + CONFIG.defaultsLibrary);
         if (!settings) {
             utils.addDebug(currentEntry, "⚠️ Nenašli sa nastavenia v " + CONFIG.defaultsLibrary);
@@ -86,7 +86,7 @@ function main() {
         }
         
         // 2. Kontrola či je nastavená skupina
-        var telegramId = settings[CONFIG.defaultsFields.telegramDochadzkaId];
+        var telegramId = utils.getSettings(CONFIG.defaultsLibrary, CONFIG.defaultsFields.telegramDochadzkaId);
         utils.addDebug(currentEntry, "Telegram Dochádzka ID: " + telegramId);
         if (!telegramId) {
             utils.addDebug(currentEntry, "⚠️ Nie je nastavené Telegram Dochádzka ID");
