@@ -231,24 +231,16 @@ var MementoUtils = (function() {
             // Return whole settings object
             var settings = {};
             var fields = lib.fields();
-message(fields);
+            addDebug(entry(), "Setting fields array: " + fields.length + " fields found in library '" + libraryName + "'");
+            
             for (var i = 0; i < fields.length; i++) {
                 var field = fields[i];
-// Namiesto field.name.startsWith("---")
-   // if (field.name.indexOf("---") === 0) {
-    //    continue;
-   // }
-										//			if (field.name.startsWith("---")) {
-       // continue;
-    //}
+                addDebug(entry(), "Setting fields: " + fields.length + ", processing field: " + field.name);
                  settings[field.name] = settingsEntry.field(field.name);
              }
             
              return settings;
             
-
-            
-
         } catch (error) {
             addError(entry(), error, "getSettings");
             return null;
