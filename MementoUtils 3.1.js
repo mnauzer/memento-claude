@@ -234,9 +234,9 @@ var MementoUtils = (function() {
             for (var i = 0; i < fields.length; i++) {
                 var field = fields[i];
 // Namiesto field.name.startsWith("---")
-    if (field.name.indexOf("---") === 0) {
-        continue;
-    }
+   // if (field.name.indexOf("---") === 0) {
+    //    continue;
+   // }
 										//			if (field.name.startsWith("---")) {
        // continue;
     //}
