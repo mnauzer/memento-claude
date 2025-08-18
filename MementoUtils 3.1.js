@@ -231,6 +231,7 @@ var MementoUtils = (function() {
             // Return whole settings object
             var settings = {};
             var fields = lib.fields();
+message(fields);
             for (var i = 0; i < fields.length; i++) {
                 var field = fields[i];
 // Namiesto field.name.startsWith("---")
