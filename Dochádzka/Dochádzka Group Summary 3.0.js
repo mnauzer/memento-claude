@@ -72,12 +72,14 @@ function main() {
         
         // 1. Kontrola či sú povolené skupinové notifikácie
         var settings = utils.getSettings(CONFIG.defaultsLibrary);
+        utils.addDebug(currentEntry, "Nastavenia načítané z knižnice: " + CONFIG.defaultsLibrary);
         if (!settings) {
             utils.addDebug(currentEntry, "⚠️ Nenašli sa nastavenia v " + CONFIG.defaultsLibrary);
             return;
         }
         
         var enabled = settings[CONFIG.defaultsFields.dochadzkaGroupEnabled];
+        utils.addDebug(currentEntry, "Skupinové notifikácie povolené: " + enabled);
         if (!enabled) {
             utils.addDebug(currentEntry, "ℹ️ Skupinové notifikácie sú vypnuté");
             return;
@@ -85,6 +87,7 @@ function main() {
         
         // 2. Kontrola či je nastavená skupina
         var telegramId = settings[CONFIG.defaultsFields.telegramDochadzkaId];
+        utils.addDebug(currentEntry, "Telegram Dochádzka ID: " + telegramId);
         if (!telegramId) {
             utils.addDebug(currentEntry, "⚠️ Nie je nastavené Telegram Dochádzka ID");
             return;
@@ -92,6 +95,7 @@ function main() {
         
         // 3. Získaj zamestnancov
         var zamestnanci = utils.safeGetLinks(currentEntry, CONFIG.fields.zamestnanci);
+        utils.addDebug(currentEntry, "Zamestnanci načítaní: " + (zamestnanci ? zamestnanci.length : 0));
         if (!zamestnanci || zamestnanci.length === 0) {
             utils.addDebug(currentEntry, "ℹ️ Žiadni zamestnanci v zázname");
             return;
@@ -101,6 +105,7 @@ function main() {
         
         // 4. Nájdi cieľovú skupinu/tému
         var targetGroup = findTargetGroup(telegramId);
+        utils.addDebug(currentEntry, "Cieľová skupina nájdená: " + (targetGroup ? targetGroup.name : "N/A"));
         if (!targetGroup) {
             utils.addError(currentEntry, "Nepodarilo sa nájsť cieľovú skupinu pre ID: " + telegramId, "main");
             return;
