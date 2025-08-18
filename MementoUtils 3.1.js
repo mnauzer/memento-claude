@@ -39,6 +39,7 @@ var MementoUtils = (function() {
         maxRetries: 3,
         
         // Libraries
+        currentLib: lib(),
         apiLibrary: "ASISTANTO API",
         defaultsLibrary: "ASISTANTO Defaults",
         notificationsLibrary: "ASISTANTO Notifications",
@@ -227,15 +228,23 @@ var MementoUtils = (function() {
                 return safeGet(settingsEntry, fieldName, null);
             }
             
-            // // Return whole settings object
-            // var settings = {};
-            // var fields = settingsEntry.fields();
-            // for (var i = 0; i < fields.length; i++) {
-            //     var field = fields[i];
-            //     settings[field.name] = settingsEntry.field(field.name);
-            // }
+            // Return whole settings object
+            var settings = {};
+            var fields = lib.fields();
+message(fields);
+            for (var i = 0; i < fields.length; i++) {
+                var field = fields[i];
+// Namiesto field.name.startsWith("---")
+   // if (field.name.indexOf("---") === 0) {
+    //    continue;
+   // }
+										//			if (field.name.startsWith("---")) {
+       // continue;
+    //}
+                 settings[field.name] = settingsEntry.field(field.name);
+             }
             
-            // return settings;
+             return settings;
             
 
             
