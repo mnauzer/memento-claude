@@ -39,6 +39,7 @@ var MementoUtils = (function() {
         maxRetries: 3,
         
         // Libraries
+        currentLib: lib(),
         apiLibrary: "ASISTANTO API",
         defaultsLibrary: "ASISTANTO Defaults",
         notificationsLibrary: "ASISTANTO Notifications",
@@ -229,9 +230,12 @@ var MementoUtils = (function() {
             
             // Return whole settings object
             var settings = {};
-            var fields = settingsEntry.fields();
+            var fields = lib.fields();
             for (var i = 0; i < fields.length; i++) {
                 var field = fields[i];
+													if (field.name.startsWith("---")) {
+        continue;
+    }
                  settings[field.name] = settingsEntry.field(field.name);
              }
             
