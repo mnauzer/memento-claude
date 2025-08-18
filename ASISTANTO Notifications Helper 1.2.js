@@ -819,6 +819,6 @@ message("Odoslané: " + stats.sent + "/" + stats.total);
 utils.addDebug(entry(), "✅ ASISTANTO Notifications Helper v" + CONFIG.version + " načítaný");
 
 // Pre kompatibilitu s globálnym namespace
-if (typeof global !== 'undefined') {
-    global.ASISTANTONotifications = ASISTANTONotifications;
-}
+//if (typeof global !== 'undefined') {
+//    global.ASISTANTONotifications = ASISTANTONotifications;
+//}
