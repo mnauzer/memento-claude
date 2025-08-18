@@ -61,7 +61,8 @@ var CONFIG = {
         hodinovka: "hodinovka"
     },
     threadId: "Thread ID", // Pre Telegram témy
-    chatId: "Chat ID" // Pre Telegram skupiny
+    chatId: "Chat ID", // Pre Telegram skupiny
+    threadName: "Téma Názov" // Pre názov témy v skupine
 };
 
 // ==============================================
@@ -174,7 +175,7 @@ function findTargetGroup(telegramId) {
                 var group = allGroups[i];
                 if (group.field(CONFIG.chatId) === chatId && group.field(CONFIG.threadId) === threadId) {
                     result.entries.push(group);
-                    result.name = group.field("Téma Názov") || "Téma #" + threadId;
+                    result.name = group.field(CONFIG.threadName) || "Téma #" + threadId;
                     utils.addDebug(currentEntry, "✅ Našla sa téma: " + result.name);
                     break;
                 }
