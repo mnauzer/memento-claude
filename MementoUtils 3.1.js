@@ -233,9 +233,13 @@ var MementoUtils = (function() {
             var fields = lib.fields();
             for (var i = 0; i < fields.length; i++) {
                 var field = fields[i];
-													if (field.name.startsWith("---")) {
+// Namiesto field.name.startsWith("---")
+    if (field.name.indexOf("---") === 0) {
         continue;
     }
+										//			if (field.name.startsWith("---")) {
+       // continue;
+    //}
                  settings[field.name] = settingsEntry.field(field.name);
              }
             
