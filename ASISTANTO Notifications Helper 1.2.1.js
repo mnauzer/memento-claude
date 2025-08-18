@@ -146,7 +146,7 @@ var CONFIG = {
         // CIELENIE SEKCIA
         telegramId: "Telegram ID",
         chatId: "Chat ID",
-        temaId: "Téma ID",
+        temaId: "Thread ID",
         temaNazov: "Téma Názov",
         
         // ČASOVANIE SEKCIA

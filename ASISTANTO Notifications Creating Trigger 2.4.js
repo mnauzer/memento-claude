@@ -98,7 +98,7 @@ var CONFIG = {
         telegramEnabled: "telegram",
         telegramID: "Telegram ID",
         chatId: "Chat ID",
-        threadId: "Téma ID",
+        threadId: "Thread ID",
         dennyLimit: "Denný limit správ",
         pracovnyCasOd: "Pracovný čas od",
         pracovnyCasDo: "Pracovný čas do",
