@@ -223,32 +223,30 @@ var MementoUtils = (function() {
             }
             
             var settingsEntry = entries[0];
-            message(safeGet(settingsEntry, fieldName, null) || "No settings found in library '" + libraryName + "'");
+            
+            // Pre konkrétne pole vráť jeho hodnotu
             if (fieldName) {
-                return safeGet(settingsEntry, fieldName, null);
+                var value = settingsEntry.field(fieldName);
+                return value;
             }
             
-            // Return whole settings object
+            // Pre celý objekt nastavení
             var settings = {};
-            var fields = lib.fields();
-            addDebug(entry(), "Setting fields array: " + fields.length + " fields found in library '" + libraryName + "'");
+            var libFields = lib.fields();
             
-            for (var i = 0; i < fields.length; i++) {
-                var field = fields[i];
-                addDebug(entry(), "Setting fields: " + fields.length + ", processing field: " + field.name);
-                settings[field.name] = settingsEntry.field(field.name);
-                addDebug(entry(), "Successfully processed field: " + field.name);
-             }
+            for (var i = 0; i < libFields.length; i++) {
+                var fieldDef = libFields[i];
+                var fieldValue = settingsEntry.field(fieldDef.name);
+                settings[fieldDef.name] = fieldValue;
+            }
             
-             return settings;
+            return settings;
             
         } catch (error) {
             addError(entry(), error, "getSettings");
-            addError(entry(), "Line: " + error.lineNumber, "getSettings" );
             return null;
         }
     }
-    
     function findEntryById(libraryName, entryId) {
         try {
             var lib = libByName(libraryName);
