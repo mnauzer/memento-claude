@@ -118,7 +118,14 @@ var CONFIG = {
         GROUP: "Skupina",
         GROUP_THREAD: "Skupina-Téma",
         ORDER: "Zákazka"
-    }
+    },
+
+    defaultsFields: {
+        pracovnyCasOd: "Pracovný čas od", 
+        pracovnyCasDo: "Pracovný čas do"
+        
+    }   
+
 };
 
 // ==============================================
@@ -129,7 +136,13 @@ function main() {
     try {
         utils.addDebug(currentEntry, "\n🚀 === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
         utils.addDebug(currentEntry, "📋 Entry ID: " + currentEntry.field("ID"));
-        
+       
+        var settings = {};
+        // Načítaj všetky potrebné nastavenia individuálne
+        for (var key in CONFIG.defaultsFields) {
+            settings[CONFIG.defaultsFields[key]] = utils.getSettings(CONFIG.defaultsLibrary, CONFIG.defaultsFields[key]);
+        }
+
         // 1. Validácia statusu
         var status = currentEntry.field(CONFIG.fields.status);
         utils.addDebug(currentEntry, "📊 Aktuálny status: " + status);
@@ -273,13 +286,19 @@ function checkExpiration() {
     return false;
 }
 
-function checkWorkingHours(target) {
+function checkWorkingHours(target, settings) {
     // Kontrola len pre zamestnancov
     if (target.type !== CONFIG.addresseeTypes.EMPLOYEE) return true;
     
-    var settings = utils.getSettings(CONFIG.defaultsLibrary);
-    if (!settings || !settings[CONFIG.externalFields.pracovnyCasOd]) return true;
+    var settings = settings;
+
+    if (!settings || !settings[CONFIG.defaultsFields.pracovnyCasOd]) return true;
     
+    // 1. Kontrola Check pracovného času
+    
+
+
+
     var now = moment();
     var dayOfWeek = now.day(); // 0 = nedeľa, 6 = sobota
     
@@ -289,8 +308,8 @@ function checkWorkingHours(target) {
     }
     
     // Pracovný čas kontrola
-    var startTime = moment(settings[CONFIG.externalFields.pracovnyCasOd], "HH:mm");
-    var endTime = moment(settings[CONFIG.externalFields.pracovnyCasDo], "HH:mm");
+    var startTime = moment(settings[CONFIG.defaultsFields.pracovnyCasOd], "HH:mm");
+    var endTime = moment(settings[CONFIG.defaultsFields.pracovnyCasDo], "HH:mm");
     var currentTime = moment(now.format("HH:mm"), "HH:mm");
     
     if (currentTime.isBefore(startTime) || currentTime.isAfter(endTime)) {

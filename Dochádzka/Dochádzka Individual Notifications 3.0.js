@@ -51,11 +51,24 @@ var CONFIG = {
         id: "ID"
     },
     
+    // Názvy polí v Defaults - UPRAVENÉ PODĽA TVOJICH SCREENSHOTOV
+    defaultsFields: {
+        dochadzkaGroupEnabled: "Dochádzka individuálne notifikácie",  // Upravené
+        nazovFirmy: "Názov firmy",
+        includeFinancials: "Zahrnúť finančné údaje",
+        includeStats: "Zahrnúť štatistiky",
+    },
+
     // Názvy atribútov
     attributes: {
         odpracovane: "odpracované",
+        hodinovka: "hodinovka",
+        priplatokHodinovka: "+príplatok (€/h)",
+        premia: "+prémia (€)",
+        pokuta: "-pokuta (€)",
         dennaMzda: "denná mzda",
-        hodinovka: "hodinovka"
+        hodinovka: "hodinovka",
+        poznamka: "poznámka"
     }
 };
 
@@ -67,19 +80,17 @@ function main() {
     try {
         utils.addDebug(currentEntry, "🚀 === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
         
-        // 1. Kontrola či sú povolené individuálne notifikácie
-        var settings = utils.getSettings(CONFIG.defaultsLibrary);
-        if (!settings) {
-            utils.addDebug(currentEntry, "⚠️ Nenašli sa nastavenia v " + CONFIG.defaultsLibrary);
-            return;
-        }
+       
+        utils.addDebug(currentEntry, "📋 Nastavenia načítané z " + CONFIG.defaultsLibrary);
         
         var enabled = settings[CONFIG.defaultsFields.dochadzkaIndividualEnabled];
+        utils.addDebug(currentEntry, "Individuálne notifikácie povolené: " + enabled);
+        
         if (!enabled) {
             utils.addDebug(currentEntry, "ℹ️ Individuálne notifikácie sú vypnuté");
             return;
         }
-        
+
         // 2. Získaj zamestnancov
         var zamestnanci = utils.safeGetLinks(currentEntry, CONFIG.fields.zamestnanci);
         if (!zamestnanci || zamestnanci.length === 0) {
