@@ -18,7 +18,7 @@ var MementoUtils = (function() {
     // ==============================================
     
     var config = {
-        version: "3.1.1",
+        version: "3.1.2",
         debug: true,
         includeLineNumbers: true,
         includeStackTrace: false,
@@ -146,33 +146,28 @@ var MementoUtils = (function() {
         entry.set(config.debugFieldName, existingDebug + debugMessage + "\n");
     }
     
-    function addError(entry, error, location) {
-        if (!entry) return;
-        
-        var timestamp = moment().format("YYYY-MM-DD HH:mm:ss");
-        var errorMessage = "[" + timestamp + "] ❌ ";
-        
-        if (location) {
-            errorMessage += "(" + location + ") ";
-        }
-        
-        if (error && typeof error === "object") {
-            errorMessage += error.name || "Error";
-            errorMessage += ": " + (error.message || error.toString());
-            
-            if (config.includeLineNumbers && error.lineNumber) {
-                errorMessage += " at line " + error.lineNumber;
+    function addError(entry, errorMessage, scriptName, errorObject) {
+    if (!entry) return;
+    
+    var timestamp = moment().format("DD.MM.YY HH:mm:ss");
+    var formattedMessage = "[" + timestamp + "] ";
+    
+    if (scriptName) {
+        formattedMessage += scriptName + " - ";
+    }
+    
+    formattedMessage += errorMessage;
+    
+    // Ak máme error objekt, pokúsime sa získať číslo riadku
+    if (errorObject && typeof errorObject === "object" && errorObject.lineNumber) {
+        try {
+            var lineNum = errorObject.lineNumber();
+            if (lineNum) {
+                formattedMessage += " (line: " + lineNum + ")";
             }
-            
-            if (config.includeStackTrace && error.stack) {
-                errorMessage += "\nStack: " + error.stack;
-            }
-        } else {
-            errorMessage += error;
+        } catch (e) {
+            // Ticho ignorujeme ak lineNumber nie je dostupné
         }
-        
-        var existingError = entry.field(config.errorFieldName) || "";
-        entry.set(config.errorFieldName, existingError + errorMessage + "\n");
     }
     
     function addInfo(entry, message, details) {
