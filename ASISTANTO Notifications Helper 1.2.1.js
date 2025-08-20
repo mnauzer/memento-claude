@@ -227,7 +227,7 @@ function createNotification(data) {
             "Typ správy": data.typSpravy || "Systémová",
             "Zdroj správy": data.zdrojSpravy || "Automatická",
             "Správa": data.sprava || "",
-            "Status": CONFIG.fields.statusWaiting,
+            "Status": data.status || CONFIG.fields.statusWaiting,
             "Formátovanie": data.formatovanie || "Markdown",
             "Priorita": data.priorita || "Normálna",
             
@@ -269,7 +269,7 @@ function createNotification(data) {
         // Direct ID/Chat ID ak je poskytnuté
         if (data.telegramId) notificationData["Telegram ID"] = data.telegramId;
         if (data.chatId) notificationData["Chat ID"] = data.chatId;
-        if (data.temaId) notificationData["Téma ID"] = data.temaId;
+        if (data.temaId) notificationData["Thread ID"] = data.temaId;
         
         // Vytvor záznam
         var newNotification = notifLib.create(notificationData);
