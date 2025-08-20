@@ -400,8 +400,8 @@ var MementoTelegram = (function() {
                 return {
                     chatId: group.field("Chat ID"),
                     threadId: group.field("Thread ID"),
-                    name: group.field("Názov"),
-                    threadName: group.field("Téma Názov")
+                    groupName: group.field("Názov skupiny"),
+                    threadName: group.field("Názov témy")
                 };
             }
             
