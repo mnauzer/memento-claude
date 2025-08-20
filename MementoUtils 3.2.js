@@ -333,7 +333,7 @@ var MementoUtils = (function() {
 
      function safeGetFirstLink(entry, fieldName) {
         var links = safeFieldAccess(entry, fieldName, []);
-        return (links && links.length > 0) ? links : null;
+        return (links && links.length > 0) ? links[0] : null;
     }
     // ========================================
     // LINKS FROM OPERÁCIE (v1.0 + v2.1)
