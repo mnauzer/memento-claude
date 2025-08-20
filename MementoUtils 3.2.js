@@ -429,7 +429,7 @@ var MementoUtils = (function() {
             
             // Priorita: nick (priezvisko) alebo meno priezvisko
             if (nick) {
-                return priezvisko ? nick + " (" + priezvisko + ")" : nick;
+                return priezvisko ? nick.trim() + " (" + priezvisko.trim() + ")" : nick.trim();
             }
             
             if (meno || priezvisko) {
