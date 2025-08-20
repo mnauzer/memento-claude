@@ -350,4 +350,4 @@ function getMonthlyStats(zamestnanec) {
 // SPUSTENIE
 // ==============================================
 
-main();
+main(); 

@@ -27,8 +27,9 @@ var MementoBusiness = (function() {
     // CONFIGURATION
     // ==============================================
     
-    var config = {
-        version: "1.0",
+    var CONFIG = {
+        debug: true,
+        version: "1.0.1",
         
         // Business rules
         defaultWorkHoursPerDay: 8,
@@ -36,10 +37,64 @@ var MementoBusiness = (function() {
         weekendMultiplier: 1.5,
         holidayMultiplier: 2.0,
         
-        // Libraries
+        // Main Libraries
         employeesLibrary: "Zamestnanci",
+        attendanceLibrary: "Dochádzka",
+        transportLibrary: "Kniha jázd",
+        workRecordsLibrary: "Záznam prác",
+        inventoryLibrary: "Sklad",
+        servicePriceListLibrary: "Cenník prác",
+        quotationsLibrary: "Cenové ponuky",
+        workOrdersLibrary: "Zákazky",
+        invoicingLibrary: "Vyúčtovania",
+        vehiclesLibrary: "Vozidlá",
+        equipmentLibrary: "Mechanizácia",
+        
+        // system Libraries
+        defaultsLibrary: "ASISTANTO Defaults",
+        apiLibrary: "ASISTANTO API",
+        notificationsLibrary: "Notifications",
+        telegramGroupsLibrary: "Telegram Groups", 
+
+        // historical data Libraries
         ratesLibrary: "sadzby zamestnancov",
-        attendanceLibrary: "Dochádzka"
+        laborCostsLibrary: "ceny prác",
+        materialCostsLibrary: "ceny materiálu",
+
+
+        employees: { // Zamestnanci, employeesLibrary
+            ID: "ID",
+            nick: "Nick", // Unique identifier
+            name: "Meno",
+            surname: "Priezvisko",  
+            position: "Pozícia",
+            email: "Email",
+            phone: "Telefón",
+            hourlyRate: "Hodinová sadzba",
+            employmentType: "Typ úväzku"
+        },
+        attendandce: { // Dochádzka, attendanceLibrary
+            date: "Dátum",
+            arrival: "Príchod",
+            departure: "Odchod",
+            employees: "Zamestnanci", // Links to employeesLibrary
+            employeeAttr: {
+                wage:   "hodinovka",   
+                wageBonus: "+príplatok (€/h)",
+                bonus: "+prémia (€)",
+                deduction: "-pokuta (€)",
+                mealAllowance: "stravné (€)",
+                note: "poznámka"
+            },
+            notifications: "Notifikácie",// Links to notifications library
+        },   
+        employeesRate: { // sadzby zamestnancov, ratesLibrary
+            employee: "Zamestnanec", // Link to employeesLibrary
+            rate: "Sadzba",
+            validFrom: "Platnosť od",
+            type: "Typ sadzby"  
+        }
+
     };
     
     // ==============================================
@@ -130,9 +185,9 @@ var MementoBusiness = (function() {
         if (!employeeEntry) return "Neznámy";
         
         try {
-            var nick = core.safeGet(employeeEntry, "Nick", "");
-            var meno = core.safeGet(employeeEntry, "Meno", "");
-            var priezvisko = core.safeGet(employeeEntry, "Priezvisko", "");
+            var nick = core.safeGet(employeeEntry, CONFIG.employees.nick, "");
+            var meno = core.safeGet(employeeEntry, CONFIG.employees.name, "");
+            var priezvisko = core.safeGet(employeeEntry, CONFIG.employees.surname, "");
             
             // Priorita: nick (priezvisko) alebo meno priezvisko
             if (nick) {
@@ -143,7 +198,7 @@ var MementoBusiness = (function() {
                 return (meno + " " + priezvisko).trim();
             }
             
-            return "Zamestnanec #" + core.safeGet(employeeEntry, "ID", "?");
+            return "Zamestnanec #" + core.safeGet(employeeEntry, CONFIG.employees.ID, "?");
             
         } catch (error) {
             return "Neznámy";
@@ -161,31 +216,30 @@ var MementoBusiness = (function() {
         
         try {
             var details = {
-                id: core.safeGet(employeeEntry, "ID", ""),
-                nick: core.safeGet(employeeEntry, "Nick", ""),
-                name: core.safeGet(employeeEntry, "Meno", ""),
-                surname: core.safeGet(employeeEntry, "Priezvisko", ""),
+                id: core.safeGet(employeeEntry, CONFIG.employee.ID, ""),
+                nick: core.safeGet(employeeEntry, CONFIG.employee.nick, ""),
+                name: core.safeGet(employeeEntry, CONFIG.employee.name, ""),
+                surname: core.safeGet(employeeEntry, CONFIG.employee.surname, ""),
                 fullName: formatEmployeeName(employeeEntry),
-                position: core.safeGet(employeeEntry, "Pozícia", ""),
-                department: core.safeGet(employeeEntry, "Oddelenie", ""),
-                email: core.safeGet(employeeEntry, "Email", ""),
-                phone: core.safeGet(employeeEntry, "Telefón", ""),
+                position: core.safeGet(employeeEntry, CONFIG.employee.position, ""),
+                email: core.safeGet(employeeEntry, CONFIG.employee.email, ""),
+                phone: core.safeGet(employeeEntry, CONFIG.employee.phone, ""),
                 hasValidRate: false,
                 hourlyRate: 0,
                 rateValidFrom: null,
-                employmentType: core.safeGet(employeeEntry, "Typ úväzku", "")
+                employmentType: core.safeGet(employeeEntry, CONFIG.employee.employmentType, "")
             };
             
             // Získaj hodinovú sadzbu
             var ratesLib = libByName(config.ratesLibrary);
             if (ratesLib) {
-                var rates = employeeEntry.linksFrom(config.ratesLibrary, "Zamestnanec");
+                var rates = employeeEntry.linksFrom(config.ratesLibrary, CONFIG.employeesRate.employee);
                 
                 if (rates && rates.length > 0) {
                     // Zoraď podľa dátumu platnosti
                     rates.sort(function(a, b) {
-                        var dateA = moment(a.field("Platnosť od"));
-                        var dateB = moment(b.field("Platnosť od"));
+                        var dateA = moment(a.field(CONFIG.employeesRate.validFrom));
+                        var dateB = moment(b.field(CONFIG.employeesRate.validFrom));
                         return dateB.valueOf() - dateA.valueOf();
                     });
                     
@@ -194,13 +248,13 @@ var MementoBusiness = (function() {
                     
                     for (var i = 0; i < rates.length; i++) {
                         var rate = rates[i];
-                        var validFrom = moment(rate.field("Platnosť od"));
+                        var validFrom = moment(rate.field(CONFIG.employeesRate.validFrom));
                         
                         if (validFrom.isSameOrBefore(checkDate)) {
-                            details.hourlyRate = parseFloat(rate.field("Sadzba")) || 0;
+                            details.hourlyRate = parseFloat(rate.field(CONFIG.employeesRate.rate)) || 0;
                             details.rateValidFrom = validFrom.toDate();
                             details.hasValidRate = details.hourlyRate > 0;
-                            details.rateType = rate.field("Typ sadzby") || "Hodinová";
+                            details.rateType = rate.field(CONFIG.employeesRate.type) || "Hodinová";
                             break;
                         }
                     }
@@ -224,7 +278,7 @@ var MementoBusiness = (function() {
             var empLib = libByName(config.employeesLibrary);
             if (!empLib) return null;
             
-            var employees = empLib.find("Nick", nick);
+            var employees = empLib.find(CONFIG.employees.nick, nick);
             return employees.length > 0 ? employees[0] : null;
             
         } catch (error) {
@@ -309,10 +363,10 @@ var MementoBusiness = (function() {
     function generateAttendanceSummary(attendanceEntry) {
         
         try {
-            var employees = core.safeGetLinks(attendanceEntry, "Zamestnanci");
-            var date = attendanceEntry.field("Dátum");
-            var arrival = attendanceEntry.field("Príchod");
-            var departure = attendanceEntry.field("Odchod");
+            var employees = core.safeGetLinks(attendanceEntry, CONFIG.attendandce.employees, CONFIG.employeesRate.employee);
+            var date = attendanceEntry.field(CONFIG.attendandce.date);
+            var arrival = attendanceEntry.field(CONFIG.attendandce.arrival);
+            var departure = attendanceEntry.field(CONFIG.attendandce.departure);
             
             var summary = {
                 date: date,
@@ -334,10 +388,10 @@ var MementoBusiness = (function() {
                 
                 // Získaj atribúty
                 var extras = {
-                    wageBonus: parseFloat(emp.attr("+príplatok (€/h)")) || 0,
-                    bonus: parseFloat(emp.attr("+prémia (€)")) || 0,
-                    deduction: parseFloat(emp.attr("-pokuta (€)")) || 0,
-                    mealAllowance: parseFloat(emp.attr("stravné (€)")) || 0
+                    wageBonus: parseFloat(emp.attr(CONFIG.attendandce.employeeAttr.wageBonus)) || 0,
+                    bonus: parseFloat(emp.attr(CONFIG.attendandce.employeeAttr.bonus)) || 0,
+                    deduction: parseFloat(emp.attr(CONFIG.attendandce.employeeAttr.deduction)) || 0,
+                    mealAllowance: parseFloat(emp.attr(CONFIG.attendandce.employeeAttr.mealAllowance)) || 0
                 };
                 
                 var wageCalc = calculateDailyWage(emp, workTime, date, extras);

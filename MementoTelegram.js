@@ -35,8 +35,8 @@ var MementoTelegram = (function() {
         
         // Libraries
         defaultsLibrary: "ASISTANTO Defaults",
-        notificationsLibrary: "ASISTANTO Notifications",
-        telegramGroupsLibrary: "ASISTANTO Telegram Groups",
+        notificationsLibrary: "Notifications",
+        telegramGroupsLibrary: "Telegram Groups",
         
         // Telegram settings
         telegramBotTokenField: "Telegram Bot Token",
@@ -205,8 +205,8 @@ var MementoTelegram = (function() {
             }
             
             var notifData = {
-                "Typ": type,
-                "Stav": {name: "Čaká"},
+                "Typ": type, // TODO: enum pre typy notifikácií, nastaviť programovo
+                "Stav": 1, // 1 = Čaká TODO: nastaviť enum pre stavy
                 "Vytvorené": moment().toDate(),
                 "Data": JSON.stringify(data),
                 "Pokusov": 0
