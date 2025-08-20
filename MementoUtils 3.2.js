@@ -934,3 +934,76 @@ var MementoUtils = (function() {
     // ==============================================
     // ALIAS FUNKCIE PRE SPÄTNÚ KOMPATIBILITU
     // ==============================================
+    
+    function safeFieldAccess(entry, fieldName, defaultValue) {
+        return safeGet(entry, fieldName, defaultValue);
+    }
+    
+    function saveLogs(entry) {
+        // V Memento sa logy ukladajú automaticky
+        // Táto funkcia je len pre kompatibilitu
+        return true;
+    }
+    
+    // ==============================================
+    // EXPORT PUBLIC API
+    // ==============================================
+    
+    return {
+        // Version
+        version: config.version,
+        
+        // Configuration
+        DEFAULT_CONFIG: config,
+        AI_PROVIDERS: AI_PROVIDERS,
+        
+        // Logging
+        addDebug: addDebug,
+        addError: addError,
+        addInfo: addInfo,
+        clearLogs: clearLogs,
+        saveLogs: saveLogs, // Alias pre kompatibilitu
+        
+        // Data Management
+        getSettings: getSettings,
+        findEntryById: findEntryById,
+        safeGet: safeGet,
+        safeSet: safeSet,
+        safeFieldAccess: safeFieldAccess, // Alias
+        safeGetAttribute: safeGetAttribute,
+        safeSetAttribute: safeSetAttribute,
+        safeGetLinks: safeGetLinks,
+        
+        // Formatting & Time
+        formatDate: formatDate,
+        formatTime: formatTime,
+        formatMoney: formatMoney,
+        formatEmployeeName: formatEmployeeName,
+        parseTimeToMinutes: parseTimeToMinutes,
+        roundToQuarter: roundToQuarter,
+        
+        // HTTP & API
+        getApiKey: getApiKey,
+        httpRequest: httpRequest,
+        
+        // Telegram
+        sendTelegramMessage: sendTelegramMessage,
+        deleteTelegramMessage: deleteTelegramMessage,
+        
+        // Notifications
+        createNotificationEntry: createNotificationEntry,
+        manageNotifications: manageNotifications,
+        
+        // AI Integration
+        callAI: callAI,
+        
+        // Business Logic
+        calculateWorkHours: calculateWorkHours,
+        getEmployeeDetails: getEmployeeDetails,
+        validateRequiredFields: validateRequiredFields,
+        
+        // Legacy support
+        includeLineNumbers: config.includeLineNumbers,
+        includeStackTrace: config.includeStackTrace
+    };
+})();
