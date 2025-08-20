@@ -432,6 +432,10 @@ var MementoTelegram = (function() {
         processNotificationQueue: processNotificationQueue,
         
         // Groups
-        getTelegramGroup: getTelegramGroup
+        getTelegramGroup: getTelegramGroup,
+        
+        // Configuration
+        config: config,
+
     };
 })();

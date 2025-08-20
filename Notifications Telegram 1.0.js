@@ -58,7 +58,7 @@ function getNotifHelper() {
 var CONFIG = {
     debug: true,
     version: "1.0",
-    scriptName: "ASISTANTO Telegram",
+    scriptName: "Notifications Telegram",
     
     // Telegram API konfigurácia
     telegramApi: {
