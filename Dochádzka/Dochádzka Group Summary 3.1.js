@@ -160,7 +160,7 @@ function main() {
 // ==============================================
 // POMOCNÉ FUNKCIE
 // ==============================================
-function formatStatistics(zamestnanci, includeFinancials) {
+function formatFinancialStatistics(zamestnanci, includeFinancials) {
     var stats = "";
     
     // Priemerné odpracované hodiny
@@ -277,6 +277,7 @@ function getTargetGroupFromLink(telegramGroupLink) {
         return null;
     }
 }
+
 
 /**
  * Nájde cieľovú skupinu/tému podľa ID (starý spôsob pre spätnú kompatibilitu)
@@ -594,4 +595,4 @@ function createGroupNotification(message, targetGroup) {
 // SPUSTENIE
 // ==============================================
 
-main();
+main(); 
