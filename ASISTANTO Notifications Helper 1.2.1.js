@@ -239,7 +239,7 @@ function createNotification(data) {
             
             // Info záznam
             "info": getUtils().formatDate(new Date()) + " | Vytvorené automaticky\n" +
-                   "Zdroj: " + (data.zdrojovaKniznica || lib().name + " #" + (data.zdrojovyId || entry().field("ID")) + "\n" +
+                   "Zdroj: " + (data.zdrojovaKniznica || lib().title) + " #" + (data.zdrojovyId || entry().field("ID")) + "\n" +
                    "Script: " + CONFIG.scriptName + " v" + CONFIG.version
         };
         
@@ -278,7 +278,7 @@ function createNotification(data) {
             utils.addDebug(entry(), "✅ Notifikácia vytvorená: ID #" + newNotification.field("ID"));
             utils.addInfo(newNotification, "Notifikácia vytvorená pomocou Helper scriptu", {
                 sourceEntry: entry().field("ID"),
-                sourceLibrary: lib().name()
+                sourceLibrary: lib().title
             });
         }
         
@@ -319,10 +319,10 @@ function createBulkNotifications(baseData, recipients) {
                 
             } else if (recipient.field && recipient.field("Názov")) {
                 // Je to klient alebo partner
-                if (recipient.lib().name() === "Klienti") {
+                if (recipient.lib().title === "Klienti") {
                     notifData.adresat = "Klient";
                     notifData.klient = [recipient];
-                } else if (recipient.lib().name() === "Partneri") {
+                } else if (recipient.lib().title === "Partneri") {
                     notifData.adresat = "Partner";
                     notifData.partner = [recipient];
                 }
@@ -629,7 +629,7 @@ function cancelNotificationsBySource(sourceId, sourceLibrary) {
         var notifLib = libByName(CONFIG.notificationsLibrary);
         if (!notifLib) return 0;
         
-        sourceLibrary = sourceLibrary || lib().name();
+        sourceLibrary = sourceLibrary || lib().title;
         var cancelled = 0;
         
         // Nájdi všetky notifikácie z tohto zdroja
@@ -886,7 +886,7 @@ ASISTANTONotifications.createBulkNotifications(dochadzkaTemplate, dochadzkaTempl
 // 6. Zrušenie notifikácií pri vymazaní záznamu
 var cancelled = ASISTANTONotifications.cancelNotificationsBySource(
     entry().field("ID"),
-    lib().name()
+    lib().title
 );
 
 // 7. Spracovanie vypršaných notifikácií (napr. v scheduled action)
