@@ -705,8 +705,8 @@ var MementoUtils = (function() {
             }
             
             var notifData = {
-                "Typ": type,
-                "Stav": "Čaká",
+                "Typ": {name: type},
+                "Stav": {name:"Čaká"},
                 "Vytvorené": moment().toDate(),
                 "Data": JSON.stringify(data),
                 "Pokusov": 0
