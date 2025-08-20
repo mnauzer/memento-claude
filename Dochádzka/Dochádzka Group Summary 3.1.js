@@ -22,7 +22,7 @@ var currentEntry = entry();
 // Konfigurácia
 var CONFIG = {
     debug: true,
-    version: "3.1",
+    version: "3.1.1",
     scriptName: "Dochádzka Group Summary",
     
     // Knižnice
@@ -102,7 +102,7 @@ function main() {
         
         if (telegramGroupLink) {
             // Používame Link to Entry pole
-            utils.addDebug(currentEntry, "📎 Kontrolujem linknutý záznam z 'Telegram skupina dochádzky'");
+            utils.addDebug(currentEntry, "📎 Kontrolujem linknutý záznam z '" + telegramGroupLink + "'");
             targetGroup = getTargetGroupFromLink(telegramGroupLink);
         }
         
@@ -234,10 +234,10 @@ function getTargetGroupFromLink(telegramGroupLink) {
         }
         
         var defaultsEntry = defaultsEntries[0];
-        var linkedGroups = utils.safeGetLinks(defaultsEntry, CONFIG.defaultsFields.telegramGroupLink) || [];
+        var linkedGroups = utils.safeGetLinks(defaultsEntry, telegramGroupLink) || [];
         
         if (!linkedGroups || (Array.isArray(linkedGroups) && linkedGroups.length === 0)) {
-            utils.addDebug(currentEntry, "⚠️ Žiadne linknuté skupiny v poli '" + CONFIG.defaultsFields.telegramGroupLink + "'");
+            utils.addDebug(currentEntry, "⚠️ Žiadne linknuté skupiny v poli '" + telegramGroupLink + "'");
             return null;
         }
         
