@@ -314,7 +314,378 @@ var MementoAI = (function() {
             };
         }
     }
-    
+
+    // ==============================================
+    // N8N INTEGRATION FUNCTIONS
+    // ==============================================
+
+    // /**
+    //  * Odošle notification data do N8N workflow
+    //  * @param {string} webhookUrl - N8N webhook URL
+    //  * @param {Object} notificationData - Dáta notifikácie
+    //  * @param {Object} options - Dodatočné možnosti
+    //  */
+    // function triggerN8NWorkflow(webhookUrl, notificationData, options) {
+    //     ensureCore();
+    //     options = options || {};
+        
+    //     try {
+    //         core.addDebug(entry(), "🔄 Spúšťam N8N workflow: " + webhookUrl.substring(0, 50) + "...");
+            
+    //         var payload = {
+    //             trigger: "memento_notification",
+    //             timestamp: moment().toISOString(),
+    //             source: "ASISTANTO Notifications",
+    //             data: notificationData
+    //         };
+            
+    //         // Pridaj metadata ak je povolené
+    //         if (options.includeMetadata !== false) {
+    //             payload.metadata = {
+    //                 mementoDatabase: lib().title,
+    //                 entryId: entry().field("ID"),
+    //                 scriptVersion: options.scriptVersion || "unknown",
+    //                 user: user().name()
+    //             };
+    //         }
+            
+    //         var headers = {
+    //             "Content-Type": "application/json",
+    //             "User-Agent": "ASISTANTO-Memento/1.0"
+    //         };
+            
+    //         // API key ak je poskytnutý
+    //         if (options.apiKey) {
+    //             headers["Authorization"] = "Bearer " + options.apiKey;
+    //         }
+            
+    //         var result = httpRequest("POST", webhookUrl, payload, {
+    //             headers: headers,
+    //             timeout: options.timeout || 30000,
+    //             maxRetries: options.maxRetries || 2
+    //         });
+            
+    //         if (result.success) {
+    //             core.addDebug(entry(), "✅ N8N workflow úspešne spustený");
+    //             return {
+    //                 success: true,
+    //                 workflowId: result.data.workflowId || null,
+    //                 executionId: result.data.executionId || null,
+    //                 response: result.data
+    //             };
+    //         } else {
+    //             core.addError(entry(), "N8N workflow failed: " + result.error, "triggerN8NWorkflow");
+    //             return {
+    //                 success: false,
+    //                 error: result.error,
+    //                 httpCode: result.code
+    //             };
+    //         }
+            
+    //     } catch (error) {
+    //         core.addError(entry(), "N8N integration error: " + error.toString(), "triggerN8NWorkflow", error);
+    //         return {
+    //             success: false,
+    //             error: error.toString()
+    //         };
+    //     }
+    // }
+
+    // /**
+    //  * Získa status N8N workflow execution
+    //  * @param {string} baseUrl - N8N base URL
+    //  * @param {string} executionId - ID execution
+    //  * @param {string} apiKey - N8N API key
+    //  */
+    // function getN8NExecutionStatus(baseUrl, executionId, apiKey) {
+    //     ensureCore();
+        
+    //     try {
+    //         var url = baseUrl + "/api/v1/executions/" + executionId;
+            
+    //         var result = httpRequest("GET", url, null, {
+    //             headers: {
+    //                 "Authorization": "Bearer " + apiKey,
+    //                 "Accept": "application/json"
+    //             }
+    //         });
+            
+    //         if (result.success) {
+    //             return {
+    //                 success: true,
+    //                 status: result.data.finished ? "completed" : "running",
+    //                 startedAt: result.data.startedAt,
+    //                 stoppedAt: result.data.stoppedAt,
+    //                 executionTime: result.data.executionTime,
+    //                 data: result.data
+    //             };
+    //         }
+            
+    //         return { success: false, error: result.error };
+            
+    //     } catch (error) {
+    //         return { success: false, error: error.toString() };
+    //     }
+    // }
+   // ==============================================
+// PRIDAŤ TIETO FUNKCIE DO MementoAI.js
+// Miesto: Za sekciu "VISION AI" (riadok ~250)
+// ==============================================
+
+// ==============================================
+// N8N WORKFLOW INTEGRATION
+// ==============================================
+
+    /**
+     * Odošle notification data do N8N workflow
+     * @param {string} webhookUrl - N8N webhook URL
+     * @param {Object} notificationData - Dáta notifikácie
+     * @param {Object} options - Dodatočné možnosti
+     */
+    function triggerN8NWorkflow(webhookUrl, notificationData, options) {
+        ensureCore();
+        options = options || {};
+        
+        try {
+            core.addDebug(entry(), "🔄 Spúšťam N8N workflow: " + webhookUrl.substring(0, 50) + "...");
+            
+            var payload = {
+                trigger: "memento_notification",
+                timestamp: moment().toISOString(),
+                source: "ASISTANTO Notifications",
+                data: notificationData
+            };
+            
+            // Pridaj metadata ak je povolené
+            if (options.includeMetadata !== false) {
+                payload.metadata = {
+                    mementoDatabase: lib().title,
+                    entryId: entry().field("ID"),
+                    scriptVersion: options.scriptVersion || "unknown",
+                    user: user().name(),
+                    libraryName: lib().name
+                };
+            }
+            
+            var headers = {
+                "Content-Type": "application/json",
+                "User-Agent": "ASISTANTO-Memento/1.0"
+            };
+            
+            // API key ak je poskytnutý
+            if (options.apiKey) {
+                headers["Authorization"] = "Bearer " + options.apiKey;
+            }
+            
+            var result = httpRequest("POST", webhookUrl, payload, {
+                headers: headers,
+                timeout: options.timeout || 30000,
+                maxRetries: options.maxRetries || 2
+            });
+            
+            if (result.success) {
+                core.addDebug(entry(), "✅ N8N workflow úspešne spustený");
+                
+                // Extrahuj užitočné informácie z response
+                var responseData = result.data || {};
+                
+                return {
+                    success: true,
+                    workflowId: responseData.workflowId || null,
+                    executionId: responseData.executionId || responseData.id || null,
+                    message: responseData.message || "Workflow triggered successfully",
+                    response: responseData
+                };
+            } else {
+                core.addError(entry(), "N8N workflow failed: " + result.error, "triggerN8NWorkflow");
+                return {
+                    success: false,
+                    error: result.error,
+                    httpCode: result.code,
+                    details: result.data
+                };
+            }
+            
+        } catch (error) {
+            core.addError(entry(), "N8N integration error: " + error.toString(), "triggerN8NWorkflow", error);
+            return {
+                success: false,
+                error: error.toString()
+            };
+        }
+    }
+
+    /**
+     * Získa status N8N workflow execution
+     * @param {string} baseUrl - N8N base URL (napr. https://n8n.company.com)
+     * @param {string} executionId - ID execution
+     * @param {string} apiKey - N8N API key
+     */
+    function getN8NExecutionStatus(baseUrl, executionId, apiKey) {
+        ensureCore();
+        
+        try {
+            core.addDebug(entry(), "📊 Kontrolujem status N8N execution: " + executionId);
+            
+            var url = baseUrl.replace(/\/$/, "") + "/api/v1/executions/" + executionId;
+            
+            var result = httpRequest("GET", url, null, {
+                headers: {
+                    "Authorization": "Bearer " + apiKey,
+                    "Accept": "application/json"
+                },
+                timeout: 15000
+            });
+            
+            if (result.success && result.data) {
+                var executionData = result.data;
+                
+                return {
+                    success: true,
+                    status: executionData.finished ? "completed" : "running",
+                    mode: executionData.mode || "unknown",
+                    startedAt: executionData.startedAt,
+                    stoppedAt: executionData.stoppedAt,
+                    executionTime: executionData.executionTime,
+                    workflowData: executionData.workflowData || {},
+                    data: executionData
+                };
+            } else {
+                return { 
+                    success: false, 
+                    error: result.error || "Failed to get execution status",
+                    httpCode: result.code
+                };
+            }
+            
+        } catch (error) {
+            core.addError(entry(), "N8N status check error: " + error.toString(), "getN8NExecutionStatus", error);
+            return { 
+                success: false, 
+                error: error.toString() 
+            };
+        }
+    }
+
+    /**
+     * Aktivuje/deaktivuje N8N workflow
+     * @param {string} baseUrl - N8N base URL
+     * @param {string} workflowId - ID workflow
+     * @param {boolean} active - true pre aktiváciu, false pre deaktiváciu
+     * @param {string} apiKey - N8N API key
+     */
+    function setN8NWorkflowStatus(baseUrl, workflowId, active, apiKey) {
+        ensureCore();
+        
+        try {
+            var action = active ? "activate" : "deactivate";
+            core.addDebug(entry(), "🔧 " + action + " N8N workflow: " + workflowId);
+            
+            var url = baseUrl.replace(/\/$/, "") + "/api/v1/workflows/" + workflowId + "/" + action;
+            
+            var result = httpRequest("POST", url, {}, {
+                headers: {
+                    "Authorization": "Bearer " + apiKey,
+                    "Content-Type": "application/json"
+                }
+            });
+            
+            if (result.success) {
+                core.addDebug(entry(), "✅ Workflow " + action + "d successfully");
+                return {
+                    success: true,
+                    workflowId: workflowId,
+                    active: active,
+                    message: "Workflow " + action + "d successfully"
+                };
+            } else {
+                core.addError(entry(), "N8N workflow " + action + " failed: " + result.error, "setN8NWorkflowStatus");
+                return {
+                    success: false,
+                    error: result.error,
+                    httpCode: result.code
+                };
+            }
+            
+        } catch (error) {
+            core.addError(entry(), "N8N workflow status change error: " + error.toString(), "setN8NWorkflowStatus", error);
+            return {
+                success: false,
+                error: error.toString()
+            };
+        }
+    }
+
+    /**
+     * Bulk N8N webhook trigger pre viacero notifikácií
+     * @param {string} webhookUrl - N8N webhook URL
+     * @param {Array} notificationsData - Pole notifikácií
+     * @param {Object} options - Nastavenia
+     */
+    function triggerN8NBulkWorkflow(webhookUrl, notificationsData, options) {
+        ensureCore();
+        options = options || {};
+        
+        try {
+            core.addDebug(entry(), "🚀 Spúšťam N8N bulk workflow pre " + notificationsData.length + " notifikácií");
+            
+            var payload = {
+                trigger: "memento_bulk_notifications",
+                timestamp: moment().toISOString(),
+                source: "ASISTANTO Bulk Notifications",
+                count: notificationsData.length,
+                notifications: notificationsData
+            };
+            
+            if (options.includeMetadata !== false) {
+                payload.metadata = {
+                    mementoDatabase: lib().title,
+                    batchId: "bulk_" + moment().format("YYMMDDHHmmss"),
+                    scriptVersion: options.scriptVersion || "unknown",
+                    user: user().name()
+                };
+            }
+            
+            var headers = {
+                "Content-Type": "application/json",
+                "User-Agent": "ASISTANTO-Memento-Bulk/1.0"
+            };
+            
+            if (options.apiKey) {
+                headers["Authorization"] = "Bearer " + options.apiKey;
+            }
+            
+            var result = httpRequest("POST", webhookUrl, payload, {
+                headers: headers,
+                timeout: options.timeout || 60000, // Dlhší timeout pre bulk
+                maxRetries: 1 // Jeden retry pre bulk operácie
+            });
+            
+            if (result.success) {
+                core.addDebug(entry(), "✅ N8N bulk workflow úspešne spustený");
+                return {
+                    success: true,
+                    processedCount: notificationsData.length,
+                    batchId: payload.metadata ? payload.metadata.batchId : null,
+                    response: result.data
+                };
+            } else {
+                core.addError(entry(), "N8N bulk workflow failed: " + result.error, "triggerN8NBulkWorkflow");
+                return {
+                    success: false,
+                    error: result.error,
+                    httpCode: result.code
+                };
+            }
+            
+        } catch (error) {
+            core.addError(entry(), "N8N bulk integration error: " + error.toString(), "triggerN8NBulkWorkflow", error);
+            return {
+                success: false,
+                error: error.toString()
+            };
+        }
+    } 
     // ==============================================
     // VISION AI (pre spracovanie faktúr)
     // ==============================================
@@ -378,6 +749,13 @@ var MementoAI = (function() {
         
         // AI Functions
         callAI: callAI,
-        analyzeImage: analyzeImage
+        analyzeImage: analyzeImage,
+
+        // N8N Integration
+        triggerN8NWorkflow: triggerN8NWorkflow,
+        getN8NExecutionStatus: getN8NExecutionStatus, 
+        setN8NWorkflowStatus: setN8NWorkflowStatus,
+        triggerN8NBulkWorkflow: triggerN8NBulkWorkflow  
+
     };
 })();
