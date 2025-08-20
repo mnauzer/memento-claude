@@ -155,6 +155,7 @@ function prepareBaseData(settings) {
         zdrojSpravy: "Automatická",
         formatovanie: "Markdown",
         priorita: "Normálna",
+        status: "Čaká",
         zdrojovaKniznica: lib().title, // Názov knižnice z ktorej bol záznam vytvorený, je property nie funckcia ani metóda (bez zátvorky)
         zdrojovyId: currentEntry.field(CONFIG.fields.id),
         datum: datum,

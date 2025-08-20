@@ -590,6 +590,7 @@ function sendToTarget(target) {
             utils.safeSet(currentEntry, CONFIG.fields.messageId, result.messageId);
             utils.safeSet(currentEntry, CONFIG.fields.odoslaneO, moment().toDate());
             utils.safeSet(currentEntry, CONFIG.fields.responseData, JSON.stringify(result.data));
+            utils.safeSet(currentEntry, CONFIG.fields.chatId, result.chat.id);
             
             // Vytvor message URL
             if (target.threadId) {
