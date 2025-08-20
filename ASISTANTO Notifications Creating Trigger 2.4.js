@@ -805,7 +805,7 @@ function triggerN8NIfConfigured(results) {
         var n8nResult = utils.callN8NWebhook(workflowData, {
             metadata: {
                 trigger: "notification_processed",
-                library: lib().name()
+                library: lib().name
             }
         });
         

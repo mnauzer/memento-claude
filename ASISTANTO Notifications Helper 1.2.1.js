@@ -234,12 +234,12 @@ function createNotification(data) {
             // Metadata
             "Vytvoril": user(),
             "Vytvorené": moment().toDate(),
-            "Zdrojová knižnica": data.zdrojovaKniznica || lib().name(),
+            "Zdrojová knižnica": data.zdrojovaKniznica || lib().name,
             "Zdrojový ID": data.zdrojovyId || entry().field("ID"),
             
             // Info záznam
             "info": getUtils().formatDate(new Date()) + " | Vytvorené automaticky\n" +
-                   "Zdroj: " + (data.zdrojovaKniznica || lib().name()) + " #" + (data.zdrojovyId || entry().field("ID")) + "\n" +
+                   "Zdroj: " + (data.zdrojovaKniznica || lib().name + " #" + (data.zdrojovyId || entry().field("ID")) + "\n" +
                    "Script: " + CONFIG.scriptName + " v" + CONFIG.version
         };
         
@@ -285,7 +285,7 @@ function createNotification(data) {
         return newNotification;
         
     } catch (error) {
-        utils.addError(entry(), error, "createNotification");
+        utils.addError(entry(), error.toString(), "createNotification", error);
         return null;
     }
 }
