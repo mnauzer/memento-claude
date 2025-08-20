@@ -80,6 +80,15 @@ function main() {
     try {
         utils.addDebug(currentEntry, "🚀 === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
         
+
+var settings = {};
+        // Načítaj všetky potrebné nastavenia individuálne
+        for (var key in CONFIG.defaultsFields) {
+            settings[CONFIG.defaultsFields[key]] = utils.getSettings(CONFIG.defaultsLibrary, CONFIG.defaultsFields[key]);
+        }
+        
+        utils.addDebug(currentEntry, "📋 Nastavenia načítané z " + CONFIG.defaultsLibrary);
+        
        
         utils.addDebug(currentEntry, "📋 Nastavenia načítané z " + CONFIG.defaultsLibrary);
         
