@@ -14,8 +14,17 @@ var MementoTelegram = (function() {
     'use strict';
     
     // Import dependencies
-    var core = MementoCore;
-    var ai = MementoAI;
+    // Lazy loading dependencies
+    var core, ai;
+    function ensureDependencies() {
+        if (!core && typeof MementoCore !== 'undefined') {
+            core = MementoCore;
+        }
+        if (!ai && typeof MementoAI !== 'undefined') {
+            ai = MementoAI;
+        }
+        return core && ai;
+    }
     
     // ==============================================
     // CONFIGURATION
@@ -43,6 +52,7 @@ var MementoTelegram = (function() {
     // ==============================================
     
     function sendTelegramMessage(chatId, text, options) {
+        ensureDependencies();
         options = options || {};
         
         try {
@@ -110,6 +120,7 @@ var MementoTelegram = (function() {
     }
     
     function deleteTelegramMessage(chatId, messageId) {
+        ensureDependencies();
         try {
             var botToken = core.getSettings(config.defaultsLibrary, config.telegramBotTokenField);
             if (!botToken) {
@@ -142,6 +153,7 @@ var MementoTelegram = (function() {
     }
     
     function editTelegramMessage(chatId, messageId, newText, options) {
+        ensureDependencies();
         options = options || {};
         
         try {
@@ -185,6 +197,7 @@ var MementoTelegram = (function() {
     // ==============================================
     
     function createNotificationEntry(type, data) {
+        ensureDependencies();
         try {
             var notifLib = libByName(config.notificationsLibrary);
             if (!notifLib) {
@@ -231,6 +244,7 @@ var MementoTelegram = (function() {
     }
     
     function manageNotifications(sourceEntryId, deleteOld) {
+        ensureDependencies();
         deleteOld = deleteOld !== false; // Default true
         
         try {
@@ -284,6 +298,7 @@ var MementoTelegram = (function() {
     }
     
     function processNotificationQueue() {
+        ensureDependencies();
         try {
             var notifLib = libByName(config.notificationsLibrary);
             if (!notifLib) {
@@ -372,6 +387,7 @@ var MementoTelegram = (function() {
     // ==============================================
     
     function getTelegramGroup(groupName) {
+        ensureDependencies();
         try {
             var groupsLib = libByName(config.telegramGroupsLibrary);
             if (!groupsLib) {
