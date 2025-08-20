@@ -28,7 +28,7 @@ var CONFIG = {
     
     // Knižnice
     defaultsLibrary: "ASISTANTO Defaults",
-    notificationsLibrary: "ASISTANTO Notifications",
+    notificationsLibrary: "Notifications",
     
     // Názvy polí v Defaults
     defaultsFields: {

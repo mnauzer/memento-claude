@@ -27,8 +27,8 @@ var CONFIG = {
     
     // Knižnice
     defaultsLibrary: "ASISTANTO Defaults",
-    notificationsLibrary: "ASISTANTO Notifications",
-    telegramGroupsLibrary: "ASISTANTO Telegram Groups",
+    notificationsLibrary: "Notifications",
+    telegramGroupsLibrary: "Telegram Groups",
     
     // Názvy polí v Defaults - UPRAVENÉ PODĽA TVOJICH SCREENSHOTOV
     defaultsFields: {

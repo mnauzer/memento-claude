@@ -1230,6 +1230,133 @@ function createRepeatedNotification(originalNotification, repeatType) {
     }
 }
 
+// ==============================================
+// N8N INTEGRATION HELPER FUNCTIONS
+// ==============================================
+
+// /**
+//  * Vytvorí N8N-optimalizované dáta z notifikácie
+//  * @param {Entry} notificationEntry - Záznam notifikácie
+//  * @returns {Object} - N8N payload
+//  */
+// function prepareN8NPayload(notificationEntry) {
+//     try {
+//         var utils = getUtils();
+        
+//         var payload = {
+//             // Základné info
+//             notificationId: notificationEntry.field("ID"),
+//             type: utils.safeGet(notificationEntry, "Typ správy", ""),
+//             status: utils.safeGet(notificationEntry, "Status", ""),
+//             priority: utils.safeGet(notificationEntry, "Priorita", ""),
+//             message: utils.safeGet(notificationEntry, "Správa", ""),
+//             subject: utils.safeGet(notificationEntry, "Predmet", ""),
+            
+//             // Adresát info
+//             addressee: {
+//                 type: utils.safeGet(notificationEntry, "Adresát", ""),
+//                 employees: extractLinkedEntities(notificationEntry, "Zamestnanec"),
+//                 groups: extractLinkedEntities(notificationEntry, "Skupina/Téma"),
+//                 clients: extractLinkedEntities(notificationEntry, "Klient")
+//             },
+            
+//             // Časovanie
+//             timing: {
+//                 created: utils.safeGet(notificationEntry, "Vytvorené", null),
+//                 scheduledFor: utils.safeGet(notificationEntry, "Poslať o", null),
+//                 sentAt: utils.safeGet(notificationEntry, "Odoslané o", null),
+//                 expiresAt: utils.safeGet(notificationEntry, "Vypršať o", null)
+//             },
+            
+//             // Source info
+//             source: {
+//                 library: utils.safeGet(notificationEntry, "Zdrojová knižnica", ""),
+//                 entryId: utils.safeGet(notificationEntry, "Zdrojový ID", ""),
+//                 creator: utils.safeGet(notificationEntry, "Vytvoril", "")
+//             },
+            
+//             // Telegram špecifické
+//             telegram: {
+//                 messageId: utils.safeGet(notificationEntry, "Message ID", ""),
+//                 chatId: utils.safeGet(notificationEntry, "Chat ID", ""),
+//                 threadId: utils.safeGet(notificationEntry, "Thread ID", "")
+//             }
+//         };
+        
+//         return payload;
+        
+//     } catch (error) {
+//         utils.addError(entry(), "N8N payload preparation failed: " + error.toString(), "prepareN8NPayload");
+//         return null;
+//     }
+// }
+
+// /**
+//  * Extrahuje linkedEntities pre N8N payload
+//  */
+// function extractLinkedEntities(notificationEntry, fieldName) {
+//     var utils = getUtils();
+//     var links = utils.safeGetLinks(notificationEntry, fieldName);
+//     var entities = [];
+    
+//     for (var i = 0; i < links.length; i++) {
+//         var link = links[i];
+//         entities.push({
+//             id: utils.safeGet(link, "ID", ""),
+//             name: utils.formatEmployeeName ? utils.formatEmployeeName(link) : 
+//                   utils.safeGet(link, "Nick", "") || utils.safeGet(link, "Názov", ""),
+//             type: link.lib().title
+//         });
+//     }
+    
+//     return entities;
+// }
+
+// /**
+//  * Wrapper funkcia pre N8N integration z Helper scriptu
+//  * @param {Entry} notificationEntry - Záznam notifikácie
+//  * @param {Object} options - N8N nastavenia
+//  */
+// function triggerN8NIfConfigured(notificationEntry, options) {
+//     try {
+//         var utils = getUtils();
+//         options = options || {};
+        
+//         // Získaj nastavenia z ASISTANTO Defaults
+//         var webhookUrl = utils.getSettings(CONFIG.defaultsLibrary, "N8N Webhook URL");
+//         var apiKey = utils.getSettings(CONFIG.defaultsLibrary, "N8N API Key");
+//         var enabled = utils.getSettings(CONFIG.defaultsLibrary, "N8N Integration Enabled");
+        
+//         if (!enabled || !webhookUrl) {
+//             utils.addDebug(entry(), "N8N integrácia nie je nakonfigurovaná alebo je vypnutá");
+//             return { success: false, reason: "not_configured" };
+//         }
+        
+//         // Priprav payload
+//         var payload = prepareN8NPayload(notificationEntry);
+//         if (!payload) {
+//             return { success: false, reason: "payload_preparation_failed" };
+//         }
+        
+//         // Zavolaj MementoAI N8N funkciu
+//         if (typeof MementoAI !== 'undefined' && MementoAI.triggerN8NWorkflow) {
+//             return MementoAI.triggerN8NWorkflow(webhookUrl, payload, {
+//                 apiKey: apiKey,
+//                 includeMetadata: options.includeMetadata !== false,
+//                 scriptVersion: CONFIG.version,
+//                 timeout: options.timeout || 30000
+//             });
+//         } else {
+//             utils.addError(entry(), "MementoAI.triggerN8NWorkflow nie je dostupný", "triggerN8NIfConfigured");
+//             return { success: false, reason: "ai_module_unavailable" };
+//         }
+        
+//     } catch (error) {
+//         utils.addError(entry(), "N8N trigger failed: " + error.toString(), "triggerN8NIfConfigured");
+//         return { success: false, error: error.toString() };
+//     }
+// }
+
 /**
  * Vyčistí staré notifikácie podľa kritérií
  * @param {Object} criteria - Kritériá pre čistenie
@@ -1295,6 +1422,173 @@ function cleanupOldNotifications(criteria) {
 }
 
 // ==============================================
+// PRIDAŤ TIETO FUNKCIE DO ASISTANTO Notifications Helper
+// Miesto: Za sekciu "LIFECYCLE MANAGEMENT" (riadok ~550)
+// ==============================================
+
+// ==============================================
+// N8N INTEGRATION FUNCTIONS
+// ==============================================
+// ==============================================
+// PRIDAŤ TIETO FUNKCIE DO ASISTANTO Notifications Helper
+// Miesto: Za sekciu "LIFECYCLE MANAGEMENT" (riadok ~550)
+// ==============================================
+
+// ==============================================
+// N8N INTEGRATION FUNCTIONS
+// ==============================================
+
+/**
+ * Vytvorí N8N-optimalizované dáta z notifikácie
+ * @param {Entry} notificationEntry - Záznam notifikácie
+ * @returns {Object} - N8N payload
+ */
+function prepareN8NPayload(notificationEntry) {
+    try {
+        var utils = getUtils();
+        
+        var payload = {
+            // Základné info
+            notificationId: notificationEntry.field("ID"),
+            type: utils.safeGet(notificationEntry, "Typ správy", ""),
+            status: utils.safeGet(notificationEntry, "Status", ""),
+            priority: utils.safeGet(notificationEntry, "Priorita", ""),
+            message: utils.safeGet(notificationEntry, "Správa", ""),
+            subject: utils.safeGet(notificationEntry, "Predmet", ""),
+            
+            // Adresát info
+            addressee: {
+                type: utils.safeGet(notificationEntry, "Adresát", ""),
+                employees: extractLinkedEntities(notificationEntry, "Zamestnanec"),
+                groups: extractLinkedEntities(notificationEntry, "Skupina/Téma"),
+                clients: extractLinkedEntities(notificationEntry, "Klient")
+            },
+            
+            // Časovanie
+            timing: {
+                created: utils.safeGet(notificationEntry, "Vytvorené", null),
+                scheduledFor: utils.safeGet(notificationEntry, "Poslať o", null),
+                sentAt: utils.safeGet(notificationEntry, "Odoslané o", null),
+                expiresAt: utils.safeGet(notificationEntry, "Vypršať o", null)
+            },
+            
+            // Source info
+            source: {
+                library: utils.safeGet(notificationEntry, "Zdrojová knižnica", ""),
+                entryId: utils.safeGet(notificationEntry, "Zdrojový ID", ""),
+                creator: utils.safeGet(notificationEntry, "Vytvoril", "")
+            },
+            
+            // Telegram špecifické
+            telegram: {
+                messageId: utils.safeGet(notificationEntry, "Message ID", ""),
+                chatId: utils.safeGet(notificationEntry, "Chat ID", ""),
+                threadId: utils.safeGet(notificationEntry, "Thread ID", "")
+            }
+        };
+        
+        return payload;
+        
+    } catch (error) {
+        utils.addError(entry(), "N8N payload preparation failed: " + error.toString(), "prepareN8NPayload");
+        return null;
+    }
+}
+
+/**
+ * Extrahuje linkedEntities pre N8N payload
+ */
+function extractLinkedEntities(notificationEntry, fieldName) {
+    var utils = getUtils();
+    var links = utils.safeGetLinks(notificationEntry, fieldName);
+    var entities = [];
+    
+    for (var i = 0; i < links.length; i++) {
+        var link = links[i];
+        entities.push({
+            id: utils.safeGet(link, "ID", ""),
+            name: utils.formatEmployeeName ? utils.formatEmployeeName(link) : 
+                  utils.safeGet(link, "Nick", "") || utils.safeGet(link, "Názov", ""),
+            type: link.lib().title
+        });
+    }
+    
+    return entities;
+}
+
+/**
+ * Wrapper funkcia pre N8N integration z Helper scriptu
+ * @param {Entry} notificationEntry - Záznam notifikácie
+ * @param {Object} options - N8N nastavenia
+ */
+function triggerN8NIfConfigured(notificationEntry, options) {
+    try {
+        var utils = getUtils();
+        options = options || {};
+        
+        // Získaj nastavenia z ASISTANTO Defaults
+        var webhookUrl = utils.getSettings(CONFIG.defaultsLibrary, "N8N Webhook URL");
+        var apiKey = utils.getSettings(CONFIG.defaultsLibrary, "N8N API Key");
+        var enabled = utils.getSettings(CONFIG.defaultsLibrary, "N8N Integration Enabled");
+        
+        if (!enabled || !webhookUrl) {
+            utils.addDebug(entry(), "N8N integrácia nie je nakonfigurovaná alebo je vypnutá");
+            return { success: false, reason: "not_configured" };
+        }
+        
+        // Priprav payload
+        var payload = prepareN8NPayload(notificationEntry);
+        if (!payload) {
+            return { success: false, reason: "payload_preparation_failed" };
+        }
+        
+        // Pridaj results ak sú poskytnuté
+        if (options.includeResults && options.results) {
+            payload.executionResults = options.results;
+        }
+        
+        // Zavolaj MementoAI N8N funkciu
+        if (typeof MementoAI !== 'undefined' && MementoAI.triggerN8NWorkflow) {
+            return MementoAI.triggerN8NWorkflow(webhookUrl, payload, {
+                apiKey: apiKey,
+                includeMetadata: options.includeMetadata !== false,
+                scriptVersion: options.scriptVersion || CONFIG.version,
+                timeout: options.timeout || 30000
+            });
+        } else {
+            // Fallback - použij utils ak je dostupný
+            if (typeof utils.httpRequest === 'function') {
+                var headers = {
+                    "Content-Type": "application/json",
+                    "User-Agent": "ASISTANTO-Memento/1.0"
+                };
+                
+                if (apiKey) {
+                    headers["Authorization"] = "Bearer " + apiKey;
+                }
+                
+                var result = utils.httpRequest("POST", webhookUrl, payload, {
+                    headers: headers,
+                    timeout: 30000
+                });
+                
+                return {
+                    success: result.success,
+                    error: result.error,
+                    data: result.data
+                };
+            }
+            
+            utils.addError(entry(), "N8N integrácia nie je dostupná - chýba MementoAI alebo utils.httpRequest", "triggerN8NIfConfigured");
+            return { success: false, reason: "integration_unavailable" };
+        }
+        
+    } catch (error) {
+        utils.addError(entry(), "N8N trigger failed: " + error.toString(), "triggerN8NIfConfigured");
+        return { success: false, error: error.toString() };
+    }
+}
+// ==============================================
 // PUBLIC API EXPORT
 // ==============================================
 
@@ -1336,7 +1630,10 @@ var ASISTANTONotifications = {
     // Utility funkcie
     getFieldName: getFieldName,
     safeFieldGet: safeFieldGet,
-    safeFieldSet: safeFieldSet
+    safeFieldSet: safeFieldSet,
+
+    // N8N integrácia
+    prepareN8NPayload: prepareN8NPayload, 
 };
 
 // ==============================================
