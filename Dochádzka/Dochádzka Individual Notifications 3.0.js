@@ -53,7 +53,7 @@ var CONFIG = {
     
     // Názvy polí v Defaults - UPRAVENÉ PODĽA TVOJICH SCREENSHOTOV
     defaultsFields: {
-        dochadzkaGroupEnabled: "Dochádzka individuálne notifikácie",  // Upravené
+        dochadzkaIndividualEnabled: "Dochádzka individuálne notifikácie",  // Upravené
         nazovFirmy: "Názov firmy",
         includeFinancials: "Zahrnúť finančné údaje",
         includeStats: "Zahrnúť štatistiky",
@@ -81,6 +81,7 @@ function main() {
         utils.addDebug(currentEntry, "🚀 === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
         
 
+        // 1. Kontrola či sú povolené skupinové notifikácie
         var settings = {};
         // Načítaj všetky potrebné nastavenia individuálne
         for (var key in CONFIG.defaultsFields) {
@@ -88,7 +89,6 @@ function main() {
         }
         
         utils.addDebug(currentEntry, "📋 Nastavenia načítané z " + CONFIG.defaultsLibrary);
-        
         
         var enabled = settings[CONFIG.defaultsFields.dochadzkaIndividualEnabled];
         utils.addDebug(currentEntry, "Individuálne notifikácie povolené: " + enabled);
@@ -132,7 +132,7 @@ function main() {
         utils.addDebug(currentEntry, "✅ === KONIEC - Vytvorených " + createdCount + " notifikácií ===");
         
     } catch (error) {
-        utils.addError(currentEntry, error, "main");
+        utils.addError(currentEntry, error, "main", error);
     }
 }
 
