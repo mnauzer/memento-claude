@@ -97,7 +97,7 @@ function main() {
         
         // 2. Kontrola či je nastavená skupina
         // Najprv skús získať linknutý záznam (preferovaný spôsob)
-        var telegramGroupLink = settings[CONFIG.defaultsFields.telegramGroupLink];
+        var telegramGroupLink = CONFIG.defaultsFields.telegramGroupLink;
         var targetGroup = null;
         
         if (telegramGroupLink) {
