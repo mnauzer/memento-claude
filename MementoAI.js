@@ -14,8 +14,14 @@ var MementoAI = (function() {
     'use strict';
     
     // Import MementoCore
-    var core = MementoCore;
-    
+    // Lazy loading MementoCore
+    var core;
+    function ensureCore() {
+        if (!core && typeof MementoCore !== 'undefined') {
+            core = MementoCore;
+        }
+        return core;
+}
     // ==============================================
     // CONFIGURATION
     // ==============================================
@@ -90,6 +96,7 @@ var MementoAI = (function() {
     // ==============================================
     
     function getApiKey(provider) {
+        ensureCore();
         provider = provider || config.defaultAIProvider;
         
         // Check cache
@@ -145,6 +152,7 @@ var MementoAI = (function() {
     // ==============================================
     
     function httpRequest(method, url, data, options) {
+        ensureCore();
         options = options || {};
         var maxRetries = options.maxRetries || config.maxRetries;
         var timeout = options.timeout || config.httpTimeout;
@@ -226,6 +234,7 @@ var MementoAI = (function() {
     // ==============================================
     
     function callAI(provider, prompt, options) {
+        ensureCore();
         options = options || {};
         provider = provider || config.defaultAIProvider;
         
@@ -311,6 +320,7 @@ var MementoAI = (function() {
     // ==============================================
     
     function analyzeImage(imageBase64, prompt, options) {
+        ensureCore();
         options = options || {};
         
         // Vision je podporované len OpenAI GPT-4o

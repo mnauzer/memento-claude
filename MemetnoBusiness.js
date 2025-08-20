@@ -14,7 +14,14 @@ var MementoBusiness = (function() {
     'use strict';
     
     // Import MementoCore
-    var core = MementoCore;
+    // Lazy loading MementoCore
+    var core;
+    function ensureCore() {
+        if (!core && typeof MementoCore !== 'undefined') {
+            core = MementoCore;
+        }
+        return core;
+    }
     
     // ==============================================
     // CONFIGURATION
@@ -40,6 +47,7 @@ var MementoBusiness = (function() {
     // ==============================================
     
     function calculateWorkHours(startTime, endTime) {
+        ensureCore();
         try {
             var start = moment(startTime);
             var end = moment(endTime);
@@ -91,17 +99,20 @@ var MementoBusiness = (function() {
     }
     
     function isWeekend(date) {
+        ensureCore();
         var day = moment(date).day();
         return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
     }
     
     function isHoliday(date) {
+        
         // TODO: Implementovať kontrolu sviatkov
         // Môže sa napojiť na knižnicu sviatkov
         return false;
     }
     
     function getWorkDayMultiplier(date) {
+        ensureCore();
         if (isHoliday(date)) {
             return config.holidayMultiplier;
         } else if (isWeekend(date)) {
@@ -115,6 +126,7 @@ var MementoBusiness = (function() {
     // ==============================================
     
     function formatEmployeeName(employeeEntry) {
+        ensureCore();
         if (!employeeEntry) return "Neznámy";
         
         try {
@@ -139,6 +151,7 @@ var MementoBusiness = (function() {
     }
     
     function getEmployeeDetails(employeeEntry, date) {
+        ensureCore();
         if (!employeeEntry) {
             return {
                 hasValidRate: false,
@@ -206,6 +219,7 @@ var MementoBusiness = (function() {
     }
     
     function findEmployeeByNick(nick) {
+        ensureCore();
         try {
             var empLib = libByName(config.employeesLibrary);
             if (!empLib) return null;
@@ -224,6 +238,7 @@ var MementoBusiness = (function() {
     // ==============================================
     
     function calculateDailyWage(employeeEntry, workHours, date, extras) {
+        
         extras = extras || {};
         
         try {
@@ -292,6 +307,7 @@ var MementoBusiness = (function() {
     // ==============================================
     
     function generateAttendanceSummary(attendanceEntry) {
+        
         try {
             var employees = core.safeGetLinks(attendanceEntry, "Zamestnanci");
             var date = attendanceEntry.field("Dátum");
