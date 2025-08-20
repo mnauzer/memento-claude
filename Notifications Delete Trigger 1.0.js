@@ -28,7 +28,7 @@ var currentEntry = entry();
 var CONFIG = {
     debug: true,
     version: "1.0",
-    scriptName: "ASISTANTO Notifications Delete Trigger",
+    scriptName: "Notifications Delete Trigger",
     
     // Využívame Helper CONFIG pre konzistentnosť
     helperConfig: notifHelper.CONFIG,

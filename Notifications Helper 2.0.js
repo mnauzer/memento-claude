@@ -44,7 +44,7 @@ function getUtils() {
 var CONFIG = {
     debug: true,
     version: "2.0",
-    scriptName: "ASISTANTO Notifications Helper",
+    scriptName: "Notifications Helper",
     
     // Dedenie základných knižníc z MementoUtils
     get libraries() {
