@@ -556,7 +556,7 @@ function createGroupNotification(message, targetGroup) {
             sprava: message,
             formatovanie: "Markdown",
             priorita: "Normálna",
-            zdrojovaKniznica: lib().name(),
+            zdrojovaKniznica: lib().title,
             zdrojovyId: currentEntry.field(CONFIG.fields.id)
         };
         
