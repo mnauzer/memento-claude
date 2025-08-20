@@ -234,7 +234,7 @@ function getTargetGroupFromLink(telegramGroupLink) {
         }
         
         var defaultsEntry = defaultsEntries[0];
-        var linkedGroups = defaultsEntry.field(CONFIG.defaultsFields.telegramGroupLink);
+        var linkedGroups = utils.safeGetLinks(defaultsEntry, CONFIG.defaultsFields.telegramGroupLink) || [];
         
         if (!linkedGroups || (Array.isArray(linkedGroups) && linkedGroups.length === 0)) {
             utils.addDebug(currentEntry, "⚠️ Žiadne linknuté skupiny v poli '" + CONFIG.defaultsFields.telegramGroupLink + "'");
