@@ -81,7 +81,7 @@ function main() {
         utils.addDebug(currentEntry, "🚀 === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
         
 
-var settings = {};
+        var settings = {};
         // Načítaj všetky potrebné nastavenia individuálne
         for (var key in CONFIG.defaultsFields) {
             settings[CONFIG.defaultsFields[key]] = utils.getSettings(CONFIG.defaultsLibrary, CONFIG.defaultsFields[key]);
@@ -89,8 +89,6 @@ var settings = {};
         
         utils.addDebug(currentEntry, "📋 Nastavenia načítané z " + CONFIG.defaultsLibrary);
         
-       
-        utils.addDebug(currentEntry, "📋 Nastavenia načítané z " + CONFIG.defaultsLibrary);
         
         var enabled = settings[CONFIG.defaultsFields.dochadzkaIndividualEnabled];
         utils.addDebug(currentEntry, "Individuálne notifikácie povolené: " + enabled);
