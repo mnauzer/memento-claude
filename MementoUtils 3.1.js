@@ -18,7 +18,7 @@ var MementoUtils = (function() {
     // ==============================================
     
     var config = {
-        version: "3.1.2",
+        version: "3.1.1",
         debug: true,
         includeLineNumbers: true,
         includeStackTrace: false,
@@ -147,19 +147,19 @@ var MementoUtils = (function() {
     }
     
     function addError(entry, errorMessage, scriptName, errorObject) {
-    if (!entry) return;
-    
-    var timestamp = moment().format("DD.MM.YY HH:mm:ss");
-    var formattedMessage = "[" + timestamp + "] ";
-    
-    if (scriptName) {
-        formattedMessage += scriptName + " - ";
-    }
-    
-    formattedMessage += errorMessage;
-    
+       
     // Ak máme error objekt, pokúsime sa získať číslo riadku
-    if (errorObject && typeof errorObject === "object" && errorObject.lineNumber) {
+        if (!entry) return;
+        
+        var timestamp = moment().format("DD.MM.YY HH:mm:ss");
+        var formattedMessage = "[" + timestamp + "] ";
+        
+        if (scriptName) {
+            formattedMessage += scriptName + " - ";
+        }
+        
+        formattedMessage += errorMessage;
+     if (errorObject && typeof errorObject === "object" && errorObject.lineNumber) {
         try {
             var lineNum = errorObject.lineNumber();
             if (lineNum) {
