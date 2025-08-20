@@ -65,8 +65,8 @@ var CONFIG = {
     telegramGroupsFields: {
         chatId: "Chat ID",
         threadId: "Thread ID",
-        threadName: "Téma Názov",
-        nazov: "Názov"
+        threadName: "Názov témy",
+        groupName: "Názov skupiny" // Pre spätnú kompatibilitu s textovým poľom
     }
 };
 
@@ -312,10 +312,10 @@ function findTargetGroup(telegramId) {
                 if (group.field(CONFIG.telegramGroupsFields.chatId) === chatId && 
                     group.field(CONFIG.telegramGroupsFields.threadId) === threadId) {
                     result.entries.push(group);
-                    result.name = group.field(CONFIG.telegramGroupsFields.threadName) || "Téma #" + threadId;
+                    result.threadName = group.field(CONFIG.telegramGroupsFields.groupName)+ " " + group.field(CONFIG.telegramGroupsFields.threadName) || "Téma #" + threadId;
                     result.chatId = chatId;
                     result.threadId = threadId;
-                    utils.addDebug(currentEntry, "✅ Našla sa téma: " + result.name);
+                    utils.addDebug(currentEntry, "✅ Našla sa téma: " + result.threadName);
                     break;
                 }
             }
