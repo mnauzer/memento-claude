@@ -327,12 +327,12 @@ var MementoUtils = (function() {
      * @return {Array} Array linknutých entries alebo []
      */
     function safeGetLinks(entry, fieldName) {
-        var links = safeFieldAccess(entry, fieldName, []);
+        var links = safeGet(entry, fieldName, null);
         return links || [];
     }
 
      function safeGetFirstLink(entry, fieldName) {
-        var links = safeFieldAccess(entry, fieldName, []);
+        var links = safeGet(entry, fieldName, []);
         return (links && links.length > 0) ? links[0] : null;
     }
     // ========================================
