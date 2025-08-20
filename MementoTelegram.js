@@ -206,7 +206,7 @@ var MementoTelegram = (function() {
             
             var notifData = {
                 "Typ": type,
-                "Stav": "Čaká",
+                "Stav": {name: "Čaká"},
                 "Vytvorené": moment().toDate(),
                 "Data": JSON.stringify(data),
                 "Pokusov": 0
