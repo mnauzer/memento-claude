@@ -49,6 +49,7 @@ var CONFIG = {
         odpracovane: "Odpracované",
         poznamka: "Poznámka",
         id: "ID"
+
     },
     
     // Názvy polí v Defaults - UPRAVENÉ PODĽA TVOJICH SCREENSHOTOV
