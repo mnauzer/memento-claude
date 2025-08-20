@@ -911,6 +911,8 @@ var MementoUtils = (function() {
                 name: safeGet(employeeEntry, "Meno", ""),
                 surname: safeGet(employeeEntry, "Priezvisko", ""),
                 fullName: formatEmployeeName(employeeEntry),
+                telegramEnabled: safeGet(employeeEntry, "telegran", false),
+                telegramId: safeGet(employeeEntry, "Telegram ID", ""),
                 hasValidRate: false,
                 hourlyRate: 0,
                 rateValidFrom: null
