@@ -325,7 +325,7 @@ var MementoUtils = (function() {
             return [];
         }
     }
-    
+     
     // ==============================================
     // TELEGRAM INTEGRATION
     // ==============================================
@@ -1232,4 +1232,4 @@ var MementoUtils = (function() {
 // Pre kompatibilitu s require() - ak Memento podporuje
 //if (typeof module !== 'undefined' && module.exports) {
 //    module.exports = MementoUtils;
-//}
+//} 

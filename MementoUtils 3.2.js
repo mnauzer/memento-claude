@@ -306,26 +306,78 @@ var MementoUtils = (function() {
         }
     }
     
-    function safeGetLinks(entry, linkFieldName) {
+    // function safeGetLinks(entry, linkFieldName) {
+    //     try {
+    //         if (!entry || !linkFieldName) return [];
+            
+    //         var links = entry.field(linkFieldName);
+    //         if (!links) return [];
+            
+    //         return Array.isArray(links) ? links : [links];
+            
+    //     } catch (error) {
+    //         return [];
+    //     }
+    // }
+
+     /**
+     * Získanie všetkých linkov z Link to Entry poľa
+     * @param {Entry} entry - Entry objekt
+     * @param {string} fieldName - Názov poľa
+     * @return {Array} Array linknutých entries alebo []
+     */
+    function safeGetLinks(entry, fieldName) {
+        var links = safeFieldAccess(entry, fieldName, []);
+        return links || [];
+    }
+
+     function safeGetFirstLink(entry, fieldName) {
+        var links = safeFieldAccess(entry, fieldName, []);
+        return (links && links.length > 0) ? links[0] : null;
+    }
+    // ========================================
+    // LINKS FROM OPERÁCIE (v1.0 + v2.1)
+    // ========================================
+    
+    /**
+     * Bezpečné LinksFrom volanie s error handlingom
+     * @param {Entry} sourceEntry - Zdrojový entry objekt  
+     * @param {string} targetLibrary - Názov cieľovej knižnice
+     * @param {string} linkField - Názov poľa ktoré odkazuje späť
+     * @param {Entry} debugEntry - Entry pre debug log (optional)
+     * @return {Array} Array linknutých entries alebo []
+     */
+    function safeLinksFrom(sourceEntry, targetLibrary, linkField, debugEntry) {
+        if (!sourceEntry || !targetLibrary || !linkField) return [];
+        
         try {
-            if (!entry || !linkFieldName) return [];
+            var results = sourceEntry.linksFrom(targetLibrary, linkField);
             
-            var links = entry.field(linkFieldName);
-            if (!links) return [];
+            if (debugEntry) {
+                var count = results ? results.length : 0;
+                addDebug(debugEntry, "✅ LinksFrom '" + targetLibrary + "': " + count + " záznamov");
+            }
             
-            return Array.isArray(links) ? links : [links];
-            
+            return results || [];
         } catch (error) {
+            if (debugEntry) {
+                addError(debugEntry, "LinksFrom failed: " + error.toString(), "safeLinksFrom");
+            }
             return [];
         }
     }
-    
+     
     // ==============================================
     // FORMATTING & TIME UTILITIES - IMPLEMENTOVANÉ
     // ==============================================
     
-    function formatDate(date, format) {
-        if (!date) return "";
+    function formatDate(date, format) {    /**
+     * Získanie prvého linku z Link to Entry poľa
+     * @param {Entry} entry - Entry objekt
+     * @param {string} fieldName - Názov poľa
+     * @return {Entry|null} Prvý linknutý entry alebo null
+     */
+      if (!date) return "";
         
         try {
             return moment(date).format(format || config.dateOnlyFormat);
@@ -973,7 +1025,9 @@ var MementoUtils = (function() {
         safeGetAttribute: safeGetAttribute,
         safeSetAttribute: safeSetAttribute,
         safeGetLinks: safeGetLinks,
-        
+        safeGetFirstLink: safeGetFirstLink,
+        safeLinksFrom: safeLinksFrom,
+
         // Formatting & Time
         formatDate: formatDate,
         formatTime: formatTime,
