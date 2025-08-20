@@ -32,7 +32,7 @@ var CONFIG = {
     
     // Názvy polí v Defaults - UPRAVENÉ PODĽA TVOJICH SCREENSHOTOV
     defaultsFields: {
-        dochadzkaGroupEnabled: "Dochádzka skupinové dochádzky",  // Upravené
+        dochadzkaGroupEnabled: "Dochádzka skupinové notifikácie",  // Upravené
         telegramGroupLink: "Telegram skupina dochádzky",                // Link to Entry pole
         telegramDochadzkaId: "Telegram Dochádzka ID",                   // Textové pole pre spätnú kompatibilitu
         nazovFirmy: "Názov firmy",
