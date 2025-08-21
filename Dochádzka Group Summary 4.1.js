@@ -1,6 +1,6 @@
 // ==============================================
 // DOCHÁDZKA GROUP SUMMARY
-// Verzia: 4.1 | Dátum: 20.08.2025 | Autor: ASISTANTO
+// Verzia: 5.0 | Dátum: 20.08.2025 | Autor: ASISTANTO
 // Knižnica: Dochádzka | Trigger: After Save
 // ==============================================
 // 📋 FUNKCIA:
@@ -8,19 +8,26 @@
 //    - Pre Telegram skupinu/tému s prehľadom všetkých zamestnancov
 //    - Využíva ASISTANTO Notifications Helper
 //    - Neodosiela priamo - len vytvára záznam
-// ✅ v4.1 ZMENY:
-//    - Integrácia s poľom "Notifikácie" v dochádzke
-//    - Cleanup starých notifikácií pri update
-//    - Nový minimalistický formát správy
-//    - Linkovanie vytvorených notifikácií
+// ✅ v5.0 ZMENY:
+//    - Opravené všetky syntax chyby
+//    - Pridaný proper lazy loading
+//    - Action mode kompatibilita
+//    - Vylepšené error handling
+//    - Konzistentné funkcie a vzťahy
 // ==============================================
 
-// Import knižníc
+// Lazy loading premenné
 var utils = null;
-var notifHelper = ASISTANTONotifications;
-var cleanupModule = DochadzkaNotifsCleanup;
+var notifHelper = null;
+var currentEntry = null;
 
-var// UNIVERZÁLNY LAZY LOADING PATTERN
+// ==============================================
+// LAZY LOADING FUNKCIE
+// ==============================================
+
+/**
+ * Získa MementoUtils s lazy loading
+ */
 function getUtils() {
     if (!utils) {
         try {
@@ -30,26 +37,88 @@ function getUtils() {
                 throw new Error("MementoUtils knižnica nie je dostupná!");
             }
         } catch(e) {
-            // Fallback pre action mode
-            message("⚠️ MementoUtils nie je načítané. Script nemôže pokračovať.");
+            showError("MementoUtils nie je načítané. Script nemôže pokračovať.", e);
             cancel();
         }
     }
     return utils;
 }
 
-// Použitie v scripte
-function main() {
-    var utils = getUtils(); // Teraz bezpečne
-    utils.addDebug(currentEntry, "Script štartuje...");
+/**
+ * Získa ASISTANTONotifications helper
+ */
+function getNotifHelper() {
+    if (!notifHelper) {
+        try {
+            if (typeof ASISTANTONotifications !== 'undefined') {
+                notifHelper = ASISTANTONotifications;
+            } else {
+                getUtils().addDebug(getCurrentEntry(), "⚠️ ASISTANTONotifications nie je dostupný");
+            }
+        } catch(e) {
+            // Optional dependency
+        }
+    }
+    return notifHelper;
 }
 
-currentEntry = entry();
+/**
+ * Detekuje či beží v Action mode
+ */
+function isActionMode() {
+    try {
+        return typeof entry === 'undefined' || !entry();
+    } catch(e) {
+        return true;
+    }
+}
 
-// Konfigurácia
+/**
+ * Získa aktuálny entry (kompatibilné s Action mode)
+ */
+function getCurrentEntry() {
+    if (!currentEntry) {
+        if (isActionMode()) {
+            var selected = lib().entries();
+            if (selected && selected.length > 0) {
+                currentEntry = selected[0];
+            } else {
+                showError("Žiadne záznamy nie sú vybrané!");
+                cancel();
+            }
+        } else {
+            currentEntry = entry();
+        }
+        
+        if (!currentEntry) {
+            showError("Žiadny záznam na spracovanie!");
+            cancel();
+        }
+    }
+    return currentEntry;
+}
+
+/**
+ * Zobrazí error správu
+ */
+function showError(msg, error) {
+    var fullMessage = "❌ " + msg;
+    if (error) {
+        fullMessage += "\n\nDetail: " + error.toString();
+    }
+    
+    if (typeof message === 'function') {
+        message(fullMessage);
+    }
+}
+
+// ==============================================
+// KONFIGURÁCIA
+// ==============================================
+
 var CONFIG = {
     debug: true,
-    version: "4.1",
+    version: "5.0",
     scriptName: "Dochádzka Group Summary",
     
     // Knižnice
@@ -60,8 +129,8 @@ var CONFIG = {
     // Názvy polí v Defaults
     defaultsFields: {
         dochadzkaGroupEnabled: "Dochádzka skupinové notifikácie",
-        telegramGroupLink: "Telegram skupina dochádzky",           // Link to Entry pole
-        telegramDochadzkaId: "Telegram Dochádzka ID",             // Textové pole pre spätnú kompatibilitu
+        telegramGroupLink: "Telegram skupina dochádzky",
+        telegramDochadzkaId: "Telegram Dochádzka ID",
         nazovFirmy: "Názov firmy",
         includeFinancials: "Zahrnúť finančné údaje",
         summaryDelay: "Oneskorenie súhrnu (min)"
@@ -79,7 +148,7 @@ var CONFIG = {
         odpracovane: "Odpracované",
         poznamka: "Poznámka",
         id: "ID",
-        notifikacie: "Notifikácie"  // NOVÉ pole pre linknuté notifikácie
+        notifikacie: "Notifikácie"
     },
     
     // Názvy atribútov
@@ -104,16 +173,18 @@ var CONFIG = {
 
 function main() {
     try {
+        var utils = getUtils();
+        var currentEntry = getCurrentEntry();
+        
         utils.addDebug(currentEntry, "🚀 === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
         
         // 0. CLEANUP - Vymaž staré notifikácie ak existujú
-        if (cleanupModule && typeof cleanupModule.cleanupOldNotifications === 'function') {
+        var cleanupModule = getCleanupModule();
+        if (cleanupModule) {
             var cleanupResult = cleanupModule.cleanupOldNotifications(currentEntry);
             if (cleanupResult.deleted > 0) {
                 utils.addDebug(currentEntry, "🧹 Vymazaných " + cleanupResult.deleted + " starých notifikácií");
             }
-        } else {
-            utils.addDebug(currentEntry, "⚠️ Cleanup modul nie je dostupný");
         }
         
         // 1. Kontrola či sú povolené skupinové notifikácie
@@ -152,8 +223,8 @@ function main() {
         var notification = createGroupNotification(summaryMessage, targetGroup);
         
         if (notification) {
-            // 6. NOVÉ - Linkuj notifikáciu k dochádzke
-            if (cleanupModule && typeof cleanupModule.linkNotificationsToDochadzka === 'function') {
+            // 6. Linkuj notifikáciu k dochádzke
+            if (cleanupModule) {
                 cleanupModule.linkNotificationsToDochadzka(currentEntry, [notification]);
             }
             
@@ -170,28 +241,7 @@ function main() {
         }
         
     } catch (error) {
-        utils.addError(currentEntry, error.toString(), CONFIG.scriptName, error);
-    }
-}ummaryMessage(zamestnanci, settings);
-        
-        // 5. Vytvor notifikáciu pomocou Notifications Helper
-        var notification = createGroupNotification(summaryMessage, targetGroup);
-        
-        if (notification) {
-            utils.addInfo(currentEntry, "Vytvorená skupinová notifikácia", {
-                notificationId: notification.field("ID"),
-                skupina: targetGroup.name,
-                pocetZamestnancov: zamestnanci.length,
-                datum: utils.formatDate(currentEntry.field(CONFIG.fields.datum), "DD.MM.YYYY")
-            });
-            
-            utils.addDebug(currentEntry, "✅ === KONIEC - Skupinová notifikácia vytvorená ===");
-        } else {
-            utils.addError(currentEntry, "Nepodarilo sa vytvoriť skupinovú notifikáciu", CONFIG.scriptName);
-        }
-        
-    } catch (error) {
-        utils.addError(currentEntry, error.toString(), CONFIG.scriptName, error);
+        getUtils().addError(getCurrentEntry(), error.toString(), CONFIG.scriptName, error);
     }
 }
 
@@ -204,13 +254,15 @@ function main() {
  */
 function loadAllSettings() {
     var settings = {};
+    var utils = getUtils();
     
-    // Načítaj všetky potrebné nastavenia individuálne
     for (var key in CONFIG.defaultsFields) {
-        settings[CONFIG.defaultsFields[key]] = utils.getSettings(CONFIG.defaultsLibrary, CONFIG.defaultsFields[key]);
+        if (CONFIG.defaultsFields.hasOwnProperty(key)) {
+            settings[CONFIG.defaultsFields[key]] = utils.getSettings(CONFIG.defaultsLibrary, CONFIG.defaultsFields[key]);
+        }
     }
     
-    utils.addDebug(currentEntry, "📋 Nastavenia načítané z " + CONFIG.defaultsLibrary);
+    utils.addDebug(getCurrentEntry(), "📋 Nastavenia načítané z " + CONFIG.defaultsLibrary);
     
     return settings;
 }
@@ -220,10 +272,12 @@ function loadAllSettings() {
  */
 function findTargetGroup(settings) {
     var targetGroup = null;
+    var utils = getUtils();
+    var currentEntry = getCurrentEntry();
     
     // Najprv skús získať linknutý záznam (preferovaný spôsob)
     var telegramGroupLink = CONFIG.defaultsFields.telegramGroupLink;
-    if (telegramGroupLink) {
+    if (telegramGroupLink && settings[telegramGroupLink]) {
         utils.addDebug(currentEntry, "📎 Kontrolujem linknutý záznam z '" + telegramGroupLink + "'");
         targetGroup = getTargetGroupFromLink(telegramGroupLink);
     }
@@ -244,6 +298,9 @@ function findTargetGroup(settings) {
  * Získa cieľovú skupinu z Link to Entry poľa
  */
 function getTargetGroupFromLink(linkFieldName) {
+    var utils = getUtils();
+    var currentEntry = getCurrentEntry();
+    
     try {
         var defaultsLib = libByName(CONFIG.defaultsLibrary);
         if (!defaultsLib) {
@@ -305,6 +362,9 @@ function getTargetGroupFromLink(linkFieldName) {
  * Nájde cieľovú skupinu/tému podľa ID (starý spôsob pre spätnú kompatibilitu)
  */
 function findTargetGroupByTextId(telegramId) {
+    var utils = getUtils();
+    var currentEntry = getCurrentEntry();
+    
     try {
         var telegramGroups = libByName(CONFIG.telegramGroupsLibrary);
         if (!telegramGroups) {
@@ -336,7 +396,7 @@ function findTargetGroupByTextId(telegramId) {
                     group.field(CONFIG.telegramGroupsFields.threadId) === threadId) {
                     result.entries.push(group);
                     result.threadName = group.field(CONFIG.telegramGroupsFields.groupName) + " - " + 
-                                       group.field(CONFIG.telegramGroupsFields.threadName) || "Téma #" + threadId;
+                                       (group.field(CONFIG.telegramGroupsFields.threadName) || "Téma #" + threadId);
                     result.chatId = chatId;
                     result.threadId = threadId;
                     result.name = result.threadName;
@@ -369,6 +429,9 @@ function findTargetGroupByTextId(telegramId) {
  * Pripraví súhrnnú správu s novým dizajnom
  */
 function prepareSummaryMessage(zamestnanci, settings) {
+    var utils = getUtils();
+    var currentEntry = getCurrentEntry();
+    
     var datum = currentEntry.field(CONFIG.fields.datum);
     var datumFormatted = utils.formatDate(datum, "D.M.YYYY");
     var dayName = moment(datum).format("dddd");
@@ -428,6 +491,7 @@ function prepareSummaryMessage(zamestnanci, settings) {
  */
 function sortEmployees(zamestnanci) {
     var sorted = zamestnanci.slice(); // Kópia array
+    var utils = getUtils();
     
     sorted.sort(function(a, b) {
         var priezviskoA = utils.safeGet(a, "Priezvisko", "").toLowerCase();
@@ -445,6 +509,7 @@ function sortEmployees(zamestnanci) {
  * Formátuje detail zamestnanca - nový formát
  */
 function formatEmployeeDetailNew(zamestnanec, poradie, includeFinancials) {
+    var utils = getUtils();
     var detail = poradie + ". ";
     
     // Nick (Priezvisko) formát
@@ -484,6 +549,8 @@ function formatEmployeeDetailNew(zamestnanec, poradie, includeFinancials) {
  * Získa atribút zamestnanca z poľa
  */
 function getEmployeeAttribute(zamestnanec, attributeName) {
+    var currentEntry = getCurrentEntry();
+    
     try {
         var zamArray = currentEntry.field(CONFIG.fields.zamestnanci);
         
@@ -502,13 +569,19 @@ function getEmployeeAttribute(zamestnanec, attributeName) {
     }
 }
 
-// Funkcia formatStatistics už nie je potrebná v novom formáte
-// Štatistiky sú integrované priamo v hlavnej správe
-
 /**
  * Vytvorí skupinovú notifikáciu pomocou Notifications Helper
  */
 function createGroupNotification(message, targetGroup) {
+    var utils = getUtils();
+    var currentEntry = getCurrentEntry();
+    var notifHelper = getNotifHelper();
+    
+    if (!notifHelper) {
+        utils.addError(currentEntry, "ASISTANTONotifications nie je dostupný", "createGroupNotification");
+        return null;
+    }
+    
     try {
         // Priprav dáta pre notifikáciu
         var notificationData = {
@@ -524,9 +597,7 @@ function createGroupNotification(message, targetGroup) {
         };
         
         // Pridaj správnu skupinu/tému
-        if (targetGroup.isThread) {
-            notificationData.skupinaTema = targetGroup.entries;
-        } else {
+        if (targetGroup.isThread || !targetGroup.isThread) {
             notificationData.skupinaTema = targetGroup.entries;
         }
         
@@ -556,113 +627,120 @@ function createGroupNotification(message, targetGroup) {
 }
 
 // ==============================================
+// CLEANUP MODULE (s lazy loading)
+// ==============================================
+
+/**
+ * Získa cleanup modul s lazy loading
+ */
+function getCleanupModule() {
+    // Inline definícia modulu
+    return (function() {
+        'use strict';
+        
+        var CONFIG = {
+            version: "1.0",
+            fields: {
+                notifikacie: "Notifikácie",
+                messageId: "Message ID",
+                chatId: "Chat ID",
+                status: "Status"
+            }
+        };
+        
+        function cleanupOldNotifications(dochadzkaEntry) {
+            var result = {
+                deleted: 0,
+                telegramDeleted: 0,
+                errors: [],
+                success: true
+            };
+            
+            try {
+                var utils = getUtils();
+                utils.addDebug(dochadzkaEntry, "🧹 === CLEANUP NOTIFIKÁCIÍ ===");
+                
+                var linkedNotifications = utils.safeGetLinks(dochadzkaEntry, CONFIG.fields.notifikacie);
+                
+                if (!linkedNotifications || linkedNotifications.length === 0) {
+                    utils.addDebug(dochadzkaEntry, "ℹ️ Žiadne linknuté notifikácie na vymazanie");
+                    return result;
+                }
+                
+                utils.addDebug(dochadzkaEntry, "📋 Našiel som " + linkedNotifications.length + " notifikácií na vymazanie");
+                
+                for (var i = 0; i < linkedNotifications.length; i++) {
+                    var notif = linkedNotifications[i];
+                    var notifId = notif.field("ID");
+                    
+                    try {
+                        // Pokús sa vymazať Telegram správu
+                        if (typeof ASISTANTOTelegram !== 'undefined' && ASISTANTOTelegram.deleteTelegramMessage) {
+                            var messageId = notif.field(CONFIG.fields.messageId);
+                            var chatId = notif.field(CONFIG.fields.chatId);
+                            
+                            if (messageId && chatId) {
+                                var deleteResult = ASISTANTOTelegram.deleteTelegramMessage(chatId, messageId);
+                                if (deleteResult.success) {
+                                    result.telegramDeleted++;
+                                }
+                            }
+                        }
+                        
+                        // Vymaž notifikáciu
+                        notif.remove();
+                        result.deleted++;
+                        
+                        utils.addDebug(dochadzkaEntry, "✅ Notifikácia #" + notifId + " vymazaná");
+                        
+                    } catch (error) {
+                        result.errors.push("Notifikácia #" + notifId + ": " + error.toString());
+                    }
+                }
+                
+                // Vyčisti pole
+                dochadzkaEntry.set(CONFIG.fields.notifikacie, []);
+                
+                utils.addDebug(dochadzkaEntry, "🧹 Cleanup dokončený: " + result.deleted + " vymazaných");
+                
+                return result;
+                
+            } catch (error) {
+                utils.addError(dochadzkaEntry, "Chyba v cleanup: " + error.toString());
+                result.success = false;
+                return result;
+            }
+        }
+        
+        function linkNotificationsToDochadzka(dochadzkaEntry, notifications) {
+            try {
+                if (!notifications || notifications.length === 0) return true;
+                
+                var existingNotifs = dochadzkaEntry.field(CONFIG.fields.notifikacie) || [];
+                var allNotifs = existingNotifs.concat(notifications);
+                
+                dochadzkaEntry.set(CONFIG.fields.notifikacie, allNotifs);
+                
+                getUtils().addDebug(dochadzkaEntry, "🔗 Linknutých " + notifications.length + " notifikácií");
+                
+                return true;
+                
+            } catch (error) {
+                getUtils().addError(dochadzkaEntry, "Chyba pri linkovaní: " + error.toString());
+                return false;
+            }
+        }
+        
+        return {
+            version: CONFIG.version,
+            cleanupOldNotifications: cleanupOldNotifications,
+            linkNotificationsToDochadzka: linkNotificationsToDochadzka
+        };
+    })();
+}
+
+// ==============================================
 // SPUSTENIE HLAVNEJ FUNKCIE
 // ==============================================
 
 main();
-
-// ==============================================
-// CLEANUP MODULE (inline pre jednoduchosť)
-// ==============================================
-
-var DochadzkaNotifsCleanup = (function() {
-    'use strict';
-    
-    var CONFIG = {
-        version: "1.0",
-        fields: {
-            notifikacie: "Notifikácie",
-            messageId: "Message ID",
-            chatId: "Chat ID",
-            status: "Status"
-        }
-    };
-    
-    function cleanupOldNotifications(dochadzkaEntry) {
-        var result = {
-            deleted: 0,
-            telegramDeleted: 0,
-            errors: [],
-            success: true
-        };
-        
-        try {
-            utils.addDebug(dochadzkaEntry, "🧹 === CLEANUP NOTIFIKÁCIÍ ===");
-            
-            var linkedNotifications = utils.safeGetLinks(dochadzkaEntry, CONFIG.fields.notifikacie);
-            
-            if (!linkedNotifications || linkedNotifications.length === 0) {
-                utils.addDebug(dochadzkaEntry, "ℹ️ Žiadne linknuté notifikácie na vymazanie");
-                return result;
-            }
-            
-            utils.addDebug(dochadzkaEntry, "📋 Našiel som " + linkedNotifications.length + " notifikácií na vymazanie");
-            
-            for (var i = 0; i < linkedNotifications.length; i++) {
-                var notif = linkedNotifications[i];
-                var notifId = notif.field("ID");
-                
-                try {
-                    // Pokús sa vymazať Telegram správu
-                    if (typeof ASISTANTOTelegram !== 'undefined' && ASISTANTOTelegram.deleteTelegramMessage) {
-                        var messageId = notif.field(CONFIG.fields.messageId);
-                        var chatId = notif.field(CONFIG.fields.chatId);
-                        
-                        if (messageId && chatId) {
-                            var deleteResult = ASISTANTOTelegram.deleteTelegramMessage(chatId, messageId);
-                            if (deleteResult.success) {
-                                result.telegramDeleted++;
-                            }
-                        }
-                    }
-                    
-                    // Vymaž notifikáciu
-                    notif.remove();
-                    result.deleted++;
-                    
-                    utils.addDebug(dochadzkaEntry, "✅ Notifikácia #" + notifId + " vymazaná");
-                    
-                } catch (error) {
-                    result.errors.push("Notifikácia #" + notifId + ": " + error.toString());
-                }
-            }
-            
-            // Vyčisti pole
-            dochadzkaEntry.set(CONFIG.fields.notifikacie, []);
-            
-            utils.addDebug(dochadzkaEntry, "🧹 Cleanup dokončený: " + result.deleted + " vymazaných");
-            
-            return result;
-            
-        } catch (error) {
-            utils.addError(dochadzkaEntry, "Chyba v cleanup: " + error.toString());
-            result.success = false;
-            return result;
-        }
-    }
-    
-    function linkNotificationsToDochadzka(dochadzkaEntry, notifications) {
-        try {
-            if (!notifications || notifications.length === 0) return true;
-            
-            var existingNotifs = dochadzkaEntry.field(CONFIG.fields.notifikacie) || [];
-            var allNotifs = existingNotifs.concat(notifications);
-            
-            dochadzkaEntry.set(CONFIG.fields.notifikacie, allNotifs);
-            
-            utils.addDebug(dochadzkaEntry, "🔗 Linknutých " + notifications.length + " notifikácií");
-            
-            return true;
-            
-        } catch (error) {
-            utils.addError(dochadzkaEntry, "Chyba pri linkovaní: " + error.toString());
-            return false;
-        }
-    }
-    
-    return {
-        version: CONFIG.version,
-        cleanupOldNotifications: cleanupOldNotifications,
-        linkNotificationsToDochadzka: linkNotificationsToDochadzka
-    };
-})();
