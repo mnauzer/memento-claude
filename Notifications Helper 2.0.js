@@ -278,12 +278,12 @@ function validateNotificationData(data) {
         
         // Sanitizácia a default hodnoty
         result.sanitized = {
-            typSpravy: data.typSpravy || CONFIG.businessRules.defaultType,
-            zdrojSpravy: data.zdrojSpravy || CONFIG.businessRules.defaultSource,
-            sprava: data.sprava || "",
-            formatovanie: data.formatovanie || CONFIG.businessRules.defaultFormatting,
-            priorita: data.priorita || CONFIG.businessRules.defaultPriority,
-            status: data.status || "Čaká",
+            // typSpravy: data.typSpravy || CONFIG.businessRules.defaultType,
+            // zdrojSpravy: data.zdrojSpravy || CONFIG.businessRules.defaultSource,
+            // sprava: data.sprava || "",
+            // formatovanie: data.formatovanie || CONFIG.businessRules.defaultFormatting,
+            // priorita: data.priorita || CONFIG.businessRules.defaultPriority,
+            // status: data.status || "Čaká",
             
             // Časové polia
             vytvorene: data.vytvorene || moment().toDate(),
