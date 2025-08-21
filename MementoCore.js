@@ -189,7 +189,7 @@ var MementoCore = (function() {
         
         // Konvertuj na array
         var linksArray = Array.isArray(links) ? links : [links];
-        
+        addDebug(entry, "Found " + linksArray.length + " links in field '" + linkFieldName + "'");
         // NOVÁ ČASŤ: Rozbaľ JSEntry wrapper objekty
         var unwrappedLinks = [];
         for (var i = 0; i < linksArray.length; i++) {
@@ -209,7 +209,7 @@ var MementoCore = (function() {
                 unwrappedLinks.push(link);
             }
         }
-        
+        addDebug(entry, "Unwrapped " + unwrappedLinks.length + " links from field '" + linkFieldName + "'");
         return unwrappedLinks;
         
     } catch (error) {
