@@ -13,10 +13,65 @@ var DochadzkaNotifsCleanup = (function() {
     'use strict';
     
     // Import knižníc
-    var utils = MementoUtils;
-    var notifHelper = ASISTANTONotifications;
-    var telegramApi = ASISTANTOTelegram;
+    var utils = null;
+    var notifHelper = null;
+    var telegramApi = null;
     
+    /**
+     * Získa MementoUtils s lazy loading
+     */
+    function getUtils() {
+        if (!utils) {
+            try {
+                if (typeof MementoUtils !== 'undefined') {
+                    utils = MementoUtils;
+                } else {
+                    throw new Error("MementoUtils knižnica nie je dostupná!");
+                }
+            } catch(e) {
+                showError("MementoUtils nie je načítané. Script nemôže pokračovať.", e);
+                cancel();
+            }
+        }
+        return utils;
+    }
+
+    /**
+     * Získa ASISTANTONotifications helper
+     */
+    function getNotifHelper() {
+        if (!notifHelper) {
+            try {
+                if (typeof ASISTANTONotifications !== 'undefined') {
+                    notifHelper = ASISTANTONotifications;
+                } else {
+                    getUtils().addDebug(getCurrentEntry(), "⚠️ ASISTANTONotifications nie je dostupný");
+                }
+            } catch(e) {
+                // Optional dependency
+            }
+        }
+        return notifHelper;
+    }
+    
+    /**
+     * Získa ASISTANTONotifications helper
+     */
+    function getTelegramApi() {
+        if (!telegramApi) {
+            try {
+                if (typeof ASISTANTOTelegram !== 'undefined') {
+                    telegramApi = ASISTANTOTelegram;
+                } else {
+                    getUtils().addDebug(getCurrentEntry(), "⚠️ ASISTANTOTelegram nie je dostupný");
+                }
+            } catch(e) {
+                // Optional dependency
+            }
+        }
+        return telegramApi;
+    }
+
     var CONFIG = {
         version: "1.0",
         fields: {
