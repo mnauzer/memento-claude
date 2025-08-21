@@ -366,25 +366,18 @@ function getTargetGroupFromLink(linkFieldName) {
         var chatId = null;
         var threadId = null;
         var nazov = null;
-        
-        try {
-            //chatId = actualEntry.field(CONFIG.telegramGroupsFields.chatId);
-            chatId  = utils.safeGet(linkedGroup[0], CONFIG.defaultsFields.chatId, null);
-            //threadId = actualEntry.field(CONFIG.telegramGroupsFields.threadId);
-            threadId = utils.safeGet(linkedGroup[0], CONFIG.telegramGroupsFields.threadId, null);    
-            //nazov = actualEntry.field(CONFIG.telegramGroupsFields.groupName) || 
-            //actualEntry.field(CONFIG.telegramGroupsFields.threadName);
-            nazov = utils.safeGet(linkedGroup[0], CONFIG.telegramGroupsFields.groupName, null) || utils.safeGet(linkedGroup[0], CONFIG.telegramGroupsFields.threadName, null);
-        } catch (fieldError) {
-            utils.addError(currentEntry, "Chyba pri čítaní polí z linknutej skupiny: " + fieldError.toString() + "Line: " + fieldError.lineNumber);
-            return null;
-        }
+
+        chatId  = utils.safeGet(linkedGroup[0], CONFIG.telegramGroupsFields.chatId, null);
+        utils.addDebug(currentEntry, "🔍 Chat ID z linku: " + chatId);
+        threadId = utils.safeGet(linkedGroup[0], CONFIG.telegramGroupsFields.threadId, null);    
+        nazov = utils.safeGet(linkedGroup[0], CONFIG.telegramGroupsFields.groupName, null) || utils.safeGet(linkedGroup[0], CONFIG.telegramGroupsFields.threadName, null);
         
         if (!chatId) {
+            utils.addError(currentEntry, "Chyba pri čítaní polí z linknutej skupiny: " + fieldError.toString(), "getTargetGroupFromLink", fieldError);
             utils.addError(currentEntry, "Linknutá skupina nemá Chat ID", "getTargetGroupFromLink");
             return null;
         }
-
+        
         var result = {
             entries: linkedGroup[0],
             //entries: [group],
