@@ -187,7 +187,8 @@ var MementoCore = (function() {
             var links = entry.field(linkFieldName);
             if (!links) return [];
             
-            return Array.isArray(links) ? links : [links];
+            //return Array.isArray(links) ? links : [links];
+            return Array.isArray(links) ? links : links;
             
         } catch (error) {
             return [];
