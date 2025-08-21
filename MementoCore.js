@@ -223,9 +223,7 @@ var MementoCore = (function() {
             
             var links = entry.field(linkFieldName);
             if (!links) return [];
-            
-            // Konvertuj na array
-           // var linksArray = Array.isArray(links) ? links : [links];
+         
             return links;
             
         } catch (error) {
