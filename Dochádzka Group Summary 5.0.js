@@ -316,7 +316,7 @@ function getTargetGroupFromLink(linkFieldName) {
         var defaultsEntry = defaultsEntries[0];
         var linkedGroups = defaultsEntry.field(linkFieldName);
         // Debug info
-        addDebug(currentEntry, "🔗 Linknuté skupiny z '" + linkFieldName + "': "     + linkedGroups); 
+        utils.addDebug(currentEntry, "🔗 Linknuté skupiny z '" + linkFieldName + "': "     + linkedGroups); 
         if (!linkedGroups) {
             return null;
         }
