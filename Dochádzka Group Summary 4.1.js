@@ -16,10 +16,35 @@
 // ==============================================
 
 // Import knižníc
-var utils = MementoUtils;
+var utils = null;
 var notifHelper = ASISTANTONotifications;
 var cleanupModule = DochadzkaNotifsCleanup;
-var currentEntry = entry();
+
+var// UNIVERZÁLNY LAZY LOADING PATTERN
+function getUtils() {
+    if (!utils) {
+        try {
+            if (typeof MementoUtils !== 'undefined') {
+                utils = MementoUtils;
+            } else {
+                throw new Error("MementoUtils knižnica nie je dostupná!");
+            }
+        } catch(e) {
+            // Fallback pre action mode
+            message("⚠️ MementoUtils nie je načítané. Script nemôže pokračovať.");
+            cancel();
+        }
+    }
+    return utils;
+}
+
+// Použitie v scripte
+function main() {
+    var utils = getUtils(); // Teraz bezpečne
+    utils.addDebug(currentEntry, "Script štartuje...");
+}
+
+currentEntry = entry();
 
 // Konfigurácia
 var CONFIG = {

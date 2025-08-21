@@ -1,6 +1,6 @@
 // ==============================================
 // DOCHÁDZKA NOTIFICATIONS ORCHESTRATOR
-// Verzia: 1.0 | Dátum: 20.08.2025 | Autor: ASISTANTO
+// Verzia: 1.1 | Dátum: 20.08.2025 | Autor: ASISTANTO
 // Knižnica: Dochádzka | Trigger: After Save
 // ==============================================
 // 📋 FUNKCIA:
@@ -8,17 +8,189 @@
 //    - Spravuje individuálne aj skupinové notifikácie
 //    - Jednotný cleanup a linking proces
 //    - Modulárny dizajn pre ľahkú údržbu
+// ✅ v1.1 ZMENY:
+//    - Pridaný lazy loading pre všetky dependencies
+//    - Action mode kompatibilita
+//    - Lepšie error handling
 // ==============================================
 
-// Import knižníc
-var utils = MementoUtils;
-var notifHelper = ASISTANTONotifications;
-var currentEntry = entry();
+// Lazy loading premenné
+var utils = null;
+var notifHelper = null;
+var telegramApi = null;
+var currentEntry = null;
+
+// ==============================================
+// LAZY LOADING FUNKCIE
+// ==============================================
+
+/**
+ * Získa MementoUtils s lazy loading
+ */
+function getUtils() {
+    if (!utils) {
+        try {
+            if (typeof MementoUtils !== 'undefined') {
+                utils = MementoUtils;
+            } else {
+                throw new Error("MementoUtils knižnica nie je dostupná!");
+            }
+        } catch(e) {
+            showError("MementoUtils nie je načítané. Script nemôže pokračovať.", e);
+            cancel();
+        }
+    }
+    return utils;
+}
+
+/**
+ * Získa ASISTANTONotifications helper
+ */
+function getNotifHelper() {
+    if (!notifHelper) {
+        try {
+            if (typeof ASISTANTONotifications !== 'undefined') {
+                notifHelper = ASISTANTONotifications;
+            } else {
+                // Notifications helper je optional - pokračuj bez neho
+                getUtils().addDebug(getCurrentEntry(), "⚠️ ASISTANTONotifications nie je dostupný");
+            }
+        } catch(e) {
+            // Optional dependency - nezastavuj script
+        }
+    }
+    return notifHelper;
+}
+
+/**
+ * Získa ASISTANTOTelegram API
+ */
+function getTelegramApi() {
+    if (!telegramApi) {
+        try {
+            if (typeof ASISTANTOTelegram !== 'undefined') {
+                telegramApi = ASISTANTOTelegram;
+            }
+        } catch(e) {
+            // Optional - pre priame mazanie Telegram správ
+        }
+    }
+    return telegramApi;
+}
+
+/**
+ * Detekuje či beží v Action mode
+ */
+function isActionMode() {
+    try {
+        return typeof entry === 'undefined' || !entry();
+    } catch(e) {
+        return true;
+    }
+}
+
+/**
+ * Získa aktuálny entry (kompatibilné s Action mode)
+ */
+function getCurrentEntry() {
+    if (!currentEntry) {
+        if (isActionMode()) {
+            // V action mode pracuj s vybranými záznamami
+            var selected = lib().entries();
+            if (selected && selected.length > 0) {
+                currentEntry = selected[0];
+                showInfo("Action mode: Spracovávam " + selected.length + " záznamov");
+            } else {
+                showError("Žiadne záznamy nie sú vybrané!");
+                cancel();
+            }
+        } else {
+            currentEntry = entry();
+        }
+        
+        if (!currentEntry) {
+            showError("Žiadny záznam na spracovanie!");
+            cancel();
+        }
+    }
+    return currentEntry;
+}
+
+/**
+ * Zobrazí error správu užívateľovi
+ */
+function showError(message, error) {
+    var fullMessage = "❌ " + message;
+    if (error) {
+        fullMessage += "\n\nDetail: " + error.toString();
+    }
+    
+    if (typeof message === 'function') {
+        message(fullMessage);
+    }
+    
+    // Aj do logu ak je utils dostupné
+    try {
+        if (utils) {
+            utils.addError(getCurrentEntry(), message, "Orchestrator", error);
+        }
+    } catch(e) {
+        // Ignoruj
+    }
+}
+
+/**
+ * Zobrazí info správu
+ */
+function showInfo(text) {
+    if (typeof message === 'function') {
+        message("ℹ️ " + text);
+    }
+}
+
+/**
+ * Kontrola závislostí
+ */
+function checkDependencies() {
+    var deps = {
+        "MementoUtils": typeof MementoUtils !== 'undefined',
+        "ASISTANTONotifications": typeof ASISTANTONotifications !== 'undefined',
+        "ASISTANTOTelegram": typeof ASISTANTOTelegram !== 'undefined'
+    };
+    
+    var missing = [];
+    var optional = ["ASISTANTONotifications", "ASISTANTOTelegram"];
+    
+    for (var dep in deps) {
+        if (!deps[dep] && optional.indexOf(dep) === -1) {
+            missing.push(dep);
+        }
+    }
+    
+    if (missing.length > 0) {
+        showError("Chýbajúce povinné závislosti:\n" + missing.join("\n"));
+        return false;
+    }
+    
+    // Info o optional dependencies
+    for (var i = 0; i < optional.length; i++) {
+        if (!deps[optional[i]]) {
+            try {
+                getUtils().addDebug(getCurrentEntry(), 
+                    "⚠️ Optional dependency '" + optional[i] + "' nie je dostupná");
+            } catch(e) {
+                // Ignoruj
+            }
+        }
+    }
+    
+    return true;
+}
 
 // Konfigurácia
 var CONFIG = {
     debug: true,
-    version: "1.0",
+    version: "1.1",
     scriptName: "Dochádzka Notifications Orchestrator",
     
     // Knižnice
@@ -73,6 +245,17 @@ var CONFIG = {
 
 function main() {
     try {
+        // Kontrola závislostí
+        if (!checkDependencies()) {
+            cancel();
+            return;
+        }
+        
+        // Inicializácia
+        var utils = getUtils();
+        var notifHelper = getNotifHelper();
+        var currentEntry = getCurrentEntry();
+        
         utils.addDebug(currentEntry, "🎼 === ŠTART ORCHESTRÁTOR v" + CONFIG.version + " ===");
         
         // 1. Cleanup starých notifikácií
@@ -138,6 +321,7 @@ function main() {
         
     } catch (error) {
         utils.addError(currentEntry, error.toString(), CONFIG.scriptName, error);
+        ca
     }
 }
 
@@ -153,23 +337,27 @@ function cleanupOldNotifications() {
     };
     
     try {
+        var utils = getUtils();
+        var currentEntry = getCurrentEntry();
         var linkedNotifications = utils.safeGetLinks(currentEntry, CONFIG.fields.notifikacie);
         
         if (!linkedNotifications || linkedNotifications.length === 0) {
             return result;
         }
         
+        var telegramApi = getTelegramApi(); // Lazy load
+        
         for (var i = 0; i < linkedNotifications.length; i++) {
             var notif = linkedNotifications[i];
             
             try {
-                // Pokús sa vymazať Telegram správu
-                if (typeof ASISTANTOTelegram !== 'undefined') {
+                // Pokús sa vymazať Telegram správu ak je API dostupné
+                if (telegramApi) {
                     var messageId = notif.field("Message ID");
                     var chatId = notif.field("Chat ID");
                     
                     if (messageId && chatId) {
-                        var deleteResult = ASISTANTOTelegram.deleteTelegramMessage(chatId, messageId);
+                        var deleteResult = telegramApi.deleteTelegramMessage(chatId, messageId);
                         if (deleteResult.success) {
                             result.telegramDeleted++;
                         }
@@ -189,7 +377,7 @@ function cleanupOldNotifications() {
         currentEntry.set(CONFIG.fields.notifikacie, []);
         
     } catch (error) {
-        utils.addError(currentEntry, "Cleanup error: " + error.toString());
+        getUtils().addError(getCurrentEntry(), "Cleanup error: " + error.toString());
     }
     
     return result;
@@ -329,6 +517,7 @@ function processGroupNotification(zamestnanci, settings) {
 
 function loadAllSettings() {
     var settings = {};
+    var utils = getUtils();
     
     for (var key in CONFIG.defaultsFields) {
         settings[CONFIG.defaultsFields[key]] = utils.getSettings(CONFIG.defaultsLibrary, CONFIG.defaultsFields[key]);
