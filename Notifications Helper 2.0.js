@@ -63,8 +63,8 @@ var CONFIG = {
     
     // Validation rules
     validation: {
-        required: ['sprava'],
-        optional: ['predmet', 'priorita', 'adresat', 'formatovanie'],
+        required: ['Správa'],
+        optional: ['Predmet', 'Priorita', 'Adresát', 'Formátovanie'],
         maxRetries: 3,
         timeoutMs: 30000
     },
@@ -498,7 +498,7 @@ function createNotification(data) {
         return newNotification;
         
     } catch (error) {
-        getUtils().addError(entry(), "Chyba pri vytváraní notifikácie: " + error.toString(), "createNotification");
+        getUtils().addError(entry(), "Chyba pri vytváraní notifikácie: " + error.toString() + "line: " +error.lineNumber , "createNotification");
         return null;
     }
 }
