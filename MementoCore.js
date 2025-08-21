@@ -180,42 +180,59 @@ var MementoCore = (function() {
         }
     }
     
-   function safeGetLinks(entry, linkFieldName) {
-    try {
-        if (!entry || !linkFieldName) return [];
-        
-        var links = entry.field(linkFieldName);
-        if (!links) return [];
-        
-        // Konvertuj na array
-        var linksArray = Array.isArray(links) ? links : [links];
-        addDebug(entry, "Found " + linksArray.length + " links in field '" + linkFieldName + "'");
-        // NOVÁ ČASŤ: Rozbaľ JSEntry wrapper objekty
-        var unwrappedLinks = [];
-        for (var i = 0; i < linksArray.length; i++) {
-            var link = linksArray[i];
-            if (!link) continue;
+    // function safeGetLinks(entry, linkFieldName) {
+    //     try {
+    //         if (!entry || !linkFieldName) return [];
             
-            // Ak má entry() metódu, je to wrapper
-            if (link.entry && typeof link.entry === 'function') {
-                try {
-                    unwrappedLinks.push(link.entry());
-                } catch (e) {
-                    // Fallback - pridaj originál
-                    unwrappedLinks.push(link);
-                }
-            } else {
-                // Už je to entry alebo iný objekt
-                unwrappedLinks.push(link);
-            }
+    //         var links = entry.field(linkFieldName);
+    //         if (!links) return [];
+            
+    //         // Konvertuj na array
+    //         var linksArray = Array.isArray(links) ? links : [links];
+    //         addDebug(entry, "Found " + linksArray.length + " links in field '" + linkFieldName + "'");
+    //         // NOVÁ ČASŤ: Rozbaľ JSEntry wrapper objekty
+    //         var unwrappedLinks = [];
+    //         for (var i = 0; i < linksArray.length; i++) {
+    //             var link = linksArray[i];
+    //             if (!link) continue;
+                
+    //             // Ak má entry() metódu, je to wrapper
+    //             if (link.entry && typeof link.entry === 'function') {
+    //                 try {
+    //                     unwrappedLinks.push(link.entry());
+    //                 } catch (e) {
+    //                     // Fallback - pridaj originál
+    //                     unwrappedLinks.push(link);
+    //                 }
+    //             } else {
+    //                 // Už je to entry alebo iný objekt
+    //                 unwrappedLinks.push(link);
+    //             }
+    //         }
+    //         addDebug(entry, "Unwrapped " + unwrappedLinks.length + " links from field '" + linkFieldName + "'");
+    //         return unwrappedLinks;
+            
+    //     } catch (error) {
+    //         return [];
+    //     }
+    // }
+
+    function safeGetLinks(entry, linkFieldName) {
+        try {
+            if (!entry || !linkFieldName) return [];
+            
+            var links = entry.field(linkFieldName);
+            if (!links) return [];
+            
+            // Konvertuj na array
+           // var linksArray = Array.isArray(links) ? links : [links];
+            return links;
+            
+        } catch (error) {
+            addError(entry, "Chyba pri získavaní linkov: " + error.toString() + "Line: " + error.lineNumber, "safeGetLinks", error);
+            return [];
         }
-        addDebug(entry, "Unwrapped " + unwrappedLinks.length + " links from field '" + linkFieldName + "'");
-        return unwrappedLinks;
-        
-    } catch (error) {
-        return [];
     }
-}
     
     // ==============================================
     // TIME & FORMATTING FUNCTIONS
