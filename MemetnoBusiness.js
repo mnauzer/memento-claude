@@ -424,7 +424,7 @@ var MementoBusiness = (function() {
     
     return {
         // Version
-        version: config.version,
+        version: CONFIG.version,
         
         // Work time
         calculateWorkHours: calculateWorkHours,
