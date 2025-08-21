@@ -272,7 +272,7 @@ function loadAllSettings() {
  */
 function findTargetGroup(settings) {
     var targetGroup = null;
-    var utils = getUtils();
+    //var utils = getUtils();
     var currentEntry = getCurrentEntry();
     
     // Najprv skús získať linknutý záznam (preferovaný spôsob)
@@ -298,7 +298,7 @@ function findTargetGroup(settings) {
  * Získa cieľovú skupinu z Link to Entry poľa
  */
 function getTargetGroupFromLink(linkFieldName) {
-    var utils = getUtils();
+    //var utils = getUtils();
     var currentEntry = getCurrentEntry();
     
     try {
@@ -314,28 +314,28 @@ function getTargetGroupFromLink(linkFieldName) {
         }
         
         var defaultsEntry = defaultsEntries[0];
-        var linkedGroup = utils.safeGet(defaultsEntry,linkFieldName, []);
+        var linkedGroup = utils.safeGet(defaultsEntry,linkFieldName, null);
         // Debug info
-        if (!linkedGroup) {
-            return null;
-        }
-        utils.addDebug(currentEntry, "🔗 Linknutá skupina z '" + linkFieldName + "': "     + linkedGroup); 
+        utils.addDebug(currentEntry, "🔗 Linknutá skupina z '" + linkFieldName + "': " + utils.safeGet(linkedGroup[0], CONFIG.defaultsFields.chatId, "žiadna" ));
+        // if (!linkedGroup) {
+        //     return null;
+        // }
         
         // Konvertuj na array ak nie je
         // var groupsArray = Array.isArray(linkedGroup) ? linkedGroup : [linkedGroup];
         // var group = groupsArray[0];
         // // Debug info
         // addDebug(currentEntry, "🔍 Skupina z linku: " + group.field(CONFIG.telegramGroupsFields.threadName));
-        var group = null;
-        if (Array.isArray(linkedGroup) && linkedGroup.length > 0) {
-            group = linkedGroup[0];
-        } else if (linkedGroup) {
-            group = linkedGroup;
-        }
+        // var group = null;
+        // if (Array.isArray(linkedGroup) && linkedGroup.length > 0) {
+        //     group = linkedGroup[0];
+        // } else if (linkedGroup) {
+        //     group = linkedGroup;
+        // }
 
-        if (!group) {
-            return null;
-        }
+        // if (!group) {
+        //     return null;
+        // }
         
         // // Získaj potrebné údaje
         // var chatId = group.field(CONFIG.telegramGroupsFields.chatId);
@@ -368,14 +368,13 @@ function getTargetGroupFromLink(linkFieldName) {
         var nazov = null;
         
         try {
-
             //chatId = actualEntry.field(CONFIG.telegramGroupsFields.chatId);
-            chatId  = utils.safeGet(group, CONFIG.telegramGroupsFields.chatId, null);
+            chatId  = utils.safeGet(linkedGroup[0], CONFIG.defaultsFields.chatId, null);
             //threadId = actualEntry.field(CONFIG.telegramGroupsFields.threadId);
-            threadId = utils.safeGet(group, CONFIG.telegramGroupsFields.threadId, null);    
+            threadId = utils.safeGet(linkedGroup[0], CONFIG.telegramGroupsFields.threadId, null);    
             //nazov = actualEntry.field(CONFIG.telegramGroupsFields.groupName) || 
             //actualEntry.field(CONFIG.telegramGroupsFields.threadName);
-            nazov = utils.safeGet(group, CONFIG.telegramGroupsFields.groupName, null) || utils.safeGet(group, CONFIG.telegramGroupsFields.threadName, null);
+            nazov = utils.safeGet(linkedGroup[0], CONFIG.telegramGroupsFields.groupName, null) || utils.safeGet(linkedGroup[0], CONFIG.telegramGroupsFields.threadName, null);
         } catch (fieldError) {
             utils.addError(currentEntry, "Chyba pri čítaní polí z linknutej skupiny: " + fieldError.toString() + "Line: " + fieldError.lineNumber);
             return null;
@@ -387,7 +386,7 @@ function getTargetGroupFromLink(linkFieldName) {
         }
 
         var result = {
-            entries: [actualEntry],
+            entries: linkedGroup[0],
             //entries: [group],
             chatId: chatId,
             threadId: threadId,
