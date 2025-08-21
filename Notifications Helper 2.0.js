@@ -239,13 +239,13 @@ function validateNotificationData(data) {
         utils.addDebug(entry(), "🔍 Validating notification data");
         
         // Validácia povinných polí
-        for (var i = 0; i < CONFIG.validation.required.length; i++) {
-            var field = CONFIG.validation.required[i];
-            if (!data[field] || data[field] === "") {
-                result.errors.push("Povinné pole '" + field + "' chýba alebo je prázdne");
-                result.valid = false;
-            }
-        }
+        // for (var i = 0; i < CONFIG.validation.required.length; i++) {
+        //     var field = CONFIG.validation.required[i];
+        //     if (!data[field] || data[field] === "") {
+        //         result.errors.push("Povinné pole '" + field + "' chýba alebo je prázdne");
+        //         result.valid = false;
+        //     }
+        // }
         
         // Validácia typov správ
         if (data.typSpravy && FIELD_OPTIONS.type.indexOf(data.typSpravy) === -1) {
