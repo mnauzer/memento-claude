@@ -131,7 +131,7 @@ var DochadzkaNotifsCleanup = (function() {
             }
             
         } catch (error) {
-            return { success: false, error: error.toString() };
+            return { success: false, error: error.toString() + "Line: " + error.lineNumber };
         }
     }
     
@@ -161,7 +161,7 @@ var DochadzkaNotifsCleanup = (function() {
             return true;
             
         } catch (error) {
-            utils.addError(dochadzkaEntry, "Chyba pri linkovaní notifikácií: " + error.toString());
+            utils.addError(dochadzkaEntry, "Chyba pri linkovaní notifikácií: " + error.toString() + "Line: " + error.lineNumber, error);
             return false;
         }
     }
