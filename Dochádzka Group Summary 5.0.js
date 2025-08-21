@@ -373,7 +373,7 @@ function getTargetGroupFromLink(linkFieldName) {
             nazov = actualEntry.field(CONFIG.telegramGroupsFields.groupName) || 
                     actualEntry.field(CONFIG.telegramGroupsFields.threadName);
         } catch (fieldError) {
-            utils.addError(currentEntry, "Chyba pri čítaní polí z linknutej skupiny: " + fieldError.toString());
+            utils.addError(currentEntry, "Chyba pri čítaní polí z linknutej skupiny: " + fieldError.toString() + "Line: " + error.lineNumber);
             return null;
         }
         
@@ -464,7 +464,7 @@ function findTargetGroupByTextId(telegramId) {
         return result.entries.length > 0 ? result : null;
         
     } catch (error) {
-        utils.addError(currentEntry, error.toString(), "findTargetGroupByTextId", error);
+        utils.addError(currentEntry, error.toString() + "Line: " + error.lineNumber, "findTargetGroupByTextId" , error);
         return null;
     }
 }
@@ -723,7 +723,7 @@ function createGroupNotification(message, targetGroup) {
         }
         
     } catch (error) {
-        utils.addError(currentEntry, error.toString(), "createGroupNotification", error);
+        utils.addError(currentEntry, error.toString() + "Line: " + error.lineNumber, "createGroupNotification", error);
         return null;
     }
 }
@@ -807,7 +807,7 @@ function getCleanupModule() {
                 return result;
                 
             } catch (error) {
-                utils.addError(dochadzkaEntry, "Chyba v cleanup: " + error.toString());
+                utils.addError(dochadzkaEntry, "Chyba v cleanup: " + error.toString() + "Line: " + error.lineNumber);
                 result.success = false;
                 return result;
             }
@@ -827,7 +827,7 @@ function getCleanupModule() {
                 return true;
                 
             } catch (error) {
-                getUtils().addError(dochadzkaEntry, "Chyba pri linkovaní: " + error.toString());
+                getUtils().addError(dochadzkaEntry, "Chyba pri linkovaní: " + error.toString() + "Line: " + error.lineNumber);
                 return false;
             }
         }
