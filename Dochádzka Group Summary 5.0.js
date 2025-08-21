@@ -315,7 +315,8 @@ function getTargetGroupFromLink(linkFieldName) {
         
         var defaultsEntry = defaultsEntries[0];
         var linkedGroups = defaultsEntry.field(linkFieldName);
-        
+        // Debug info
+        addDebug(currentEntry, "🔗 Linknuté skupiny z '" + linkFieldName + "': "     + linkedGroups); 
         if (!linkedGroups) {
             return null;
         }
@@ -323,7 +324,9 @@ function getTargetGroupFromLink(linkFieldName) {
         // Konvertuj na array ak nie je
         var groupsArray = Array.isArray(linkedGroups) ? linkedGroups : [linkedGroups];
         var group = groupsArray[0];
-        
+        // Debug info
+        addDebug(currentEntry, "🔍 Skupina z linku: " + group.field(CONFIG.telegramGroupsFields.threadName));
+
         if (!group) {
             return null;
         }
@@ -353,7 +356,7 @@ function getTargetGroupFromLink(linkFieldName) {
         return result;
         
     } catch (error) {
-        utils.addError(currentEntry, error.toString(), "getTargetGroupFromLink", error);
+        utils.addError(currentEntry, error.toString() +", line: " + error.lineNumber, "getTargetGroupFromLink", error);
         return null;
     }
 }
