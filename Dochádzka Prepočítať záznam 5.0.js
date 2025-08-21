@@ -14,10 +14,44 @@
 // ==============================================
 
 // Import knižníc
-var utils = MementoUtils;
-var business = utils.business || MementoBusiness; // Ak je dostupný business modul
+var utils = null;
+var business = null; // Ak je dostupný business modul
 var currentEntry = entry();
 
+try {
+    utils = MementoUtils;
+} catch(e) {
+    // MementoUtils nie je definované
+}
+
+// Alebo lepšie - s funkciou
+function getUtils() {
+    if (!utils) {
+        if (typeof MementoUtils !== 'undefined') {
+            utils = MementoUtils;
+        } else {
+            throw new Error("MementoUtils knižnica nie je dostupná!");
+        }
+    }
+    return utils;
+}
+
+function getBusiness() {
+    if (!business) {
+        try {
+            // Najprv skús cez utils
+            var u = getUtils();
+            if (u && u.business) {
+                business = u.business;
+            } else if (typeof MementoBusiness !== 'undefined') {
+                business = MementoBusiness;
+            }
+        } catch(e) {
+            // Business modul je optional
+        }
+    }
+    return business;
+}
 // Konfigurácia
 var CONFIG = {
     debug: true,
