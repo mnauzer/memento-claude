@@ -180,20 +180,42 @@ var MementoCore = (function() {
         }
     }
     
-    function safeGetLinks(entry, linkFieldName) {
-        try {
-            if (!entry || !linkFieldName) return [];
+   function safeGetLinks(entry, linkFieldName) {
+    try {
+        if (!entry || !linkFieldName) return [];
+        
+        var links = entry.field(linkFieldName);
+        if (!links) return [];
+        
+        // Konvertuj na array
+        var linksArray = Array.isArray(links) ? links : [links];
+        
+        // NOVÁ ČASŤ: Rozbaľ JSEntry wrapper objekty
+        var unwrappedLinks = [];
+        for (var i = 0; i < linksArray.length; i++) {
+            var link = linksArray[i];
+            if (!link) continue;
             
-            var links = entry.field(linkFieldName);
-            if (!links) return [];
-            
-            //return Array.isArray(links) ? links : [links];
-            return Array.isArray(links) ? links : links;
-            
-        } catch (error) {
-            return [];
+            // Ak má entry() metódu, je to wrapper
+            if (link.entry && typeof link.entry === 'function') {
+                try {
+                    unwrappedLinks.push(link.entry());
+                } catch (e) {
+                    // Fallback - pridaj originál
+                    unwrappedLinks.push(link);
+                }
+            } else {
+                // Už je to entry alebo iný objekt
+                unwrappedLinks.push(link);
+            }
         }
+        
+        return unwrappedLinks;
+        
+    } catch (error) {
+        return [];
     }
+}
     
     // ==============================================
     // TIME & FORMATTING FUNCTIONS
