@@ -322,28 +322,69 @@ function getTargetGroupFromLink(linkFieldName) {
         }
         
         // Konvertuj na array ak nie je
-        var groupsArray = Array.isArray(linkedGroups) ? linkedGroups : [linkedGroups];
-        var group = groupsArray[0];
-        // Debug info
-        addDebug(currentEntry, "🔍 Skupina z linku: " + group.field(CONFIG.telegramGroupsFields.threadName));
+        // var groupsArray = Array.isArray(linkedGroups) ? linkedGroups : [linkedGroups];
+        // var group = groupsArray[0];
+        // // Debug info
+        // addDebug(currentEntry, "🔍 Skupina z linku: " + group.field(CONFIG.telegramGroupsFields.threadName));
+        var group = null;
+        if (Array.isArray(linkedGroups) && linkedGroups.length > 0) {
+            group = linkedGroups[0];
+        } else if (linkedGroups) {
+            group = linkedGroups;
+        }
 
         if (!group) {
             return null;
         }
         
-        // Získaj potrebné údaje
-        var chatId = group.field(CONFIG.telegramGroupsFields.chatId);
-        var threadId = group.field(CONFIG.telegramGroupsFields.threadId);
-        var nazov = group.field(CONFIG.telegramGroupsFields.groupName) || 
-                    group.field(CONFIG.telegramGroupsFields.threadName);
+        // // Získaj potrebné údaje
+        // var chatId = group.field(CONFIG.telegramGroupsFields.chatId);
+        // var threadId = group.field(CONFIG.telegramGroupsFields.threadId);
+        // var nazov = group.field(CONFIG.telegramGroupsFields.groupName) || 
+        //             group.field(CONFIG.telegramGroupsFields.threadName);
+        
+        // if (!chatId) {
+        //     utils.addError(currentEntry, "Linknutá skupina nemá Chat ID", "getTargetGroupFromLink");
+        //     return null;
+        // }
+              // OPRAVA: Použitie entry() metódy pre získanie skutočného Entry objektu
+        var actualEntry = null;
+        try {
+            // Ak má entry() metódu, použiť ju
+            if (group.entry && typeof group.entry === 'function') {
+                actualEntry = group.entry();
+            } else {
+                // Inak skús priamo
+                actualEntry = group;
+            }
+        } catch (e) {
+            utils.addDebug(currentEntry, "⚠️ Nepodarilo sa získať entry objekt: " + e.toString());
+            actualEntry = group;
+        }
+        
+        // Teraz získaj údaje
+        var chatId = null;
+        var threadId = null;
+        var nazov = null;
+        
+        try {
+            chatId = actualEntry.field(CONFIG.telegramGroupsFields.chatId);
+            threadId = actualEntry.field(CONFIG.telegramGroupsFields.threadId);
+            nazov = actualEntry.field(CONFIG.telegramGroupsFields.groupName) || 
+                    actualEntry.field(CONFIG.telegramGroupsFields.threadName);
+        } catch (fieldError) {
+            utils.addError(currentEntry, "Chyba pri čítaní polí z linknutej skupiny: " + fieldError.toString());
+            return null;
+        }
         
         if (!chatId) {
             utils.addError(currentEntry, "Linknutá skupina nemá Chat ID", "getTargetGroupFromLink");
             return null;
         }
-        
+
         var result = {
-            entries: [group],
+            entries: [actualEntry],
+            //entries: [group],
             chatId: chatId,
             threadId: threadId,
             isThread: !!threadId,
@@ -572,9 +613,63 @@ function getEmployeeAttribute(zamestnanec, attributeName) {
     }
 }
 
-/**
- * Vytvorí skupinovú notifikáciu pomocou Notifications Helper
- */
+// /**
+//  * Vytvorí skupinovú notifikáciu pomocou Notifications Helper
+//  */
+// function createGroupNotification(message, targetGroup) {
+//     var utils = getUtils();
+//     var currentEntry = getCurrentEntry();
+//     var notifHelper = getNotifHelper();
+    
+//     if (!notifHelper) {
+//         utils.addError(currentEntry, "ASISTANTONotifications nie je dostupný", "createGroupNotification");
+//         return null;
+//     }
+    
+//     try {
+//         // Priprav dáta pre notifikáciu
+//         var notificationData = {
+//             typSpravy: "Dochádzka",
+//             zdrojSpravy: "Automatická",
+//             sprava: message,
+//             predmet: "Súhrnná dochádzka - " + utils.formatDate(currentEntry.field(CONFIG.fields.datum), "DD.MM.YYYY"),
+//             adresat: targetGroup.isThread ? "Téma" : "Skupina",
+//             formatovanie: "Markdown",
+//             priorita: "Normálna",
+//             zdrojovaKniznica: "Dochádzka",
+//             zdrojovyId: currentEntry.field(CONFIG.fields.id)
+//         };
+        
+//         // Pridaj správnu skupinu/tému
+//         if (targetGroup.isThread || !targetGroup.isThread) {
+//             notificationData.skupinaTema = targetGroup.entries;
+//         }
+        
+//         // Oneskorenie ak je nastavené
+//         var delay = utils.getSettings(CONFIG.defaultsLibrary, CONFIG.defaultsFields.summaryDelay);
+//         if (delay && delay > 0) {
+//             var sendAt = moment().add(delay, 'minutes').toDate();
+//             notificationData.poslatO = sendAt;
+//             utils.addDebug(currentEntry, "⏰ Notifikácia bude odoslaná o: " + utils.formatDate(sendAt));
+//         }
+        
+//         // Vytvor notifikáciu pomocou Helper
+//         var notification = notifHelper.createNotification(notificationData);
+        
+//         if (notification) {
+//             utils.addDebug(currentEntry, "✅ Notifikácia vytvorená: ID #" + notification.field("ID"));
+//             return notification;
+//         } else {
+//             utils.addError(currentEntry, "Nepodarilo sa vytvoriť notifikáciu", "createGroupNotification");
+//             return null;
+//         }
+        
+//     } catch (error) {
+//         utils.addError(currentEntry, error.toString(), "createGroupNotification", error);
+//         return null;
+//     }
+// }
+
 function createGroupNotification(message, targetGroup) {
     var utils = getUtils();
     var currentEntry = getCurrentEntry();
@@ -586,31 +681,35 @@ function createGroupNotification(message, targetGroup) {
     }
     
     try {
-        // Priprav dáta pre notifikáciu
+        // OPRAVA: Správne mapovanie názvov polí
         var notificationData = {
-            typSpravy: "Dochádzka",
-            zdrojSpravy: "Automatická",
-            sprava: message,
-            predmet: "Súhrnná dochádzka - " + utils.formatDate(currentEntry.field(CONFIG.fields.datum), "DD.MM.YYYY"),
-            adresat: targetGroup.isThread ? "Téma" : "Skupina",
-            formatovanie: "Markdown",
-            priorita: "Normálna",
-            zdrojovaKniznica: "Dochádzka",
-            zdrojovyId: currentEntry.field(CONFIG.fields.id)
+            // Používaj presné názvy polí z Notifications Helper
+            "Typ správy": "Dochádzka",
+            "Zdroj správy": "Automatická", 
+            "Správa": message,  // Zmena z 'sprava' na 'Správa'
+            "Predmet": "Súhrnná dochádzka - " + utils.formatDate(currentEntry.field(CONFIG.fields.datum), "DD.MM.YYYY"),
+            "Adresát": targetGroup.isThread ? "Téma" : "Skupina",
+            "Formátovanie": "Markdown",
+            "Priorita": "Normálna",
+            "Zdrojová knižnica": "Dochádzka",
+            "Zdrojový ID": currentEntry.field(CONFIG.fields.id).toString()
         };
         
-        // Pridaj správnu skupinu/tému
-        if (targetGroup.isThread || !targetGroup.isThread) {
-            notificationData.skupinaTema = targetGroup.entries;
+        // OPRAVA: Správne priradenie skupiny/témy
+        if (targetGroup.entries && targetGroup.entries.length > 0) {
+            notificationData["Skupina/Téma"] = targetGroup.entries;
         }
         
         // Oneskorenie ak je nastavené
         var delay = utils.getSettings(CONFIG.defaultsLibrary, CONFIG.defaultsFields.summaryDelay);
         if (delay && delay > 0) {
             var sendAt = moment().add(delay, 'minutes').toDate();
-            notificationData.poslatO = sendAt;
+            notificationData["Poslať o"] = sendAt;
             utils.addDebug(currentEntry, "⏰ Notifikácia bude odoslaná o: " + utils.formatDate(sendAt));
         }
+        
+        // Debug - vypíš čo posielame
+        utils.addDebug(currentEntry, "📤 Vytváram notifikáciu s dátami: " + JSON.stringify(Object.keys(notificationData)));
         
         // Vytvor notifikáciu pomocou Helper
         var notification = notifHelper.createNotification(notificationData);
@@ -628,7 +727,6 @@ function createGroupNotification(message, targetGroup) {
         return null;
     }
 }
-
 // ==============================================
 // CLEANUP MODULE (s lazy loading)
 // ==============================================
