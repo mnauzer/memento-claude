@@ -173,7 +173,7 @@ var CONFIG = {
 
 function main() {
     try {
-        var utils = getUtils();
+        //var utils = getUtils();
         var currentEntry = getCurrentEntry();
         
         utils.addDebug(currentEntry, "🚀 === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
@@ -254,7 +254,7 @@ function main() {
  */
 function loadAllSettings() {
     var settings = {};
-    var utils = getUtils();
+    //var utils = getUtils();
     
     for (var key in CONFIG.defaultsFields) {
         if (CONFIG.defaultsFields.hasOwnProperty(key)) {
@@ -469,7 +469,7 @@ function findTargetGroupByTextId(telegramId) {
  * Pripraví súhrnnú správu s novým dizajnom
  */
 function prepareSummaryMessage(zamestnanci, settings) {
-    var utils = getUtils();
+    //var utils = getUtils();
     var currentEntry = getCurrentEntry();
     
     var datum = currentEntry.field(CONFIG.fields.datum);
@@ -667,14 +667,14 @@ function getEmployeeAttribute(zamestnanec, attributeName) {
 // }
 
 function createGroupNotification(message, targetGroup) {
-    var utils = getUtils();
+    // var utils = getUtils();
     var currentEntry = getCurrentEntry();
-    var notifHelper = getNotifHelper();
+    // var notifHelper = getNotifHelper();
     
-    if (!notifHelper) {
-        utils.addError(currentEntry, "ASISTANTONotifications nie je dostupný", "createGroupNotification");
-        return null;
-    }
+    // if (!notifHelper) {
+    //     utils.addError(currentEntry, "ASISTANTONotifications nie je dostupný", "createGroupNotification");
+    //     return null;
+    // }
     
     try {
         // OPRAVA: Správne mapovanie názvov polí
