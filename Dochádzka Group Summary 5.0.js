@@ -314,23 +314,23 @@ function getTargetGroupFromLink(linkFieldName) {
         }
         
         var defaultsEntry = defaultsEntries[0];
-        var linkedGroups = defaultsEntry.field(linkFieldName);
+        var linkedGroup = utils.safeGet(defaultsEntry,linkFieldName, []);
         // Debug info
-        utils.addDebug(currentEntry, "🔗 Linknuté skupiny z '" + linkFieldName + "': "     + linkedGroups); 
-        if (!linkedGroups) {
+        if (!linkedGroup) {
             return null;
         }
+        utils.addDebug(currentEntry, "🔗 Linknutá skupina z '" + linkFieldName + "': "     + linkedGroup); 
         
         // Konvertuj na array ak nie je
-        // var groupsArray = Array.isArray(linkedGroups) ? linkedGroups : [linkedGroups];
+        // var groupsArray = Array.isArray(linkedGroup) ? linkedGroup : [linkedGroup];
         // var group = groupsArray[0];
         // // Debug info
         // addDebug(currentEntry, "🔍 Skupina z linku: " + group.field(CONFIG.telegramGroupsFields.threadName));
         var group = null;
-        if (Array.isArray(linkedGroups) && linkedGroups.length > 0) {
-            group = linkedGroups[0];
-        } else if (linkedGroups) {
-            group = linkedGroups;
+        if (Array.isArray(linkedGroup) && linkedGroup.length > 0) {
+            group = linkedGroup[0];
+        } else if (linkedGroup) {
+            group = linkedGroup;
         }
 
         if (!group) {
@@ -348,19 +348,19 @@ function getTargetGroupFromLink(linkFieldName) {
         //     return null;
         // }
               // OPRAVA: Použitie entry() metódy pre získanie skutočného Entry objektu
-        var actualEntry = null;
-        try {
-            // Ak má entry() metódu, použiť ju
-            if (group.entry && typeof group.entry === 'function') {
-                actualEntry = group.entry();
-            } else {
-                // Inak skús priamo
-                actualEntry = group;
-            }
-        } catch (e) {
-            utils.addDebug(currentEntry, "⚠️ Nepodarilo sa získať entry objekt: " + e.toString());
-            actualEntry = group;
-        }
+        // var actualEntry = null;
+        // try {
+        //     // Ak má entry() metódu, použiť ju
+        //     if (group.entry && typeof group.entry === 'function') {
+        //         actualEntry = group.entry();
+        //     } else {
+        //         // Inak skús priamo
+        //         actualEntry = group;
+        //     }
+        // } catch (e) {
+        //     utils.addDebug(currentEntry, "⚠️ Nepodarilo sa získať entry objekt: " + e.toString());
+        //     actualEntry = group;
+        // }
         
         // Teraz získaj údaje
         var chatId = null;
@@ -368,10 +368,14 @@ function getTargetGroupFromLink(linkFieldName) {
         var nazov = null;
         
         try {
-            chatId = actualEntry.field(CONFIG.telegramGroupsFields.chatId);
-            threadId = actualEntry.field(CONFIG.telegramGroupsFields.threadId);
-            nazov = actualEntry.field(CONFIG.telegramGroupsFields.groupName) || 
-                    actualEntry.field(CONFIG.telegramGroupsFields.threadName);
+
+            //chatId = actualEntry.field(CONFIG.telegramGroupsFields.chatId);
+            chatId  = utils.safeGet(group, CONFIG.telegramGroupsFields.chatId, null);
+            //threadId = actualEntry.field(CONFIG.telegramGroupsFields.threadId);
+            threadId = utils.safeGet(group, CONFIG.telegramGroupsFields.threadId, null);    
+            //nazov = actualEntry.field(CONFIG.telegramGroupsFields.groupName) || 
+            //actualEntry.field(CONFIG.telegramGroupsFields.threadName);
+            nazov = utils.safeGet(group, CONFIG.telegramGroupsFields.groupName, null) || utils.safeGet(group, CONFIG.telegramGroupsFields.threadName, null);
         } catch (fieldError) {
             utils.addError(currentEntry, "Chyba pri čítaní polí z linknutej skupiny: " + fieldError.toString() + "Line: " + fieldError.lineNumber);
             return null;
