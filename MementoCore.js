@@ -418,6 +418,6 @@ var MementoCore = (function() {
         // Utilities
         findEntryById: findEntryById,
         getSettings: getSettings,
-        config: config,
+   
     };
 })();
