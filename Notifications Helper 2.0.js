@@ -22,20 +22,22 @@
 // Lazy loading MementoUtils
 var utils = null;
 
-/**
- * Získa MementoUtils instance (lazy loading s fallback)
- */
 function getUtils() {
     if (!utils) {
-        if (typeof MementoUtils !== 'undefined') {
-            utils = MementoUtils;
-        } else {
-            // Kritická chyba - MementoUtils je required dependency
-            throw new Error("MementoUtils knižnica nie je dostupná! Skript nemôže pokračovať.");
+        try {
+            if (typeof MementoUtils !== 'undefined') {
+                utils = MementoUtils;
+            } else {
+                throw new Error("⚠️ MementoUtils knižnica nie je dostupná!");
+            }
+        } catch(e) {
+            showError("⚠️ MementoUtils nie je načítané. Script nemôže pokračovať.", e);
+            cancel();
         }
     }
     return utils;
 }
+
 
 // ==============================================
 // KONFIGURÁCIA A FIELD MAPPINGS
@@ -48,7 +50,7 @@ var CONFIG = {
     
     // Dedenie základných knižníc z MementoUtils
     get libraries() {
-        var utilsConfig = getUtils().DEFAULT_CONFIG;
+        var utilsConfig = utils.DEFAULT_CONFIG;
         return {
             notifications: "Notifications",
             telegramGroups: utilsConfig.telegramGroupsLibrary || "Telegram Groups",
@@ -184,7 +186,7 @@ var FIELD_OPTIONS = {
  */
 function getFieldName(library, field) {
     if (!FIELD_MAPPINGS[library] || !FIELD_MAPPINGS[library][field]) {
-        getUtils().addError(entry(), "Neznáme pole: " + library + "." + field, CONFIG.scriptName);
+        utils.addError(entry(), "Neznáme pole: " + library + "." + field, CONFIG.scriptName);
         return field; // Fallback na pôvodný názov
     }
     return FIELD_MAPPINGS[library][field];
@@ -200,7 +202,7 @@ function getFieldName(library, field) {
  */
 function safeFieldGet(entry, library, field, defaultValue) {
     var fieldName = getFieldName(library, field);
-    return getUtils().safeFieldAccess(entry, fieldName, defaultValue);
+    return utils.safeFieldAccess(entry, fieldName, defaultValue);
 }
 
 /**
@@ -213,7 +215,7 @@ function safeFieldGet(entry, library, field, defaultValue) {
  */
 function safeFieldSet(entry, library, field, value) {
     var fieldName = getFieldName(library, field);
-    return getUtils().safeSet(entry, fieldName, value);
+    return utils.safeSet(entry, fieldName, value);
 }
 
 // ==============================================
@@ -234,7 +236,7 @@ function validateNotificationData(data) {
     };
     
     try {
-        getUtils().addDebug(entry(), "🔍 Validating notification data");
+        utils.addDebug(entry(), "🔍 Validating notification data");
         
         // Validácia povinných polí
         for (var i = 0; i < CONFIG.validation.required.length; i++) {
@@ -311,15 +313,15 @@ function validateNotificationData(data) {
         }
         
         if (result.valid) {
-            getUtils().addDebug(entry(), "✅ Validation passed");
+            utils.addDebug(entry(), "✅ Validation passed");
         } else {
-            getUtils().addDebug(entry(), "❌ Validation failed: " + result.errors.length + " errors");
+            utils.addDebug(entry(), "❌ Validation failed: " + result.errors.length + " errors");
         }
         
     } catch (error) {
         result.valid = false;
-        result.errors.push("Chyba pri validácii: " + error.toString());
-        getUtils().addError(entry(), "Validation error: " + error.toString(), CONFIG.scriptName);
+        result.errors.push("Chyba pri validácii: " + error.toString() + "Line: " + error.lineNumber);
+        utils.addError(entry(), "Validation error: " + error.toString() + "Line: " + error.lineNumber, CONFIG.scriptName);
     }
     
     return result;
@@ -396,19 +398,19 @@ function validateBusinessRules(notificationEntry) {
  */
 function createNotification(data) {
     try {
-        getUtils().addDebug(entry(), "📝 Vytváranie novej notifikácie v" + CONFIG.version);
+        utils.addDebug(entry(), "📝 Vytváranie novej notifikácie v" + CONFIG.version);
         
         // Validácia vstupných dát
         var validation = validateNotificationData(data);
         if (!validation.valid) {
-            getUtils().addError(entry(), "Validácia zlyhala: " + validation.errors.join(", "), "createNotification");
+            utils.addError(entry(), "Validácia zlyhala: " + validation.errors.join(", "), "createNotification");
             return null;
         }
         
         // Získanie knižnice
         var notifLib = libByName(CONFIG.libraries.notifications);
         if (!notifLib) {
-            getUtils().addError(entry(), "Knižnica " + CONFIG.libraries.notifications + " nenájdená", "createNotification");
+            utils.addError(entry(), "Knižnica " + CONFIG.libraries.notifications + " nenájdená", "createNotification");
             return null;
         }
         
@@ -467,7 +469,7 @@ function createNotification(data) {
         }
         
         // Info záznam
-        var infoText = getUtils().formatDate(new Date()) + " | Vytvorené automaticky\n";
+        var infoText = utils.formatDate(new Date()) + " | Vytvorené automaticky\n";
         infoText += "Zdroj: " + validation.sanitized.zdrojovaKniznica + " #" + validation.sanitized.zdrojovyId + "\n";
         infoText += "Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
         infoText += "Typ: " + validation.sanitized.typSpravy + " | Priorita: " + validation.sanitized.priorita;
@@ -478,16 +480,16 @@ function createNotification(data) {
         var newNotification = notifLib.create(notificationData);
         
         if (newNotification) {
-            getUtils().addDebug(entry(), "✅ Notifikácia vytvorená: ID #" + newNotification.field("ID"));
+            utils.addDebug(entry(), "✅ Notifikácia vytvorená: ID #" + newNotification.field("ID"));
             
             // Business rules validation na vytvorenom zázname
             var businessValidation = validateBusinessRules(newNotification);
             if (businessValidation.warnings.length > 0) {
-                getUtils().addDebug(entry(), "⚠️ Business warnings: " + businessValidation.warnings.join(", "));
+                utils.addDebug(entry(), "⚠️ Business warnings: " + businessValidation.warnings.join(", "));
             }
             
             // Pridanie info záznamu do novej notifikácie
-            getUtils().addInfo(newNotification, "Notifikácia vytvorená pomocou Helper scriptu v" + CONFIG.version, {
+            utils.addInfo(newNotification, "Notifikácia vytvorená pomocou Helper scriptu v" + CONFIG.version, {
                 sourceEntry: validation.sanitized.zdrojovyId,
                 sourceLibrary: validation.sanitized.zdrojovaKniznica,
                 addresseeType: validation.sanitized.adresat || "N/A",
@@ -498,7 +500,7 @@ function createNotification(data) {
         return newNotification;
         
     } catch (error) {
-        getUtils().addError(entry(), "Chyba pri vytváraní notifikácie: " + error.toString() + "line: " +error.lineNumber , "createNotification");
+        utils.addError(entry(), "Chyba pri vytváraní notifikácie: " + error.toString() + "line: " +error.lineNumber , "createNotification");
         return null;
     }
 }
@@ -521,7 +523,7 @@ function createBulkNotifications(baseData, recipients) {
     var failed = 0;
     
     try {
-        getUtils().addDebug(entry(), "📢 Vytváranie bulk notifikácií pre " + recipients.length + " adresátov");
+        utils.addDebug(entry(), "📢 Vytváranie bulk notifikácií pre " + recipients.length + " adresátov");
         
         for (var i = 0; i < recipients.length; i++) {
             var recipient = recipients[i];
@@ -582,11 +584,11 @@ function createBulkNotifications(baseData, recipients) {
             }
         }
         
-        getUtils().addDebug(entry(), "✅ Bulk operácia dokončená: " + created.length + " úspešných, " + failed + " neúspešných");
+        utils.addDebug(entry(), "✅ Bulk operácia dokončená: " + created.length + " úspešných, " + failed + " neúspešných");
         
         // Pridanie súhrnného info záznamu
         if (created.length > 0) {
-            getUtils().addInfo(entry(), "Bulk notifikácie vytvorené", {
+            utils.addInfo(entry(), "Bulk notifikácie vytvorené", {
                 total: recipients.length,
                 successful: created.length,
                 failed: failed,
@@ -595,7 +597,7 @@ function createBulkNotifications(baseData, recipients) {
         }
         
     } catch (error) {
-        getUtils().addError(entry(), "Chyba pri bulk vytváraní: " + error.toString(), "createBulkNotifications");
+        utils.addError(entry(), "Chyba pri bulk vytváraní: " + error.toString(), "createBulkNotifications");
     }
     
     return created;
@@ -622,26 +624,26 @@ function personalizeMessage(message, recipient) {
         
         // Firemné údaje pre klientov/partnerov
         if (recipient.field("Názov")) {
-            message = message.replace(/{nazov}/g, getUtils().safeFieldAccess(recipient, "Názov", ""));
-            message = message.replace(/{ico}/g, getUtils().safeFieldAccess(recipient, "IČO", ""));
-            message = message.replace(/{dic}/g, getUtils().safeFieldAccess(recipient, "DIČ", ""));
+            message = message.replace(/{nazov}/g, utils.safeFieldAccess(recipient, "Názov", ""));
+            message = message.replace(/{ico}/g, utils.safeFieldAccess(recipient, "IČO", ""));
+            message = message.replace(/{dic}/g, utils.safeFieldAccess(recipient, "DIČ", ""));
         }
         
         // Univerzálne časové premenné
-        message = message.replace(/{datum}/g, getUtils().formatDate(moment(), "DD.MM.YYYY"));
-        message = message.replace(/{cas}/g, getUtils().formatDate(moment(), "HH:mm"));
+        message = message.replace(/{datum}/g, utils.formatDate(moment(), "DD.MM.YYYY"));
+        message = message.replace(/{cas}/g, utils.formatDate(moment(), "HH:mm"));
         message = message.replace(/{den}/g, moment().format("dddd"));
         message = message.replace(/{mesiac}/g, moment().format("MMMM"));
         message = message.replace(/{rok}/g, moment().format("YYYY"));
         
         // Company info z defaults knižnice
-        var companyName = getUtils().getSettings(CONFIG.libraries.defaults, "Názov firmy");
+        var companyName = utils.getSettings(CONFIG.libraries.defaults, "Názov firmy");
         if (companyName) {
             message = message.replace(/{firma}/g, companyName);
         }
         
     } catch (error) {
-        getUtils().addError(entry(), "Chyba pri personalizácii správy: " + error.toString(), "personalizeMessage");
+        utils.addError(entry(), "Chyba pri personalizácii správy: " + error.toString(), "personalizeMessage");
     }
     
     return message;
@@ -658,8 +660,8 @@ function personalizeMessage(message, recipient) {
  */
 function createDochadzkaTemplate(dochadzkaEntry) {
     try {
-        var zamestnanci = getUtils().safeGetLinks(dochadzkaEntry, "Zamestnanci");
-        var datum = getUtils().formatDate(dochadzkaEntry.field("Dátum"), "DD.MM.YYYY");
+        var zamestnanci = utils.safeGetLinks(dochadzkaEntry, "Zamestnanci");
+        var datum = utils.formatDate(dochadzkaEntry.field("Dátum"), "DD.MM.YYYY");
         var prichod = dochadzkaEntry.field("Príchod");
         var odchod = dochadzkaEntry.field("Odchod");
         
@@ -671,7 +673,7 @@ function createDochadzkaTemplate(dochadzkaEntry) {
         if (zamestnanci.length > 1) {
             message += "\n👥 Zamestnanci:\n";
             for (var i = 0; i < zamestnanci.length; i++) {
-                message += "• " + getUtils().formatEmployeeName(zamestnanci[i]) + "\n";
+                message += "• " + utils.formatEmployeeName(zamestnanci[i]) + "\n";
             }
         }
         
@@ -685,7 +687,7 @@ function createDochadzkaTemplate(dochadzkaEntry) {
         };
         
     } catch (error) {
-        getUtils().addError(entry(), "Chyba pri vytváraní dochádzka template: " + error.toString(), "createDochadzkaTemplate");
+        utils.addError(entry(), "Chyba pri vytváraní dochádzka template: " + error.toString(), "createDochadzkaTemplate");
         return null;
     }
 }
@@ -697,9 +699,9 @@ function createDochadzkaTemplate(dochadzkaEntry) {
  */
 function createZaznamPracTemplate(zaznamEntry) {
     try {
-        var datum = getUtils().formatDate(zaznamEntry.field("Dátum"), "DD.MM.YYYY");
-        var zakazka = getUtils().safeFieldAccess(zaznamEntry.field("Zákazka"), "Číslo zákazky", "");
-        var hodiny = getUtils().formatTime(zaznamEntry.field("Odpracované"));
+        var datum = utils.formatDate(zaznamEntry.field("Dátum"), "DD.MM.YYYY");
+        var zakazka = utils.safeFieldAccess(zaznamEntry.field("Zákazka"), "Číslo zákazky", "");
+        var hodiny = utils.formatTime(zaznamEntry.field("Odpracované"));
         var popis = zaznamEntry.field("Vykonané práce");
         
         var message = "🔧 *Záznam prác*\n\n";
@@ -721,7 +723,7 @@ function createZaznamPracTemplate(zaznamEntry) {
         };
         
     } catch (error) {
-        getUtils().addError(entry(), "Chyba pri vytváraní záznam prác template: " + error.toString(), "createZaznamPracTemplate");
+        utils.addError(entry(), "Chyba pri vytváraní záznam prác template: " + error.toString(), "createZaznamPracTemplate");
         return null;
     }
 }
@@ -753,7 +755,7 @@ function createTodoTemplate(todoData) {
         }
         
         if (todoData.termin) {
-            message += "\n⏰ Termín: " + getUtils().formatDate(todoData.termin, "DD.MM.YYYY HH:mm");
+            message += "\n⏰ Termín: " + utils.formatDate(todoData.termin, "DD.MM.YYYY HH:mm");
         }
         
         return {
@@ -766,7 +768,7 @@ function createTodoTemplate(todoData) {
         };
         
     } catch (error) {
-        getUtils().addError(entry(), "Chyba pri vytváraní ToDo template: " + error.toString(), "createTodoTemplate");
+        utils.addError(entry(), "Chyba pri vytváraní ToDo template: " + error.toString(), "createTodoTemplate");
         return null;
     }
 }
@@ -791,9 +793,9 @@ function createSystemTemplate(title, data, options) {
                     
                     // Formátovanie hodnôt
                     if (value instanceof Date) {
-                        value = getUtils().formatDate(value);
+                        value = utils.formatDate(value);
                     } else if (typeof value === "number" && key.toLowerCase().indexOf("cena") !== -1) {
-                        value = getUtils().formatMoney(value);
+                        value = utils.formatMoney(value);
                     }
                     
                     message += "• " + key + ": " + value + "\n";
@@ -802,7 +804,7 @@ function createSystemTemplate(title, data, options) {
         }
         
         if (!options.noFooter) {
-            message += "\n_" + getUtils().formatDate(moment()) + "_";
+            message += "\n_" + utils.formatDate(moment()) + "_";
         }
         
         return {
@@ -814,7 +816,7 @@ function createSystemTemplate(title, data, options) {
         };
         
     } catch (error) {
-        getUtils().addError(entry(), "Chyba pri vytváraní system template: " + error.toString(), "createSystemTemplate");
+        utils.addError(entry(), "Chyba pri vytváraní system template: " + error.toString(), "createSystemTemplate");
         return null;
     }
 }
@@ -852,9 +854,9 @@ function formatTelegramMessage(title, data, options) {
                     
                     // Formátovanie hodnôt
                     if (value instanceof Date) {
-                        value = getUtils().formatDate(value);
+                        value = utils.formatDate(value);
                     } else if (typeof value === "number" && key.toLowerCase().indexOf("cena") !== -1) {
-                        value = getUtils().formatMoney(value);
+                        value = utils.formatMoney(value);
                     }
                     
                     message += "• " + escapeMarkdown(key) + ": " + escapeMarkdown(value.toString()) + "\n";
@@ -864,13 +866,13 @@ function formatTelegramMessage(title, data, options) {
         
         // Footer s časom
         if (!options.noFooter) {
-            message += "\n_" + getUtils().formatDate(moment()) + "_";
+            message += "\n_" + utils.formatDate(moment()) + "_";
         }
         
         return message;
         
     } catch (error) {
-        getUtils().addError(entry(), "Chyba pri formátovaní Telegram správy: " + error.toString(), "formatTelegramMessage");
+        utils.addError(entry(), "Chyba pri formátovaní Telegram správy: " + error.toString(), "formatTelegramMessage");
         return title; // Fallback na základný title
     }
 }
@@ -918,14 +920,14 @@ function cancelNotificationsBySource(sourceId, sourceLibrary) {
     try {
         var notifLib = libByName(CONFIG.libraries.notifications);
         if (!notifLib) {
-            getUtils().addError(entry(), "Notification library not found", "cancelNotificationsBySource");
+            utils.addError(entry(), "Notification library not found", "cancelNotificationsBySource");
             return 0;
         }
         
         sourceLibrary = sourceLibrary || lib().title;
         var cancelled = 0;
         
-        getUtils().addDebug(entry(), "🗑️ Cancelling notifications for source: " + sourceLibrary + "#" + sourceId);
+        utils.addDebug(entry(), "🗑️ Cancelling notifications for source: " + sourceLibrary + "#" + sourceId);
         
         // Nájdi všetky notifikácie z tohto zdroja
         var notifications = notifLib.find(getFieldName('notifications', 'sourceId'), sourceId);
@@ -941,7 +943,7 @@ function cancelNotificationsBySource(sourceId, sourceLibrary) {
                 
                 safeFieldSet(notif, 'notifications', 'status', "Zrušené");
                 
-                getUtils().addInfo(notif, "Notifikácia zrušená", {
+                utils.addInfo(notif, "Notifikácia zrušená", {
                     reason: "Source entry cancelled/deleted",
                     cancelledBy: user().name(),
                     originalSource: sourceLibrary + "#" + sourceId
@@ -951,11 +953,11 @@ function cancelNotificationsBySource(sourceId, sourceLibrary) {
             }
         }
         
-        getUtils().addDebug(entry(), "❌ Zrušených " + cancelled + " notifikácií pre zdroj #" + sourceId);
+        utils.addDebug(entry(), "❌ Zrušených " + cancelled + " notifikácií pre zdroj #" + sourceId);
         return cancelled;
         
     } catch (error) {
-        getUtils().addError(entry(), "Chyba pri rušení notifikácií: " + error.toString(), "cancelNotificationsBySource");
+        utils.addError(entry(), "Chyba pri rušení notifikácií: " + error.toString(), "cancelNotificationsBySource");
         return 0;
     }
 }
@@ -978,7 +980,7 @@ function processExpiredNotifications() {
             total: 0 
         };
         
-        getUtils().addDebug(entry(), "⏰ Processing expired notifications");
+        utils.addDebug(entry(), "⏰ Processing expired notifications");
         
         // Nájdi všetky čakajúce notifikácie
         var waitingNotifs = notifLib.find(getFieldName('notifications', 'status'), "Čaká");
@@ -991,9 +993,9 @@ function processExpiredNotifications() {
             if (expireAt && moment(expireAt).isBefore(now)) {
                 safeFieldSet(notif, 'notifications', 'status', "Vypršané");
                 
-                getUtils().addInfo(notif, "Notifikácia vypršala", {
-                    expiredAt: getUtils().formatDate(expireAt),
-                    processedAt: getUtils().formatDate(now)
+                utils.addInfo(notif, "Notifikácia vypršala", {
+                    expiredAt: utils.formatDate(expireAt),
+                    processedAt: utils.formatDate(now)
                 });
                 
                 stats.expired++;
@@ -1002,11 +1004,11 @@ function processExpiredNotifications() {
             stats.processed++;
         }
         
-        getUtils().addDebug(entry(), "⏰ Spracovaných " + stats.processed + " notifikácií, " + stats.expired + " vypršalo");
+        utils.addDebug(entry(), "⏰ Spracovaných " + stats.processed + " notifikácií, " + stats.expired + " vypršalo");
         return stats;
         
     } catch (error) {
-        getUtils().addError(entry(), "Chyba pri spracovaní vypršaných notifikácií: " + error.toString(), "processExpiredNotifications");
+        utils.addError(entry(), "Chyba pri spracovaní vypršaných notifikácií: " + error.toString(), "processExpiredNotifications");
         return { processed: 0, expired: 0, total: 0, error: error.toString() };
     }
 }
@@ -1038,8 +1040,8 @@ function getNotificationStats(filter) {
             byPriority: {},
             byAddressee: {},
             timeRange: {
-                from: filter.dateFrom ? getUtils().formatDate(filter.dateFrom) : "N/A",
-                to: filter.dateTo ? getUtils().formatDate(filter.dateTo) : "N/A"
+                from: filter.dateFrom ? utils.formatDate(filter.dateFrom) : "N/A",
+                to: filter.dateTo ? utils.formatDate(filter.dateTo) : "N/A"
             }
         };
         
@@ -1136,7 +1138,7 @@ function getNotificationStats(filter) {
         return stats;
         
     } catch (error) {
-        getUtils().addError(entry(), "Chyba pri získavaní štatistík: " + error.toString(), "getNotificationStats");
+        utils.addError(entry(), "Chyba pri získavaní štatistík: " + error.toString(), "getNotificationStats");
         return null;
     }
 }
@@ -1157,7 +1159,7 @@ function createRepeatedNotification(originalNotification, repeatType) {
             return null;
         }
         
-        getUtils().addDebug(entry(), "🔄 Creating repeated notification: " + repeatType);
+        utils.addDebug(entry(), "🔄 Creating repeated notification: " + repeatType);
         
         // Vypočítaj ďalší termín
         var now = moment();
@@ -1198,12 +1200,12 @@ function createRepeatedNotification(originalNotification, repeatType) {
         // Skopíruj cieľové prepojenia
         var addresseeType = newData.adresat;
         if (addresseeType === "Zamestnanec") {
-            var employees = getUtils().safeGetLinks(originalNotification, getFieldName('notifications', 'employee'));
+            var employees = utils.safeGetLinks(originalNotification, getFieldName('notifications', 'employee'));
             if (employees.length > 0) {
                 newData.zamestnanec = employees;
             }
         } else if (addresseeType === "Skupina" || addresseeType === "Skupina-Téma") {
-            var groups = getUtils().safeGetLinks(originalNotification, getFieldName('notifications', 'groupTopic'));
+            var groups = utils.safeGetLinks(originalNotification, getFieldName('notifications', 'groupTopic'));
             if (groups.length > 0) {
                 newData.skupinaTema = groups;
             }
@@ -1214,10 +1216,10 @@ function createRepeatedNotification(originalNotification, repeatType) {
         var newNotification = createNotification(newData);
         
         if (newNotification) {
-            getUtils().addInfo(newNotification, "Opakovaná notifikácia vytvorená", {
+            utils.addInfo(newNotification, "Opakovaná notifikácia vytvorená", {
                 originalId: originalNotification.field("ID"),
                 repeatType: repeatType,
-                scheduledFor: getUtils().formatDate(nextTime),
+                scheduledFor: utils.formatDate(nextTime),
                 createdBy: CONFIG.scriptName + " v" + CONFIG.version
             });
         }
@@ -1225,7 +1227,7 @@ function createRepeatedNotification(originalNotification, repeatType) {
         return newNotification;
         
     } catch (error) {
-        getUtils().addError(entry(), "Chyba pri vytváraní opakovanej notifikácie: " + error.toString(), "createRepeatedNotification");
+        utils.addError(entry(), "Chyba pri vytváraní opakovanej notifikácie: " + error.toString(), "createRepeatedNotification");
         return null;
     }
 }
@@ -1386,7 +1388,7 @@ function cleanupOldNotifications(criteria) {
             dryRun: dryRun
         };
         
-        getUtils().addDebug(entry(), "🧹 Cleanup old notifications older than " + olderThanDays + " days");
+        utils.addDebug(entry(), "🧹 Cleanup old notifications older than " + olderThanDays + " days");
         
         var allNotifications = notifLib.entries();
         results.total = allNotifications.length;
@@ -1405,18 +1407,18 @@ function cleanupOldNotifications(criteria) {
                         results.deleted++;
                     } catch (deleteError) {
                         results.errors++;
-                        getUtils().addError(entry(), "Failed to delete notification #" + notif.field("ID") + ": " + deleteError, "cleanupOldNotifications");
+                        utils.addError(entry(), "Failed to delete notification #" + notif.field("ID") + ": " + deleteError, "cleanupOldNotifications");
                     }
                 }
             }
         }
         
-        getUtils().addDebug(entry(), "🧹 Cleanup results: " + results.eligible + " eligible, " + results.deleted + " deleted, " + results.errors + " errors");
+        utils.addDebug(entry(), "🧹 Cleanup results: " + results.eligible + " eligible, " + results.deleted + " deleted, " + results.errors + " errors");
         
         return results;
         
     } catch (error) {
-        getUtils().addError(entry(), "Chyba pri cleanup: " + error.toString(), "cleanupOldNotifications");
+        utils.addError(entry(), "Chyba pri cleanup: " + error.toString(), "cleanupOldNotifications");
         return { error: error.toString() };
     }
 }
@@ -1648,13 +1650,13 @@ if (typeof global !== 'undefined') {
 // Inicializačné logy
 try {
     var debugMsg = "✅ ASISTANTO Notifications Helper v" + CONFIG.version + " načítaný";
-    debugMsg += " | MementoUtils: " + (getUtils().version || "N/A");
+    debugMsg += " | MementoUtils: " + (utils.version || "N/A");
     
     var existingDebug = entry().field("Debug_Log") || "";
     entry().set("Debug_Log", existingDebug + "[" + moment().format("HH:mm:ss") + "] " + debugMsg + "\n");
     
-    getUtils().addInfo(entry(), "ASISTANTO Notifications Helper v" + CONFIG.version + " inicializovaný", {
-        mementoUtils: getUtils().version || "N/A",
+    utils.addInfo(entry(), "ASISTANTO Notifications Helper v" + CONFIG.version + " inicializovaný", {
+        mementoUtils: utils.version || "N/A",
         librariesCount: Object.keys(CONFIG.libraries).length,
         fieldMappingsCount: Object.keys(FIELD_MAPPINGS.notifications).length,
         validationRules: CONFIG.validation.required.length + " required fields"

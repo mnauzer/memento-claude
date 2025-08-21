@@ -252,8 +252,8 @@ function main() {
         }
         
         // Inicializácia
-        var utils = getUtils();
-        var notifHelper = getNotifHelper();
+       // var utils = getUtils();
+       // var notifHelper = getNotifHelper();
         var currentEntry = getCurrentEntry();
         
         utils.addDebug(currentEntry, "🎼 === ŠTART ORCHESTRÁTOR v" + CONFIG.version + " ===");
@@ -320,7 +320,7 @@ function main() {
         utils.addDebug(currentEntry, "✅ === ORCHESTRÁTOR DOKONČENÝ ===");
         
     } catch (error) {
-        utils.addError(currentEntry, error.toString(), CONFIG.scriptName, error);
+        utils.addError(currentEntry, error.toString() + "Line: " + error.lineNumber, CONFIG.scriptName, error);
         ca
     }
 }

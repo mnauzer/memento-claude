@@ -26,10 +26,10 @@ var DochadzkaNotifsCleanup = (function() {
                 if (typeof MementoUtils !== 'undefined') {
                     utils = MementoUtils;
                 } else {
-                    throw new Error("MementoUtils knižnica nie je dostupná!");
+                    throw new Error("⚠️ MementoUtils knižnica nie je dostupná!");
                 }
             } catch(e) {
-                showError("MementoUtils nie je načítané. Script nemôže pokračovať.", e);
+                showError("⚠️ MementoUtils nie je načítané. Script nemôže pokračovať.", e);
                 cancel();
             }
         }
