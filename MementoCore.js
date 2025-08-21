@@ -417,6 +417,7 @@ var MementoCore = (function() {
         
         // Utilities
         findEntryById: findEntryById,
-        getSettings: getSettings
+        getSettings: getSettings,
+        config: config,
     };
 })();
