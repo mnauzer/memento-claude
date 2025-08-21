@@ -373,7 +373,7 @@ function getTargetGroupFromLink(linkFieldName) {
             nazov = actualEntry.field(CONFIG.telegramGroupsFields.groupName) || 
                     actualEntry.field(CONFIG.telegramGroupsFields.threadName);
         } catch (fieldError) {
-            utils.addError(currentEntry, "Chyba pri čítaní polí z linknutej skupiny: " + fieldError.toString() + "Line: " + error.lineNumber);
+            utils.addError(currentEntry, "Chyba pri čítaní polí z linknutej skupiny: " + fieldError.toString() + "Line: " + fieldError.lineNumber);
             return null;
         }
         
@@ -772,7 +772,8 @@ function getCleanupModule() {
                 
                 for (var i = 0; i < linkedNotifications.length; i++) {
                     var notif = linkedNotifications[i];
-                    var notifId = notif.field("ID");
+                    //var notifId = notif.field("ID");
+                    var notifId = utils.safeGet(notif, "ID", "Neznáme ID");
                     
                     try {
                         // Pokús sa vymazať Telegram správu
