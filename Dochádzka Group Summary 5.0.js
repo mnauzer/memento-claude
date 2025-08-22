@@ -136,53 +136,53 @@ var CONFIG = (function() {
     // Original config as fallback
     return {
         debug: true,
-    version: "5.0",
-    scriptName: "Dochádzka Group Summary",
-    
-    // Knižnice
-    defaultsLibrary: "ASISTANTO Defaults",
-    notificationsLibrary: "Notifications",
-    telegramGroupsLibrary: "Telegram Groups",
-    
-    // Názvy polí v Defaults
-    defaultsFields: {
-        dochadzkaGroupEnabled: "Dochádzka skupinové notifikácie",
-        telegramGroupLink: "Telegram skupina dochádzky",
-        telegramDochadzkaId: "Telegram Dochádzka ID",
-        nazovFirmy: "Názov firmy",
-        includeFinancials: "Zahrnúť finančné údaje",
-        summaryDelay: "Oneskorenie súhrnu (min)"
-    },
-    
-    // Názvy polí v Dochádzke
-    fields: {
-        zamestnanci: "Zamestnanci",
-        datum: "Dátum",
-        prichod: "Príchod",
-        odchod: "Odchod",
-        pracovnaDoba: "Pracovná doba",
-        mzdoveNaklady: "Mzdové náklady",
-        pocetPracovnikov: "Počet pracovníkov",
-        odpracovane: "Odpracované",
-        poznamka: "Poznámka",
-        id: "ID",
-        notifikacie: "Notifikácie"
-    },
-    
-    // Názvy atribútov
-    attributes: {
-        odpracovane: "odpracované",
-        dennaMzda: "denná mzda",
-        hodinovka: "hodinovka"
-    },
-    
-    // Polia v ASISTANTO Telegram Groups
-    telegramGroupsFields: {
-        chatId: "Chat ID",
-        threadId: "Thread ID",
-        threadName: "Názov témy",
-        groupName: "Názov skupiny"
-    }
+        version: "5.1",
+        scriptName: "Dochádzka Group Summary",
+        
+        // Knižnice
+        defaultsLibrary: "ASISTANTO Defaults",
+        notificationsLibrary: "Notifications",
+        telegramGroupsLibrary: "Telegram Groups",
+        
+        // Názvy polí v Defaults
+        defaultsFields: {
+            dochadzkaGroupEnabled: "Dochádzka skupinové notifikácie",
+            telegramGroupLink: "Telegram skupina dochádzky",
+            telegramDochadzkaId: "Telegram Dochádzka ID",
+            nazovFirmy: "Názov firmy",
+            includeFinancials: "Zahrnúť finančné údaje",
+            summaryDelay: "Oneskorenie súhrnu (min)"
+        },
+        
+        // Názvy polí v Dochádzke
+        fields: {
+            zamestnanci: "Zamestnanci",
+            datum: "Dátum",
+            prichod: "Príchod",
+            odchod: "Odchod",
+            pracovnaDoba: "Pracovná doba",
+            mzdoveNaklady: "Mzdové náklady",
+            pocetPracovnikov: "Počet pracovníkov",
+            odpracovane: "Odpracované",
+            poznamka: "Poznámka",
+            id: "ID",
+            notifikacie: "Notifikácie"
+        },
+        
+        // Názvy atribútov
+        attributes: {
+            odpracovane: "odpracované",
+            dennaMzda: "denná mzda",
+            hodinovka: "hodinovka"
+        },
+        
+        // Polia v ASISTANTO Telegram Groups
+        telegramGroupsFields: {
+            chatId: "Chat ID",
+            threadId: "Thread ID",
+            threadName: "Názov témy",
+            groupName: "Názov skupiny"
+        }
     };
 })();
 
