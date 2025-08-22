@@ -323,6 +323,10 @@ var MementoConfigAdapter = (function() {
                 case 'notifications':
                 case 'notificationshelper':
                     return createNotificationsConfigAdapter();
+                
+                case 'attendance':
+                case 'mementobusiness':
+                    return createBusinessConfigAdapter();
                     
                 default:
                     return buildConfigForModule(moduleName);
