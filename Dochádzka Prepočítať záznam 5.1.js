@@ -1,563 +1,584 @@
 // ==============================================
-// MEMENTOCONFIG - Centralizovaná konfigurácia
-// Verzia: 1.1 | Dátum: August 2025 | Autor: ASISTANTO
+// MEMENTO DATABASE - DOCHÁDZKA PREPOČÍTAŤ ZÁZNAM
+// Verzia: 5.1 | Dátum: August 2025 | Autor: ASISTANTO
+// Knižnica: Dochádzka | Trigger: Before Save
 // ==============================================
-// 📋 ZMENY v1.1:
-//    - Pridané kompletné field mappings pre Dochádzku
-//    - Pridané atribúty pre zamestnancov
-//    - Rozšírené mappings pre Záväzky
-//    - Pridané mappings pre sadzby zamestnancov
+// ✅ OPRAVENÉ v5.1:
+//    - Správne nastavovanie atribútov (2 parametre)
+//    - Integrácia s MementoConfig v1.1
+//    - Vylepšené lazy loading
+//    - Konzistentné error handling
+//    - Odstránené duplicitné CONFIG sekcie
 // ==============================================
 
-var MementoConfig = (function() {
-    'use strict';
-    
-    // ==============================================
-    // SYSTEM CONFIGURATION
-    // ==============================================
-    
-    var SYSTEM = {
-        version: "1.1",
-        environment: "production",
-        debugMode: true,
-        language: "sk"
-    };
-    
-    // ==============================================
-    // LIBRARY NAMES
-    // ==============================================
-    
-    var LIBRARIES = {
-        core: {
-            defaults: "ASISTANTO Defaults",
-            api: "ASISTANTO API",
-            settings: "ASISTANTO Settings",
-            notifications: "Notifications"
-        },
-        
-        business: {
-            employees: "Zamestnanci",
-            attendance: "Dochádzka",
-            workRecords: "Záznam práce",
-            obligations: "Záväzky",
-            rates: "sadzby zamestnancov",
-            priceList: "Cenník prác",
-            vehicles: "Vozidlá",
-            inventory: "Sklad"
-        },
-        
-        telegram: {
-            groups: "Telegram Groups",
-            threads: "Telegram Threads"
-        },
-        
-        external: {
-            clients: "Klienti",
-            suppliers: "Dodávatelia",
-            partners: "Partneri",
-            orders: "Zákazky"
+// ==============================================
+// MODULE LOADING A INICIALIZÁCIA
+// ==============================================
+
+var utils = null;
+var config = null;
+var currentEntry = entry();
+
+/**
+ * Lazy loading pre MementoUtils
+ */
+function getUtils() {
+    if (!utils) {
+        if (typeof MementoUtils !== 'undefined') {
+            utils = MementoUtils;
+        } else {
+            throw new Error("MementoUtils knižnica nie je dostupná!");
         }
-    };
-    
-    // ==============================================
-    // FIELD MAPPINGS - ROZŠÍRENÉ v1.1
-    // ==============================================
-    
-    var FIELD_MAPPINGS = {
-        // DOCHÁDZKA - KOMPLETNÉ MAPOVANIE
-        attendance: {
-            // Základné polia
+    }
+    return utils;
+}
+
+/**
+ * Lazy loading pre konfiguráciu
+ */
+function getConfig() {
+    if (!config) {
+        // Priorita 1: Centralizovaný MementoConfig
+        if (typeof MementoConfig !== 'undefined') {
+            MementoConfig.init();
+            var baseConfig = MementoConfig.getConfig('attendance');
+            
+            config = {
+                debug: true,
+                version: "5.1",
+                scriptName: "Dochádzka Prepočet",
+                
+                // Field mappings z centrálneho config
+                fields: baseConfig.fieldMappings.attendance,
+                attributes: baseConfig.fieldMappings.attendanceAttributes,
+                
+                // Library names
+                libraries: {
+                    sadzbyZamestnancov: baseConfig.libraries.business.rates
+                },
+                
+                // Sadzby field names
+                sadzbyFields: baseConfig.fieldMappings.employeeRates,
+                
+                // Business settings
+                settings: {
+                    roundToQuarterHour: true,
+                    quarterHourMinutes: 15
+                }
+            };
+        } else {
+            // Fallback na lokálny config
+            config = getLocalConfig();
+        }
+    }
+    return config;
+}
+
+/**
+ * Lokálny fallback config
+ */
+function getLocalConfig() {
+    return {
+        debug: true,
+        version: "5.1",
+        scriptName: "Dochádzka Prepočet",
+        
+        fields: {
+            zamestnanci: "Zamestnanci",
             datum: "Dátum",
             prichod: "Príchod",
             odchod: "Odchod",
-            zamestnanci: "Zamestnanci",
-            
-            // Vypočítané polia
             pracovnaDoba: "Pracovná doba",
             pocetPracovnikov: "Počet pracovníkov",
             odpracovane: "Odpracované",
             mzdoveNaklady: "Mzdové náklady",
-            naZakazkach: "Na zákazkách",
-            prestoje: "Prestoje",
-            
-            // Prepojenia
-            prace: "Práce",
-            jazdy: "Jazdy",
-            zavazky: "Záväzky",
-            notifikacie: "Notifikácie",
-            
-            // Systémové
             info: "info",
-            keys: "keys",
-            poznamka: "Poznámka",
-            id: "ID",
-            view: "view",
-            
-            // Logy
             debugLog: "Debug_Log",
-            errorLog: "Error_Log",
-            debugFields: "Debug_Fields",
-            
-            // Farby
-            farbaZaznamu: "farba záznamu",
-            farbaPozadia: "farba pozadia",
-            
-            // Tracking
-            zapisal: "zapísal",
-            datumZapisu: "dátum zápisu",
-            upravil: "upravil",
-            datumUpravy: "dátum úpravy"
+            errorLog: "Error_Log"
         },
         
-        // ATRIBÚTY PRE DOCHÁDZKU
-        attendanceAttributes: {
+        attributes: {
             odpracovane: "odpracované",
             hodinovka: "hodinovka",
             priplatok: "+príplatok (€/h)",
             premia: "+prémia (€)",
             pokuta: "-pokuta (€)",
-            dennaMzda: "denná mzda",
-            stravne: "stravné (€)",
-            poznamka: "poznámka"
+            dennaMzda: "denná mzda"
         },
         
-        // ZAMESTNANCI
-        employees: {
-            id: "ID",
-            nick: "Nick",
-            meno: "Meno",
-            priezvisko: "Priezvisko",
-            pozicia: "Pozícia",
-            email: "Email",
-            telefon: "Telefón",
-            telegramId: "Telegram ID",
-            telegramNotifikacie: "Telegram notifikácie",
-            typUvazku: "Typ úväzku",
-            status: "Status",
-            datumNastupu: "Dátum nástupu",
-            datumOdchodu: "Dátum odchodu",
-            
-            // Systémové
-            info: "info",
-            view: "view",
-            debugLog: "Debug_Log",
-            errorLog: "Error_Log"
+        libraries: {
+            sadzbyZamestnancov: "sadzby zamestnancov"
         },
         
-        // SADZBY ZAMESTNANCOV
-        employeeRates: {
+        sadzbyFields: {
             zamestnanec: "Zamestnanec",
-            sadzba: "Sadzba",
             platnostOd: "Platnosť od",
-            platnostDo: "Platnosť do",
-            typSadzby: "Typ sadzby",
-            poznamka: "Poznámka",
-            
-            // Systémové
-            id: "ID",
-            info: "info",
-            view: "view"
+            sadzba: "Sadzba"
         },
         
-        // ZÁVÄZKY
-        obligations: {
-            stav: "Stav",
-            datum: "Dátum",
-            typ: "Typ",
-            zamestnanec: "Zamestnanec",
-            veritiel: "Veriteľ",
-            dochadzka: "Dochádzka",
-            popis: "Popis",
-            suma: "Suma",
-            zaplatene: "Zaplatené",
-            zostatok: "Zostatok",
-            datumSplatnosti: "Dátum splatnosti",
-            datumUhrady: "Dátum úhrady",
-            
-            // Systémové
-            id: "ID",
-            info: "info",
-            view: "view",
-            debugLog: "Debug_Log",
-            errorLog: "Error_Log"
-        },
-        
-        // NOTIFIKÁCIE
-        notifications: {
-            status: "Status",
-            priorita: "Priorita",
-            typSpravy: "Typ správy",
-            zdrojSpravy: "Zdroj správy",
-            predmet: "Predmet",
-            sprava: "Správa",
-            adresat: "Adresát",
-            skupinaTema: "Skupina/Téma",
-            formatovanie: "Formátovanie",
-            
-            // Časovanie
-            vytvorene: "Vytvorené",
-            poslatO: "Poslať o",
-            odoslane: "Odoslané",
-            
-            // Prepojenia
-            zamestnanec: "Zamestnanec",
-            zdrojovaKniznica: "Zdrojová knižnica",
-            zdrojovyId: "Zdrojový ID",
-            
-            // Telegram
-            telegramMessageId: "Telegram Message ID",
-            telegramThreadId: "Telegram Thread ID",
-            telegramChatId: "Telegram Chat ID",
-            
-            // Systémové
-            id: "ID",
-            info: "info",
-            view: "view",
-            debugLog: "Debug_Log",
-            errorLog: "Error_Log"
-        },
-        
-        // DEFAULTS
-        defaults: {
-            // Firma
-            nazovFirmy: "Názov firmy",
-            ulica: "Ulica",
-            psc: "PSČ",
-            mesto: "Mesto",
-            ico: "IČO",
-            dic: "DIČ",
-            icDph: "IČ DPH",
-            
-            // Telegram
-            telegramBotToken: "Telegram Bot Token",
-            telegramBotName: "Telegram Bot",
-            povoleneTelegramSpravy: "Povoliť Telegram správy",
-            predvolenaTelegramSkupina: "Predvolená Telegram skupina",
-            telegramDochadzkaId: "Telegram Dochádzka ID",
-            telegramGroupLink: "Telegram skupina dochádzky",
-            
-            // Notifikácie
-            dochadzkaIndividualneNotifikacie: "Dochádzka individuálne notifikácie",
-            dochadzkaSkupinoveNotifikacie: "Dochádzka skupinové notifikácie",
-            oneskorenieNotifikacie: "Oneskorenie notifikácie (min)",
-            oneskorenieSuhrnu: "Oneskorenie súhrnu (min)",
-            
-            // Reporting
-            zahrnutStatistiky: "Zahrnúť štatistiky",
-            zahrnutFinancneUdaje: "Zahrnúť finančné údaje",
-            
-            // Pracovný čas
-            pracovnyCasOd: "Pracovný čas od",
-            pracovnyCasDo: "Pracovný čas do",
-            vikendoveSpravy: "Víkendové správy",
-            
-            // Systém
-            debugMod: "Debug mód",
-            uctovnyRok: "Účtovný rok"
-        }
-    };
-    
-    // ==============================================
-    // FORMATS
-    // ==============================================
-    
-    var FORMATS = {
-        datetime: {
-            default: "DD.MM.YYYY HH:mm",
-            short: "DD.MM.YY HH:mm",
-            long: "DD. MMMM YYYY HH:mm:ss",
-            timestamp: "HH:mm:ss"
-        },
-        
-        date: {
-            default: "DD.MM.YYYY",
-            short: "DD.MM.YY",
-            long: "DD. MMMM YYYY",
-            iso: "YYYY-MM-DD"
-        },
-        
-        time: {
-            default: "HH:mm",
-            withSeconds: "HH:mm:ss",
-            short: "H:mm"
-        },
-        
-        money: {
-            currency: "EUR",
-            symbol: "€",
-            decimals: 2,
-            thousandsSeparator: " ",
-            decimalSeparator: ","
-        }
-    };
-    
-    // ==============================================
-    // MODULE DEFAULTS
-    // ==============================================
-    
-    var MODULE_DEFAULTS = {
-        core: {
-            version: "3.3",
-            debug: true,
-            includeLineNumbers: true,
-            includeStackTrace: false
-        },
-        
-        ai: {
-            version: "1.0",
-            defaultProvider: "OpenAi",
-            timeout: 30000,
-            maxRetries: 3,
-            cacheTimeout: 3600000,
-            providers: {
-                openai: {
-                    model: "gpt-4-turbo-preview",
-                    maxTokens: 4000,
-                    temperature: 0.7
-                },
-                anthropic: {
-                    model: "claude-3-opus-20240229",
-                    maxTokens: 4000
-                }
-            }
-        },
-        
-        telegram: {
-            version: "1.0",
-            api: {
-                baseUrl: "https://api.telegram.org/bot",
-                timeout: 30000
-            },
-            maxRetries: 3,
-            retryDelays: [5000, 10000, 15000],
-            rateLimit: {
-                messagesPerSecond: 30,
-                messagesPerMinute: 20
-            }
-        },
-        
-        business: {
-            version: "1.0",
-            workHoursPerDay: 8,
-            overtimeThreshold: 8,
-            weekendMultiplier: 1.5,
-            holidayMultiplier: 2.0,
+        settings: {
             roundToQuarterHour: true,
             quarterHourMinutes: 15
-        },
-        
-        notifications: {
-            version: "2.0",
-            defaultPriority: "Normálna",
-            defaultFormatting: "Markdown",
-            defaultSource: "Automatická",
-            maxRetries: 3,
-            retryDelay: 5000,
-            cleanupDays: 30
         }
     };
-    
-    // ==============================================
-    // HELPER FUNCTIONS
-    // ==============================================
-    
-    function deepMerge(target, source) {
-        for (var key in source) {
-            if (source.hasOwnProperty(key)) {
-                if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-                    if (!target[key]) target[key] = {};
-                    deepMerge(target[key], source[key]);
-                } else {
-                    target[key] = source[key];
-                }
-            }
-        }
-        return target;
-    }
-    
-    // ==============================================
-    // CACHE MANAGEMENT
-    // ==============================================
-    
-    var initialized = false;
-    var configCache = {};
-    var overrides = {};
-    
-    /**
-     * Získa konfiguráciu pre modul
-     */
-    function getModuleConfig(moduleName) {
-        // Check cache
-        if (configCache[moduleName]) {
-            return configCache[moduleName];
-        }
+}
+
+// ==============================================
+// HLAVNÁ FUNKCIA
+// ==============================================
+
+function main() {
+    try {
+        var utils = getUtils();
+        var CONFIG = getConfig();
         
-        // Build config
-        var config = {
-            system: SYSTEM,
-            libraries: LIBRARIES,
-            fieldMappings: FIELD_MAPPINGS,
-            formats: FORMATS
+        // Vyčisti logy na začiatku
+        utils.clearLogs(currentEntry, false);
+        
+        utils.addDebug(currentEntry, "🚀 === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
+        utils.addDebug(currentEntry, "📅 Čas spustenia: " + utils.formatDate(moment()));
+        
+        // Kroky prepočtu
+        var steps = {
+            step1: { success: false, name: "Načítanie a validácia dát" },
+            step2: { success: false, name: "Výpočet pracovnej doby" },
+            step3: { success: false, name: "Spracovanie zamestnancov" },
+            step4: { success: false, name: "Celkové výpočty" },
+            step5: { success: false, name: "Vytvorenie info záznamu" }
         };
         
-        // Add module defaults
-        if (MODULE_DEFAULTS[moduleName]) {
-            config[moduleName] = deepMerge({}, MODULE_DEFAULTS[moduleName]);
+        // KROK 1: Načítanie a validácia
+        var validationResult = validateInputData();
+        if (!validationResult.success) {
+            utils.addError(currentEntry, "Validácia zlyhala: " + validationResult.error, CONFIG.scriptName);
+            return;
+        }
+        steps.step1.success = true;
+        
+        // KROK 2: Výpočet pracovnej doby
+        var workTimeResult = calculateWorkTime(validationResult.datum, validationResult.prichod, validationResult.odchod);
+        if (!workTimeResult.success) {
+            utils.addError(currentEntry, "Výpočet času zlyhal", CONFIG.scriptName);
+            return;
+        }
+        steps.step2.success = true;
+        
+        // KROK 3: Spracovanie zamestnancov
+        var employeeResult = processEmployees(validationResult.zamestnanci, workTimeResult.pracovnaDobaHodiny, validationResult.datum);
+        steps.step3.success = employeeResult.success;
+        
+        // KROK 4: Celkové výpočty
+        if (employeeResult.success) {
+            steps.step4.success = calculateTotals(employeeResult);
         }
         
-        // Apply overrides
-        if (overrides[moduleName]) {
-            deepMerge(config, overrides[moduleName]);
-        }
+        // KROK 5: Info záznam
+        steps.step5.success = createInfoRecord(workTimeResult, employeeResult);
         
-        // Cache and return
-        configCache[moduleName] = config;
-        return config;
+        // Finálny log
+        logFinalSummary(steps);
+        
+    } catch (error) {
+        getUtils().addError(currentEntry, error.toString(), "main", error);
     }
-    
-    /**
-     * Inicializácia konfigurácie
-     */
-    function initialize() {
-        if (initialized) return;
-        
-        // Load any saved overrides from settings
-        try {
-            var settingsLib = libByName(LIBRARIES.core.settings);
-            if (settingsLib) {
-                var entries = settingsLib.entries();
-                if (entries && entries.length > 0) {
-                    var savedOverrides = entries[0].field("ConfigOverrides");
-                    if (savedOverrides) {
-                        overrides = JSON.parse(savedOverrides);
-                    }
-                }
-            }
-        } catch (e) {
-            // Settings not available yet
-        }
-        
-        initialized = true;
-    }
-    
-    // ==============================================
-    // PUBLIC API
-    // ==============================================
-    
-    return {
-        // Version
-        version: SYSTEM.version,
-        
-        // Initialize
-        init: initialize,
-        
-        // Get configuration
-        getConfig: function(moduleName) {
-            initialize();
-            return moduleName ? getModuleConfig(moduleName) : {
-                system: SYSTEM,
-                libraries: LIBRARIES,
-                fieldMappings: FIELD_MAPPINGS,
-                formats: FORMATS
-            };
-        },
-        
-        // Get specific parts
-        getLibraries: function() {
-            initialize();
-            return deepMerge({}, LIBRARIES);
-        },
-        
-        getFieldMappings: function(entity) {
-            initialize();
-            return entity ? FIELD_MAPPINGS[entity] : deepMerge({}, FIELD_MAPPINGS);
-        },
-        
-        getFormats: function() {
-            initialize();
-            return deepMerge({}, FORMATS);
-        },
-        
-        // Helper pre získanie atribútov
-        getAttendanceAttributes: function() {
-            initialize();
-            return deepMerge({}, FIELD_MAPPINGS.attendanceAttributes);
-        },
-        
-        // Override configuration
-        override: function(moduleName, config) {
-            if (!moduleName || !config) return false;
-            
-            overrides[moduleName] = overrides[moduleName] || {};
-            deepMerge(overrides[moduleName], config);
-            
-            // Clear cache
-            delete configCache[moduleName];
-            
-            return true;
-        },
-        
-        // Reset overrides
-        resetOverrides: function(moduleName) {
-            if (moduleName) {
-                delete overrides[moduleName];
-                delete configCache[moduleName];
-            } else {
-                overrides = {};
-                configCache = {};
-            }
-        },
-        
-        // Save overrides
-        saveOverrides: function() {
-            try {
-                var settingsLib = libByName(LIBRARIES.core.settings);
-                if (settingsLib) {
-                    var entries = settingsLib.entries();
-                    if (entries && entries.length > 0) {
-                        entries[0].set("ConfigOverrides", JSON.stringify(overrides));
-                        return true;
-                    }
-                }
-            } catch (e) {
-                // Error saving
-            }
-            return false;
-        },
-        
-        // Backward compatibility helpers
-        getLibraryName: function(category, library) {
-            initialize();
-            if (LIBRARIES[category] && LIBRARIES[category][library]) {
-                return LIBRARIES[category][library];
-            }
-            // Fallback - try to find in any category
-            for (var cat in LIBRARIES) {
-                if (LIBRARIES[cat][library]) {
-                    return LIBRARIES[cat][library];
-                }
-            }
-            return null;
-        },
-        
-        getFieldName: function(entity, field) {
-            initialize();
-            if (FIELD_MAPPINGS[entity] && FIELD_MAPPINGS[entity][field]) {
-                return FIELD_MAPPINGS[entity][field];
-            }
-            // Skús aj atribúty
-            if (entity === 'attendance' && FIELD_MAPPINGS.attendanceAttributes[field]) {
-                return FIELD_MAPPINGS.attendanceAttributes[field];
-            }
-            return null;
-        }
-    };
-})();
-
-// ==============================================
-// GLOBAL EXPORT
-// ==============================================
-
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = MementoConfig;
 }
+
+// ==============================================
+// KROK 1: VALIDÁCIA VSTUPNÝCH DÁT
+// ==============================================
+
+function validateInputData() {
+    var utils = getUtils();
+    var CONFIG = getConfig();
+    
+    try {
+        utils.addDebug(currentEntry, "\n📋 KROK 1: Validácia vstupných dát");
+        
+        var datum = currentEntry.field(CONFIG.fields.datum);
+        var prichod = currentEntry.field(CONFIG.fields.prichod);
+        var odchod = currentEntry.field(CONFIG.fields.odchod);
+        var zamestnanci = currentEntry.field(CONFIG.fields.zamestnanci) || [];
+        
+        // Kontrola dátumu
+        if (!datum) {
+            return { success: false, error: "Dátum nie je vyplnený" };
+        }
+        
+        // Kontrola času
+        if (!prichod || !odchod) {
+            return { success: false, error: "Príchod alebo odchod nie je vyplnený" };
+        }
+        
+        // Kontrola zamestnancov
+        if (zamestnanci.length === 0) {
+            return { success: false, error: "Žiadni zamestnanci v zázname" };
+        }
+        
+        utils.addDebug(currentEntry, "✅ Validácia úspešná");
+        utils.addDebug(currentEntry, "  • Dátum: " + utils.formatDate(datum, "DD.MM.YYYY"));
+        utils.addDebug(currentEntry, "  • Čas: " + utils.formatTime(prichod) + " - " + utils.formatTime(odchod));
+        utils.addDebug(currentEntry, "  • Počet zamestnancov: " + zamestnanci.length);
+        
+        return {
+            success: true,
+            datum: datum,
+            prichod: prichod,
+            odchod: odchod,
+            zamestnanci: zamestnanci
+        };
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "validateInputData", error);
+        return { success: false, error: error.toString() };
+    }
+}
+
+// ==============================================
+// KROK 2: VÝPOČET PRACOVNEJ DOBY
+// ==============================================
+
+function calculateWorkTime(datum, prichod, odchod) {
+    var utils = getUtils();
+    var CONFIG = getConfig();
+    
+    try {
+        utils.addDebug(currentEntry, "\n⏱️ KROK 2: Výpočet pracovnej doby");
+        
+        // Zaokrúhlenie časov
+        var prichodRounded = prichod;
+        var odchodRounded = odchod;
+        
+        if (CONFIG.settings.roundToQuarterHour) {
+            prichodRounded = utils.roundToQuarter(prichod, 'up');
+            odchodRounded = utils.roundToQuarter(odchod, 'down');
+            
+            utils.addDebug(currentEntry, "  • Zaokrúhlené časy: " + 
+                utils.formatTime(prichodRounded) + " - " + 
+                utils.formatTime(odchodRounded));
+        }
+        
+        // Výpočet hodín
+        var workHours = utils.calculateWorkHours(prichodRounded, odchodRounded);
+        
+        if (!workHours || workHours.error) {
+            return { success: false, error: workHours ? workHours.error : "Nepodarilo sa vypočítať hodiny" };
+        }
+        
+        var pracovnaDobaHodiny = workHours.hours + (workHours.minutes / 60);
+        pracovnaDobaHodiny = Math.round(pracovnaDobaHodiny * 100) / 100;
+        
+        // Ulož do poľa
+        currentEntry.set(CONFIG.fields.pracovnaDoba, pracovnaDobaHodiny);
+        
+        utils.addDebug(currentEntry, "✅ Pracovná doba: " + pracovnaDobaHodiny + " hodín");
+        
+        return {
+            success: true,
+            prichodRounded: prichodRounded,
+            odchodRounded: odchodRounded,
+            pracovnaDobaHodiny: pracovnaDobaHodiny,
+            workHours: workHours
+        };
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "calculateWorkTime", error);
+        return { success: false, error: error.toString() };
+    }
+}
+
+// ==============================================
+// KROK 3: SPRACOVANIE ZAMESTNANCOV
+// ==============================================
+
+function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
+    var utils = getUtils();
+    var CONFIG = getConfig();
+    
+    try {
+        utils.addDebug(currentEntry, "\n👥 KROK 3: Spracovanie zamestnancov");
+        
+        var result = {
+            success: true,
+            pocetPracovnikov: zamestnanci.length,
+            odpracovaneTotal: 0,
+            celkoveMzdy: 0,
+            detaily: []
+        };
+        
+        // Ulož počet pracovníkov
+        currentEntry.set(CONFIG.fields.pocetPracovnikov, result.pocetPracovnikov);
+        
+        // Spracuj každého zamestnanca
+        for (var i = 0; i < zamestnanci.length; i++) {
+            var zamestnanec = zamestnanci[i];
+            
+            if (!zamestnanec) {
+                utils.addDebug(currentEntry, "  ⚠️ Zamestnanec[" + i + "] je null - preskakujem");
+                continue;
+            }
+            
+            var employeeName = utils.formatEmployeeName(zamestnanec);
+            utils.addDebug(currentEntry, "\n👤 [" + (i+1) + "/" + result.pocetPracovnikov + "] " + employeeName);
+            
+            // Spracuj zamestnanca
+            var empResult = processEmployee(zamestnanec, pracovnaDobaHodiny, datum, i);
+            
+            if (empResult.success) {
+                result.odpracovaneTotal += pracovnaDobaHodiny;
+                result.celkoveMzdy += empResult.dennaMzda;
+                result.detaily.push(empResult);
+            } else {
+                result.success = false;
+            }
+        }
+        
+        return result;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "processEmployees", error);
+        return { success: false };
+    }
+}
+
+/**
+ * Spracuje jedného zamestnanca - OPRAVENÉ NASTAVOVANIE ATRIBÚTOV
+ */
+function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
+    var utils = getUtils();
+    var CONFIG = getConfig();
+    
+    try {
+        // Nájdi platnú hodinovku
+        var hodinovka = findValidSalary(zamestnanec, datum);
+        
+        if (!hodinovka || hodinovka <= 0) {
+            utils.addDebug(currentEntry, "  ❌ Preskakujem - nemá platnú sadzbu");
+            return { success: false };
+        }
+        
+        // SPRÁVNE NASTAVENIE ATRIBÚTOV - cez pole a index
+        var zamArray = currentEntry.field(CONFIG.fields.zamestnanci);
+        
+        if (zamArray && zamArray.length > index) {
+            // Nastav základné atribúty
+            zamArray[index].setAttr(CONFIG.attributes.odpracovane, pracovnaDobaHodiny);
+            zamArray[index].setAttr(CONFIG.attributes.hodinovka, hodinovka);
+            
+            // Získaj príplatky a zrážky z existujúcich atribútov
+            var priplatok = zamArray[index].attr(CONFIG.attributes.priplatok) || 0;
+            var premia = zamArray[index].attr(CONFIG.attributes.premia) || 0;
+            var pokuta = zamArray[index].attr(CONFIG.attributes.pokuta) || 0;
+            
+            // Vypočítaj dennú mzdu
+            var dennaMzda = (pracovnaDobaHodiny * (hodinovka + priplatok)) + premia - pokuta;
+            dennaMzda = Math.round(dennaMzda * 100) / 100;
+            
+            // Nastav dennú mzdu
+            zamArray[index].attr(CONFIG.attributes.dennaMzda, dennaMzda);
+            
+            utils.addDebug(currentEntry, "  ✅ Hodinovka: " + hodinovka + " €/h");
+            if (priplatok > 0) utils.addDebug(currentEntry, "  ✅ Príplatok: +" + priplatok + " €/h");
+            if (premia > 0) utils.addDebug(currentEntry, "  ✅ Prémia: +" + premia + " €");
+            if (pokuta > 0) utils.addDebug(currentEntry, "  ✅ Pokuta: -" + pokuta + " €");
+            utils.addDebug(currentEntry, "  ✅ Denná mzda: " + dennaMzda + " €");
+            
+            return {
+                success: true,
+                hodinovka: hodinovka,
+                dennaMzda: dennaMzda,
+                priplatok: priplatok,
+                premia: premia,
+                pokuta: pokuta
+            };
+        } else {
+            utils.addError(currentEntry, "Nepodarilo sa získať pole zamestnancov pre index " + index, "processEmployee");
+            return { success: false };
+        }
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "processEmployee", error);
+        return { success: false };
+    }
+}
+
+/**
+ * Nájde platnú sadzbu pre zamestnanca
+ */
+function findValidSalary(zamestnanec, datum) {
+    var utils = getUtils();
+    var CONFIG = getConfig();
+    
+    try {
+        var employeeName = utils.formatEmployeeName(zamestnanec);
+        utils.addDebug(currentEntry, "🔍 Hľadám platnú sadzbu");
+        
+        // Získaj sadzby zamestnanca
+        var sadzby = zamestnanec.linksFrom(CONFIG.libraries.sadzbyZamestnancov, CONFIG.sadzbyFields.zamestnanec);
+        
+        if (!sadzby || sadzby.length === 0) {
+            utils.addError(currentEntry, "Zamestnanec " + employeeName + " nemá žiadne sadzby", "findValidSalary");
+            return null;
+        }
+        
+        utils.addDebug(currentEntry, "  ✅ Našiel " + sadzby.length + " sadzieb");
+        
+        var aktualnaHodinovka = null;
+        var najnovsiDatum = null;
+        
+        // Analyzuj všetky sadzby
+        for (var i = 0; i < sadzby.length; i++) {
+            var sadzba = sadzby[i];
+            
+            var platnostOd = sadzba.field(CONFIG.sadzbyFields.platnostOd);
+            var hodinovka = sadzba.field(CONFIG.sadzbyFields.sadzba);
+            
+            // Kontrola platnosti k dátumu
+            if (platnostOd && hodinovka && platnostOd <= datum) {
+                if (!najnovsiDatum || platnostOd > najnovsiDatum) {
+                    najnovsiDatum = platnostOd;
+                    aktualnaHodinovka = hodinovka;
+                }
+            }
+        }
+        
+        if (!aktualnaHodinovka || aktualnaHodinovka <= 0) {
+            utils.addError(currentEntry, "Nenašla sa platná sadzba k dátumu", "findValidSalary");
+            return null;
+        }
+        
+        utils.addDebug(currentEntry, "  💶 Platná hodinovka: " + aktualnaHodinovka + " €/h");
+        return aktualnaHodinovka;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "findValidSalary", error);
+        return null;
+    }
+}
+
+// ==============================================
+// KROK 4: CELKOVÉ VÝPOČTY
+// ==============================================
+
+function calculateTotals(employeeResult) {
+    var utils = getUtils();
+    var CONFIG = getConfig();
+    
+    try {
+        utils.addDebug(currentEntry, "\n💰 KROK 4: Celkové výpočty");
+        
+        // Ulož celkové hodnoty
+        currentEntry.set(CONFIG.fields.odpracovane, employeeResult.odpracovaneTotal);
+        currentEntry.set(CONFIG.fields.mzdoveNaklady, employeeResult.celkoveMzdy);
+        
+        utils.addDebug(currentEntry, "✅ Celkové výpočty:");
+        utils.addDebug(currentEntry, "  • Odpracované spolu: " + employeeResult.odpracovaneTotal + " hodín");
+        utils.addDebug(currentEntry, "  • Mzdové náklady: " + utils.formatMoney(employeeResult.celkoveMzdy));
+        
+        return true;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "calculateTotals", error);
+        return false;
+    }
+}
+
+// ==============================================
+// KROK 5: VYTVORENIE INFO ZÁZNAMU
+// ==============================================
+
+function createInfoRecord(workTimeResult, employeeResult) {
+    var utils = getUtils();
+    var CONFIG = getConfig();
+    
+    try {
+        utils.addDebug(currentEntry, "\n📝 KROK 5: Vytvorenie info záznamu");
+        
+        var datum = currentEntry.field(CONFIG.fields.datum);
+        var datumFormatted = utils.formatDate(datum, "DD.MM.YYYY");
+        var dayName = moment(datum).format("dddd");
+        
+        var infoMessage = "📋 DOCHÁDZKA - AUTOMATICKÝ PREPOČET\n";
+        infoMessage += "═══════════════════════════════════\n\n";
+        
+        infoMessage += "📅 Dátum: " + datumFormatted + " (" + dayName + ")\n";
+        infoMessage += "⏰ Pracovný čas: " + utils.formatTime(workTimeResult.prichodRounded) + 
+                       " - " + utils.formatTime(workTimeResult.odchodRounded) + "\n";
+        infoMessage += "⏱️ Pracovná doba: " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
+        
+        infoMessage += "👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + " osôb):\n";
+        infoMessage += "───────────────────────────────────\n";
+        
+        for (var i = 0; i < employeeResult.detaily.length; i++) {
+            var detail = employeeResult.detaily[i];
+            infoMessage += "• Hodinovka: " + detail.hodinovka + " €/h\n";
+            if (detail.priplatok > 0) infoMessage += "  + Príplatok: " + detail.priplatok + " €/h\n";
+            if (detail.premia > 0) infoMessage += "  + Prémia: " + detail.premia + " €\n";
+            if (detail.pokuta > 0) infoMessage += "  - Pokuta: " + detail.pokuta + " €\n";
+            infoMessage += "  = Denná mzda: " + detail.dennaMzda + " €\n\n";
+        }
+        
+        infoMessage += "💰 SÚHRN:\n";
+        infoMessage += "───────────────────────────────────\n";
+        infoMessage += "• Odpracované celkom: " + employeeResult.odpracovaneTotal + " hodín\n";
+        infoMessage += "• Mzdové náklady: " + utils.formatMoney(employeeResult.celkoveMzdy) + "\n\n";
+        
+        infoMessage += "🔧 TECHNICKÉ INFO:\n";
+        infoMessage += "• Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
+        infoMessage += "• Čas spracovania: " + moment().format("HH:mm:ss") + "\n";
+        infoMessage += "• MementoUtils: v" + (utils.version || "N/A") + "\n";
+        
+        if (typeof MementoConfig !== 'undefined') {
+            infoMessage += "• MementoConfig: v" + MementoConfig.version + "\n";
+        }
+        
+        infoMessage += "\n✅ PREPOČET DOKONČENÝ ÚSPEŠNE";
+        
+        currentEntry.set(CONFIG.fields.info, infoMessage);
+        
+        utils.addDebug(currentEntry, "✅ Info záznam vytvorený");
+        
+        return true;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "createInfoRecord", error);
+        return false;
+    }
+}
+
+// ==============================================
+// FINÁLNY SÚHRN
+// ==============================================
+
+function logFinalSummary(steps) {
+    var utils = getUtils();
+    var CONFIG = getConfig();
+    
+    try {
+        utils.addDebug(currentEntry, "\n📊 === FINÁLNY SÚHRN ===");
+        
+        var allSuccess = true;
+        for (var step in steps) {
+            var status = steps[step].success ? "✅" : "❌";
+            utils.addDebug(currentEntry, status + " " + steps[step].name);
+            if (!steps[step].success) allSuccess = false;
+        }
+        
+        if (allSuccess) {
+            utils.addDebug(currentEntry, "\n🎉 === VŠETKY KROKY ÚSPEŠNÉ ===");
+        } else {
+            utils.addDebug(currentEntry, "\n⚠️ === NIEKTORÉ KROKY ZLYHALI ===");
+        }
+        
+        utils.addDebug(currentEntry, "⏱️ Čas ukončenia: " + moment().format("HH:mm:ss"));
+        utils.addDebug(currentEntry, "📋 === KONIEC " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "logFinalSummary", error);
+    }
+}
+
+// ==============================================
+// SPUSTENIE HLAVNEJ FUNKCIE
+// ==============================================
+
+main();
