@@ -1,258 +1,289 @@
 // ==============================================
 // MEMENTOCONFIG - Centralizovaná konfigurácia
-// Verzia: 1.0 | Dátum: August 2025 | Autor: ASISTANTO
+// Verzia: 1.1 | Dátum: August 2025 | Autor: ASISTANTO
 // ==============================================
-// 📋 ÚČEL:
-//    - Centrálne miesto pre všetky konfigurácie
-//    - Jednotné názvy knižníc a field mappings
-//    - Podpora pre module-specific nastavenia
-//    - Backward compatibility s existujúcimi modulmi
+// 📋 ZMENY v1.1:
+//    - Pridané kompletné field mappings pre Dochádzku
+//    - Pridané atribúty pre zamestnancov
+//    - Rozšírené mappings pre Záväzky
+//    - Pridané mappings pre sadzby zamestnancov
 // ==============================================
 
 var MementoConfig = (function() {
     'use strict';
     
     // ==============================================
-    // PRIVATE VARIABLES
-    // ==============================================
-    
-    var initialized = false;
-    var configCache = {};
-    var overrides = {};
-    
-    // ==============================================
     // SYSTEM CONFIGURATION
     // ==============================================
     
     var SYSTEM = {
-        version: "1.0",
+        version: "1.1",
         environment: "production",
-        debug: false,
-        configVersion: "2025.08.20",
-        
-        // Globálne nastavenia
-        defaults: {
-            timezone: "Europe/Bratislava",
-            locale: "sk-SK",
-            fiscalYearStart: 1 // Január
-        }
+        debugMode: true,
+        language: "sk"
     };
     
     // ==============================================
-    // CENTRALIZED LIBRARY NAMES
+    // LIBRARY NAMES
     // ==============================================
     
     var LIBRARIES = {
-        // Core system libraries
         core: {
             defaults: "ASISTANTO Defaults",
             api: "ASISTANTO API",
-            notifications: "Notifications",
-            settings: "Nastavenia"
+            settings: "ASISTANTO Settings",
+            notifications: "Notifications"
         },
         
-        // Telegram integration
-        telegram: {
-            groups: "Telegram Groups",
-            bots: "Telegram Bots",
-            templates: "Telegram Templates"
-        },
-        
-        // Business entities
         business: {
             employees: "Zamestnanci",
             attendance: "Dochádzka",
-            workRecords: "Záznam prác",
-            vehicles: "Kniha jázd",
+            workRecords: "Záznam práce",
             obligations: "Záväzky",
-            salaries: "sadzby zamestnancov",
-            inventory: "Sklad",
-            equipment: "Mechanizácia"
+            rates: "sadzby zamestnancov",
+            priceList: "Cenník prác",
+            vehicles: "Vozidlá",
+            inventory: "Sklad"
         },
         
-        // External entities
+        telegram: {
+            groups: "Telegram Groups",
+            threads: "Telegram Threads"
+        },
+        
         external: {
             clients: "Klienti",
+            suppliers: "Dodávatelia",
             partners: "Partneri",
-            orders: "Zákazky",
-            invoices: "Vyúčtovania",
-            quotes: "Cenové ponuky"
-        },
-        
-        // System libraries
-        system: {
-            logs: "System Logs",
-            audit: "Audit Trail",
-            backups: "Zálohy",
-            migrations: "Migrácie"
+            orders: "Zákazky"
         }
     };
     
     // ==============================================
-    // CENTRALIZED FIELD MAPPINGS
+    // FIELD MAPPINGS - ROZŠÍRENÉ v1.1
     // ==============================================
     
     var FIELD_MAPPINGS = {
-        // Dochádzka fields
+        // DOCHÁDZKA - KOMPLETNÉ MAPOVANIE
         attendance: {
-            // Main fields
-            employees: "Zamestnanci",
-            date: "Dátum",
-            arrival: "Príchod",
-            departure: "Odchod",
-            workingHours: "Pracovná doba",
-            employeeCount: "Počet pracovníkov",
-            totalWorked: "Odpracované",
-            wageCosts: "Mzdové náklady",
-            note: "Poznámka",
-            id: "ID",
-            notifications: "Notifikácie",
+            // Základné polia
+            datum: "Dátum",
+            prichod: "Príchod",
+            odchod: "Odchod",
+            zamestnanci: "Zamestnanci",
             
-            // System fields
+            // Vypočítané polia
+            pracovnaDoba: "Pracovná doba",
+            pocetPracovnikov: "Počet pracovníkov",
+            odpracovane: "Odpracované",
+            mzdoveNaklady: "Mzdové náklady",
+            naZakazkach: "Na zákazkách",
+            prestoje: "Prestoje",
+            
+            // Prepojenia
+            prace: "Práce",
+            jazdy: "Jazdy",
+            zavazky: "Záväzky",
+            notifikacie: "Notifikácie",
+            
+            // Systémové
             info: "info",
-            debugLog: "Debug_Log",
-            errorLog: "Error_Log",
+            keys: "keys",
+            poznamka: "Poznámka",
+            id: "ID",
             view: "view",
             
-            // Attributes
-            attributes: {
-                worked: "odpracované",
-                hourlyRate: "hodinovka",
-                bonus: "+príplatok (€/h)",
-                premium: "+prémia (€)",
-                penalty: "-pokuta (€)",
-                dailyWage: "denná mzda",
-                note: "poznámka"
-            }
+            // Logy
+            debugLog: "Debug_Log",
+            errorLog: "Error_Log",
+            debugFields: "Debug_Fields",
+            
+            // Farby
+            farbaZaznamu: "farba záznamu",
+            farbaPozadia: "farba pozadia",
+            
+            // Tracking
+            zapisal: "zapísal",
+            datumZapisu: "dátum zápisu",
+            upravil: "upravil",
+            datumUpravy: "dátum úpravy"
         },
         
-        // Notifications fields
-        notifications: {
-            // Main fields
-            type: "Typ správy",
-            source: "Zdroj správy",
-            subject: "Predmet",
-            message: "Správa",
-            attachment: "Príloha",
-            formatting: "Formátovanie",
-            status: "Status",
-            priority: "Priorita",
-            addressee: "Adresát",
-            
-            // Target fields
-            groupTopic: "Skupina/Téma",
-            employee: "Zamestnanec",
-            client: "Klient",
-            partner: "Partner",
-            order: "Zákazka",
-            
-            // Timing fields
-            sendAt: "Poslať o",
-            expireAt: "Vypršať o",
-            repeat: "Opakovať",
-            created: "Vytvorené",
-            creator: "Vytvoril",
-            
-            // Telegram specific
-            telegramId: "Telegram ID",
-            chatId: "Chat ID",
-            threadId: "Thread ID",
-            messageId: "Message ID",
-            messageUrl: "Message URL",
-            
-            // Response tracking
-            sentAt: "Odoslané o",
-            retryCount: "Pokusov o odoslanie",
-            lastError: "Posledná chyba",
-            responseData: "Response Data",
-            
-            // Metadata
-            sourceLibrary: "Zdrojová knižnica",
-            sourceId: "Zdrojový ID"
+        // ATRIBÚTY PRE DOCHÁDZKU
+        attendanceAttributes: {
+            odpracovane: "odpracované",
+            hodinovka: "hodinovka",
+            priplatok: "+príplatok (€/h)",
+            premia: "+prémia (€)",
+            pokuta: "-pokuta (€)",
+            dennaMzda: "denná mzda",
+            stravne: "stravné (€)",
+            poznamka: "poznámka"
         },
         
-        // Employee fields
+        // ZAMESTNANCI
         employees: {
-            // Personal info
+            id: "ID",
             nick: "Nick",
-            firstName: "Meno",
-            lastName: "Priezvisko",
-            title: "Titul",
-            
-            // Contact
+            meno: "Meno",
+            priezvisko: "Priezvisko",
+            pozicia: "Pozícia",
             email: "Email",
-            phone: "Telefón",
-            address: "Adresa",
+            telefon: "Telefón",
+            telegramId: "Telegram ID",
+            telegramNotifikacie: "Telegram notifikácie",
+            typUvazku: "Typ úväzku",
+            status: "Status",
+            datumNastupu: "Dátum nástupu",
+            datumOdchodu: "Dátum odchodu",
             
-            // Work info
-            position: "Pozícia",
-            department: "Oddelenie",
-            supervisor: "Nadriadený",
-            startDate: "Dátum nástupu",
+            // Systémové
+            info: "info",
+            view: "view",
+            debugLog: "Debug_Log",
+            errorLog: "Error_Log"
+        },
+        
+        // SADZBY ZAMESTNANCOV
+        employeeRates: {
+            zamestnanec: "Zamestnanec",
+            sadzba: "Sadzba",
+            platnostOd: "Platnosť od",
+            platnostDo: "Platnosť do",
+            typSadzby: "Typ sadzby",
+            poznamka: "Poznámka",
+            
+            // Systémové
+            id: "ID",
+            info: "info",
+            view: "view"
+        },
+        
+        // ZÁVÄZKY
+        obligations: {
+            stav: "Stav",
+            datum: "Dátum",
+            typ: "Typ",
+            zamestnanec: "Zamestnanec",
+            veritiel: "Veriteľ",
+            dochadzka: "Dochádzka",
+            popis: "Popis",
+            suma: "Suma",
+            zaplatene: "Zaplatené",
+            zostatok: "Zostatok",
+            datumSplatnosti: "Dátum splatnosti",
+            datumUhrady: "Dátum úhrady",
+            
+            // Systémové
+            id: "ID",
+            info: "info",
+            view: "view",
+            debugLog: "Debug_Log",
+            errorLog: "Error_Log"
+        },
+        
+        // NOTIFIKÁCIE
+        notifications: {
+            status: "Status",
+            priorita: "Priorita",
+            typSpravy: "Typ správy",
+            zdrojSpravy: "Zdroj správy",
+            predmet: "Predmet",
+            sprava: "Správa",
+            adresat: "Adresát",
+            skupinaTema: "Skupina/Téma",
+            formatovanie: "Formátovanie",
+            
+            // Časovanie
+            vytvorene: "Vytvorené",
+            poslatO: "Poslať o",
+            odoslane: "Odoslané",
+            
+            // Prepojenia
+            zamestnanec: "Zamestnanec",
+            zdrojovaKniznica: "Zdrojová knižnica",
+            zdrojovyId: "Zdrojový ID",
             
             // Telegram
-            telegramEnabled: "Telegram povolený",
-            telegramId: "Telegram ID",
-            telegramUsername: "Telegram Username",
+            telegramMessageId: "Telegram Message ID",
+            telegramThreadId: "Telegram Thread ID",
+            telegramChatId: "Telegram Chat ID",
             
-            // System
-            active: "Aktívny",
-            id: "ID"
+            // Systémové
+            id: "ID",
+            info: "info",
+            view: "view",
+            debugLog: "Debug_Log",
+            errorLog: "Error_Log"
         },
         
-        // Telegram Groups fields
-        telegramGroups: {
-            // Basic info
-            groupName: "Názov skupiny",
-            groupType: "Typ skupiny",
-            description: "Popis skupiny",
+        // DEFAULTS
+        defaults: {
+            // Firma
+            nazovFirmy: "Názov firmy",
+            ulica: "Ulica",
+            psc: "PSČ",
+            mesto: "Mesto",
+            ico: "IČO",
+            dic: "DIČ",
+            icDph: "IČ DPH",
             
-            // Telegram data
-            chatId: "Chat ID",
-            threadId: "Thread ID",
-            threadName: "Názov témy",
-            hasThread: "Má tému",
+            // Telegram
+            telegramBotToken: "Telegram Bot Token",
+            telegramBotName: "Telegram Bot",
+            povoleneTelegramSpravy: "Povoliť Telegram správy",
+            predvolenaTelegramSkupina: "Predvolená Telegram skupina",
+            telegramDochadzkaId: "Telegram Dochádzka ID",
+            telegramGroupLink: "Telegram skupina dochádzky",
             
-            // Settings
-            notificationsEnabled: "Povoliť notifikácie",
-            workingHoursFrom: "Pracovný čas od",
-            workingHoursTo: "Pracovný čas do",
-            weekendEnabled: "Víkend povolený",
-            dailyLimit: "Denný limit správ",
-            sentToday: "Počet správ dnes",
-            silentMode: "Tichá správa",
-            priority: "Priorita správ",
+            // Notifikácie
+            dochadzkaIndividualneNotifikacie: "Dochádzka individuálne notifikácie",
+            dochadzkaSkupinoveNotifikacie: "Dochádzka skupinové notifikácie",
+            oneskorenieNotifikacie: "Oneskorenie notifikácie (min)",
+            oneskorenieSuhrnu: "Oneskorenie súhrnu (min)",
             
-            // Statistics
-            totalMessages: "Celkový počet správ",
-            lastMessage: "Posledná správa",
-            lastMessageId: "Posledné Message ID",
-            lastError: "Posledná chyba"
+            // Reporting
+            zahrnutStatistiky: "Zahrnúť štatistiky",
+            zahrnutFinancneUdaje: "Zahrnúť finančné údaje",
+            
+            // Pracovný čas
+            pracovnyCasOd: "Pracovný čas od",
+            pracovnyCasDo: "Pracovný čas do",
+            vikendoveSpravy: "Víkendové správy",
+            
+            // Systém
+            debugMod: "Debug mód",
+            uctovnyRok: "Účtovný rok"
         }
     };
     
     // ==============================================
-    // CENTRALIZED FORMATS
+    // FORMATS
     // ==============================================
     
     var FORMATS = {
+        datetime: {
+            default: "DD.MM.YYYY HH:mm",
+            short: "DD.MM.YY HH:mm",
+            long: "DD. MMMM YYYY HH:mm:ss",
+            timestamp: "HH:mm:ss"
+        },
+        
         date: {
             default: "DD.MM.YYYY",
-            short: "D.M.YYYY",
+            short: "DD.MM.YY",
             long: "DD. MMMM YYYY",
             iso: "YYYY-MM-DD"
         },
+        
         time: {
             default: "HH:mm",
-            seconds: "HH:mm:ss",
+            withSeconds: "HH:mm:ss",
             short: "H:mm"
         },
-        datetime: {
-            default: "DD.MM.YYYY HH:mm",
-            long: "DD.MM.YYYY HH:mm:ss",
-            iso: "YYYY-MM-DDTHH:mm:ss"
-        },
-        currency: {
+        
+        money: {
+            currency: "EUR",
             symbol: "€",
             decimals: 2,
             thousandsSeparator: " ",
@@ -261,94 +292,80 @@ var MementoConfig = (function() {
     };
     
     // ==============================================
-    // MODULE DEFAULT CONFIGURATIONS
+    // MODULE DEFAULTS
     // ==============================================
     
     var MODULE_DEFAULTS = {
-        // MementoCore defaults
         core: {
+            version: "3.3",
             debug: true,
             includeLineNumbers: true,
-            includeStackTrace: false,
-            logRetentionDays: 30,
-            maxLogSize: 1000 // lines
+            includeStackTrace: false
         },
         
-        // MementoAI defaults
         ai: {
-            defaultProvider: "OpenAI",
+            version: "1.0",
+            defaultProvider: "OpenAi",
             timeout: 30000,
             maxRetries: 3,
-            cacheTimeout: 3600000, // 1 hour
-            
+            cacheTimeout: 3600000,
             providers: {
                 openai: {
-                    model: "gpt-4o-mini",
-                    temperature: 0.7,
-                    maxTokens: 2000
-                },
-                perplexity: {
-                    model: "llama-3.1-sonar-small-128k-online",
+                    model: "gpt-4-turbo-preview",
+                    maxTokens: 4000,
                     temperature: 0.7
+                },
+                anthropic: {
+                    model: "claude-3-opus-20240229",
+                    maxTokens: 4000
                 }
             }
         },
         
-        // MementoTelegram defaults
         telegram: {
-            rateLimitDelay: 1000, // 1 second
-            maxMessageLength: 4096,
-            maxRetries: 3,
-            retryDelays: [1000, 3000, 8000],
-            defaultParseMode: "HTML",
-            
+            version: "1.0",
             api: {
                 baseUrl: "https://api.telegram.org/bot",
                 timeout: 30000
+            },
+            maxRetries: 3,
+            retryDelays: [5000, 10000, 15000],
+            rateLimit: {
+                messagesPerSecond: 30,
+                messagesPerMinute: 20
             }
         },
         
-        // MementoBusiness defaults
         business: {
+            version: "1.0",
             workHoursPerDay: 8,
             overtimeThreshold: 8,
             weekendMultiplier: 1.5,
             holidayMultiplier: 2.0,
-            nightShiftBonus: 0.25,
-            
             roundToQuarterHour: true,
             quarterHourMinutes: 15
         },
         
-        // Notifications defaults
         notifications: {
+            version: "2.0",
             defaultPriority: "Normálna",
             defaultFormatting: "Markdown",
             defaultSource: "Automatická",
             maxRetries: 3,
-            retryDelays: [60000, 300000, 900000], // 1min, 5min, 15min
-            
-            priorities: ["Nízka", "Normálna", "Vysoká", "Urgentné"],
-            statuses: ["Čaká", "Odosielanie", "Odoslané", "Zlyhalo", "Zrušené", "Vypršané"],
-            types: ["Dochádzka", "Záznam prác", "Kniha jázd", "ToDo", "Systémová", "Manuálna"],
-            addressees: ["Zamestnanec", "Skupina", "Téma", "Klient", "Partner", "Zákazka"]
+            retryDelay: 5000,
+            cleanupDays: 30
         }
     };
     
     // ==============================================
-    // PRIVATE FUNCTIONS
+    // HELPER FUNCTIONS
     // ==============================================
     
-    /**
-     * Deep merge dvoch objektov
-     */
     function deepMerge(target, source) {
-        if (!source) return target;
-        
         for (var key in source) {
             if (source.hasOwnProperty(key)) {
                 if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-                    target[key] = target[key] || {};
+                    if (!target[key]) target[key] = {};
                     deepMerge(target[key], source[key]);
                 } else {
                     target[key] = source[key];
@@ -357,6 +374,14 @@ var MementoConfig = (function() {
         }
         return target;
     }
+    
+    // ==============================================
+    // CACHE MANAGEMENT
+    // ==============================================
+    
+    var initialized = false;
+    var configCache = {};
+    var overrides = {};
     
     /**
      * Získa konfiguráciu pre modul
@@ -453,6 +478,12 @@ var MementoConfig = (function() {
             return deepMerge({}, FORMATS);
         },
         
+        // Helper pre získanie atribútov
+        getAttendanceAttributes: function() {
+            initialize();
+            return deepMerge({}, FIELD_MAPPINGS.attendanceAttributes);
+        },
+        
         // Override configuration
         override: function(moduleName, config) {
             if (!moduleName || !config) return false;
@@ -513,6 +544,10 @@ var MementoConfig = (function() {
             initialize();
             if (FIELD_MAPPINGS[entity] && FIELD_MAPPINGS[entity][field]) {
                 return FIELD_MAPPINGS[entity][field];
+            }
+            // Skús aj atribúty
+            if (entity === 'attendance' && FIELD_MAPPINGS.attendanceAttributes[field]) {
+                return FIELD_MAPPINGS.attendanceAttributes[field];
             }
             return null;
         }

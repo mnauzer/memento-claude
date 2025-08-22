@@ -1,30 +1,27 @@
 // ==============================================
 // MEMENTO DATABASE - DOCHÁDZKA PREPOČÍTAŤ ZÁZNAM
-// Verzia: 5.0 | Dátum: 20.08.2025 | Autor: ASISTANTO
+// Verzia: 5.1 | Dátum: August 2025 | Autor: ASISTANTO
 // Knižnica: Dochádzka | Trigger: Before Save
 // ==============================================
-// ✅ KOMPLETNÝ REFAKTORING v5.0:
-//    - Plná integrácia s MementoUtils 3.3+
-//    - Odstránené všetky duplicitné funkcie
-//    - Konzistentné s Group Summary a Individual Notifications
-//    - Vylepšené formátovanie času (bez SEČ)
-//    - Modulárna štruktúra kódu
-//    - Rozšírené debug informácie
-//    - Business modul integrácia
+// ✅ OPRAVENÉ v5.1:
+//    - Správne nastavovanie atribútov (2 parametre)
+//    - Integrácia s MementoConfig v1.1
+//    - Vylepšené lazy loading
+//    - Konzistentné error handling
+//    - Odstránené duplicitné CONFIG sekcie
 // ==============================================
 
-// Import knižníc
+// ==============================================
+// MODULE LOADING A INICIALIZÁCIA
+// ==============================================
+
 var utils = null;
-var business = null; // Ak je dostupný business modul
+var config = null;
 var currentEntry = entry();
 
-try {
-    utils = MementoUtils;
-} catch(e) {
-    // MementoUtils nie je definované
-}
-
-// Alebo lepšie - s funkciou
+/**
+ * Lazy loading pre MementoUtils
+ */
 function getUtils() {
     if (!utils) {
         if (typeof MementoUtils !== 'undefined') {
@@ -36,63 +33,70 @@ function getUtils() {
     return utils;
 }
 
-function getBusiness() {
-    if (!business) {
-        try {
-            // Najprv skús cez utils
-            var u = getUtils();
-            if (u && u.business) {
-                business = u.business;
-            } else if (typeof MementoBusiness !== 'undefined') {
-                business = MementoBusiness;
-            }
-        } catch(e) {
-            // Business modul je optional
+/**
+ * Lazy loading pre konfiguráciu
+ */
+function getConfig() {
+    if (!config) {
+        // Priorita 1: Centralizovaný MementoConfig
+        if (typeof MementoConfig !== 'undefined') {
+            MementoConfig.init();
+            var baseConfig = MementoConfig.getConfig('attendance');
+            
+            config = {
+                debug: true,
+                version: "5.1",
+                scriptName: "Dochádzka Prepočet",
+                
+                // Field mappings z centrálneho config
+                fields: baseConfig.fieldMappings.attendance,
+                attributes: baseConfig.fieldMappings.attendanceAttributes,
+                
+                // Library names
+                libraries: {
+                    sadzbyZamestnancov: baseConfig.libraries.business.rates
+                },
+                
+                // Sadzby field names
+                sadzbyFields: baseConfig.fieldMappings.employeeRates,
+                
+                // Business settings
+                settings: {
+                    roundToQuarterHour: true,
+                    quarterHourMinutes: 15
+                }
+            };
+        } else {
+            // Fallback na lokálny config
+            config = getLocalConfig();
         }
     }
-    return business;
+    return config;
 }
-// Konfigurácia
-// ==============================================
-// CONFIG INITIALIZATION
-// ==============================================
 
-var CONFIG = (function() {
-    // Try centralized config first
-    if (typeof MementoConfigAdapter !== 'undefined') {
-        try {
-            var adapter = MementoConfigAdapter.getAdapter('attendance');
-            // Merge with script-specific config
-            adapter.scriptName = "Dochádzka Group Summary";
-            adapter.version = "5.0";
-            return adapter;
-        } catch (e) {
-            // Fallback
-        }
-    }
-    
-    // Original config as fallback
+/**
+ * Lokálny fallback config
+ */
+function getLocalConfig() {
     return {
         debug: true,
-        version: "5.0",
+        version: "5.1",
         scriptName: "Dochádzka Prepočet",
         
-        // Názvy polí - Dochádzka
         fields: {
             zamestnanci: "Zamestnanci",
             datum: "Dátum",
-            prichod: "Príchod", 
+            prichod: "Príchod",
             odchod: "Odchod",
             pracovnaDoba: "Pracovná doba",
             pocetPracovnikov: "Počet pracovníkov",
-            odpracovane: "Odpracované", 
+            odpracovane: "Odpracované",
             mzdoveNaklady: "Mzdové náklady",
             info: "info",
             debugLog: "Debug_Log",
             errorLog: "Error_Log"
         },
         
-        // Názvy atribútov pre zamestnancov
         attributes: {
             odpracovane: "odpracované",
             hodinovka: "hodinovka",
@@ -102,25 +106,22 @@ var CONFIG = (function() {
             dennaMzda: "denná mzda"
         },
         
-        // Názvy knižníc
         libraries: {
             sadzbyZamestnancov: "sadzby zamestnancov"
         },
         
-        // Polia v knižnici sadzby zamestnancov
         sadzbyFields: {
             zamestnanec: "Zamestnanec",
             platnostOd: "Platnosť od",
             sadzba: "Sadzba"
         },
         
-        // Nastavenia zaokrúhľovania
         settings: {
             roundToQuarterHour: true,
             quarterHourMinutes: 15
         }
     };
-})();
+}
 
 // ==============================================
 // HLAVNÁ FUNKCIA
@@ -128,6 +129,9 @@ var CONFIG = (function() {
 
 function main() {
     try {
+        var utils = getUtils();
+        var CONFIG = getConfig();
+        
         // Vyčisti logy na začiatku
         utils.clearLogs(currentEntry, false);
         
@@ -143,52 +147,39 @@ function main() {
             step5: { success: false, name: "Vytvorenie info záznamu" }
         };
         
-        // KROK 1: NAČÍTANIE A VALIDÁCIA DÁT
-        utils.addDebug(currentEntry, "\n📋 KROK 1: " + steps.step1.name);
-        steps.step1.success = validateInputData();
-        
-        if (!steps.step1.success) {
-            logFinalStatus(steps);
-            return false;
+        // KROK 1: Načítanie a validácia
+        var validationResult = validateInputData();
+        if (!validationResult.success) {
+            utils.addError(currentEntry, "Validácia zlyhala: " + validationResult.error, CONFIG.scriptName);
+            return;
         }
+        steps.step1.success = true;
         
-        // KROK 2: VÝPOČET PRACOVNEJ DOBY
-        utils.addDebug(currentEntry, "\n📋 KROK 2: " + steps.step2.name);
-        var workTimeResult = calculateWorkTime();
-        steps.step2.success = workTimeResult.success;
-        
-        if (!steps.step2.success) {
-            logFinalStatus(steps);
-            return false;
+        // KROK 2: Výpočet pracovnej doby
+        var workTimeResult = calculateWorkTime(validationResult.datum, validationResult.prichod, validationResult.odchod);
+        if (!workTimeResult.success) {
+            utils.addError(currentEntry, "Výpočet času zlyhal", CONFIG.scriptName);
+            return;
         }
+        steps.step2.success = true;
         
-        // KROK 3: SPRACOVANIE ZAMESTNANCOV
-        utils.addDebug(currentEntry, "\n📋 KROK 3: " + steps.step3.name);
-        var employeeResult = processEmployees(workTimeResult.pracovnaDobaHodiny);
+        // KROK 3: Spracovanie zamestnancov
+        var employeeResult = processEmployees(validationResult.zamestnanci, workTimeResult.pracovnaDobaHodiny, validationResult.datum);
         steps.step3.success = employeeResult.success;
         
-        // KROK 4: CELKOVÉ VÝPOČTY
-        utils.addDebug(currentEntry, "\n📋 KROK 4: " + steps.step4.name);
-        steps.step4.success = calculateTotals(employeeResult);
+        // KROK 4: Celkové výpočty
+        if (employeeResult.success) {
+            steps.step4.success = calculateTotals(employeeResult);
+        }
         
-        // KROK 5: INFO ZÁZNAM
-        utils.addDebug(currentEntry, "\n📋 KROK 5: " + steps.step5.name);
+        // KROK 5: Info záznam
         steps.step5.success = createInfoRecord(workTimeResult, employeeResult);
         
-        // Finálne vyhodnotenie
-        var globalSuccess = Object.keys(steps).every(function(key) {
-            return steps[key].success;
-        });
-        
-        logFinalStatus(steps);
-        showUserMessage(globalSuccess, employeeResult);
-        
-        return globalSuccess;
+        // Finálny log
+        logFinalSummary(steps);
         
     } catch (error) {
-        utils.addError(currentEntry, error.toString(), CONFIG.scriptName, error);
-        message("💥 KRITICKÁ CHYBA!\n\nScript zlyhal. Pozri Error_Log.");
-        return false;
+        getUtils().addError(currentEntry, error.toString(), "main", error);
     }
 }
 
@@ -197,40 +188,48 @@ function main() {
 // ==============================================
 
 function validateInputData() {
+    var utils = getUtils();
+    var CONFIG = getConfig();
+    
     try {
-        var zamestnanci = utils.safeGetLinks(currentEntry, CONFIG.fields.zamestnanci);
+        utils.addDebug(currentEntry, "\n📋 KROK 1: Validácia vstupných dát");
+        
         var datum = currentEntry.field(CONFIG.fields.datum);
         var prichod = currentEntry.field(CONFIG.fields.prichod);
         var odchod = currentEntry.field(CONFIG.fields.odchod);
+        var zamestnanci = currentEntry.field(CONFIG.fields.zamestnanci) || [];
         
-        // Kontrola povinných polí
+        // Kontrola dátumu
         if (!datum) {
-            utils.addError(currentEntry, "Chýba dátum dochádzky", "validateInputData");
-            return false;
+            return { success: false, error: "Dátum nie je vyplnený" };
         }
         
+        // Kontrola času
         if (!prichod || !odchod) {
-            utils.addError(currentEntry, "Chýbajú časy príchodu/odchodu", "validateInputData");
-            return false;
+            return { success: false, error: "Príchod alebo odchod nie je vyplnený" };
         }
         
         // Kontrola zamestnancov
-        if (!zamestnanci || zamestnanci.length === 0) {
-            utils.addError(currentEntry, "Žiadni zamestnanci v dochádzke", "validateInputData");
-            return false;
+        if (zamestnanci.length === 0) {
+            return { success: false, error: "Žiadni zamestnanci v zázname" };
         }
         
-        utils.addDebug(currentEntry, "✅ Validácia úspešná:");
+        utils.addDebug(currentEntry, "✅ Validácia úspešná");
         utils.addDebug(currentEntry, "  • Dátum: " + utils.formatDate(datum, "DD.MM.YYYY"));
-        utils.addDebug(currentEntry, "  • Príchod: " + utils.formatTime(prichod));
-        utils.addDebug(currentEntry, "  • Odchod: " + utils.formatTime(odchod));
-        utils.addDebug(currentEntry, "  • Zamestnanci: " + zamestnanci.length);
+        utils.addDebug(currentEntry, "  • Čas: " + utils.formatTime(prichod) + " - " + utils.formatTime(odchod));
+        utils.addDebug(currentEntry, "  • Počet zamestnancov: " + zamestnanci.length);
         
-        return true;
+        return {
+            success: true,
+            datum: datum,
+            prichod: prichod,
+            odchod: odchod,
+            zamestnanci: zamestnanci
+        };
         
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "validateInputData", error);
-        return false;
+        return { success: false, error: error.toString() };
     }
 }
 
@@ -238,71 +237,35 @@ function validateInputData() {
 // KROK 2: VÝPOČET PRACOVNEJ DOBY
 // ==============================================
 
-function calculateWorkTime() {
+function calculateWorkTime(datum, prichod, odchod) {
+    var utils = getUtils();
+    var CONFIG = getConfig();
+    
     try {
-        var prichod = currentEntry.field(CONFIG.fields.prichod);
-        var odchod = currentEntry.field(CONFIG.fields.odchod);
-        var datum = currentEntry.field(CONFIG.fields.datum);
+        utils.addDebug(currentEntry, "\n⏱️ KROK 2: Výpočet pracovnej doby");
         
-        // Použitie business modulu ak je dostupný
-        if (business && typeof business.calculateWorkHours === 'function') {
-            var businessResult = business.calculateWorkHours(prichod, odchod);
-            
-            if (businessResult.success) {
-                utils.addDebug(currentEntry, "✅ Použitý business modul pre výpočet");
-                
-                // Zaokrúhli časy ak je to povolené
-                if (CONFIG.settings.roundToQuarterHour) {
-                    businessResult.arrivalRounded = utils.roundToQuarter(businessResult.arrival);
-                    businessResult.departureRounded = utils.roundToQuarter(businessResult.departure);
-                    businessResult.hoursRounded = (businessResult.departureRounded - businessResult.arrivalRounded) / (1000 * 60 * 60);
-                }
-                
-                // Ulož výsledky
-                currentEntry.set(CONFIG.fields.pracovnaDoba, businessResult.hoursRounded || businessResult.hours);
-                
-                return {
-                    success: true,
-                    pracovnaDobaHodiny: businessResult.hoursRounded || businessResult.hours,
-                    prichodRounded: businessResult.arrivalRounded || businessResult.arrival,
-                    odchodRounded: businessResult.departureRounded || businessResult.departure
-                };
-            }
-        }
-        
-        // Fallback na manuálny výpočet
-        utils.addDebug(currentEntry, "📊 Manuálny výpočet pracovnej doby");
-        
-        var prichodMoment = moment(prichod);
-        var odchodMoment = moment(odchod);
-        
-        // Zaokrúhli časy
-        var prichodRounded = prichodMoment;
-        var odchodRounded = odchodMoment;
+        // Zaokrúhlenie časov
+        var prichodRounded = prichod;
+        var odchodRounded = odchod;
         
         if (CONFIG.settings.roundToQuarterHour) {
-            prichodRounded = utils.roundToQuarter(prichodMoment);
-            odchodRounded = utils.roundToQuarter(odchodMoment);
+            prichodRounded = utils.roundToQuarter(prichod, 'up');
+            odchodRounded = utils.roundToQuarter(odchod, 'down');
             
-            utils.addDebug(currentEntry, "⏰ Zaokrúhlené časy:");
-            utils.addDebug(currentEntry, "  • Príchod: " + utils.formatTime(prichodMoment) + " → " + utils.formatTime(prichodRounded));
-            utils.addDebug(currentEntry, "  • Odchod: " + utils.formatTime(odchodMoment) + " → " + utils.formatTime(odchodRounded));
+            utils.addDebug(currentEntry, "  • Zaokrúhlené časy: " + 
+                utils.formatTime(prichodRounded) + " - " + 
+                utils.formatTime(odchodRounded));
         }
         
         // Výpočet hodín
-        var pracovnaDobaMs = odchodRounded - prichodRounded;
-        var pracovnaDobaHodiny = Math.round(pracovnaDobaMs / (1000 * 60 * 60) * 100) / 100;
+        var workHours = utils.calculateWorkHours(prichodRounded, odchodRounded);
         
-        // Kontrola validity
-        if (pracovnaDobaHodiny <= 0) {
-            utils.addError(currentEntry, "Neplatná pracovná doba: " + pracovnaDobaHodiny + "h", "calculateWorkTime");
-            return { success: false };
+        if (!workHours || workHours.error) {
+            return { success: false, error: workHours ? workHours.error : "Nepodarilo sa vypočítať hodiny" };
         }
         
-        if (pracovnaDobaHodiny > 24) {
-            utils.addError(currentEntry, "Pracovná doba presahuje 24 hodín", "calculateWorkTime");
-            return { success: false };
-        }
+        var pracovnaDobaHodiny = workHours.hours + (workHours.minutes / 60);
+        pracovnaDobaHodiny = Math.round(pracovnaDobaHodiny * 100) / 100;
         
         // Ulož do poľa
         currentEntry.set(CONFIG.fields.pracovnaDoba, pracovnaDobaHodiny);
@@ -311,14 +274,15 @@ function calculateWorkTime() {
         
         return {
             success: true,
-            pracovnaDobaHodiny: pracovnaDobaHodiny,
             prichodRounded: prichodRounded,
-            odchodRounded: odchodRounded
+            odchodRounded: odchodRounded,
+            pracovnaDobaHodiny: pracovnaDobaHodiny,
+            workHours: workHours
         };
         
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "calculateWorkTime", error);
-        return { success: false };
+        return { success: false, error: error.toString() };
     }
 }
 
@@ -326,10 +290,12 @@ function calculateWorkTime() {
 // KROK 3: SPRACOVANIE ZAMESTNANCOV
 // ==============================================
 
-function processEmployees(pracovnaDobaHodiny) {
+function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
+    var utils = getUtils();
+    var CONFIG = getConfig();
+    
     try {
-        var zamestnanci = utils.safeGetLinks(currentEntry, CONFIG.fields.zamestnanci);
-        var datum = currentEntry.field(CONFIG.fields.datum);
+        utils.addDebug(currentEntry, "\n👥 KROK 3: Spracovanie zamestnancov");
         
         var result = {
             success: true,
@@ -339,17 +305,15 @@ function processEmployees(pracovnaDobaHodiny) {
             detaily: []
         };
         
-        // Nastav počet pracovníkov
+        // Ulož počet pracovníkov
         currentEntry.set(CONFIG.fields.pocetPracovnikov, result.pocetPracovnikov);
-        
-        utils.addDebug(currentEntry, "👥 Spracovávam " + result.pocetPracovnikov + " zamestnancov");
         
         // Spracuj každého zamestnanca
         for (var i = 0; i < zamestnanci.length; i++) {
             var zamestnanec = zamestnanci[i];
             
             if (!zamestnanec) {
-                utils.addDebug(currentEntry, "⚠️ Zamestnanec " + (i+1) + " je null - preskakujem");
+                utils.addDebug(currentEntry, "  ⚠️ Zamestnanec[" + i + "] je null - preskakujem");
                 continue;
             }
             
@@ -357,14 +321,14 @@ function processEmployees(pracovnaDobaHodiny) {
             utils.addDebug(currentEntry, "\n👤 [" + (i+1) + "/" + result.pocetPracovnikov + "] " + employeeName);
             
             // Spracuj zamestnanca
-            var empResult = processEmployee(zamestnanec, pracovnaDobaHodiny, datum);
+            var empResult = processEmployee(zamestnanec, pracovnaDobaHodiny, datum, i);
             
             if (empResult.success) {
                 result.odpracovaneTotal += pracovnaDobaHodiny;
                 result.celkoveMzdy += empResult.dennaMzda;
                 result.detaily.push(empResult);
             } else {
-                result.success = false; // Aspoň jeden zamestnanec zlyhal
+                result.success = false;
             }
         }
         
@@ -377,9 +341,12 @@ function processEmployees(pracovnaDobaHodiny) {
 }
 
 /**
- * Spracuje jedného zamestnanca
+ * Spracuje jedného zamestnanca - OPRAVENÉ NASTAVOVANIE ATRIBÚTOV
  */
-function processEmployee(zamestnanec, pracovnaDobaHodiny, datum) {
+function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
+    var utils = getUtils();
+    var CONFIG = getConfig();
+    
     try {
         // Nájdi platnú hodinovku
         var hodinovka = findValidSalary(zamestnanec, datum);
@@ -389,36 +356,44 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum) {
             return { success: false };
         }
         
-        // Nastav základné atribúty
-        currentEntry.setAttr(CONFIG.fields.zamestnanci, CONFIG.attributes.odpracovane, pracovnaDobaHodiny);
-        currentEntry.setAttr(CONFIG.fields.zamestnanci, CONFIG.attributes.hodinovka, hodinovka);
+        // SPRÁVNE NASTAVENIE ATRIBÚTOV - cez pole a index
+        var zamArray = currentEntry.field(CONFIG.fields.zamestnanci);
         
-        // Získaj príplatky a zrážky
-        var priplatok = zamestnanec.attr(CONFIG.attributes.priplatok) || 0;
-        var premia = zamestnanec.attr(CONFIG.attributes.premia) || 0;
-        var pokuta = zamestnanec.attr(CONFIG.attributes.pokuta) || 0;
-        
-        // Vypočítaj dennú mzdu
-        var dennaMzda = (pracovnaDobaHodiny * (hodinovka + priplatok)) + premia - pokuta;
-        dennaMzda = Math.round(dennaMzda * 100) / 100;
-        
-        // Nastav dennú mzdu
-        currentEntry.setAttr(CONFIG.fields.zamestnanci, CONFIG.attributes.dennaMzda, dennaMzda);
-        
-        utils.addDebug(currentEntry, "  ✅ Hodinovka: " + hodinovka + " €/h");
-        if (priplatok > 0) utils.addDebug(currentEntry, "  ✅ Príplatok: +" + priplatok + " €/h");
-        if (premia > 0) utils.addDebug(currentEntry, "  ✅ Prémia: +" + premia + " €");
-        if (pokuta > 0) utils.addDebug(currentEntry, "  ✅ Pokuta: -" + pokuta + " €");
-        utils.addDebug(currentEntry, "  ✅ Denná mzda: " + dennaMzda + " €");
-        
-        return {
-            success: true,
-            hodinovka: hodinovka,
-            dennaMzda: dennaMzda,
-            priplatok: priplatok,
-            premia: premia,
-            pokuta: pokuta
-        };
+        if (zamArray && zamArray.length > index) {
+            // Nastav základné atribúty
+            zamArray[index].attr(CONFIG.attributes.odpracovane, pracovnaDobaHodiny);
+            zamArray[index].attr(CONFIG.attributes.hodinovka, hodinovka);
+            
+            // Získaj príplatky a zrážky z existujúcich atribútov
+            var priplatok = zamArray[index].attr(CONFIG.attributes.priplatok) || 0;
+            var premia = zamArray[index].attr(CONFIG.attributes.premia) || 0;
+            var pokuta = zamArray[index].attr(CONFIG.attributes.pokuta) || 0;
+            
+            // Vypočítaj dennú mzdu
+            var dennaMzda = (pracovnaDobaHodiny * (hodinovka + priplatok)) + premia - pokuta;
+            dennaMzda = Math.round(dennaMzda * 100) / 100;
+            
+            // Nastav dennú mzdu
+            zamArray[index].attr(CONFIG.attributes.dennaMzda, dennaMzda);
+            
+            utils.addDebug(currentEntry, "  ✅ Hodinovka: " + hodinovka + " €/h");
+            if (priplatok > 0) utils.addDebug(currentEntry, "  ✅ Príplatok: +" + priplatok + " €/h");
+            if (premia > 0) utils.addDebug(currentEntry, "  ✅ Prémia: +" + premia + " €");
+            if (pokuta > 0) utils.addDebug(currentEntry, "  ✅ Pokuta: -" + pokuta + " €");
+            utils.addDebug(currentEntry, "  ✅ Denná mzda: " + dennaMzda + " €");
+            
+            return {
+                success: true,
+                hodinovka: hodinovka,
+                dennaMzda: dennaMzda,
+                priplatok: priplatok,
+                premia: premia,
+                pokuta: pokuta
+            };
+        } else {
+            utils.addError(currentEntry, "Nepodarilo sa získať pole zamestnancov pre index " + index, "processEmployee");
+            return { success: false };
+        }
         
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "processEmployee", error);
@@ -430,6 +405,9 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum) {
  * Nájde platnú sadzbu pre zamestnanca
  */
 function findValidSalary(zamestnanec, datum) {
+    var utils = getUtils();
+    var CONFIG = getConfig();
+    
     try {
         var employeeName = utils.formatEmployeeName(zamestnanec);
         utils.addDebug(currentEntry, "🔍 Hľadám platnú sadzbu");
@@ -482,7 +460,12 @@ function findValidSalary(zamestnanec, datum) {
 // ==============================================
 
 function calculateTotals(employeeResult) {
+    var utils = getUtils();
+    var CONFIG = getConfig();
+    
     try {
+        utils.addDebug(currentEntry, "\n💰 KROK 4: Celkové výpočty");
+        
         // Ulož celkové hodnoty
         currentEntry.set(CONFIG.fields.odpracovane, employeeResult.odpracovaneTotal);
         currentEntry.set(CONFIG.fields.mzdoveNaklady, employeeResult.celkoveMzdy);
@@ -504,7 +487,12 @@ function calculateTotals(employeeResult) {
 // ==============================================
 
 function createInfoRecord(workTimeResult, employeeResult) {
+    var utils = getUtils();
+    var CONFIG = getConfig();
+    
     try {
+        utils.addDebug(currentEntry, "\n📝 KROK 5: Vytvorenie info záznamu");
+        
         var datum = currentEntry.field(CONFIG.fields.datum);
         var datumFormatted = utils.formatDate(datum, "DD.MM.YYYY");
         var dayName = moment(datum).format("dddd");
@@ -517,40 +505,37 @@ function createInfoRecord(workTimeResult, employeeResult) {
                        " - " + utils.formatTime(workTimeResult.odchodRounded) + "\n";
         infoMessage += "⏱️ Pracovná doba: " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
         
-        infoMessage += "👥 ZAMESTNANCI:\n";
-        infoMessage += "• Počet: " + employeeResult.pocetPracovnikov + " osôb\n";
-        infoMessage += "• Odpracované spolu: " + employeeResult.odpracovaneTotal + " hodín\n\n";
+        infoMessage += "👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + " osôb):\n";
+        infoMessage += "───────────────────────────────────\n";
         
-        infoMessage += "💰 MZDOVÉ NÁKLADY:\n";
-        infoMessage += "• Celkom: " + utils.formatMoney(employeeResult.celkoveMzdy) + "\n";
-        
-        if (employeeResult.pocetPracovnikov > 0) {
-            var priemer = employeeResult.celkoveMzdy / employeeResult.pocetPracovnikov;
-            infoMessage += "• Priemer na osobu: " + utils.formatMoney(priemer) + "\n";
+        for (var i = 0; i < employeeResult.detaily.length; i++) {
+            var detail = employeeResult.detaily[i];
+            infoMessage += "• Hodinovka: " + detail.hodinovka + " €/h\n";
+            if (detail.priplatok > 0) infoMessage += "  + Príplatok: " + detail.priplatok + " €/h\n";
+            if (detail.premia > 0) infoMessage += "  + Prémia: " + detail.premia + " €\n";
+            if (detail.pokuta > 0) infoMessage += "  - Pokuta: " + detail.pokuta + " €\n";
+            infoMessage += "  = Denná mzda: " + detail.dennaMzda + " €\n\n";
         }
         
-        infoMessage += "\n🔧 TECHNICKÉ INFO:\n";
+        infoMessage += "💰 SÚHRN:\n";
+        infoMessage += "───────────────────────────────────\n";
+        infoMessage += "• Odpracované celkom: " + employeeResult.odpracovaneTotal + " hodín\n";
+        infoMessage += "• Mzdové náklady: " + utils.formatMoney(employeeResult.celkoveMzdy) + "\n\n";
+        
+        infoMessage += "🔧 TECHNICKÉ INFO:\n";
         infoMessage += "• Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
-        infoMessage += "• MementoUtils: " + (utils.version || "N/A") + "\n";
-        infoMessage += "• Čas generovania: " + utils.formatDate(moment()) + "\n";
-        infoMessage += "• Trigger: Before Save\n";
+        infoMessage += "• Čas spracovania: " + moment().format("HH:mm:ss") + "\n";
+        infoMessage += "• MementoUtils: v" + (utils.version || "N/A") + "\n";
         
-        if (employeeResult.success) {
-            infoMessage += "\n✅ PREPOČET DOKONČENÝ ÚSPEŠNE";
-        } else {
-            infoMessage += "\n⚠️ PREPOČET DOKONČENÝ S CHYBAMI";
+        if (typeof MementoConfig !== 'undefined') {
+            infoMessage += "• MementoConfig: v" + MementoConfig.version + "\n";
         }
+        
+        infoMessage += "\n✅ PREPOČET DOKONČENÝ ÚSPEŠNE";
         
         currentEntry.set(CONFIG.fields.info, infoMessage);
         
-        // Pridaj aj do štruktúrovaného info
-        utils.addInfo(currentEntry, "Dochádzka prepočítaná", {
-            datum: datumFormatted,
-            pracovnaDoba: workTimeResult.pracovnaDobaHodiny + "h",
-            pocetZamestnancov: employeeResult.pocetPracovnikov,
-            mzdoveNaklady: utils.formatMoney(employeeResult.celkoveMzdy),
-            uspech: employeeResult.success
-        });
+        utils.addDebug(currentEntry, "✅ Info záznam vytvorený");
         
         return true;
         
@@ -561,49 +546,39 @@ function createInfoRecord(workTimeResult, employeeResult) {
 }
 
 // ==============================================
-// POMOCNÉ FUNKCIE
+// FINÁLNY SÚHRN
 // ==============================================
 
-function logFinalStatus(steps) {
-    var allSuccess = Object.keys(steps).every(function(key) {
-        return steps[key].success;
-    });
+function logFinalSummary(steps) {
+    var utils = getUtils();
+    var CONFIG = getConfig();
     
-    if (allSuccess) {
-        utils.addDebug(currentEntry, "\n🎉 === PREPOČET DOKONČENÝ ÚSPEŠNE! ===");
-    } else {
-        utils.addDebug(currentEntry, "\n❌ === PREPOČET ZLYHAL ===");
-        utils.addDebug(currentEntry, "Stav krokov:");
+    try {
+        utils.addDebug(currentEntry, "\n📊 === FINÁLNY SÚHRN ===");
         
-        Object.keys(steps).forEach(function(key) {
-            var step = steps[key];
-            var status = step.success ? "✅" : "❌";
-            utils.addDebug(currentEntry, "  " + status + " " + step.name);
-        });
-    }
-}
-
-function showUserMessage(success, employeeResult) {
-    if (success) {
-        var pocet = currentEntry.field(CONFIG.fields.pocetPracovnikov) || 0;
-        var mzdy = currentEntry.field(CONFIG.fields.mzdoveNaklady) || 0;
-        var hodiny = currentEntry.field(CONFIG.fields.pracovnaDoba) || 0;
+        var allSuccess = true;
+        for (var step in steps) {
+            var status = steps[step].success ? "✅" : "❌";
+            utils.addDebug(currentEntry, status + " " + steps[step].name);
+            if (!steps[step].success) allSuccess = false;
+        }
         
-        message("✅ Dochádzka prepočítaná úspešne!\n\n" +
-               "⏰ Časy zaokrúhlené na 15 min\n" +
-               "📊 Pracovná doba: " + hodiny + " h\n" +
-               "👥 Zamestnanci: " + pocet + " osôb\n" +
-               "💰 Mzdové náklady: " + utils.formatMoney(mzdy) + "\n\n" +
-               "ℹ️ Detaily v poli 'info'");
-    } else {
-        message("❌ Prepočet dochádzky zlyhal!\n\n" +
-               "🔍 Skontroluj Error_Log pre detaily\n" +
-               "📋 Over vstupné dáta a skús znovu");
+        if (allSuccess) {
+            utils.addDebug(currentEntry, "\n🎉 === VŠETKY KROKY ÚSPEŠNÉ ===");
+        } else {
+            utils.addDebug(currentEntry, "\n⚠️ === NIEKTORÉ KROKY ZLYHALI ===");
+        }
+        
+        utils.addDebug(currentEntry, "⏱️ Čas ukončenia: " + moment().format("HH:mm:ss"));
+        utils.addDebug(currentEntry, "📋 === KONIEC " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "logFinalSummary", error);
     }
 }
 
 // ==============================================
-// SPUSTENIE
+// SPUSTENIE HLAVNEJ FUNKCIE
 // ==============================================
 
 main();
