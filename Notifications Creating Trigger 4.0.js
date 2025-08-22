@@ -58,31 +58,51 @@ function getNotifHelper() {
 // ==============================================
 // KONFIGURÁCIA
 // ==============================================
+// ==============================================
+// CONFIG INITIALIZATION
+// ==============================================
 
-var CONFIG = {
-    debug: true,
-    version: "4.0",
-    scriptName: "Notifications Creating Trigger",
-    
-    // Využívame Helper CONFIG pre konzistentnosť
-    helperConfig: notifHelper.CONFIG,
-    
-    // Trigger-špecifické nastavenia
-    settings: {
-        maxRetries: 3,
-        retryDelayMs: [1000, 5000, 15000], // 1s, 5s, 15s
-        n8nIntegration: true,
-        workingHoursCheck: true,
-        dailyLimitCheck: true
-    },
-    
-    // Knižnice
-    libraries: {
-        telegramGroups: "Telegram Groups",
-        defaults: "ASISTANTO Defaults",
-        zamestnanci: "Zamestnanci"
+var CONFIG = (function() {
+    // Try centralized config first
+    if (typeof MementoConfigAdapter !== 'undefined') {
+        try {
+            var adapter = MementoConfigAdapter.getAdapter('attendance');
+            // Merge with script-specific config
+            adapter.scriptName = "Dochádzka Group Summary";
+            adapter.version = "5.0";
+            return adapter;
+        } catch (e) {
+            // Fallback
+        }
     }
-};
+    
+    // Original config as fallback
+    return {
+        debug: true,
+        version: "4.0",
+        scriptName: "Notifications Creating Trigger",
+        
+        // Využívame Helper CONFIG pre konzistentnosť
+        helperConfig: notifHelper.CONFIG,
+        
+        // Trigger-špecifické nastavenia
+        settings: {
+            maxRetries: 3,
+            retryDelayMs: [1000, 5000, 15000], // 1s, 5s, 15s
+            n8nIntegration: true,
+            workingHoursCheck: true,
+            dailyLimitCheck: true
+        },
+        
+        // Knižnice
+        libraries: {
+            telegramGroups: "Telegram Groups",
+            defaults: "ASISTANTO Defaults",
+            zamestnanci: "Zamestnanci"
+        }
+        };
+    })();
+
 
 // ==============================================
 // HLAVNÁ FUNKCIA

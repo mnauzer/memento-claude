@@ -16,26 +16,36 @@ var MementoCore = (function() {
     // CONFIGURATION
     // ==============================================
     
-    var config = {
+// ==============================================
+// CONFIG INITIALIZATION WITH BACKWARD COMPATIBILITY
+// ==============================================
+
+var config = (function() {
+    // Try to use MementoConfig via adapter
+    if (typeof MementoConfigAdapter !== 'undefined') {
+        try {
+            return MementoConfigAdapter.getAdapter('core');
+        } catch (e) {
+            // Fallback to local config
+        }
+    }
+    
+    // Fallback to original local config
+    return {
         version: "1.0",
         debug: true,
         includeLineNumbers: true,
         includeStackTrace: false,
-        
-        // Field names
         debugFieldName: "Debug_Log",
         errorFieldName: "Error_Log",
         infoFieldName: "info",
-        
-        // Formatting
         dateFormat: "DD.MM.YY HH:mm",
         dateOnlyFormat: "DD.MM.YYYY",
         timeFormat: "HH:mm",
         quarterRoundingMinutes: 15,
-        
-        // Current library
         currentLib: null
     };
+})();
     
     // Bezpečná inicializácia
     try {

@@ -115,9 +115,27 @@ function showError(msg, error) {
 // ==============================================
 // KONFIGURÁCIA
 // ==============================================
+// ==============================================
+// CONFIG INITIALIZATION
+// ==============================================
 
-var CONFIG = {
-    debug: true,
+var CONFIG = (function() {
+    // Try centralized config first
+    if (typeof MementoConfigAdapter !== 'undefined') {
+        try {
+            var adapter = MementoConfigAdapter.getAdapter('attendance');
+            // Merge with script-specific config
+            adapter.scriptName = "Dochádzka Group Summary";
+            adapter.version = "5.0";
+            return adapter;
+        } catch (e) {
+            // Fallback
+        }
+    }
+    
+    // Original config as fallback
+    return {
+        debug: true,
     version: "5.0",
     scriptName: "Dochádzka Group Summary",
     
@@ -165,7 +183,9 @@ var CONFIG = {
         threadName: "Názov témy",
         groupName: "Názov skupiny"
     }
-};
+    };
+})();
+
 
 // ==============================================
 // HLAVNÁ FUNKCIA

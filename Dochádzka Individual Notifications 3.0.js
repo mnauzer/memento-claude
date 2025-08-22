@@ -21,7 +21,26 @@ var notifHelper = ASISTANTONotifications;
 var currentEntry = entry();
 
 // Konfigurácia
-var CONFIG = {
+// ==============================================
+// CONFIG INITIALIZATION
+// ==============================================
+
+var CONFIG = (function() {
+    // Try centralized config first
+    if (typeof MementoConfigAdapter !== 'undefined') {
+        try {
+            var adapter = MementoConfigAdapter.getAdapter('attendance');
+            // Merge with script-specific config
+            adapter.scriptName = "Dochádzka Group Summary";
+            adapter.version = "5.0";
+            return adapter;
+        } catch (e) {
+            // Fallback
+        }
+    }
+    
+    // Original config as fallback
+    return {
     debug: true,
     version: "3.0",
     scriptName: "Dochádzka Individual Notifications",
@@ -71,7 +90,10 @@ var CONFIG = {
         hodinovka: "hodinovka",
         poznamka: "poznámka"
     }
-};
+    };
+})();
+
+
 
 // ==============================================
 // HLAVNÁ FUNKCIA
