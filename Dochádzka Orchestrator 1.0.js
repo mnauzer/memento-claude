@@ -188,56 +188,77 @@ function checkDependencies() {
 }
 
 // Konfigurácia
-var CONFIG = {
-    debug: true,
-    version: "1.1",
-    scriptName: "Dochádzka Notifications Orchestrator",
-    
-    // Knižnice
-    defaultsLibrary: "ASISTANTO Defaults",
-    notificationsLibrary: "Notifications",
-    telegramGroupsLibrary: "Telegram Groups",
-    
-    // Centrálne nastavenia
-    defaultsFields: {
-        // Individuálne notifikácie
-        individualEnabled: "Dochádzka individuálne notifikácie",
-        individualDelay: "Oneskorenie notifikácie (min)",
-        includeStats: "Zahrnúť štatistiky",
-        
-        // Skupinové notifikácie
-        groupEnabled: "Dochádzka skupinové notifikácie",
-        groupDelay: "Oneskorenie súhrnu (min)",
-        telegramGroupLink: "Telegram skupina dochádzky",
-        telegramDochadzkaId: "Telegram Dochádzka ID",
-        
-        // Spoločné
-        nazovFirmy: "Názov firmy",
-        includeFinancials: "Zahrnúť finančné údaje"
-    },
-    
-    // Polia v Dochádzke
-    fields: {
-        zamestnanci: "Zamestnanci",
-        datum: "Dátum",
-        prichod: "Príchod",
-        odchod: "Odchod",
-        pracovnaDoba: "Pracovná doba",
-        mzdoveNaklady: "Mzdové náklady",
-        pocetPracovnikov: "Počet pracovníkov",
-        odpracovane: "Odpracované",
-        poznamka: "Poznámka",
-        id: "ID",
-        notifikacie: "Notifikácie"
-    },
-    
-    // Atribúty
-    attributes: {
-        odpracovane: "odpracované",
-        dennaMzda: "denná mzda",
-        hodinovka: "hodinovka"
+// ==============================================
+// CONFIG INITIALIZATION
+// ==============================================
+
+var CONFIG = (function() {
+    // Try centralized config first
+    if (typeof MementoConfigAdapter !== 'undefined') {
+        try {
+            var adapter = MementoConfigAdapter.getAdapter('attendance');
+            // Merge with script-specific config
+            adapter.scriptName = "Dochádzka Group Summary";
+            adapter.version = "5.0";
+            return adapter;
+        } catch (e) {
+            // Fallback
+        }
     }
-};
+    
+    // Original config as fallback
+    return {
+        debug: true,
+        version: "1.1",
+        scriptName: "Dochádzka Notifications Orchestrator",
+        
+        // Knižnice
+        defaultsLibrary: "ASISTANTO Defaults",
+        notificationsLibrary: "Notifications",
+        telegramGroupsLibrary: "Telegram Groups",
+        
+        // Centrálne nastavenia
+        defaultsFields: {
+            // Individuálne notifikácie
+            individualEnabled: "Dochádzka individuálne notifikácie",
+            individualDelay: "Oneskorenie notifikácie (min)",
+            includeStats: "Zahrnúť štatistiky",
+            
+            // Skupinové notifikácie
+            groupEnabled: "Dochádzka skupinové notifikácie",
+            groupDelay: "Oneskorenie súhrnu (min)",
+            telegramGroupLink: "Telegram skupina dochádzky",
+            telegramDochadzkaId: "Telegram Dochádzka ID",
+            
+            // Spoločné
+            nazovFirmy: "Názov firmy",
+            includeFinancials: "Zahrnúť finančné údaje"
+        },
+        
+        // Polia v Dochádzke
+        fields: {
+            zamestnanci: "Zamestnanci",
+            datum: "Dátum",
+            prichod: "Príchod",
+            odchod: "Odchod",
+            pracovnaDoba: "Pracovná doba",
+            mzdoveNaklady: "Mzdové náklady",
+            pocetPracovnikov: "Počet pracovníkov",
+            odpracovane: "Odpracované",
+            poznamka: "Poznámka",
+            id: "ID",
+            notifikacie: "Notifikácie"
+        },
+        
+        // Atribúty
+        attributes: {
+            odpracovane: "odpracované",
+            dennaMzda: "denná mzda",
+            hodinovka: "hodinovka"
+        }
+    };
+})();
+
 
 // ==============================================
 // HLAVNÁ ORCHESTRÁCIA

@@ -53,54 +53,74 @@ function getBusiness() {
     return business;
 }
 // Konfigurácia
-var CONFIG = {
-    debug: true,
-    version: "5.0",
-    scriptName: "Dochádzka Prepočet",
-    
-    // Názvy polí - Dochádzka
-    fields: {
-        zamestnanci: "Zamestnanci",
-        datum: "Dátum",
-        prichod: "Príchod", 
-        odchod: "Odchod",
-        pracovnaDoba: "Pracovná doba",
-        pocetPracovnikov: "Počet pracovníkov",
-        odpracovane: "Odpracované", 
-        mzdoveNaklady: "Mzdové náklady",
-        info: "info",
-        debugLog: "Debug_Log",
-        errorLog: "Error_Log"
-    },
-    
-    // Názvy atribútov pre zamestnancov
-    attributes: {
-        odpracovane: "odpracované",
-        hodinovka: "hodinovka",
-        priplatok: "+príplatok (€/h)",
-        premia: "+prémia (€)",
-        pokuta: "-pokuta (€)",
-        dennaMzda: "denná mzda"
-    },
-    
-    // Názvy knižníc
-    libraries: {
-        sadzbyZamestnancov: "sadzby zamestnancov"
-    },
-    
-    // Polia v knižnici sadzby zamestnancov
-    sadzbyFields: {
-        zamestnanec: "Zamestnanec",
-        platnostOd: "Platnosť od",
-        sadzba: "Sadzba"
-    },
-    
-    // Nastavenia zaokrúhľovania
-    settings: {
-        roundToQuarterHour: true,
-        quarterHourMinutes: 15
+// ==============================================
+// CONFIG INITIALIZATION
+// ==============================================
+
+var CONFIG = (function() {
+    // Try centralized config first
+    if (typeof MementoConfigAdapter !== 'undefined') {
+        try {
+            var adapter = MementoConfigAdapter.getAdapter('attendance');
+            // Merge with script-specific config
+            adapter.scriptName = "Dochádzka Group Summary";
+            adapter.version = "5.0";
+            return adapter;
+        } catch (e) {
+            // Fallback
+        }
     }
-};
+    
+    // Original config as fallback
+    return {
+        debug: true,
+        version: "5.0",
+        scriptName: "Dochádzka Prepočet",
+        
+        // Názvy polí - Dochádzka
+        fields: {
+            zamestnanci: "Zamestnanci",
+            datum: "Dátum",
+            prichod: "Príchod", 
+            odchod: "Odchod",
+            pracovnaDoba: "Pracovná doba",
+            pocetPracovnikov: "Počet pracovníkov",
+            odpracovane: "Odpracované", 
+            mzdoveNaklady: "Mzdové náklady",
+            info: "info",
+            debugLog: "Debug_Log",
+            errorLog: "Error_Log"
+        },
+        
+        // Názvy atribútov pre zamestnancov
+        attributes: {
+            odpracovane: "odpracované",
+            hodinovka: "hodinovka",
+            priplatok: "+príplatok (€/h)",
+            premia: "+prémia (€)",
+            pokuta: "-pokuta (€)",
+            dennaMzda: "denná mzda"
+        },
+        
+        // Názvy knižníc
+        libraries: {
+            sadzbyZamestnancov: "sadzby zamestnancov"
+        },
+        
+        // Polia v knižnici sadzby zamestnancov
+        sadzbyFields: {
+            zamestnanec: "Zamestnanec",
+            platnostOd: "Platnosť od",
+            sadzba: "Sadzba"
+        },
+        
+        // Nastavenia zaokrúhľovania
+        settings: {
+            roundToQuarterHour: true,
+            quarterHourMinutes: 15
+        }
+    };
+})();
 
 // ==============================================
 // HLAVNÁ FUNKCIA

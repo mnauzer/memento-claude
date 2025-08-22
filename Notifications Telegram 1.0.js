@@ -54,41 +54,64 @@ function getNotifHelper() {
 // ==============================================
 // KONFIGURÁCIA A CONSTANTS
 // ==============================================
+// ==============================================
+// CONFIG INITIALIZATION
+// ==============================================
+
+var CONFIG = (function() {
+    // Try centralized config first
+    if (typeof MementoConfigAdapter !== 'undefined') {
+        try {
+            var adapter = MementoConfigAdapter.getAdapter('attendance');
+            // Merge with script-specific config
+            adapter.scriptName = "Dochádzka Group Summary";
+            adapter.version = "5.0";
+            return adapter;
+        } catch (e) {
+            // Fallback
+        }
+    }
+    
+    // Original config as fallback
+    return {
+        debug: true,
+        version: "1.0",
+        scriptName: "Notifications Telegram",
+        
+        // Telegram API konfigurácia
+        telegramApi: {
+            baseUrl: "https://api.telegram.org/bot",
+            timeout: 30000,
+            maxRetries: 3,
+            retryDelayMs: [1000, 3000, 8000], // Exponential backoff
+            rateLimitDelay: 1000, // 1 sekunda medzi volaniam
+            maxMessageLength: 4096
+        },
+        
+        // Knižnice
+        get libraries() {
+            var utilsConfig = getUtils().DEFAULT_CONFIG;
+            return {
+                api: utilsConfig.apiKeysLibrary || "ASISTANTO API",
+                defaults: utilsConfig.defaultLibraryName || "ASISTANTO Defaults",
+                telegramGroups: utilsConfig.telegramGroupsLibrary || "Telegram Groups",
+                notifications: "Notifications"
+            };
+        },
+        
+        // Business pravidlá
+        businessRules: {
+            respectWorkingHours: true,
+            respectWeekendSettings: true,
+            checkDailyLimits: true,
+            defaultParseMode: "HTML",
+            silentMode: false
+        }
+    };
+})();
 
 var CONFIG = {
-    debug: true,
-    version: "1.0",
-    scriptName: "Notifications Telegram",
     
-    // Telegram API konfigurácia
-    telegramApi: {
-        baseUrl: "https://api.telegram.org/bot",
-        timeout: 30000,
-        maxRetries: 3,
-        retryDelayMs: [1000, 3000, 8000], // Exponential backoff
-        rateLimitDelay: 1000, // 1 sekunda medzi volaniam
-        maxMessageLength: 4096
-    },
-    
-    // Knižnice
-    get libraries() {
-        var utilsConfig = getUtils().DEFAULT_CONFIG;
-        return {
-            api: utilsConfig.apiKeysLibrary || "ASISTANTO API",
-            defaults: utilsConfig.defaultLibraryName || "ASISTANTO Defaults",
-            telegramGroups: utilsConfig.telegramGroupsLibrary || "Telegram Groups",
-            notifications: "Notifications"
-        };
-    },
-    
-    // Business pravidlá
-    businessRules: {
-        respectWorkingHours: true,
-        respectWeekendSettings: true,
-        checkDailyLimits: true,
-        defaultParseMode: "HTML",
-        silentMode: false
-    }
 };
 
 /**

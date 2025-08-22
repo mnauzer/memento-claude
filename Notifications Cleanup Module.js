@@ -71,16 +71,38 @@ var DochadzkaNotifsCleanup = (function() {
         }
         return telegramApi;
     }
+    // ==============================================
+    // CONFIG INITIALIZATION
+    // ==============================================
 
-    var CONFIG = {
-        version: "1.0",
+    var CONFIG = (function() {
+        // Try centralized config first
+        if (typeof MementoConfigAdapter !== 'undefined') {
+            try {
+                var adapter = MementoConfigAdapter.getAdapter('attendance');
+                // Merge with script-specific config
+                adapter.scriptName = "Dochádzka Group Summary";
+                adapter.version = "5.0";
+                return adapter;
+            } catch (e) {
+                // Fallback
+            }
+        }
+        
+        // Original config as fallback
+        return {
+            debug: true,
+            version: "1.0",
+            scriptName: "Notifications Celanup Module",
         fields: {
             notifikacie: "Notifikácie", // Nové pole v Dochádzke
             messageId: "Message ID",
             chatId: "Chat ID",
             status: "Status"
         }
-    };
+        };
+    })();
+    
     
     /**
      * Vymaže všetky linknuté notifikácie z dochádzky

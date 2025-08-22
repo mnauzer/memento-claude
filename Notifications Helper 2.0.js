@@ -43,49 +43,74 @@ function getUtils() {
 // KONFIGURÁCIA A FIELD MAPPINGS
 // ==============================================
 
-var CONFIG = {
-    debug: true,
-    version: "2.0",
-    scriptName: "Notifications Helper",
+// ==============================================
+// KONFIGURÁCIA A FIELD MAPPINGS
+// ==============================================
+
+var CONFIG = (function() {
+    // Try to use centralized config
+    if (typeof MementoConfigAdapter !== 'undefined') {
+        try {
+            return MementoConfigAdapter.getAdapter('notifications');
+        } catch (e) {
+            // Fallback to local config
+        }
+    }
     
-    // Dedenie základných knižníc z MementoUtils
-    get libraries() {
-        var utilsConfig = utils.DEFAULT_CONFIG;
-        return {
+    // Fallback to original config
+    return {
+        debug: true,
+        version: "2.0",
+        scriptName: "Notifications Helper",
+        
+        // Statické libraries namiesto gettera
+        libraries: {
             notifications: "Notifications",
-            telegramGroups: utilsConfig.telegramGroupsLibrary || "Telegram Groups",
-            api: utilsConfig.apiKeysLibrary || "ASISTANTO API", 
-            defaults: utilsConfig.defaultLibraryName || "ASISTANTO Defaults",
+            telegramGroups: "Telegram Groups",
+            api: "ASISTANTO API",
+            defaults: "ASISTANTO Defaults",
             employees: "Zamestnanci",
             clients: "Klienti",
             partners: "Partneri",
             orders: "Zákazky"
-        };
-    },
-    
-    // Validation rules
-    validation: {
-        required: ['Správa'],
-        optional: ['Predmet', 'Priorita', 'Adresát', 'Formátovanie'],
-        maxRetries: 3,
-        timeoutMs: 30000
-    },
-    
-    // Business rules
-    businessRules: {
-        defaultPriority: "Normálna",
-        defaultFormatting: "Markdown",
-        defaultSource: "Automatická",
-        defaultType: "Systémová"
-    }
-};
+        },
+        
+        validation: {
+            required: ['sprava'],
+            optional: ['predmet', 'priorita', 'adresat', 'formatovanie'],
+            maxRetries: 3,
+            timeoutMs: 30000
+        },
+        
+        businessRules: {
+            defaultPriority: "Normálna",
+            defaultFormatting: "Markdown",
+            defaultSource: "Automatická",
+            defaultType: "Systémová"
+        }
+    };
+})();
 
-/**
- * Centralizované mapovanie názvov polí pre rôzne knižnice
- */
-var FIELD_MAPPINGS = {
-    // ASISTANTO Notifications polia
-    notifications: {
+// Field mappings z centralizovaného config
+var FIELD_MAPPINGS = (function() {
+    if (typeof MementoConfig !== 'undefined') {
+        try {
+            MementoConfig.init();
+            return MementoConfig.getFieldMappings();
+        } catch (e) {
+            // Use adapter
+            if (typeof MementoConfigAdapter !== 'undefined') {
+                var cfg = MementoConfigAdapter.getConfig();
+                if (cfg) {
+                    return cfg.getFieldMappings();
+                }
+            }
+        }
+    }
+    
+    // Fallback to original mappings
+    return {
+        notifications: {
         // Hlavná sekcia
         type: "Typ správy",
         source: "Zdroj správy",
@@ -159,7 +184,12 @@ var FIELD_MAPPINGS = {
         email: "Email",
         phone: "Telefón"
     }
-};
+    };
+})();
+
+
+
+
 
 /**
  * Možnosti pre dropdown polia

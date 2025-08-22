@@ -16,7 +16,34 @@
 
 var MementoUtils = (function() {
     'use strict';
-    
+    // Import config adapter if available
+    var configAdapter = typeof MementoConfigAdapter !== 'undefined' ? MementoConfigAdapter : null;
+
+    // Add to public API
+    api.CONFIG = configAdapter ? configAdapter.getConfig() : null;
+
+    // Add DEFAULT_CONFIG for backward compatibility
+    api.DEFAULT_CONFIG = (function() {
+        if (configAdapter) {
+            var cfg = configAdapter.getConfig();
+            if (cfg) {
+                var libs = cfg.getLibraries();
+                return {
+                    defaultLibraryName: libs.core.defaults,
+                    apiKeysLibrary: libs.core.api,
+                    telegramGroupsLibrary: libs.telegram.groups,
+                    notificationsLibrary: libs.core.notifications
+                };
+            }
+        }
+        // Fallback
+        return {
+            defaultLibraryName: "ASISTANTO Defaults",
+            apiKeysLibrary: "ASISTANTO API",
+            telegramGroupsLibrary: "Telegram Groups",
+            notificationsLibrary: "Notifications"
+        };
+    })();  
     // ==============================================
     // IMPORT MODULOV
     // ==============================================

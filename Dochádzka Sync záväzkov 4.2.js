@@ -23,75 +23,99 @@
 //    - Info záznamy pre audit trail
 // ==============================================
 
-var CONFIG = {
-    debug: true,
-    version: "4.2",
-    scriptName: "Dochádzka Sync záväzkov",
-    
-    // Názvy knižníc
-    libraries: {
-        zavazky: "Záväzky",
-        zamestnanci: "Zamestnanci",
-        dochadzka: "Dochádzka"
-    },
-    
-    // Názvy polí - Dochádzka
-    fields: {
-        zamestnanci: "Zamestnanci",
-        datum: "Dátum",
-        zavazkyCheckbox: "Záväzky",
-        info: "info",
-        debugLog: "Debug_Log",
-        errorLog: "Error_Log"
-    },
-    
-    // Názvy polí - Záväzky
-    zavazkyFields: {
-        stav: "Stav",
-        datum: "Dátum",
-        typ: "Typ",
-        zamestnanec: "Zamestnanec",
-        veritiel: "Veriteľ",
-        dochadzka: "Dochádzka",
-        popis: "Popis",
-        suma: "Suma",
-        zaplatene: "Zaplatené",
-        zostatok: "Zostatok",
-        info: "info"
-    },
-    
-    // Názvy polí - Zamestnanci
-    zamestnanciFields: {
-        nick: "Nick",
-        priezvisko: "Priezvisko"
-    },
-    
-    // Názvy atribútov
-    attributes: {
-        dennaMzda: "denná mzda"
-    },
-    
-    // Stavy záväzkov
-    stavy: {
-        neuhradene: "Neuhradené",
-        ciastocneUhradene: "Čiastočne uhradené",
-        uhradene: "Uhradené"
-    },
-    
-    // Emoji pre debug a info
-    icons: {
-        start: "🚀",
-        step: "📋",
-        success: "✅",
-        error: "💥",
-        warning: "⚠️",
-        money: "💰",
-        person: "👤",
-        info: "ℹ️",
-        update: "🔄",
-        create: "➕",
-        checkmark: "☑️"
+// ==============================================
+// CONFIG INITIALIZATION
+// ==============================================
+
+var CONFIG = (function() {
+    // Try centralized config first
+    if (typeof MementoConfigAdapter !== 'undefined') {
+        try {
+            var adapter = MementoConfigAdapter.getAdapter('attendance');
+            // Merge with script-specific config
+            adapter.scriptName = "Dochádzka Group Summary";
+            adapter.version = "5.0";
+            return adapter;
+        } catch (e) {
+            // Fallback
+        }
     }
+    
+    // Original config as fallback
+    return {
+        debug: true,
+        version: "4.2",
+        scriptName: "Dochádzka Sync záväzkov",
+        
+        // Názvy knižníc
+        libraries: {
+            zavazky: "Záväzky",
+            zamestnanci: "Zamestnanci",
+            dochadzka: "Dochádzka"
+        },
+        
+        // Názvy polí - Dochádzka
+        fields: {
+            zamestnanci: "Zamestnanci",
+            datum: "Dátum",
+            zavazkyCheckbox: "Záväzky",
+            info: "info",
+            debugLog: "Debug_Log",
+            errorLog: "Error_Log"
+        },
+        
+        // Názvy polí - Záväzky
+        zavazkyFields: {
+            stav: "Stav",
+            datum: "Dátum",
+            typ: "Typ",
+            zamestnanec: "Zamestnanec",
+            veritiel: "Veriteľ",
+            dochadzka: "Dochádzka",
+            popis: "Popis",
+            suma: "Suma",
+            zaplatene: "Zaplatené",
+            zostatok: "Zostatok",
+            info: "info"
+        },
+        
+        // Názvy polí - Zamestnanci
+        zamestnanciFields: {
+            nick: "Nick",
+            priezvisko: "Priezvisko"
+        },
+        
+        // Názvy atribútov
+        attributes: {
+            dennaMzda: "denná mzda"
+        },
+        
+        // Stavy záväzkov
+        stavy: {
+            neuhradene: "Neuhradené",
+            ciastocneUhradene: "Čiastočne uhradené",
+            uhradene: "Uhradené"
+        },
+        
+        // Emoji pre debug a info
+        icons: {
+            start: "🚀",
+            step: "📋",
+            success: "✅",
+            error: "💥",
+            warning: "⚠️",
+            money: "💰",
+            person: "👤",
+            info: "ℹ️",
+            update: "🔄",
+            create: "➕",
+            checkmark: "☑️"
+        }
+    };
+})();
+
+var CONFIG = {
+    
 };
 
 // Globálne premenné pre logy
