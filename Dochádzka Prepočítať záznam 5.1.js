@@ -85,54 +85,55 @@ function getConfig() {
     return config;
 }
 
-/**
- * Lokálny fallback config
- */
-// function getLocalConfig() {
-//     return {
-//         debug: true,
-//         version: "5.1",
-//         scriptName: "Dochádzka Prepočet",
+// /* /**
+//  * Lokálny fallback config
+//  */
+function getLocalConfig() {
+    return {
+        debug: true,
+        version: "5.1",
+        scriptName: "Dochádzka Prepočet",
         
-//         fields: {
-//             zamestnanci: "Zamestnanci",
-//             datum: "Dátum",
-//             prichod: "Príchod",
-//             odchod: "Odchod",
-//             pracovnaDoba: "Pracovná doba",
-//             pocetPracovnikov: "Počet pracovníkov",
-//             odpracovane: "Odpracované",
-//             mzdoveNaklady: "Mzdové náklady",
-//             info: "info",
-//             debugLog: "Debug_Log",
-//             errorLog: "Error_Log"
-//         },
+        fields: {
+            zamestnanci: "Zamestnanci",
+            datum: "Dátum",
+            prichod: "Príchod",
+            odchod: "Odchod",
+            pracovnaDoba: "Pracovná doba",
+            pocetPracovnikov: "Počet pracovníkov",
+            odpracovane: "Odpracované",
+            mzdoveNaklady: "Mzdové náklady",
+            info: "info",
+            debugLog: "Debug_Log",
+            errorLog: "Error_Log"
+        },
         
-//         attributes: {
-//             odpracovane: "odpracované",
-//             hodinovka: "hodinovka",
-//             priplatok: "+príplatok (€/h)",
-//             premia: "+prémia (€)",
-//             pokuta: "-pokuta (€)",
-//             dennaMzda: "denná mzda"
-//         },
+        attributes: {
+            odpracovane: "odpracované",
+            hodinovka: "hodinovka",
+            priplatok: "+príplatok (€/h)",
+            premia: "+prémia (€)",
+            pokuta: "-pokuta (€)",
+            dennaMzda: "denná mzda"
+        },
         
-//         libraries: {
-//             sadzbyZamestnancov: "sadzby zamestnancov"
-//         },
+        libraries: {
+            sadzbyZamestnancov: "sadzby zamestnancov"
+        },
         
-//         sadzbyFields: {
-//             zamestnanec: "Zamestnanec",
-//             platnostOd: "Platnosť od",
-//             sadzba: "Sadzba"
-//         },
+        sadzbyFields: {
+            zamestnanec: "Zamestnanec",
+            platnostOd: "Platnosť od",
+            sadzba: "Sadzba"
+        },
         
-//         settings: {
-//             roundToQuarterHour: true,
-//             quarterHourMinutes: 15
-//         }
-//     };
-// }
+        settings: {
+            roundToQuarterHour: true,
+            quarterHourMinutes: 15
+        }
+    };
+ } 
+ 
 
 // ==============================================
 // HLAVNÁ FUNKCIA
