@@ -424,49 +424,68 @@ var config = (function() {
                     'júl', 'aug', 'sep', 'okt', 'nov', 'dec']
         },
         
-        getDayName: function(date, short = false) {
-            let dayIndex;
+        getDayName: function(date, short) {
+            // Default parameter manually
+            if (typeof short === 'undefined') {
+                short = false;
+            }
+            
+            var dayIndex;
             
             if (!date) {
-            dayIndex = new Date().getDay();
+                dayIndex = new Date().getDay();
             } else if (typeof date === 'number') {
-            dayIndex = date % 7;
+                dayIndex = date % 7;
             } else {
-            dayIndex = date.getDay();
+                dayIndex = date.getDay();
             }
             
             return short ? this.days.short[dayIndex] : this.days.long[dayIndex];
         },
         
-        getMonthName: function(date, short = false) {
-            let monthIndex;
+        getMonthName: function(date, short) {
+            // Default parameter manually
+            if (typeof short === 'undefined') {
+                short = false;
+            }
+            
+            var monthIndex;
             
             if (!date) {
-            monthIndex = new Date().getMonth();
+                monthIndex = new Date().getMonth();
             } else if (typeof date === 'number') {
-            monthIndex = date % 12;
+                monthIndex = date % 12;
             } else {
-            monthIndex = date.getMonth();
+                monthIndex = date.getMonth();
             }
             
             return short ? this.months.short[monthIndex] : this.months.long[monthIndex];
         },
         
-        formatDate: function(date, format = 'dddd, DD. MMMM YYYY') {
+        formatDate: function(date, format) {
+            // Default parameter manually
+            if (typeof format === 'undefined') {
+                format = 'dddd, DD. MMMM YYYY';
+            }
+            
             if (!date) date = new Date();
             
-            const day = this.getDayName(date);
-            const month = this.getMonthName(date);
-            const dayNum = date.getDate();
-            const year = date.getFullYear();
+            var day = this.getDayName(date);
+            var month = this.getMonthName(date);
+            var dayNum = date.getDate();
+            var year = date.getFullYear();
+            
+            // Manually pad dayNum
+            var paddedDay = dayNum < 10 ? '0' + dayNum : dayNum.toString();
             
             return format
-            .replace('dddd', day)
-            .replace('MMMM', month)
-            .replace('DD', dayNum.toString().padStart(2, '0'))
-            .replace('YYYY', year);
+                .replace('dddd', day)
+                .replace('MMMM', month)
+                .replace('DD', paddedDay)
+                .replace('YYYY', year);
         }
     };
+
 
     // Jednoduchá funkcia pre Memento
     function getDayNameSK(dayIndex) {
