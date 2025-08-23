@@ -67,7 +67,7 @@ var MementoConfig = (function() {
         // DOCHÁDZKA - KOMPLETNÉ MAPOVANIE
         attendance: {
             // Základné polia
-            datum: "Dátum",
+            date: "Dátum",
             prichod: "Príchod",
             odchod: "Odchod",
             zamestnanci: "Zamestnanci",

@@ -262,6 +262,11 @@ function calculateWorkTime(datum, prichod, odchod) {
         if (CONFIG.settings.roundToQuarterHour) {
             prichodRounded = utils.roundToQuarter(prichod, 'up');
             odchodRounded = utils.roundToQuarter(odchod, 'down');
+
+            // nastavenie zaokrúhlených časov do záznamu
+            currentEntry.set(CONFIG.fields.arrival, prichodRounded);    
+            currentEntry.set(CONFIG.fields.departure, odchodRounded);
+
             
             utils.addDebug(currentEntry, "  • Zaokrúhlené časy: " + 
                 utils.formatTime(prichodRounded) + " - " + 
