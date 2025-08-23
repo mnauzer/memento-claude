@@ -384,7 +384,7 @@ function getTargetGroupFromLink(linkedGroup) {
 function findTargetGroupByTextId(telegramId) {
     try {
         var telegramGroupsLib = CONFIG.libraries.telegramGroups || 
-                                CONFIG.libraries.telegram?.groups || 
+                                CONFIG.libraries.telegram.groups || 
                                 "Telegram Groups";
         
         var telegramGroups = libByName(telegramGroupsLib);
