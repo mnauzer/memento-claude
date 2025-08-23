@@ -13,54 +13,6 @@
 //    - MementoTelegram.js (notifikácie)
 //    - MementoBusiness.js (business logika)
 // ==============================================
-
-var MementoUtils = (function() {
-    'use strict';
-    // Import config adapter if available
-    var configAdapter = typeof MementoConfigAdapter !== 'undefined' ? MementoConfigAdapter : null;
-
-    // Add to public API
-    api.CONFIG = configAdapter ? configAdapter.getConfig() : null;
-
-    // Add DEFAULT_CONFIG for backward compatibility
-    api.DEFAULT_CONFIG = (function() {
-        if (configAdapter) {
-            var cfg = configAdapter.getConfig();
-            if (cfg) {
-                var libs = cfg.getLibraries();
-                return {
-                    defaultLibraryName: libs.core.defaults,
-                    apiKeysLibrary: libs.core.api,
-                    telegramGroupsLibrary: libs.telegram.groups,
-                    notificationsLibrary: libs.core.notifications
-                };
-            }
-        }
-        // Fallback
-        return {
-            defaultLibraryName: "ASISTANTO Defaults",
-            apiKeysLibrary: "ASISTANTO API",
-            telegramGroupsLibrary: "Telegram Groups",
-            notificationsLibrary: "Notifications"
-        };
-    })();  
-    // ==============================================
-    // IMPORT MODULOV
-    // ==============================================
-    
-    // Kontrola dostupnosti modulov
-    var modules = {
-        core: typeof MementoCore !== 'undefined' ? MementoCore : null,
-        ai: typeof MementoAI !== 'undefined' ? MementoAI : null,
-        telegram: typeof MementoTelegram !== 'undefined' ? MementoTelegram : null,
-        business: typeof MementoBusiness !== 'undefined' ? MementoBusiness : null
-    };
-    
-    // Základná verzia ak chýbajú moduly
-    if (!modules.core) {
-        throw new Error("MementoCore.js is required!");
-    }
-    
     // ==============================================
     // AGREGOVANÉ API
     // ==============================================
@@ -115,6 +67,56 @@ var MementoUtils = (function() {
         includeLineNumbers: modules.core.config.includeLineNumbers,
         includeStackTrace: modules.core.config.includeStackTrace
     };
+
+var MementoUtils = (function() {
+    'use strict';
+    // Import config adapter if available
+    var configAdapter = typeof MementoConfigAdapter !== 'undefined' ? MementoConfigAdapter : null;
+
+    // Add to public API
+    api.CONFIG = configAdapter ? configAdapter.getConfig() : null;
+
+    // Add DEFAULT_CONFIG for backward compatibility
+    api.DEFAULT_CONFIG = (function() {
+        if (configAdapter) {
+            var cfg = configAdapter.getConfig();
+            if (cfg) {
+                var libs = cfg.getLibraries();
+                return {
+                    defaultLibraryName: libs.core.defaults,
+                    apiKeysLibrary: libs.core.api,
+                    telegramGroupsLibrary: libs.telegram.groups,
+                    notificationsLibrary: libs.core.notifications
+                };
+            }
+        }
+        // Fallback
+        return {
+            defaultLibraryName: "ASISTANTO Defaults",
+            apiKeysLibrary: "ASISTANTO API",
+            telegramGroupsLibrary: "Telegram Groups",
+            notificationsLibrary: "Notifications"
+        };
+    })();  
+
+
+    // ==============================================
+    // IMPORT MODULOV
+    // ==============================================
+    
+    // Kontrola dostupnosti modulov
+    var modules = {
+        core: typeof MementoCore !== 'undefined' ? MementoCore : null,
+        ai: typeof MementoAI !== 'undefined' ? MementoAI : null,
+        telegram: typeof MementoTelegram !== 'undefined' ? MementoTelegram : null,
+        business: typeof MementoBusiness !== 'undefined' ? MementoBusiness : null
+    };
+    
+    // Základná verzia ak chýbajú moduly
+    if (!modules.core) {
+        throw new Error("MementoCore.js is required!");
+    }
+    
     
     // ==========================================
     // AI FUNCTIONS (ak je modul dostupný)
