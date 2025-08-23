@@ -91,7 +91,14 @@ var MementoUtils = (function() {
         
         // Legacy support
         includeLineNumbers: modules.core.config.includeLineNumbers,
-        includeStackTrace: modules.core.config.includeStackTrace
+        includeStackTrace: modules.core.config.includeStackTrace,
+
+        // Custom helper functions can be added here
+        selectOsobaForm: modules.core.selectOsobaForm,
+        getDayNameSK: modules.core.getDayNamesk,
+        SlovakDateTime: modules.core.SlovakDateTime
+
+
     };
     
     // ==========================================

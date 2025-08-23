@@ -139,7 +139,7 @@ function getConfig() {
             
             config = {
                 debug: true,
-                version: "6.0",
+                version: "6.1.1",
                 scriptName: "Dochádzka Group Summary",
                 
                 // Field mappings z centrálneho config
