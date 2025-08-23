@@ -266,7 +266,7 @@ function main() {
  */
 function loadSettings() {
     try {
-        var defaultsLib = CONFIG.libraries.defaults || CONFIG.libraries.core?.defaults || "ASISTANTO Defaults";
+        var defaultsLib = CONFIG.libraries.defaults || CONFIG.libraries.core.defaults || "ASISTANTO Defaults";
         
         utils.addDebug(currentEntry, "📋 Načítavam nastavenia z '" + defaultsLib + "'");
         
