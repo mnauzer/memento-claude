@@ -504,15 +504,16 @@ function createInfoRecord(workTimeResult, employeeResult) {
         
         var datum = currentEntry.field(CONFIG.fields.datum);
         var datumFormatted = utils.formatDate(datum, "DD.MM.YYYY");
-        var dayName = moment(datum).format("dddd");
-        var dayNameCapitalized = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+        //var dayName = moment(datum).format("dddd");
+        var dayName = utils.getDayNamesk(moment(datum).day()).toUpperCase();
+        //var dayNameCapitalized = dayName.charAt(0).toUpperCase() + dayName.slice(1);
         
 
 
         var infoMessage = "📋 DOCHÁDZKA - AUTOMATICKÝ PREPOČET\n";
         infoMessage += "═══════════════════════════════════\n\n";
         
-        infoMessage += "📅 Dátum: " + datumFormatted + " (" + dayNameCapitalized + ")\n";
+        infoMessage += "📅 Dátum: " + datumFormatted + " (" + dayName + ")\n";
         infoMessage += "⏰ Pracovný čas: " + utils.formatTime(workTimeResult.prichodRounded) + 
                        " - " + utils.formatTime(workTimeResult.odchodRounded) + "\n";
         infoMessage += "⏱️ Pracovná doba: " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
