@@ -95,7 +95,7 @@ var MementoUtils = (function() {
 
         // Custom helper functions can be added here
         selectOsobaForm: modules.core.selectOsobaForm,
-        getDayNameSK: modules.core.getDayNamesk,
+        getDayNameSK: modules.core.getDayNameSK,
         SlovakDateTime: modules.core.SlovakDateTime
         
     };
