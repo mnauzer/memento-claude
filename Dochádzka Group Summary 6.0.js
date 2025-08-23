@@ -266,7 +266,7 @@ function main() {
  */
 function loadSettings() {
     try {
-        var defaultsLib = CONFIG.libraries.defaults || CONFIG.libraries.core?.defaults || "ASISTANTO Defaults";
+        var defaultsLib = CONFIG.libraries.defaults || CONFIG.libraries.core.defaults || "ASISTANTO Defaults";
         
         utils.addDebug(currentEntry, "📋 Načítavam nastavenia z '" + defaultsLib + "'");
         
@@ -384,7 +384,7 @@ function getTargetGroupFromLink(linkedGroup) {
 function findTargetGroupByTextId(telegramId) {
     try {
         var telegramGroupsLib = CONFIG.libraries.telegramGroups || 
-                                CONFIG.libraries.telegram?.groups || 
+                                CONFIG.libraries.telegram.groups || 
                                 "Telegram Groups";
         
         var telegramGroups = libByName(telegramGroupsLib);
