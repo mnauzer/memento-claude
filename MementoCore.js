@@ -131,16 +131,6 @@ var config = (function() {
         }
     }
 
-    function selectOsobaForm(count) {
-    if (count === 1) {
-            return 'osoba';
-        } else if (count >= 2 && count <= 4) {
-            return 'osoby';
-        } else {
-            return 'osôb';
-        }
-}
-    
     // ==============================================
     // SAFE FIELD ACCESS
     // ==============================================
@@ -401,6 +391,91 @@ var config = (function() {
         return true;
     }
     
+
+    // CUStOM UTILITIES
+
+    
+    function selectOsobaForm(count) {
+    if (count === 1) {
+            return 'osoba';
+        } else if (count >= 2 && count <= 4) {
+            return 'osoby';
+        } else {
+            return 'osôb';
+        }
+}
+    
+    // Použitie:
+    // console.log(SlovakDateTime.getDayName());                    // "sobota"
+    // console.log(SlovakDateTime.getDayName(null, true));         // "so"
+    // console.log(SlovakDateTime.getMonthName());                 // "august"
+    // console.log(SlovakDateTime.formatDate());                   // "sobota, 23. august 2025"
+    // console.log(SlovakDateTime.formatDate(new Date('2025-12-25'))); // "štvrtok, 25. december 2025"
+    const SlovakDateTime = {
+        days: {
+            long: ['nedeľa', 'pondelok', 'utorok', 'streda', 'štvrtok', 'piatok', 'sobota'],
+            short: ['ne', 'po', 'ut', 'st', 'št', 'pi', 'so']
+        },
+        
+        months: {
+            long: ['január', 'február', 'marec', 'apríl', 'máj', 'jún', 
+                'júl', 'august', 'september', 'október', 'november', 'december'],
+            short: ['jan', 'feb', 'mar', 'apr', 'máj', 'jún', 
+                    'júl', 'aug', 'sep', 'okt', 'nov', 'dec']
+        },
+        
+        getDayName: function(date, short = false) {
+            let dayIndex;
+            
+            if (!date) {
+            dayIndex = new Date().getDay();
+            } else if (typeof date === 'number') {
+            dayIndex = date % 7;
+            } else {
+            dayIndex = date.getDay();
+            }
+            
+            return short ? this.days.short[dayIndex] : this.days.long[dayIndex];
+        },
+        
+        getMonthName: function(date, short = false) {
+            let monthIndex;
+            
+            if (!date) {
+            monthIndex = new Date().getMonth();
+            } else if (typeof date === 'number') {
+            monthIndex = date % 12;
+            } else {
+            monthIndex = date.getMonth();
+            }
+            
+            return short ? this.months.short[monthIndex] : this.months.long[monthIndex];
+        },
+        
+        formatDate: function(date, format = 'dddd, DD. MMMM YYYY') {
+            if (!date) date = new Date();
+            
+            const day = this.getDayName(date);
+            const month = this.getMonthName(date);
+            const dayNum = date.getDate();
+            const year = date.getFullYear();
+            
+            return format
+            .replace('dddd', day)
+            .replace('MMMM', month)
+            .replace('DD', dayNum.toString().padStart(2, '0'))
+            .replace('YYYY', year);
+        }
+    };
+
+    // Jednoduchá funkcia pre Memento
+    function getDayNameSK(dayIndex) {
+        var days = ['nedeľa', 'pondelok', 'utorok', 'streda', 'štvrtok', 'piatok', 'sobota'];
+        return days[dayIndex];
+    }
+
+           
+
     // ==============================================
     // PUBLIC API
     // ==============================================
@@ -416,7 +491,6 @@ var config = (function() {
         addInfo: addInfo,
         clearLogs: clearLogs,
         saveLogs: saveLogs,
-        selectOsobaForm: selectOsobaForm,
         
         // Safe field access
         safeGet: safeGet,
@@ -439,6 +513,10 @@ var config = (function() {
         // Utilities
         findEntryById: findEntryById,
         getSettings: getSettings,
-   
+        
+        // Custom Utilities
+        selectOsobaForm: selectOsobaForm,
+        SlovakDateTime: SlovakDateTime,
+        getDayNameSK: getDayNameSK
     };
 })();
