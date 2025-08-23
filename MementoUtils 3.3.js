@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTOUTILS - Hlavný agregátor všetkých modulov
-// Verzia: 3.3 | Dátum: August 2025 | Autor: ASISTANTO
+// Verzia: 3.4 | Dátum: August 2025 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - Agreguje všetky moduly do jedného API
@@ -13,13 +13,39 @@
 //    - MementoTelegram.js (notifikácie)
 //    - MementoBusiness.js (business logika)
 // ==============================================
+// 🔧 CHANGELOG v3.4:
+//    - Opravené poradie deklarácie premenných (CONFIG undefined bug)
+//    - Presunuté configAdapter a DEFAULT_CONFIG po definícii api objektu
+//    - Pridané debug logy pre lepší troubleshooting
+// ==============================================
+
+var MementoUtils = (function() {
+    'use strict';
+    
+    // ==============================================
+    // IMPORT MODULOV
+    // ==============================================
+    
+    // Kontrola dostupnosti modulov
+    var modules = {
+        core: typeof MementoCore !== 'undefined' ? MementoCore : null,
+        ai: typeof MementoAI !== 'undefined' ? MementoAI : null,
+        telegram: typeof MementoTelegram !== 'undefined' ? MementoTelegram : null,
+        business: typeof MementoBusiness !== 'undefined' ? MementoBusiness : null
+    };
+    
+    // Základná verzia ak chýbajú moduly
+    if (!modules.core) {
+        throw new Error("MementoCore.js is required!");
+    }
+    
     // ==============================================
     // AGREGOVANÉ API
     // ==============================================
     
     var api = {
         // Version info
-        version: "3.3",
+        version: "3.4",
         moduleVersions: {
             core: modules.core ? modules.core.version : "N/A",
             ai: modules.ai ? modules.ai.version : "N/A",
@@ -67,56 +93,6 @@
         includeLineNumbers: modules.core.config.includeLineNumbers,
         includeStackTrace: modules.core.config.includeStackTrace
     };
-
-var MementoUtils = (function() {
-    'use strict';
-    // Import config adapter if available
-    var configAdapter = typeof MementoConfigAdapter !== 'undefined' ? MementoConfigAdapter : null;
-
-    // Add to public API
-    api.CONFIG = configAdapter ? configAdapter.getConfig() : null;
-
-    // Add DEFAULT_CONFIG for backward compatibility
-    api.DEFAULT_CONFIG = (function() {
-        if (configAdapter) {
-            var cfg = configAdapter.getConfig();
-            if (cfg) {
-                var libs = cfg.getLibraries();
-                return {
-                    defaultLibraryName: libs.core.defaults,
-                    apiKeysLibrary: libs.core.api,
-                    telegramGroupsLibrary: libs.telegram.groups,
-                    notificationsLibrary: libs.core.notifications
-                };
-            }
-        }
-        // Fallback
-        return {
-            defaultLibraryName: "ASISTANTO Defaults",
-            apiKeysLibrary: "ASISTANTO API",
-            telegramGroupsLibrary: "Telegram Groups",
-            notificationsLibrary: "Notifications"
-        };
-    })();  
-
-
-    // ==============================================
-    // IMPORT MODULOV
-    // ==============================================
-    
-    // Kontrola dostupnosti modulov
-    var modules = {
-        core: typeof MementoCore !== 'undefined' ? MementoCore : null,
-        ai: typeof MementoAI !== 'undefined' ? MementoAI : null,
-        telegram: typeof MementoTelegram !== 'undefined' ? MementoTelegram : null,
-        business: typeof MementoBusiness !== 'undefined' ? MementoBusiness : null
-    };
-    
-    // Základná verzia ak chýbajú moduly
-    if (!modules.core) {
-        throw new Error("MementoCore.js is required!");
-    }
-    
     
     // ==========================================
     // AI FUNCTIONS (ak je modul dostupný)
@@ -152,11 +128,8 @@ var MementoUtils = (function() {
         api.processNotificationQueue = modules.telegram.processNotificationQueue;
         api.getTelegramGroup = modules.telegram.getTelegramGroup;
     } else {
-        // Fallback funkcie
+        // Fallback funkcie ak Telegram modul chýba
         api.sendTelegramMessage = function() {
-            return { success: false, error: "MementoTelegram module not loaded" };
-        };
-        api.createNotificationEntry = function() {
             return { success: false, error: "MementoTelegram module not loaded" };
         };
     }
@@ -167,95 +140,131 @@ var MementoUtils = (function() {
     
     if (modules.business) {
         api.calculateWorkHours = modules.business.calculateWorkHours;
+        api.getEmployeeWorkRecord = modules.business.getEmployeeWorkRecord;
         api.isWeekend = modules.business.isWeekend;
         api.isHoliday = modules.business.isHoliday;
-        api.getWorkDayMultiplier = modules.business.getWorkDayMultiplier;
         api.formatEmployeeName = modules.business.formatEmployeeName;
         api.getEmployeeDetails = modules.business.getEmployeeDetails;
         api.findEmployeeByNick = modules.business.findEmployeeByNick;
         api.calculateDailyWage = modules.business.calculateDailyWage;
-        api.generateAttendanceSummary = modules.business.generateAttendanceSummary;
+        api.getLatestRate = modules.business.getLatestRate;
     } else {
-        // Fallback funkcie pre business logiku
+        // Placeholder funkcie ak Business modul chýba
         api.calculateWorkHours = function(start, end) {
-            // Základná implementácia ak chýba business modul
-            try {
-                var startTime = moment(start);
-                var endTime = moment(end);
-                var diff = endTime.diff(startTime, 'hours', true);
-                return {
-                    hours: diff > 0 ? diff : diff + 24,
-                    minutes: 0,
-                    error: modules.business ? null : "Using basic calculation"
-                };
-            } catch (e) {
-                return { hours: 0, minutes: 0, error: e.toString() };
-            }
-        };
-        
-        api.formatEmployeeName = function(emp) {
-            // Základná implementácia
-            if (!emp) return "Neznámy";
-            return modules.core.safeGet(emp, "Nick", "Zamestnanec");
-        };
-        
-        api.getEmployeeDetails = function() {
-            return { hasValidRate: false, error: "MementoBusiness module not loaded" };
+            var diff = end.getTime() - start.getTime();
+            return diff / (1000 * 60 * 60);
         };
     }
     
     // ==========================================
-    // HELPER FUNKCIE
+    // CONFIG ADAPTER INTEGRATION (po definícii api!)
     // ==========================================
     
-    // Funkcia na kontrolu dostupných modulov
+    // Import config adapter if available
+    var configAdapter = typeof MementoConfigAdapter !== 'undefined' ? MementoConfigAdapter : null;
+    
+    // Add to public API
+    api.CONFIG = configAdapter ? configAdapter.getConfig() : null;
+    
+    // Add DEFAULT_CONFIG for backward compatibility
+    api.DEFAULT_CONFIG = (function() {
+        if (configAdapter) {
+            try {
+                var cfg = configAdapter.getConfig();
+                if (cfg) {
+                    var libs = cfg.getLibraries();
+                    return {
+                        defaultLibraryName: libs.core.defaults,
+                        apiKeysLibrary: libs.core.api,
+                        telegramGroupsLibrary: libs.telegram.groups,
+                        notificationsLibrary: libs.core.notifications
+                    };
+                }
+            } catch(e) {
+                // Fallback if config adapter fails
+                if (modules.core && modules.core.config.debug) {
+                    modules.core.addDebug(null, "ConfigAdapter error: " + e.toString());
+                }
+            }
+        }
+        // Fallback to core config
+        return modules.core.config;
+    })();
+    
+    // ==========================================
+    // HELPER FUNCTIONS
+    // ==========================================
+    
+    /**
+     * Získať zoznam načítaných modulov
+     */
     api.getLoadedModules = function() {
         var loaded = [];
-        for (var module in modules) {
-            if (modules[module]) {
+        for (var name in modules) {
+            if (modules[name]) {
                 loaded.push({
-                    name: module,
-                    version: modules[module].version || "unknown"
+                    name: name,
+                    version: modules[name].version || "N/A"
                 });
             }
         }
         return loaded;
     };
     
-    // Funkcia na kontrolu závislostí
+    /**
+     * Skontroluj závislosti
+     */
     api.checkDependencies = function() {
         var report = {
-            allLoaded: true,
-            modules: {}
+            core: modules.core !== null,
+            ai: modules.ai !== null,
+            telegram: modules.telegram !== null,
+            business: modules.business !== null,
+            configAdapter: configAdapter !== null,
+            allRequired: modules.core !== null,
+            summary: ""
         };
         
-        for (var module in modules) {
-            report.modules[module] = modules[module] !== null;
-            if (!modules[module]) {
-                report.allLoaded = false;
+        var loaded = [];
+        var missing = [];
+        
+        for (var name in modules) {
+            if (modules[name]) {
+                loaded.push(name);
+            } else {
+                missing.push(name);
             }
         }
+        
+        report.summary = "Loaded: " + loaded.join(", ") + 
+                        (missing.length > 0 ? " | Missing: " + missing.join(", ") : "");
         
         return report;
     };
     
-    // Info správa pri načítaní
-    if (modules.core && modules.core.addDebug) {
-        try {
-            var loadedCount = api.getLoadedModules().length;
-            modules.core.addDebug(entry(), 
-                "✅ MementoUtils " + api.version + " loaded with " + 
-                loadedCount + "/4 modules"
-            );
-        } catch (e) {
-            // OK - môže byť mimo entry kontext
+    // ==========================================
+    // MODULE INITIALIZATION
+    // ==========================================
+    
+    // Debug log pre troubleshooting
+    if (modules.core && modules.core.config.debug) {
+        var loadReport = api.checkDependencies();
+        modules.core.addDebug(null, "🚀 MementoUtils v" + api.version + " initialized");
+        modules.core.addDebug(null, "📦 Modules: " + loadReport.summary);
+        if (api.CONFIG) {
+            modules.core.addDebug(null, "✅ ConfigAdapter loaded successfully");
         }
     }
     
-    // ==========================================
-    // RETURN PUBLIC API
-    // ==========================================
-    
+    // Return public API
     return api;
     
 })();
+
+// ==============================================
+// GLOBAL EXPORT
+// ==============================================
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = MementoUtils;
+}
