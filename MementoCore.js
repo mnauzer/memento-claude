@@ -391,10 +391,8 @@ var config = (function() {
         return true;
     }
     
-
-    // CUStOM UTILITIES
-
-    
+    // CUSTOM UTILITIES
+ 
     function selectOsobaForm(count) {
     if (count === 1) {
             return 'osoba';
@@ -403,8 +401,8 @@ var config = (function() {
         } else {
             return 'osôb';
         }
-}
-    
+    }
+   
     // Použitie:
     // console.log(SlovakDateTime.getDayName());                    // "sobota"
     // console.log(SlovakDateTime.getDayName(null, true));         // "so"
@@ -486,14 +484,10 @@ var config = (function() {
         }
     };
 
-
-    // Jednoduchá funkcia pre Memento
     function getDayNameSK(dayIndex) {
         var days = ['nedeľa', 'pondelok', 'utorok', 'streda', 'štvrtok', 'piatok', 'sobota'];
         return days[dayIndex];
     }
-
-           
 
     // ==============================================
     // PUBLIC API
