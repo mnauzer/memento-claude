@@ -23,11 +23,18 @@ var MementoBusiness = (function() {
         return core;
     }
     
-    // ==============================================
-    // CONFIGURATION
-    // ==============================================
+    var config = (function() {
+    // Try to use MementoConfig via adapter
+    if (typeof MementoConfigAdapter !== 'undefined') {
+        try {
+            return MementoConfigAdapter.getAdapter('business');
+        } catch (e) {
+            // Fallback to local config
+        }
+    }
     
-    var CONFIG = {
+    // Fallback to original local config
+    return {
         debug: true,
         version: "1.0.1",
         
@@ -96,7 +103,7 @@ var MementoBusiness = (function() {
         }
 
     };
-    
+})();
     // ==============================================
     // WORK TIME CALCULATIONS
     // ==============================================
@@ -424,7 +431,8 @@ var MementoBusiness = (function() {
     
     return {
         // Version
-        version: CONFIG.version,
+        version: config.version,
+        config: config,
         
         // Work time
         calculateWorkHours: calculateWorkHours,
