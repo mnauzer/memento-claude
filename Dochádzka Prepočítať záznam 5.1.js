@@ -505,7 +505,7 @@ function createInfoRecord(workTimeResult, employeeResult) {
         var datum = currentEntry.field(CONFIG.fields.datum);
         var datumFormatted = utils.formatDate(datum, "DD.MM.YYYY");
         //var dayName = moment(datum).format("dddd");
-        var dayName = utils.getDayNamesk(moment(datum).day()).toUpperCase();
+        var dayName = utils.getDayNameSK(moment(datum).day()).toUpperCase();
         //var dayNameCapitalized = dayName.charAt(0).toUpperCase() + dayName.slice(1);
         
 

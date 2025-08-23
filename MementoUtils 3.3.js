@@ -97,8 +97,7 @@ var MementoUtils = (function() {
         selectOsobaForm: modules.core.selectOsobaForm,
         getDayNameSK: modules.core.getDayNamesk,
         SlovakDateTime: modules.core.SlovakDateTime
-
-
+        
     };
     
     // ==========================================
