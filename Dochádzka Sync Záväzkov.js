@@ -320,7 +320,7 @@ function findExistingObligations() {
     try {
         utils.addDebug(currentEntry, "🔍 Hľadám existujúce záväzky...");
         
-        var libraryName = CONFIG.libraries.business?.obligations || "Záväzky";
+        var libraryName = CONFIG.libraries.business.obligations || "Záväzky";
         var zavazkyLib = libByName(libraryName);
         
         if (!zavazkyLib) {
