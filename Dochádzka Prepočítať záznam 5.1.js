@@ -494,6 +494,7 @@ function calculateTotals(employeeResult) {
 // KROK 5: VYTVORENIE INFO ZÁZNAMU
 // ==============================================
 
+
 function createInfoRecord(workTimeResult, employeeResult) {
     var utils = getUtils();
     var CONFIG = getConfig();
@@ -504,20 +505,24 @@ function createInfoRecord(workTimeResult, employeeResult) {
         var datum = currentEntry.field(CONFIG.fields.datum);
         var datumFormatted = utils.formatDate(datum, "DD.MM.YYYY");
         var dayName = moment(datum).format("dddd");
+        var dayNameCapitalized = dayName.charAt(0).toUpperCase() + dayName.slice(1);
         
+
+
         var infoMessage = "📋 DOCHÁDZKA - AUTOMATICKÝ PREPOČET\n";
         infoMessage += "═══════════════════════════════════\n\n";
         
-        infoMessage += "📅 Dátum: " + datumFormatted + " (" + dayName + ")\n";
+        infoMessage += "📅 Dátum: " + datumFormatted + " (" + dayNameCapitalized + ")\n";
         infoMessage += "⏰ Pracovný čas: " + utils.formatTime(workTimeResult.prichodRounded) + 
                        " - " + utils.formatTime(workTimeResult.odchodRounded) + "\n";
         infoMessage += "⏱️ Pracovná doba: " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
         
-        infoMessage += "👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + " osôb):\n";
+        infoMessage += "👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + utils.selectOsobaForm(employeeResult.pocetPracovnikov) + "\n";
         infoMessage += "───────────────────────────────────\n";
         
         for (var i = 0; i < employeeResult.detaily.length; i++) {
             var detail = employeeResult.detaily[i];
+            infoMessage += "• Zamestnanec " + (i+1) + ": " + utils.formatEmployeeName(employeeResult.detaily[i].zamestnanec) + "\n";
             infoMessage += "• Hodinovka: " + detail.hodinovka + " €/h\n";
             if (detail.priplatok > 0) infoMessage += "  + Príplatok: " + detail.priplatok + " €/h\n";
             if (detail.premia > 0) infoMessage += "  + Prémia: " + detail.premia + " €\n";

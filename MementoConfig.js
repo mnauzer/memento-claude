@@ -106,7 +106,18 @@ var MementoConfig = (function() {
             zapisal: "zapísal",
             datumZapisu: "dátum zápisu",
             upravil: "upravil",
-            datumUpravy: "dátum úpravy"
+            datumUpravy: "dátum úpravy",
+
+            attributes: {
+                odpracovane: "odpracované",
+                hodinovka: "hodinovka",
+                priplatok: "+príplatok (€/h)",
+                premia: "+prémia (€)",
+                pokuta: "-pokuta (€)",
+                dennaMzda: "denná mzda",
+                stravne: "stravné (€)",
+                poznamka: "poznámka"
+        }   ,
         },
         
         // ATRIBÚTY PRE DOCHÁDZKU
@@ -297,7 +308,7 @@ var MementoConfig = (function() {
     
     var MODULE_DEFAULTS = {
         core: {
-            version: "3.3",
+            version: "6",
             debug: true,
             includeLineNumbers: true,
             includeStackTrace: false
