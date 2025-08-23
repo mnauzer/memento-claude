@@ -128,47 +128,6 @@ function initializeModules() {
 }
 
 /**
- * Lazy loading pre konfiguráciu
- */
-function getConfig() {
-    if (!config) {
-        // Priorita 1: Centralizovaný MementoConfig
-        if (typeof MementoConfig !== 'undefined') {
-            MementoConfig.init();
-            var baseConfig = MementoConfig.getConfig('attendance');
-            
-            config = {
-                debug: true,
-                version: "6.1.1",
-                scriptName: "Dochádzka Group Summary",
-                
-                // Field mappings z centrálneho config
-                fields: baseConfig.fieldMappings.attendance,
-                attributes: baseConfig.fieldMappings.attendanceAttributes,
-                
-                // Library names
-                libraries: {
-                    sadzbyZamestnancov: baseConfig.libraries.business.rates
-                },
-                
-                // Sadzby field names
-                sadzbyFields: baseConfig.fieldMappings.employeeRates,
-                
-                // Business settings
-                settings: {
-                    roundToQuarterHour: true,
-                    quarterHourMinutes: 15
-                }
-            };
-        } else {
-            // Fallback na lokálny config
-            config = getLocalConfig();
-        }
-    }
-    return config;
-}
-
-/**
  * Lokálna konfigurácia (fallback)
  */
 function getLocalConfig() {
