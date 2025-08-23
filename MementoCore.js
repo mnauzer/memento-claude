@@ -61,7 +61,7 @@ var config = (function() {
     function addDebug(entry, message) {
         if (!entry || !config.debug) return;
         
-        var timestamp = moment().format("HH:mm:ss");
+        var timestamp = moment().format("DD.MM.YY HH:mm:ss");
         var debugMessage = "[" + timestamp + "] " + message;
         
         var existingDebug = entry.field(config.debugFieldName) || "";
@@ -71,7 +71,7 @@ var config = (function() {
     function addError(entry, errorMessage, scriptName, errorObject) {
         if (!entry) return;
         
-        var timestamp = moment().format("YYYY-MM-DD HH:mm:ss");
+        var timestamp = moment().format("DD.MM.YY HH:mm:ss");
         var formattedMessage = "[" + timestamp + "] ";
         
         if (scriptName) {
@@ -84,7 +84,7 @@ var config = (function() {
         if (errorObject && typeof errorObject === "object") {
             if (errorObject.lineNumber && typeof errorObject.lineNumber === "function") {
                 try {
-                    var lineNum = errorObject.lineNumber();
+                    var lineNum = errorObject.lineNumber;
                     if (lineNum) {
                         formattedMessage += " (line: " + lineNum + ")";
                     }
