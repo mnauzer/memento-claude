@@ -292,7 +292,7 @@ function getObligationsLibrary() {
     try {
         utils.addDebug(currentEntry, "📚 Načítavam knižnicu Záväzky...");
         
-        var libraryName = CONFIG.libraries.business?.obligations || "Záväzky";
+        var libraryName = CONFIG.libraries.business.obligations || "Záväzky";
         var zavazkyLib = libByName(libraryName);
         
         if (!zavazkyLib) {
