@@ -23,6 +23,8 @@ var currentEntry = entry();
  * Lazy loading pre MementoUtils
  */
 function getUtils() {
+    try {
+        
     if (!utils) {
         if (typeof MementoUtils !== 'undefined') {
             utils = MementoUtils;
@@ -31,6 +33,12 @@ function getUtils() {
         }
     }
     return utils;
+    } catch (error) {
+        if (currentEntry) {
+            currentEntry.set("Error_Log", "Chyba pri načítaní MementoUtils: " + error.toString()+"Line: "+error.lineNumber);
+        }
+        throw error; // Re-throw the error after logging    
+    }
 }
 
 /**
