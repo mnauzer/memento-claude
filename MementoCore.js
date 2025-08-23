@@ -32,7 +32,7 @@ var config = (function() {
     
     // Fallback to original local config
     return {
-        version: "1.0",
+        version: "1.1",
         debug: true,
         includeLineNumbers: true,
         includeStackTrace: false,
@@ -130,6 +130,16 @@ var config = (function() {
             entry.set(config.errorFieldName, "");
         }
     }
+
+    function selectOsobaForm(count) {
+    if (count === 1) {
+            return 'osoba';
+        } else if (count >= 2 && count <= 4) {
+            return 'osoby';
+        } else {
+            return 'osôb';
+        }
+}
     
     // ==============================================
     // SAFE FIELD ACCESS
@@ -190,43 +200,6 @@ var config = (function() {
         }
     }
     
-    // function safeGetLinks(entry, linkFieldName) {
-    //     try {
-    //         if (!entry || !linkFieldName) return [];
-            
-    //         var links = entry.field(linkFieldName);
-    //         if (!links) return [];
-            
-    //         // Konvertuj na array
-    //         var linksArray = Array.isArray(links) ? links : [links];
-    //         addDebug(entry, "Found " + linksArray.length + " links in field '" + linkFieldName + "'");
-    //         // NOVÁ ČASŤ: Rozbaľ JSEntry wrapper objekty
-    //         var unwrappedLinks = [];
-    //         for (var i = 0; i < linksArray.length; i++) {
-    //             var link = linksArray[i];
-    //             if (!link) continue;
-                
-    //             // Ak má entry() metódu, je to wrapper
-    //             if (link.entry && typeof link.entry === 'function') {
-    //                 try {
-    //                     unwrappedLinks.push(link.entry());
-    //                 } catch (e) {
-    //                     // Fallback - pridaj originál
-    //                     unwrappedLinks.push(link);
-    //                 }
-    //             } else {
-    //                 // Už je to entry alebo iný objekt
-    //                 unwrappedLinks.push(link);
-    //             }
-    //         }
-    //         addDebug(entry, "Unwrapped " + unwrappedLinks.length + " links from field '" + linkFieldName + "'");
-    //         return unwrappedLinks;
-            
-    //     } catch (error) {
-    //         return [];
-    //     }
-    // }
-
     function safeGetLinks(entry, linkFieldName) {
         try {
             if (!entry || !linkFieldName) return [];
@@ -237,7 +210,7 @@ var config = (function() {
             return links;
             
         } catch (error) {
-            addError(entry, "Chyba pri získavaní linkov: " + error.toString() + "Line: " + error.lineNumber, "safeGetLinks", error);
+            addError(entry, "Chyba pri získavaní linkov: " + error.toString(), "MememtoCore/safeGetLinks", error);
             return [];
         }
     }
@@ -443,6 +416,7 @@ var config = (function() {
         addInfo: addInfo,
         clearLogs: clearLogs,
         saveLogs: saveLogs,
+        selectOsobaForm: selectOsobaForm,
         
         // Safe field access
         safeGet: safeGet,
