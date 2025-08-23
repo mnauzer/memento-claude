@@ -517,7 +517,7 @@ function createInfoRecord(workTimeResult, employeeResult) {
                        " - " + utils.formatTime(workTimeResult.odchodRounded) + "\n";
         infoMessage += "⏱️ Pracovná doba: " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
         
-        infoMessage += "👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + utils.selectOsobaForm(employeeResult.pocetPracovnikov) + "\n";
+        infoMessage += "👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + " " + utils.selectOsobaForm(employeeResult.pocetPracovnikov) + ")\n";
         infoMessage += "───────────────────────────────────\n";
         
         for (var i = 0; i < employeeResult.detaily.length; i++) {
