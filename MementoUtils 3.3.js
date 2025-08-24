@@ -22,6 +22,7 @@
 var MementoUtils = (function() {
     'use strict';
     
+    var VERSION = "3.4.1";
     // ==============================================
     // IMPORT MODULOV
     // ==============================================
@@ -39,68 +40,7 @@ var MementoUtils = (function() {
         throw new Error("MementoCore.js is required!");
     }
     
-    // ==============================================
-    // AGREGOVANÉ API
-    // ==============================================
-    
-    var api = {
-        // Version info
-        version: "3.4",
-        moduleVersions: {
-            core: modules.core ? modules.core.version : "N/A",
-            ai: modules.ai ? modules.ai.version : "N/A",
-            telegram: modules.telegram ? modules.telegram.version : "N/A",
-            business: modules.business ? modules.business.version : "N/A"
-        },
-        
-        // Configuration - z Core modulu
-        DEFAULT_CONFIG: modules.core.config,
-        
-        // ==========================================
-        // CORE FUNCTIONS (vždy dostupné)
-        // ==========================================
-        
-        // Logging
-        addDebug: modules.core.addDebug,
-        addError: modules.core.addError,
-        addInfo: modules.core.addInfo,
-        clearLogs: modules.core.clearLogs,
-        saveLogs: modules.core.saveLogs,
-        
-        // Safe field access
-        safeGet: modules.core.safeGet,
-        safeSet: modules.core.safeSet,
-        safeFieldAccess: modules.core.safeFieldAccess,
-        safeGetAttribute: modules.core.safeGetAttribute,
-        safeSetAttribute: modules.core.safeSetAttribute,
-        safeGetLinks: modules.core.safeGetLinks,
-        
-        // Time & formatting
-        formatDate: modules.core.formatDate,
-        formatTime: modules.core.formatTime,
-        formatMoney: modules.core.formatMoney,
-        parseTimeToMinutes: modules.core.parseTimeToMinutes,
-        roundToQuarter: modules.core.roundToQuarter,
-        
-        // Validation
-        validateRequiredFields: modules.core.validateRequiredFields,
-        
-        // Utilities
-        findEntryById: modules.core.findEntryById,
-        getSettings: modules.core.getSettings,
-        
-        // Legacy support
-        includeLineNumbers: modules.core.config.includeLineNumbers,
-        includeStackTrace: modules.core.config.includeStackTrace,
-
-        // Custom helper functions can be added here
-        selectOsobaForm: modules.core.selectOsobaForm,
-        getDayNameSK: modules.core.getDayNameSK,
-        SlovakDateTime: modules.core.SlovakDateTime
-        
-    };
-    
-    // ==========================================
+     // ==========================================
     // AI FUNCTIONS (ak je modul dostupný)
     // ==========================================
     
@@ -161,6 +101,66 @@ var MementoUtils = (function() {
             return diff / (1000 * 60 * 60);
         };
     }
+       // ==============================================
+    // AGREGOVANÉ API
+    // ==============================================
+    
+    var api = {
+        // Version info
+        version: VERSION,
+        moduleVersions: {
+            core: modules.core ? modules.core.version : "N/A",
+            ai: modules.ai ? modules.ai.version : "N/A",
+            telegram: modules.telegram ? modules.telegram.version : "N/A",
+            business: modules.business ? modules.business.version : "N/A"
+        },
+        
+        // Configuration - z Core modulu
+        DEFAULT_CONFIG: modules.core.config,
+        
+        // ==========================================
+        // CORE FUNCTIONS (vždy dostupné)
+        // ==========================================
+        
+        // Logging
+        addDebug: modules.core.addDebug,
+        addError: modules.core.addError,
+        addInfo: modules.core.addInfo,
+        clearLogs: modules.core.clearLogs,
+        saveLogs: modules.core.saveLogs,
+        
+        // Safe field access
+        safeGet: modules.core.safeGet,
+        safeSet: modules.core.safeSet,
+        safeFieldAccess: modules.core.safeFieldAccess,
+        safeGetAttribute: modules.core.safeGetAttribute,
+        safeSetAttribute: modules.core.safeSetAttribute,
+        safeGetLinks: modules.core.safeGetLinks,
+        
+        // Time & formatting
+        formatDate: modules.core.formatDate,
+        formatTime: modules.core.formatTime,
+        formatMoney: modules.core.formatMoney,
+        parseTimeToMinutes: modules.core.parseTimeToMinutes,
+        roundToQuarter: modules.core.roundToQuarter,
+        
+        // Validation
+        validateRequiredFields: modules.core.validateRequiredFields,
+        
+        // Utilities
+        findEntryById: modules.core.findEntryById,
+        getSettings: modules.core.getSettings,
+        
+        // Legacy support
+        includeLineNumbers: modules.core.config.includeLineNumbers,
+        includeStackTrace: modules.core.config.includeStackTrace,
+
+        // Custom helper functions can be added here
+        selectOsobaForm: modules.core.selectOsobaForm,
+        getDayNameSK: modules.core.getDayNameSK,
+        SlovakDateTime: modules.core.SlovakDateTime
+        
+    };
     
     // ==========================================
     // CONFIG ADAPTER INTEGRATION (po definícii api!)

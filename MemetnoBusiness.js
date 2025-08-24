@@ -36,7 +36,7 @@ var MementoBusiness = (function() {
         // Fallback to original local config
         return {
             debug: true,
-            version: "1.0.1",
+            version: "1.0.2",
             
             // Business rules
             defaultWorkHoursPerDay: 8,
