@@ -79,10 +79,10 @@ function validateInputData() {
         }
         
         // Získaj hodnoty
-        var date = currentEntry.field(CONFIG.fields.attendance.date);
-        var arrival = currentEntry.field(CONFIG.fields.attendance.arrival);
-        var departure = currentEntry.field(CONFIG.fields.attendance.departure);
-        var employees = currentEntry.field(CONFIG.fields.attendance.employees) || [];
+        var date = utils.safeGet(currentEntry, CONFIG.fields.attendance.date);
+        var arrival = utils.safeGet(currentEntry, CONFIG.fields.attendance.arrival);
+        var departure = utils.safeGet(currentEntry, CONFIG.fields.attendance.departure);
+        var employees = utils.safeGet(currentEntry, CONFIG.fields.attendance.employees);
         
         // Dodatočné kontroly
         if (!date) {
@@ -134,8 +134,8 @@ function calculateWorkTime(arrival, departure) {
             departureRounded = utils.roundToQuarter(departure);
 
             // nastavenie zaokrúhlených časov do záznamu
-            currentEntry.set(CONFIG.fields.attendance.arrival, arrivalRounded);    
-            currentEntry.set(CONFIG.fields.attendance.departure, departureRounded);
+            utils.safeSet(currentEntry, CONFIG.fields.attendance.arrival, arrivalRounded);    
+            utils.safeSet(currentEntry, CONFIG.fields.attendance.departure, departureRounded);
 
             
             utils.addDebug(currentEntry, "  • Zaokrúhlené časy: " + 
