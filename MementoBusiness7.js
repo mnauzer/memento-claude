@@ -104,64 +104,7 @@ var MementoBusiness = (function() {
     }
 
 
-    /**
-     * Kontroluje či je dátum víkend
-     * @param {Date|string} date - Dátum na kontrolu
-     * @returns {boolean} True ak je víkend
-     */
-    function isWeekend(date) {
-        try {
-            var day = moment(date).day();
-            return day === 0 || day === 6; // Nedeľa = 0, Sobota = 6
-        } catch (error) {
-            return false;
-        }
-    }
-    
-    /**
-     * Kontroluje či je dátum sviatok
-     * @param {Date|string} date - Dátum na kontrolu
-     * @returns {boolean} True ak je sviatok
-     */
-    function isHoliday(date) {
-        try {
-            var config = getConfig();
-            var year = moment(date).year();
-            
-            // Slovenské štátne sviatky
-            var holidays = [
-                year + "-01-01", // Deň vzniku SR
-                year + "-01-06", // Zjavenie Pána
-                year + "-05-01", // Sviatok práce
-                year + "-05-08", // Deň víťazstva
-                year + "-07-05", // Cyril a Metod
-                year + "-08-29", // SNP
-                year + "-09-01", // Deň ústavy
-                year + "-09-15", // Sedembolestná
-                year + "-11-01", // Sviatok všetkých svätých
-                year + "-11-17", // Deň boja za slobodu
-                year + "-12-24", // Štedrý deň
-                year + "-12-25", // 1. sviatok vianočný
-                year + "-12-26"  // 2. sviatok vianočný
-            ];
-            
-            // Pohyblivé sviatky (potrebuje výpočet)
-            // Veľký piatok, Veľkonočný pondelok
-            var easter = calculateEaster(year);
-            if (easter) {
-                holidays.push(
-                    moment(easter).subtract(2, 'days').format('YYYY-MM-DD'), // Veľký piatok
-                    moment(easter).add(1, 'days').format('YYYY-MM-DD')      // Veľkonočný pondelok
-                );
-            }
-            
-            var dateStr = moment(date).format('YYYY-MM-DD');
-            return holidays.indexOf(dateStr) !== -1;
-            
-        } catch (error) {
-            return false;
-        }
-    }
+   
     
     /**
      * Vypočíta dátum Veľkej noci

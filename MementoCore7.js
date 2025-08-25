@@ -22,22 +22,14 @@ var MementoCore = (function() {
     
     // Lazy loading pre MementoConfig
     var _config = null;
+    
     function getConfig() {
         if (!_config && typeof MementoConfig !== 'undefined') {
             _config = MementoConfig.getConfig();
         }
         return _config;
     }
-    
-    // ==============================================
-    // LOGGING FUNKCIE
-    // ==============================================
-    
-    /**
-     * Pridá debug správu do Debug_Log poľa
-     * @param {Entry} entry - Memento entry objekt
-     * @param {string} message - Debug správa
-     */
+  
     function addDebug(entry, message) {
         try {
             var config = getConfig();
@@ -53,13 +45,6 @@ var MementoCore = (function() {
         }
     }
     
-    /**
-     * Pridá error správu do Error_Log poľa
-     * @param {Entry} entry - Memento entry objekt
-     * @param {string} message - Error správa
-     * @param {string} source - Názov funkcie/miesto kde vznikla chyba
-     * @param {Error} error - JavaScript Error objekt (optional)
-     */
     function addError(entry, message, source, error) {
         try {
             var config = getConfig();
@@ -84,12 +69,6 @@ var MementoCore = (function() {
         }
     }
     
-    /**
-     * Pridá info správu do info poľa
-     * @param {Entry} entry - Memento entry objekt
-     * @param {string} message - Info správa
-     * @param {Object} data - Dodatočné dáta (optional)
-     */
     function addInfo(entry, message, data) {
         try {
             var config = getConfig();
@@ -110,11 +89,6 @@ var MementoCore = (function() {
         }
     }
     
-    /**
-     * Vyčistí logy v entry
-     * @param {Entry} entry - Memento entry objekt
-     * @param {boolean} clearError - Či vyčistiť aj Error_Log (default: false)
-     */
     function clearLogs(entry, clearError) {
         try {
             var config = getConfig();
@@ -131,17 +105,6 @@ var MementoCore = (function() {
         }
     }
     
-    // ==============================================
-    // SAFE FIELD ACCESS
-    // ==============================================
-    
-    /**
-     * Bezpečne získa hodnotu poľa
-     * @param {Entry} entry - Memento entry objekt
-     * @param {string} fieldName - Názov poľa
-     * @param {*} defaultValue - Predvolená hodnota ak pole neexistuje
-     * @returns {*} Hodnota poľa alebo defaultValue
-     */
     function safeGet(entry, fieldName, defaultValue) {
         try {
             if (!entry || !fieldName) {
@@ -156,13 +119,6 @@ var MementoCore = (function() {
         }
     }
     
-    /**
-     * Bezpečne nastaví hodnotu poľa
-     * @param {Entry} entry - Memento entry objekt
-     * @param {string} fieldName - Názov poľa
-     * @param {*} value - Hodnota na nastavenie
-     * @returns {boolean} Úspešnosť operácie
-     */
     function safeSet(entry, fieldName, value) {
         try {
             if (!entry || !fieldName) {
@@ -177,14 +133,6 @@ var MementoCore = (function() {
         }
     }
     
-    /**
-     * Bezpečne získa atribút z Link to Entry poľa
-     * @param {Entry} entry - Memento entry objekt
-     * @param {string} fieldName - Názov Link to Entry poľa
-     * @param {string} attrName - Názov atribútu
-     * @param {*} defaultValue - Predvolená hodnota
-     * @returns {*} Hodnota atribútu alebo defaultValue
-     */
     function safeGetAttribute(entry, fieldName, attrName, defaultValue) {
         try {
             if (!entry || !fieldName || !attrName) {
@@ -224,15 +172,6 @@ var MementoCore = (function() {
         }
     }
     
-    /**
-     * Bezpečne nastaví atribút na Link to Entry poli
-     * @param {Entry} entry - Memento entry objekt
-     * @param {string} fieldName - Názov Link to Entry poľa
-     * @param {string} attrName - Názov atribútu
-     * @param {*} value - Hodnota atribútu
-     * @param {number} index - Index v poli (pre multi-select)
-     * @returns {boolean} Úspešnosť operácie
-     */
     function safeSetAttribute(entry, fieldName, attrName, value, index) {
         try {
             if (!entry || !fieldName || !attrName) {
@@ -278,34 +217,6 @@ var MementoCore = (function() {
         }
     }
     
-    /**
-     * Bezpečne získa linky z Link to Entry poľa
-     * @param {Entry} entry - Memento entry objekt
-     * @param {string} fieldName - Názov Link to Entry poľa
-     * @returns {Array} Pole linknutých objektov
-     */
-    // function safeGetLinks(entry, fieldName) {
-    //     try {
-    //         if (!entry || !fieldName) {
-    //             return [];
-    //         }
-            
-    //         var field = entry.field(fieldName);
-    //         if (!field) {
-    //             return [];
-    //         }
-            
-    //         // Ak je to už pole, vráť ho
-    //         if (Array.isArray(field)) {
-    //             return field;
-    //         }
-            
-    //         // Ak je to single link, vráť ako pole
-    //         return [field];
-    //     } catch (e) {
-    //         return [];
-    //     }
-    // }
     function safeGetLinks(entry, linkFieldName) {
         try {
             if (!entry || !linkFieldName) return [];
@@ -320,16 +231,7 @@ var MementoCore = (function() {
             return [];
         }
     }
-    // ==============================================
-    // FORMÁTOVANIE
-    // ==============================================
-    
-    /**
-     * Formátuje dátum
-     * @param {Date|string} date - Dátum na formátovanie
-     * @param {string} format - Formát (default: "DD.MM.YYYY")
-     * @returns {string} Formátovaný dátum
-     */
+
     function formatDate(date, format) {
         try {
             var config = getConfig();
@@ -345,27 +247,7 @@ var MementoCore = (function() {
             return date ? date.toString() : "";
         }
     }
-    
-    /**
-     * Formátuje čas
-     * @param {number} minutes - Počet minút
-     * @returns {string} Formátovaný čas (HH:mm)
-     */
-    // function formatTime(minutes) {
-    //     try {
-    //         if (!minutes && minutes !== 0) {
-    //             return "00:00";
-    //         }
-            
-    //         var hours = Math.floor(minutes / 60);
-    //         var mins = minutes % 60;
-            
-    //         return (hours < 10 ? "0" : "") + hours + ":" + 
-    //                (mins < 10 ? "0" : "") + mins;
-    //     } catch (e) {
-    //         return "00:00";
-    //     }
-    // }
+
     function formatTime(time) {
         if (!time) return "00:00";
         
@@ -390,33 +272,55 @@ var MementoCore = (function() {
             return "00:00";
         }
     }
-    /**
-     * Formátuje peniaze
-     * @param {number} amount - Suma
-     * @param {boolean} withSymbol - Či pridať symbol meny
-     * @returns {string} Formátovaná suma
-     */
-    // function formatMoney(amount, withSymbol) {
-    //     if (typeof amount !== "number") return "0.00 €";
-    //     try {
-    //         var config = getConfig();
-    //         var currency = config ? config.global.currency : "EUR";
+
+    function isWeekend(date) {
+        try {
+            var day = moment(date).day();
+            return day === 0 || day === 6; // Nedeľa = 0, Sobota = 6
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function isHoliday(date) {
+        try {
+            var config = getConfig();
+            var year = moment(date).year();
             
-    //         if (!amount && amount !== 0) {
-    //             return withSymbol ? "0.00 €" : "0.00";
-    //         }
+            // Slovenské štátne sviatky
+            var holidays = [
+                year + "-01-01", // Deň vzniku SR
+                year + "-01-06", // Zjavenie Pána
+                year + "-05-01", // Sviatok práce
+                year + "-05-08", // Deň víťazstva
+                year + "-07-05", // Cyril a Metod
+                year + "-08-29", // SNP
+                year + "-09-01", // Deň ústavy
+                year + "-09-15", // Sedembolestná
+                year + "-11-01", // Sviatok všetkých svätých
+                year + "-11-17", // Deň boja za slobodu
+                year + "-12-24", // Štedrý deň
+                year + "-12-25", // 1. sviatok vianočný
+                year + "-12-26"  // 2. sviatok vianočný
+            ];
             
-    //         var formatted = amount.toFixed(2).replace(".", ",");
+            // Pohyblivé sviatky (potrebuje výpočet)
+            // Veľký piatok, Veľkonočný pondelok
+            var easter = calculateEaster(year);
+            if (easter) {
+                holidays.push(
+                    moment(easter).subtract(2, 'days').format('YYYY-MM-DD'), // Veľký piatok
+                    moment(easter).add(1, 'days').format('YYYY-MM-DD')      // Veľkonočný pondelok
+                );
+            }
             
-    //         if (withSymbol !== false) {
-    //             formatted += " €";
-    //         }
+            var dateStr = moment(date).format('YYYY-MM-DD');
+            return holidays.indexOf(dateStr) !== -1;
             
-    //         return formatted;
-    //     } catch (e) {
-    //         return amount ? amount.toString() : "0.00";
-    //     }
-    // }
+        } catch (error) {
+            return false;
+        }
+    }
 
     function formatMoney(amount, currency, decimals) {
         if (typeof amount !== "number") return "0.00 €";
@@ -426,12 +330,7 @@ var MementoCore = (function() {
         
         return amount.toFixed(decimals) + " " + currency;
     }
-    
-    /**
-     * Parsuje čas z reťazca na minúty
-     * @param {string} timeString - Čas vo formáte "HH:mm" alebo "HH:mm:ss"
-     * @returns {number} Počet minút
-     */
+
     function parseTimeToMinutes(timeString) {
         try {
             if (!timeString) {
@@ -452,33 +351,7 @@ var MementoCore = (function() {
         }
     }
     
-    /**
-     * Zaokrúhli čas na štvrťhodiny
-     * @param {number} minutes - Počet minút
-     * @param {string} direction - "up", "down" alebo "nearest" (default)
-     * @returns {number} Zaokrúhlený počet minút
-     */
-    // function roundToQuarter(minutes, direction) {
-    //     try {
-    //         if (!minutes && minutes !== 0) {
-    //             return 0;
-    //         }
-            
-    //         var quarter = 15;
-            
-    //         if (direction === "up") {
-    //             return Math.ceil(minutes / quarter) * quarter;
-    //         } else if (direction === "down") {
-    //             return Math.floor(minutes / quarter) * quarter;
-    //         } else {
-    //             // Nearest (default)
-    //             return Math.round(minutes / quarter) * quarter;
-    //         }
-    //     } catch (e) {
-    //         return minutes || 0;
-    //     }
-    // }
-   function roundToQuarter(time, direction) {
+    function roundToQuarter(time, direction) {
     try {
         // Ak je to už string formát času, konvertuj na moment
         if (typeof time === 'string') {
@@ -515,90 +388,38 @@ var MementoCore = (function() {
         // Ak zlyhá všetko, vráť originálny čas
         return moment(time);
     }
-}
-
-    // ==============================================
-    // VALIDÁCIA
-    // ==============================================
-     // ==============================================
-    // BASIC VALIDATION
-    // ==============================================
-    
-   function validateRequiredFields(entry, requiredFields) {
-    try {
-        if (!entry || !requiredFields || !Array.isArray(requiredFields)) {
-            return false;
-        }
-        
-        var missingFields = [];
-        
-        for (var i = 0; i < requiredFields.length; i++) {
-            var fieldName = requiredFields[i];
-            var value = entry.field(fieldName);
-            
-            if (value === null || value === undefined || value === "" || 
-                (Array.isArray(value) && value.length === 0)) {
-                missingFields.push(fieldName);
-            }
-        }
-        
-        if (missingFields.length > 0) {
-            addDebug(entry, "❌ Chýbajú povinné polia: " + missingFields.join(", "));
-            return false;
-        }
-        
-        return true;
-    } catch (e) {
-        addError(entry, "Chyba pri validácii polí: " + e.toString(), "validateRequiredFields", e);
-        return false;
     }
-} 
-    /**
-     * Validuje povinné polia
-     * @param {Entry} entry - Memento entry objekt
-     * @param {Array} fields - Zoznam názvov povinných polí
-     * @returns {boolean} Či sú všetky polia vyplnené
-     */
-    // function validateRequiredFields(entry, fields) {
-    //     try {
-    //         if (!entry || !fields || !Array.isArray(fields)) {
-    //             return false;
-    //         }
+
+    function validateRequiredFields(entry, requiredFields) {
+        try {
+            if (!entry || !requiredFields || !Array.isArray(requiredFields)) {
+                return false;
+            }
             
-    //         var missingFields = [];
+            var missingFields = [];
             
-    //         for (var i = 0; i < fields.length; i++) {
-    //             var fieldName = fields[i];
-    //             var value = entry.field(fieldName);
+            for (var i = 0; i < requiredFields.length; i++) {
+                var fieldName = requiredFields[i];
+                var value = entry.field(fieldName);
                 
-    //             if (value === null || value === undefined || value === "" || 
-    //                 (Array.isArray(value) && value.length === 0)) {
-    //                 missingFields.push(fieldName);
-    //             }
-    //         }
+                if (value === null || value === undefined || value === "" || 
+                    (Array.isArray(value) && value.length === 0)) {
+                    missingFields.push(fieldName);
+                }
+            }
             
-    //         if (missingFields.length > 0) {
-    //             addError(entry, "Chýbajú povinné polia: " + missingFields.join(", "), "validateRequiredFields");
-    //             return false;
-    //         }
+            if (missingFields.length > 0) {
+                addDebug(entry, "❌ Chýbajú povinné polia: " + missingFields.join(", "));
+                return false;
+            }
             
-    //         return true;
-    //     } catch (e) {
-    //         addError(entry, "Chyba pri validácii polí: " + e.toString(), "validateRequiredFields", e);
-    //         return false;
-    //     }
-    // }
-    
-    // ==============================================
-    // UTILITY FUNKCIE
-    // ==============================================
-    
-    /**
-     * Nájde entry podľa ID v knižnici
-     * @param {string} libraryName - Názov knižnice
-     * @param {number} id - ID záznamu
-     * @returns {Entry|null} Nájdený entry alebo null
-     */
+            return true;
+        } catch (e) {
+            addError(entry, "Chyba pri validácii polí: " + e.toString(), "validateRequiredFields", e);
+            return false;
+        }
+    } 
+
     function findEntryById(libraryName, id) {
         try {
             if (!libraryName || !id) {
@@ -617,12 +438,6 @@ var MementoCore = (function() {
         }
     }
     
-    /**
-     * Získa aktuálne nastavenia z ASISTANTO Defaults
-     * @param {string} libraryName - Názov defaults knižnice (default: "ASISTANTO Defaults")
-     * @param {string} fieldName - Názov poľa s nastavením
-     * @returns {*} Hodnota nastavenia alebo null
-     */
     function getSettings(libraryName, fieldName) {
         try {
             var config = getConfig();
@@ -646,11 +461,6 @@ var MementoCore = (function() {
         }
     }
     
-    /**
-     * Kontroluje či je víkend
-     * @param {Date} date - Dátum na kontrolu
-     * @returns {boolean} True ak je víkend
-     */
     function isWeekend(date) {
         try {
             var day = moment(date).day();
@@ -659,11 +469,7 @@ var MementoCore = (function() {
             return false;
         }
     }
-    
-    /**
-     * Získa meno aktuálneho používateľa
-     * @returns {string} Meno používateľa
-     */
+
     function getCurrentUser() {
         try {
             var user = user();
@@ -684,8 +490,7 @@ var MementoCore = (function() {
         return "osôb";
     }
 
- 
-    // ==============================================
+     // ==============================================
     // PUBLIC API
     // ==============================================
     
@@ -723,6 +528,7 @@ var MementoCore = (function() {
 
         getDayNameSK: getDayNameSK,
         selectOsobaForm: selectOsobaForm,       
-      
+        isHoliday: isHoliday,
+        isWeekend: isWeekend
     };
 })();
