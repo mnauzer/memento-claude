@@ -23,8 +23,9 @@ var MementoConfig = (function() {
         version: "7.0",
         // Defaultné hodnoty pre globálne nastavenia
         defaults: {
-            debug: false,
-            workHoursPerDay: 8,
+            debug: false, // Predvolený debug mód
+            workHoursPerDay: 8, // Predvolená pracovná doba za deň
+            roundToQuarterHour: false // Zaokrúhľovanie na 15 minút
         },
 
         // === GLOBÁLNE NASTAVENIA ===
@@ -35,6 +36,7 @@ var MementoConfig = (function() {
             timeFormat: "HH:mm",
             timezone: "Europe/Bratislava",
             currency: "EUR",
+            currencySymbol: "€",
             language: "sk_SK"
         },
         
