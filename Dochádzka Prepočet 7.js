@@ -129,7 +129,7 @@ function calculateWorkTime(arrival, departure) {
         var departureRounded = departure;
         
         if (CONFIG.settings.roundToQuarterHour) {
-            addDebug(currentEntry, "🔄 Zaokrúhľovanie časov na najbližšiu štvrťhodinu");
+            utils.addDebug(currentEntry, "🔄 Zaokrúhľovanie časov na najbližšiu štvrťhodinu");
             arrivalRounded = utils.roundToQuarter(arrival);
             departureRounded = utils.roundToQuarter(departure);
 
