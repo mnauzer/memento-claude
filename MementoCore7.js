@@ -526,6 +526,7 @@ var MementoCore = (function() {
             }
         }
         
+        addDebug(entry, " Validácia povinných polí: " + (result.valid ? "OK" : "Chýbajú polia: " + result.missingFields.join(", ")));
         return result;
     }   
     /**
