@@ -11,7 +11,7 @@
 //    - Odstránené duplicitné CONFIG sekcie
 // ==============================================
 
-const { addDebug } = require("./MementoUtils 3.3");
+const { addDebug } = require("../MementoUtils 3.3");
 
 // ==============================================
 // MODULE LOADING A INICIALIZÁCIA
