@@ -444,7 +444,7 @@ function logFinalSummary(steps) {
 
 function main() {
     try {
-        utils.addDebug(currentEntry, "=== DOCHÁDZKA PREPOČET v" + version + " ===");
+        utils.addDebug(currentEntry, "=== DOCHÁDZKA PREPOČET v" + CONFIG.version + " ===");
         utils.addDebug(currentEntry, "MementoUtils verzia: " + utils.version);
         // Kontrola závislostí
         var depCheck = utils.checkDependencies(['config', 'core', 'business']);
