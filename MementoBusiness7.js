@@ -51,6 +51,7 @@ var MementoBusiness = (function() {
      */
     function calculateWorkHours(startTime, endTime) {
         var core = getCore();
+        var config = getConfig();
         try {
             var start = moment(startTime);
             var end = moment(endTime);
