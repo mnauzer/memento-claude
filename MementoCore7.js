@@ -367,7 +367,6 @@ var MementoCore = (function() {
     //     }
     // }
     function formatTime(time) {
-        var config = getConfig();
         if (!time) return "00:00";
         
         try {
@@ -387,7 +386,6 @@ var MementoCore = (function() {
             return moment(time).format(config.timeFormat);
             
         } catch (e) {
-            addError(null, "Chyba pri formátovaní času: " + e.toString(), "formatTime", e);
             return "00:00";
         }
     }
