@@ -34,10 +34,32 @@
 
 // Jednoduchý import všetkého cez MementoUtils
 var utils = MementoUtils;
-var CONFIG = utils.config;
 var currentEntry = entry();
-var version = "7.3.2"; // verzia skriptu
+var centralConfig = utils.config; // Získaj centrálny config
 
+// Vytvor lokálny CONFIG pre tento script
+var CONFIG = {
+    // Script špecifické nastavenia
+    scriptName: "Dochádzka Prepočet",
+    version: "7.3.3",
+    
+    // Referencie na centrálny config
+    fields: centralConfig.fields,
+    attributes: centralConfig.attributes, 
+    libraries: centralConfig.libraries,
+    icons: centralConfig.icons,
+    
+    // Lokálne nastavenia pre tento script
+    settings: {
+        roundToQuarterHour: true,
+        includeBreaks: true,
+        breakThreshold: 6, // hodín
+        breakDuration: 30  // minút
+    },
+    
+    // Správne mapovanie pre sadzby
+    sadzbyFields: centralConfig.fields.wages // Toto používa správne názvy
+};
 // // Globálne premenné
 // var totalPracovnaDoba = 0;
 // var totalCistyPracovnyCas = 0;
@@ -241,8 +263,6 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
  * Spracuje jedného zamestnanca - OPRAVENÉ NASTAVOVANIE ATRIBÚTOV
  */
 function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
-
-    
     try {
         // Nájdi platnú hodinovku
         var hodinovka = findValidSalary(zamestnanec, datum);
@@ -252,31 +272,27 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
             return { success: false };
         }
         
-        // SPRÁVNE NASTAVENIE ATRIBÚTOV - cez pole a index
-        var zamArray = currentEntry.field(CONFIG.fields.zamestnanci);
+        // SPRÁVNE NASTAVENIE ATRIBÚTOV
+        var zamArray = currentEntry.field(CONFIG.fields.attendance.employees);
         
         if (zamArray && zamArray.length > index) {
-            // Nastav základné atribúty
-            zamArray[index].setAttr(CONFIG.attributes.odpracovane, pracovnaDobaHodiny);
-            zamArray[index].setAttr(CONFIG.attributes.hodinovka, hodinovka);
+            // Použiť .attr() s 2 parametrami
+            zamArray[index].attr(CONFIG.attributes.employees.workedHours, pracovnaDobaHodiny);
+            zamArray[index].attr(CONFIG.attributes.employees.hourlyRate, hodinovka);
             
-            // Získaj príplatky a zrážky z existujúcich atribútov
-            var priplatok = zamArray[index].attr(CONFIG.attributes.priplatok) || 0;
-            var premia = zamArray[index].attr(CONFIG.attributes.premia) || 0;
-            var pokuta = zamArray[index].attr(CONFIG.attributes.pokuta) || 0;
+            // Získaj príplatky
+            var priplatok = zamArray[index].attr(CONFIG.attributes.employees.bonus) || 0;
+            var premia = zamArray[index].attr(CONFIG.attributes.employees.premium) || 0;
+            var pokuta = zamArray[index].attr(CONFIG.attributes.employees.penalty) || 0;
             
             // Vypočítaj dennú mzdu
             var dennaMzda = (pracovnaDobaHodiny * (hodinovka + priplatok)) + premia - pokuta;
             dennaMzda = Math.round(dennaMzda * 100) / 100;
             
             // Nastav dennú mzdu
-            zamArray[index].attr(CONFIG.attributes.dennaMzda, dennaMzda);
+            zamArray[index].attr(CONFIG.attributes.employees.dailyWage, dennaMzda);
             
-            utils.addDebug(currentEntry, "  ✅ Hodinovka: " + hodinovka + " €/h");
-            if (priplatok > 0) utils.addDebug(currentEntry, "  ✅ Príplatok: +" + priplatok + " €/h");
-            if (premia > 0) utils.addDebug(currentEntry, "  ✅ Prémia: +" + premia + " €");
-            if (pokuta > 0) utils.addDebug(currentEntry, "  ✅ Pokuta: -" + pokuta + " €");
-            utils.addDebug(currentEntry, "  ✅ Denná mzda: " + dennaMzda + " €");
+            utils.addDebug(currentEntry, "  ✅ Spracované úspešne");
             
             return {
                 success: true,
@@ -307,42 +323,16 @@ function findValidSalary(zamestnanec, datum) {
         var employeeName = utils.formatEmployeeName(zamestnanec);
         utils.addDebug(currentEntry, "🔍 Hľadám platnú sadzbu");
         
-        // Získaj sadzby zamestnanca
-        var sadzby = zamestnanec.linksFrom(CONFIG.libraries.sadzbyZamestnancov, CONFIG.sadzbyFields.zamestnanec);
+        var hodinovka = utils.findValidHourlyRate(zamestnanec, datum);
         
-        if (!sadzby || sadzby.length === 0) {
-            utils.addError(currentEntry, "Zamestnanec " + employeeName + " nemá žiadne sadzby", "findValidSalary");
+        if (!hodinovka || hodinovka <= 0) {
+            utils.addError(currentEntry, "Zamestnanec " + employeeName + " nemá platnú sadzbu", "findValidSalary");
             return null;
         }
         
-        utils.addDebug(currentEntry, "  ✅ Našiel " + sadzby.length + " sadzieb");
-        
-        var aktualnaHodinovka = null;
-        var najnovsiDatum = null;
-        
-        // Analyzuj všetky sadzby
-        for (var i = 0; i < sadzby.length; i++) {
-            var sadzba = sadzby[i];
-            
-            var platnostOd = sadzba.field(CONFIG.sadzbyFields.platnostOd);
-            var hodinovka = sadzba.field(CONFIG.sadzbyFields.sadzba);
-            
-            // Kontrola platnosti k dátumu
-            if (platnostOd && hodinovka && platnostOd <= datum) {
-                if (!najnovsiDatum || platnostOd > najnovsiDatum) {
-                    najnovsiDatum = platnostOd;
-                    aktualnaHodinovka = hodinovka;
-                }
-            }
-        }
-        
-        if (!aktualnaHodinovka || aktualnaHodinovka <= 0) {
-            utils.addError(currentEntry, "Nenašla sa platná sadzba k dátumu", "findValidSalary");
-            return null;
-        }
-        
-        utils.addDebug(currentEntry, "  💶 Platná hodinovka: " + aktualnaHodinovka + " €/h");
-        return aktualnaHodinovka;
+        utils.addDebug(currentEntry, "  💶 Platná hodinovka: " + hodinovka + " €/h");
+        return hodinovka;
+ 
         
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "findValidSalary", error);
@@ -375,6 +365,18 @@ function calculateTotals(employeeResult) {
         return false;
     }
 }
+function zobrazSuhrn() {
+    var summaryData = {
+        success: true,
+        date: currentEntry.field(CONFIG.fields.attendance.date),
+        employeeCount: currentEntry.field(CONFIG.fields.attendance.employeeCount),
+        totalHours: currentEntry.field(CONFIG.fields.attendance.workedHours),
+        totalCosts: currentEntry.field(CONFIG.fields.attendance.wageCosts),
+        errors: [] // Môžeš pridať chyby ak ich máš
+    };
+    
+    utils.showProcessingSummary(currentEntry, summaryData, CONFIG);
+}
 
 // ==============================================
 // KROK 5: VYTVORENIE INFO ZÁZNAMU
@@ -387,12 +389,9 @@ function createInfoRecord(workTimeResult, employeeResult) {
     try {
         utils.addDebug(currentEntry, "\n📝 KROK 5: Vytvorenie info záznamu");
         
-        var date = currentEntry.field(CONFIG.fields.date);
+        var date = currentEntry.field(CONFIG.fields.attendance.date);
         var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
-        //var dayName = moment(date).format("dddd");
         var dayName = utils.getDayNameSK(moment(date).day()).toUpperCase();
-        //var dayNameCapitalized = dayName.charAt(0).toUpperCase() + dayName.slice(1);
-        
 
 
         var infoMessage = "📋 DOCHÁDZKA - AUTOMATICKÝ PREPOČET\n";
