@@ -75,7 +75,7 @@ var MementoBusiness = (function() {
             
             var hours = Math.floor(diffMinutes / 60);
             var minutes = diffMinutes % 60;
-            
+
             
             // Výpočet nadčasov
             var regularHours = Math.min(hours + (minutes / 60), config.defaultWorkHoursPerDay);
@@ -196,36 +196,32 @@ var MementoBusiness = (function() {
      * @param {string} format - Formát: "full", "short", "nick" (default: "full")
      * @returns {string} Formátované meno
      */
-    function formatEmployeeName(employee, format) {
-        try {
-            if (!employee) return "Neznámy";
-            
-            var config = getConfig();
-            var fields = config.fields.employee;
-            
-            // Získaj údaje
-            var nick = employee.field ? employee.field(fields.nick) : employee[fields.nick];
-            var firstName = employee.field ? employee.field(fields.firstName) : employee[fields.firstName];
-            var lastName = employee.field ? employee.field(fields.lastName) : employee[fields.lastName];
-            
-            format = format || "full";
-            
-            switch (format) {
-                case "nick":
-                    return nick || "Neznámy";
-                    
-                case "short":
-                    return nick + " (" + lastName + ")";
-                    
-                case "full":
-                default:
-                    return firstName + " " + lastName + " (" + nick + ")";
-            }
-            
-        } catch (error) {
-            return "Neznámy";
+    function formatEmployeeName(employeeEntry) {
+    var core = getCore();
+    var config = getConfig();
+    
+    if (!employeeEntry) return "Neznámy";
+    
+    try {
+        // Používaj konzistentné názvy polí
+        var nick = core.safeGet(employeeEntry, config.fields.employee.nick, "");
+        var meno = core.safeGet(employeeEntry, config.fields.employee.firstName, "");
+        var priezvisko = core.safeGet(employeeEntry, config.fields.employee.lastName, "");
+        
+        if (nick) {
+            return priezvisko ? nick + " (" + priezvisko + ")" : nick;
         }
+        
+        if (meno || priezvisko) {
+            return (meno + " " + priezvisko).trim();
+        }
+        
+        return "Zamestnanec #" + core.safeGet(employeeEntry, "ID", "?");
+        
+    } catch (error) {
+        return "Neznámy";
     }
+}
     
     /**
      * Získa detaily zamestnanca

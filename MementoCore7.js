@@ -479,36 +479,39 @@ var MementoCore = (function() {
     //     }
     // }
     function roundToQuarter(time, direction) {
-        try {
-            //var config = getConfig();
-            var quarterMinutes = config ? config.global.quarterRoundingMinutes : 15;
-            
-            if (!time) return moment();
-            
-            var mom = moment(time);
-            var minutes = mom.minutes();
-            var roundedMinutes;
-            
-            if (direction === 'up') {
-                roundedMinutes = Math.ceil(minutes / quarterMinutes) * quarterMinutes;
-            } else if (direction === 'down') {
-                roundedMinutes = Math.floor(minutes / quarterMinutes) * quarterMinutes;
-            } else {
-                roundedMinutes = Math.round(minutes / quarterMinutes) * quarterMinutes;
-            }
-            
-            if (roundedMinutes === 60) {
-                mom.add(1, 'hour').minutes(0);
-            } else {
-                mom.minutes(roundedMinutes);
-            }
-            
-            return mom;
-        } catch (e) {
-            addDebug(null, "Chyba pri zaokrúhľovaní času: " + e.toString() + e.lineNumber);
-            return moment();
+    try {
+        var config = getConfig();
+        var quarterMinutes = config && config.global ? config.global.quarterRoundingMinutes : 15;
+        
+        if (!time) return moment().seconds(0).milliseconds(0);
+        
+        var mom = moment(time).seconds(0).milliseconds(0);
+        var minutes = mom.minutes();
+        var roundedMinutes;
+        
+        if (direction === 'up') {
+            roundedMinutes = Math.ceil(minutes / quarterMinutes) * quarterMinutes;
+        } else if (direction === 'down') {
+            roundedMinutes = Math.floor(minutes / quarterMinutes) * quarterMinutes;
+        } else {
+            roundedMinutes = Math.round(minutes / quarterMinutes) * quarterMinutes;
         }
+        
+        if (roundedMinutes >= 60) {
+            mom.add(1, 'hour').minutes(0);
+        } else {
+            mom.minutes(roundedMinutes);
+        }
+        
+        return mom;
+        
+    } catch (e) {
+        if (typeof addDebug === 'function') {
+            addDebug(null, "Chyba pri zaokrúhľovaní času: " + e.toString());
+        }
+        return moment().seconds(0).milliseconds(0);
     }
+}
     // ==============================================
     // VALIDÁCIA
     // ==============================================
@@ -516,35 +519,35 @@ var MementoCore = (function() {
     // BASIC VALIDATION
     // ==============================================
     
-    function validateRequiredFields(entry, requiredFields) {
-        try {
-            if (!entry || !requiredFields || !Array.isArray(requiredFields)) {
-                return false;
-            }
-            
-            var missingFields = [];
-            
-            for (var i = 0; i < requiredFields.length; i++) {
-                var fieldName = requiredFields[i];
-                var value = entry.field(fieldName);
-                
-                if (value === null || value === undefined || value === "" || 
-                    (Array.isArray(value) && value.length === 0)) {
-                    missingFields.push(fieldName);
-                }
-            }
-            
-            if (missingFields.length > 0) {
-                addDebug(entry, "❌ Chýbajú povinné polia: " + missingFields.join(", "));
-                return false;
-            }
-            
-            return true;
-        } catch (e) {
-            addError(entry, "Chyba pri validácii polí: " + e.toString(), "validateRequiredFields", e);
+   function validateRequiredFields(entry, requiredFields) {
+    try {
+        if (!entry || !requiredFields || !Array.isArray(requiredFields)) {
             return false;
         }
-    } 
+        
+        var missingFields = [];
+        
+        for (var i = 0; i < requiredFields.length; i++) {
+            var fieldName = requiredFields[i];
+            var value = entry.field(fieldName);
+            
+            if (value === null || value === undefined || value === "" || 
+                (Array.isArray(value) && value.length === 0)) {
+                missingFields.push(fieldName);
+            }
+        }
+        
+        if (missingFields.length > 0) {
+            addDebug(entry, "❌ Chýbajú povinné polia: " + missingFields.join(", "));
+            return false;
+        }
+        
+        return true;
+    } catch (e) {
+        addError(entry, "Chyba pri validácii polí: " + e.toString(), "validateRequiredFields", e);
+        return false;
+    }
+} 
     /**
      * Validuje povinné polia
      * @param {Entry} entry - Memento entry objekt
@@ -664,7 +667,36 @@ var MementoCore = (function() {
             return "Neznámy";
         }
     }
-    
+    function getDayNameSK(dayNumber) {
+    var days = ["NEDEĽA", "PONDELOK", "UTOROK", "STREDA", "ŠTVRTOK", "PIATOK", "SOBOTA"];
+    return days[dayNumber] || "";
+}
+
+function selectOsobaForm(count) {
+    if (count === 1) return "osoba";
+    if (count >= 2 && count <= 4) return "osoby";
+    return "osôb";
+}
+
+function zobrazSuhrn() {
+    try {
+        var datum = currentEntry.field(CONFIG.fields.attendance.date);
+        var pocetPracovnikov = currentEntry.field(CONFIG.fields.attendance.employeeCount);
+        var odpracovane = currentEntry.field(CONFIG.fields.attendance.workedHours);
+        var mzdoveNaklady = currentEntry.field(CONFIG.fields.attendance.wageCosts);
+        
+        var sprava = "✅ DOCHÁDZKA SPRACOVANÁ\n\n";
+        sprava += "📅 Dátum: " + utils.formatDate(datum) + "\n";
+        sprava += "👥 Pracovníkov: " + pocetPracovnikov + "\n";
+        sprava += "⏱️ Odpracované: " + odpracovane + " hodín\n";
+        sprava += "💰 Náklady: " + utils.formatMoney(mzdoveNaklady) + "\n\n";
+        sprava += "ℹ️ Detaily v poli 'info'";
+        
+        message(sprava);
+    } catch (error) {
+        message("✅ Dochádzka bola spracovaná");
+    }
+}
     // ==============================================
     // PUBLIC API
     // ==============================================
@@ -699,6 +731,10 @@ var MementoCore = (function() {
         findEntryById: findEntryById,
         getSettings: getSettings,
         isWeekend: isWeekend,
-        getCurrentUser: getCurrentUser
+        getCurrentUser: getCurrentUser,
+
+        getDayNameSK: getDayNameSK,
+        selectOsobaForm: selectOsobaForm,       
+        zobrazSuhrn: zobrazSuhrn
     };
 })();
