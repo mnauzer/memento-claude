@@ -34,15 +34,16 @@
 var utils = MementoUtils;
 var CONFIG = utils.config;
 var currentEntry = entry();
+var version = "7.3.2"; // verzia skriptu
 
-// Globálne premenné
-var totalPracovnaDoba = 0;
-var totalCistyPracovnyCas = 0;
-var totalOdpracovane = 0;
-var totalNaZakazkach = 0;
-var totalPrestoje = 0;
-var totalMzdoveNaklady = 0;
-var totalPrestavka = 0;
+// // Globálne premenné
+// var totalPracovnaDoba = 0;
+// var totalCistyPracovnyCas = 0;
+// var totalOdpracovane = 0;
+// var totalNaZakazkach = 0;
+// var totalPrestoje = 0;
+// var totalMzdoveNaklady = 0;
+// var totalPrestavka = 0;
 
 // ==============================================
 // HELPER FUNKCIE PRE ČASOVÉ VÝPOČTY
@@ -78,14 +79,17 @@ var totalPrestavka = 0;
 // }
 
 
-function validateInputData() {
+function validateInputData(fields) {
     try {
+        var validatedFields = utils.validateRequiredFields(currentEntry, fields.requiredFields);    
         utils.addDebug(currentEntry, "\n📋 KROK 1: Validácia vstupných dát");
-        
-        var date = currentEntry.field(CONFIG.fields.attendance.date);
-        var arrival = currentEntry.field(CONFIG.fields.attendance.arrival);
-        var departure = currentEntry.field(CONFIG.fields.attendance.departure  );
-        var employees = currentEntry.field(CONFIG.fields.attendance.employees) || [];
+        if (!validatedFields) {
+            return { success: false, error: "Chýbajú povinné polia" };
+        }
+        var date = currentEntry.field(CONFIG.attendance.date);
+        var arrival = currentEntry.field(CONFIG.attendance.arrival);
+        var departure = currentEntry.field(CONFIG.attendance.departure);
+        var employees = currentEntry.field(CONFIG.attendance.employees);
         
         // Kontrola dátumu
         if (!date) {
@@ -499,7 +503,8 @@ function main() {
         // KROK 1: Validácia vstupných dát
         utils.addDebug(currentEntry, "\n📋 KROK 1: Validácia vstupných dát");
         
-        var validationResult = validateInputData();
+        const { attendance } = CONFIG.fields;
+        var validationResult = validateInputData(attendance);
         if (!validationResult.success) {
             utils.addError(currentEntry, "Validácia zlyhala: " + validationResult.error, CONFIG.scriptName);
             return;

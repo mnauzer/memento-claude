@@ -350,47 +350,80 @@ var MementoCore = (function() {
      * @param {number} minutes - Počet minút
      * @returns {string} Formátovaný čas (HH:mm)
      */
-    function formatTime(minutes) {
+    // function formatTime(minutes) {
+    //     try {
+    //         if (!minutes && minutes !== 0) {
+    //             return "00:00";
+    //         }
+            
+    //         var hours = Math.floor(minutes / 60);
+    //         var mins = minutes % 60;
+            
+    //         return (hours < 10 ? "0" : "") + hours + ":" + 
+    //                (mins < 10 ? "0" : "") + mins;
+    //     } catch (e) {
+    //         return "00:00";
+    //     }
+    // }
+    function formatTime(time) {
+        var config = getConfig();
+        if (!time) return "00:00";
+        
         try {
-            if (!minutes && minutes !== 0) {
-                return "00:00";
+            // Ak je to moment objekt
+            if (time._isAMomentObject) {
+                return time.format(config.timeFormat);
             }
             
-            var hours = Math.floor(minutes / 60);
-            var mins = minutes % 60;
+            // Ak je to číslo (minúty)
+            if (typeof time === "number") {
+                var hours = Math.floor(time / 60);
+                var minutes = time % 60;
+                return (hours < 10 ? "0" : "") + hours + ":" + (minutes < 10 ? "0" : "") + minutes;
+            }
             
-            return (hours < 10 ? "0" : "") + hours + ":" + 
-                   (mins < 10 ? "0" : "") + mins;
+            // Ak je to string alebo Date
+            return moment(time).format(config.timeFormat);
+            
         } catch (e) {
             return "00:00";
         }
     }
-    
     /**
      * Formátuje peniaze
      * @param {number} amount - Suma
      * @param {boolean} withSymbol - Či pridať symbol meny
      * @returns {string} Formátovaná suma
      */
-    function formatMoney(amount, withSymbol) {
-        try {
-            var config = getConfig();
-            var currency = config ? config.global.currency : "EUR";
+    // function formatMoney(amount, withSymbol) {
+    //     if (typeof amount !== "number") return "0.00 €";
+    //     try {
+    //         var config = getConfig();
+    //         var currency = config ? config.global.currency : "EUR";
             
-            if (!amount && amount !== 0) {
-                return withSymbol ? "0.00 €" : "0.00";
-            }
+    //         if (!amount && amount !== 0) {
+    //             return withSymbol ? "0.00 €" : "0.00";
+    //         }
             
-            var formatted = amount.toFixed(2).replace(".", ",");
+    //         var formatted = amount.toFixed(2).replace(".", ",");
             
-            if (withSymbol !== false) {
-                formatted += " €";
-            }
+    //         if (withSymbol !== false) {
+    //             formatted += " €";
+    //         }
             
-            return formatted;
-        } catch (e) {
-            return amount ? amount.toString() : "0.00";
-        }
+    //         return formatted;
+    //     } catch (e) {
+    //         return amount ? amount.toString() : "0.00";
+    //     }
+    // }
+
+    function formatMoney(amount, currency, decimals) {
+        if (typeof amount !== "number") return "0.00 €";
+        
+        currency = currency || "€";
+        decimals = decimals !== undefined ? decimals : 2;
+        
+        return amount.toFixed(decimals) + " " + currency;
     }
     
     /**
@@ -424,66 +457,112 @@ var MementoCore = (function() {
      * @param {string} direction - "up", "down" alebo "nearest" (default)
      * @returns {number} Zaokrúhlený počet minút
      */
-    function roundToQuarter(minutes, direction) {
+    // function roundToQuarter(minutes, direction) {
+    //     try {
+    //         if (!minutes && minutes !== 0) {
+    //             return 0;
+    //         }
+            
+    //         var quarter = 15;
+            
+    //         if (direction === "up") {
+    //             return Math.ceil(minutes / quarter) * quarter;
+    //         } else if (direction === "down") {
+    //             return Math.floor(minutes / quarter) * quarter;
+    //         } else {
+    //             // Nearest (default)
+    //             return Math.round(minutes / quarter) * quarter;
+    //         }
+    //     } catch (e) {
+    //         return minutes || 0;
+    //     }
+    // }
+    function roundToQuarter(time) {
         try {
-            if (!minutes && minutes !== 0) {
-                return 0;
-            }
+            var mom = moment(time);
+            var minutes = mom.minutes();
+            var roundedMinutes = Math.round(minutes / config.quarterRoundingMinutes) * config.quarterRoundingMinutes;
             
-            var quarter = 15;
-            
-            if (direction === "up") {
-                return Math.ceil(minutes / quarter) * quarter;
-            } else if (direction === "down") {
-                return Math.floor(minutes / quarter) * quarter;
+            if (roundedMinutes === 60) {
+                mom.add(1, 'hour').minutes(0);
             } else {
-                // Nearest (default)
-                return Math.round(minutes / quarter) * quarter;
+                mom.minutes(roundedMinutes);
             }
+            
+            return mom;
+            
         } catch (e) {
-            return minutes || 0;
+            return moment();
         }
     }
-    
     // ==============================================
     // VALIDÁCIA
     // ==============================================
+     // ==============================================
+    // BASIC VALIDATION
+    // ==============================================
     
+    function validateRequiredFields(entry, requiredFields) {
+        var result = {
+            valid: true,
+            errors: [],
+            missingFields: []
+        };
+        
+        if (!entry || !requiredFields || !Array.isArray(requiredFields)) {
+            result.valid = false;
+            result.errors.push("Invalid parameters");
+            return result;
+        }
+        
+        for (var i = 0; i < requiredFields.length; i++) {
+            var fieldName = CONFIG.requiredFields[i];
+            var value = entry.field(fieldName);
+            
+            if (value === null || value === undefined || value === "") {
+                result.valid = false;
+                result.missingFields.push(fieldName);
+                result.errors.push("Pole '" + fieldName + "' je povinné");
+            }
+        }
+        
+        return result;
+    }   
     /**
      * Validuje povinné polia
      * @param {Entry} entry - Memento entry objekt
      * @param {Array} fields - Zoznam názvov povinných polí
      * @returns {boolean} Či sú všetky polia vyplnené
      */
-    function validateRequiredFields(entry, fields) {
-        try {
-            if (!entry || !fields || !Array.isArray(fields)) {
-                return false;
-            }
+    // function validateRequiredFields(entry, fields) {
+    //     try {
+    //         if (!entry || !fields || !Array.isArray(fields)) {
+    //             return false;
+    //         }
             
-            var missingFields = [];
+    //         var missingFields = [];
             
-            for (var i = 0; i < fields.length; i++) {
-                var fieldName = fields[i];
-                var value = entry.field(fieldName);
+    //         for (var i = 0; i < fields.length; i++) {
+    //             var fieldName = fields[i];
+    //             var value = entry.field(fieldName);
                 
-                if (value === null || value === undefined || value === "" || 
-                    (Array.isArray(value) && value.length === 0)) {
-                    missingFields.push(fieldName);
-                }
-            }
+    //             if (value === null || value === undefined || value === "" || 
+    //                 (Array.isArray(value) && value.length === 0)) {
+    //                 missingFields.push(fieldName);
+    //             }
+    //         }
             
-            if (missingFields.length > 0) {
-                addError(entry, "Chýbajú povinné polia: " + missingFields.join(", "), "validateRequiredFields");
-                return false;
-            }
+    //         if (missingFields.length > 0) {
+    //             addError(entry, "Chýbajú povinné polia: " + missingFields.join(", "), "validateRequiredFields");
+    //             return false;
+    //         }
             
-            return true;
-        } catch (e) {
-            addError(entry, "Chyba pri validácii polí: " + e.toString(), "validateRequiredFields", e);
-            return false;
-        }
-    }
+    //         return true;
+    //     } catch (e) {
+    //         addError(entry, "Chyba pri validácii polí: " + e.toString(), "validateRequiredFields", e);
+    //         return false;
+    //     }
+    // }
     
     // ==============================================
     // UTILITY FUNKCIE

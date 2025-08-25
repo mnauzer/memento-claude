@@ -76,7 +76,7 @@ var MementoConfig = (function() {
             
             // Dochádzka polia
             attendance: {
-                requiredFields: ["Dátum", "Príchod", "Odchod", "Zamestnanci"],
+                requiredFields: [date, arrival, departure, employees],
                 date: "Dátum",
                 arrival: "Príchod",
                 departure: "Odchod",
