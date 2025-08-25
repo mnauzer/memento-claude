@@ -27,6 +27,8 @@
 //    - Čistý pracovný čas
 // ==============================================
 
+const { addDebug } = require("./MementoUtils 3.3");
+
 // ==============================================
 // INICIALIZÁCIA MODULOV
 // ==============================================
@@ -507,6 +509,7 @@ function main() {
         utils.addDebug(currentEntry, "\n📋 KROK 1: Validácia vstupných dát");
         
         const { attendance } = CONFIG.fields;
+        addDebug(attendance);
         var validationResult = validateInputData(attendance);
         if (!validationResult.success) {
             utils.addError(currentEntry, "Validácia zlyhala: " + validationResult.error, CONFIG.scriptName);
