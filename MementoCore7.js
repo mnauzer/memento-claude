@@ -478,13 +478,19 @@ var MementoCore = (function() {
     //         return minutes || 0;
     //     }
     // }
-    function roundToQuarter(time, direction) {
+   function roundToQuarter(time, direction) {
     try {
-        var config = getConfig();
-        var quarterMinutes = config && config.global ? config.global.quarterRoundingMinutes : 15;
+        // Ak je to už string formát času, konvertuj na moment
+        if (typeof time === 'string') {
+            time = moment(time, 'HH:mm');
+        }
         
-        if (!time) return moment().seconds(0).milliseconds(0);
+        // Ak nie je moment objekt, skús základnú konverziu
+        if (!time._isAMomentObject) {
+            time = moment(time);
+        }
         
+        var quarterMinutes = 15;
         var mom = moment(time).seconds(0).milliseconds(0);
         var minutes = mom.minutes();
         var roundedMinutes;
@@ -506,12 +512,11 @@ var MementoCore = (function() {
         return mom;
         
     } catch (e) {
-        if (typeof addDebug === 'function') {
-            addDebug(null, "Chyba pri zaokrúhľovaní času: " + e.toString());
-        }
-        return moment().seconds(0).milliseconds(0);
+        // Ak zlyhá všetko, vráť originálny čas
+        return moment(time);
     }
 }
+
     // ==============================================
     // VALIDÁCIA
     // ==============================================
@@ -667,36 +672,19 @@ var MementoCore = (function() {
             return "Neznámy";
         }
     }
+
     function getDayNameSK(dayNumber) {
     var days = ["NEDEĽA", "PONDELOK", "UTOROK", "STREDA", "ŠTVRTOK", "PIATOK", "SOBOTA"];
     return days[dayNumber] || "";
-}
-
-function selectOsobaForm(count) {
-    if (count === 1) return "osoba";
-    if (count >= 2 && count <= 4) return "osoby";
-    return "osôb";
-}
-
-function zobrazSuhrn() {
-    try {
-        var datum = currentEntry.field(CONFIG.fields.attendance.date);
-        var pocetPracovnikov = currentEntry.field(CONFIG.fields.attendance.employeeCount);
-        var odpracovane = currentEntry.field(CONFIG.fields.attendance.workedHours);
-        var mzdoveNaklady = currentEntry.field(CONFIG.fields.attendance.wageCosts);
-        
-        var sprava = "✅ DOCHÁDZKA SPRACOVANÁ\n\n";
-        sprava += "📅 Dátum: " + utils.formatDate(datum) + "\n";
-        sprava += "👥 Pracovníkov: " + pocetPracovnikov + "\n";
-        sprava += "⏱️ Odpracované: " + odpracovane + " hodín\n";
-        sprava += "💰 Náklady: " + utils.formatMoney(mzdoveNaklady) + "\n\n";
-        sprava += "ℹ️ Detaily v poli 'info'";
-        
-        message(sprava);
-    } catch (error) {
-        message("✅ Dochádzka bola spracovaná");
     }
-}
+
+    function selectOsobaForm(count) {
+        if (count === 1) return "osoba";
+        if (count >= 2 && count <= 4) return "osoby";
+        return "osôb";
+    }
+
+ 
     // ==============================================
     // PUBLIC API
     // ==============================================
@@ -735,6 +723,6 @@ function zobrazSuhrn() {
 
         getDayNameSK: getDayNameSK,
         selectOsobaForm: selectOsobaForm,       
-        zobrazSuhrn: zobrazSuhrn
+      
     };
 })();
