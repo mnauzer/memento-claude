@@ -98,7 +98,6 @@ function validateInputData() {
         
         utils.addDebug(currentEntry, "✅ Validácia úspešná");
         utils.addDebug(currentEntry, "  • Čas: " + utils.formatTime(arrival) + " - " + utils.formatTime(departure));
-        utils.addDebug(currentEntry, "  • Čas: " + utils.formatTime(arrival) + " - " + utils.formatTime(departure));
         utils.addDebug(currentEntry, "  • Počet zamestnancov: " + employees.length);
         
         return {

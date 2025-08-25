@@ -372,7 +372,7 @@ var MementoCore = (function() {
         try {
             // Ak je to moment objekt
             if (time._isAMomentObject) {
-                return time.format(config.timeFormat);
+                return time.format(config.global.timeFormat);
             }
             
             // Ak je to číslo (minúty)
@@ -383,9 +383,10 @@ var MementoCore = (function() {
             }
             
             // Ak je to string alebo Date
-            return moment(time).format(config.timeFormat);
+            return moment(time).format(config.global.timeFormat);
             
         } catch (e) {
+            addDebug(null, "Chyba pri formátovaní času: " + e.toString() + e.lineNumber);
             return "00:00";
         }
     }
