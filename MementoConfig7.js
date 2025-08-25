@@ -76,6 +76,7 @@ var MementoConfig = (function() {
             
             // Dochádzka polia
             attendance: {
+                requiredFields: [date, arrival, departure, employees],
                 date: "Dátum",
                 arrival: "Príchod",
                 departure: "Odchod",
@@ -91,7 +92,15 @@ var MementoConfig = (function() {
                 wageCosts: "Mzdové náklady",
                 keys: "keys",
                 notifications: "Notifikácie",
-                requiredFields: [date, arrival, departure, employees]
+                employeeAttributes: {
+                    workedHours: "odpracované",
+                    hourlyRate: "hodinovka",
+                    bonus: "príplatok (€/h)",
+                    premium: "prémia (€)",
+                    penalty: "pokuta (€)",
+                    dailyWage: "denná mzda",
+                    note: "poznámka"
+                },
             },
             
             // Záznam práce polia
