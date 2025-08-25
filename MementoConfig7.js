@@ -90,7 +90,8 @@ var MementoConfig = (function() {
                 downtime: "Prestoje",
                 wageCosts: "Mzdové náklady",
                 keys: "keys",
-                notifications: "Notifikácie"
+                notifications: "Notifikácie",
+                requiredFields: [date, arrival, departure, employees]
             },
             
             // Záznam práce polia
