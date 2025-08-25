@@ -219,7 +219,7 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
 function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
     try {
         // Nájdi platnú hodinovku
-        var hodinovka = findValidSalary(zamestnanec, datum);
+        var hodinovka = utils.findValidSalary(zamestnanec, datum);
         
         if (!hodinovka || hodinovka <= 0) {
             utils.addDebug(currentEntry, "  ❌ Preskakujem - nemá platnú sadzbu");
@@ -271,32 +271,7 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
 }
 
 
-/**
- * Nájde platnú sadzbu pre zamestnanca
- */
-function findValidSalary(zamestnanec, datum) {
 
-    
-    try {
-        var employeeName = utils.formatEmployeeName(zamestnanec);
-        utils.addDebug(currentEntry, "🔍 Hľadám platnú sadzbu");
-        
-        var hodinovka = utils.findValidHourlyRate(zamestnanec, datum);
-        
-        if (!hodinovka || hodinovka <= 0) {
-            utils.addError(currentEntry, "Zamestnanec " + employeeName + " nemá platnú sadzbu", "findValidSalary");
-            return null;
-        }
-        
-        utils.addDebug(currentEntry, "  💶 Platná hodinovka: " + hodinovka + " €/h");
-        return hodinovka;
- 
-        
-    } catch (error) {
-        utils.addError(currentEntry, error.toString(), "findValidSalary", error);
-        return null;
-    }
-}
 
 // ==============================================
 // KROK 4: CELKOVÉ VÝPOČTY
