@@ -130,7 +130,7 @@ var MementoCore = (function() {
             entry.set(config.errorFieldName, "");
         }
     }
-
+ 
     // ==============================================
     // SAFE FIELD ACCESS
     // ==============================================

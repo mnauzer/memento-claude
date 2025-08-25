@@ -179,34 +179,56 @@ var MementoBusiness = (function() {
      * @returns {string} Formátované meno
      */
     function formatEmployeeName(employee, format) {
+        if (!employeeEntry) return "Neznámy";
+        
         try {
-            if (!employee) return "Neznámy";
+            var nick = core.safeGet(employeeEntry, config.employees.nick, "");
+            var meno = core.safeGet(employeeEntry, config.employees.name, "");
+            var priezvisko = core.safeGet(employeeEntry, config.employees.surname, "");
             
-            var config = getConfig();
-            var fields = config.fields.employee;
-            
-            // Získaj údaje
-            var nick = employee.field ? employee.field(fields.nick) : employee[fields.nick];
-            var firstName = employee.field ? employee.field(fields.firstName) : employee[fields.firstName];
-            var lastName = employee.field ? employee.field(fields.lastName) : employee[fields.lastName];
-            
-            format = format || "full";
-            
-            switch (format) {
-                case "nick":
-                    return nick || "Neznámy";
-                    
-                case "short":
-                    return nick + " (" + lastName + ")";
-                    
-                case "full":
-                default:
-                    return firstName + " " + lastName + " (" + nick + ")";
+            // Priorita: nick (priezvisko) alebo meno priezvisko
+            if (nick) {
+                return priezvisko ? nick + " (" + priezvisko + ")" : nick;
             }
+            
+            if (meno || priezvisko) {
+                return (meno + " " + priezvisko).trim();
+            }
+            
+            return "Zamestnanec #" + core.safeGet(employeeEntry, config.employees.ID, "?");
             
         } catch (error) {
             return "Neznámy";
         }
+
+        // try {
+        //     if (!employee) return "Neznámy";
+            
+        //     var config = getConfig();
+        //     var fields = config.fields.employee;
+            
+        //     // Získaj údaje
+        //     var nick = employee.field ? employee.field(fields.nick) : employee[fields.nick];
+        //     var firstName = employee.field ? employee.field(fields.firstName) : employee[fields.firstName];
+        //     var lastName = employee.field ? employee.field(fields.lastName) : employee[fields.lastName];
+            
+        //     format = format || "full";
+            
+        //     switch (format) {
+        //         case "nick":
+        //             return nick || "Neznámy";
+                    
+        //         case "short":
+        //             return nick + " (" + lastName + ")";
+                    
+        //         case "full":
+        //         default:
+        //             return firstName + " " + lastName + " (" + nick + ")";
+        //     }
+            
+        // } catch (error) {
+        //     return "Neznámy";
+        // }
     }
     
     /**
@@ -216,48 +238,111 @@ var MementoBusiness = (function() {
      * @returns {Object} Detaily zamestnanca
      */
     function getEmployeeDetails(employee, date) {
+           if (!employeeEntry) {
+            return {
+                hasValidRate: false,
+                error: "No employee entry provided"
+            };
+        }
+        
         try {
-            var config = getConfig();
-            var core = getCore();
-            
-            // Ak je to string (nick), nájdi zamestnanca
-            if (typeof employee === 'string') {
-                employee = findEmployeeByNick(employee);
-                if (!employee) {
-                    return null;
-                }
-            }
-            
             var details = {
-                id: core.safeGet(employee, config.fields.common.id),
-                nick: core.safeGet(employee, config.fields.employee.nick),
-                firstName: core.safeGet(employee, config.fields.employee.firstName),
-                lastName: core.safeGet(employee, config.fields.employee.lastName),
-                fullName: formatEmployeeName(employee),
-                status: core.safeGet(employee, config.fields.employee.status),
-                position: core.safeGet(employee, config.fields.employee.position),
-                department: core.safeGet(employee, config.fields.employee.department),
-                phone: core.safeGet(employee, config.fields.employee.phone),
-                email: core.safeGet(employee, config.fields.employee.email),
-                telegramId: core.safeGet(employee, config.fields.employee.telegramId)
+                id: core.safeGet(employeeEntry, config.employee.ID, ""),
+                nick: core.safeGet(employeeEntry, config.employee.nick, ""),
+                name: core.safeGet(employeeEntry, config.employee.name, ""),
+                surname: core.safeGet(employeeEntry, config.employee.surname, ""),
+                fullName: formatEmployeeName(employeeEntry),
+                position: core.safeGet(employeeEntry, config.employee.position, ""),
+                email: core.safeGet(employeeEntry, config.employee.email, ""),
+                phone: core.safeGet(employeeEntry, config.employee.phone, ""),
+                hasValidRate: false,
+                hourlyRate: 0,
+                rateValidFrom: null,
+                employmentType: core.safeGet(employeeEntry, config.employee.employmentType, "")
             };
             
-            // Získaj mzdové údaje ak je zadaný dátum
-            if (date) {
-                var wageData = getEmployeeWageForDate(employee, date);
-                if (wageData) {
-                    details.hourlyRate = wageData.hourlyRate;
-                    details.rateType = wageData.rateType;
-                    details.validFrom = wageData.validFrom;
-                    details.validTo = wageData.validTo;
+            // Získaj hodinovú sadzbu
+            var ratesLib = libByName(config.ratesLibrary);
+            if (ratesLib) {
+                var rates = employeeEntry.linksFrom(config.ratesLibrary, config.employeesRate.employee);
+                
+                if (rates && rates.length > 0) {
+                    // Zoraď podľa dátumu platnosti
+                    rates.sort(function(a, b) {
+                        var dateA = moment(a.field(config.employeesRate.validFrom));
+                        var dateB = moment(b.field(config.employeesRate.validFrom));
+                        return dateB.valueOf() - dateA.valueOf();
+                    });
+                    
+                    // Nájdi platnú sadzbu
+                    var checkDate = date ? moment(date) : moment();
+                    
+                    for (var i = 0; i < rates.length; i++) {
+                        var rate = rates[i];
+                        var validFrom = moment(rate.field(config.employeesRate.validFrom));
+                        
+                        if (validFrom.isSameOrBefore(checkDate)) {
+                            details.hourlyRate = parseFloat(rate.field(config.employeesRate.rate)) || 0;
+                            details.rateValidFrom = validFrom.toDate();
+                            details.hasValidRate = details.hourlyRate > 0;
+                            details.rateType = rate.field(config.employeesRate.type) || "Hodinová";
+                            break;
+                        }
+                    }
                 }
             }
             
             return details;
             
         } catch (error) {
-            return null;
+            core.addError(entry(), error.toString(), "getEmployeeDetails", error);
+            return {
+                hasValidRate: false,
+                error: error.toString()
+            };
         }
+        // try {
+        //     var config = getConfig();
+        //     var core = getCore();
+            
+        //     // Ak je to string (nick), nájdi zamestnanca
+        //     if (typeof employee === 'string') {
+        //         employee = findEmployeeByNick(employee);
+        //         if (!employee) {
+        //             return null;
+        //         }
+        //     }
+            
+        //     var details = {
+        //         id: core.safeGet(employee, config.fields.common.id),
+        //         nick: core.safeGet(employee, config.fields.employee.nick),
+        //         firstName: core.safeGet(employee, config.fields.employee.firstName),
+        //         lastName: core.safeGet(employee, config.fields.employee.lastName),
+        //         fullName: formatEmployeeName(employee),
+        //         status: core.safeGet(employee, config.fields.employee.status),
+        //         position: core.safeGet(employee, config.fields.employee.position),
+        //         department: core.safeGet(employee, config.fields.employee.department),
+        //         phone: core.safeGet(employee, config.fields.employee.phone),
+        //         email: core.safeGet(employee, config.fields.employee.email),
+        //         telegramId: core.safeGet(employee, config.fields.employee.telegramId)
+        //     };
+            
+        //     // Získaj mzdové údaje ak je zadaný dátum
+        //     if (date) {
+        //         var wageData = getEmployeeWageForDate(employee, date);
+        //         if (wageData) {
+        //             details.hourlyRate = wageData.hourlyRate;
+        //             details.rateType = wageData.rateType;
+        //             details.validFrom = wageData.validFrom;
+        //             details.validTo = wageData.validTo;
+        //         }
+        //     }
+            
+        //     return details;
+            
+        // } catch (error) {
+        //     return null;
+        // }
     }
     
     /**
@@ -314,6 +399,70 @@ var MementoBusiness = (function() {
     // MZDY A SADZBY
     // ==============================================
     
+    function calculateDailyWage(employeeEntry, workHours, date, extras) {
+        
+        extras = extras || {};
+        
+        try {
+            var empDetails = getEmployeeDetails(employeeEntry, date);
+            if (!empDetails.hasValidRate) {
+                return {
+                    success: false,
+                    error: "Employee has no valid rate",
+                    wage: 0
+                };
+            }
+            
+            var baseWage = empDetails.hourlyRate * workHours.hours;
+            var overtimeWage = 0;
+            var weekendBonus = 0;
+            var wageBonus = extras.wageBonus || 0; // Príplatok za prácu
+            baseWage += wageBonus * workHours.hours; // Pridaj príplatok k základnej mzde
+            var bonuses = extras.bonus || 0;
+            var deductions = extras.deduction || 0;
+            var mealAllowance = extras.mealAllowance || 0;
+            
+            // Výpočet nadčasov
+            if (workHours.overtimeHours > 0) {
+                var overtimeRate = empDetails.hourlyRate * 1.25; // 25% navýšenie
+                overtimeWage = overtimeRate * workHours.overtimeHours;
+            }
+            
+            // Víkendový príplatok
+            var dayMultiplier = getWorkDayMultiplier(date);
+            if (dayMultiplier > 1) {
+                weekendBonus = baseWage * (dayMultiplier - 1);
+            }
+            
+            var totalWage = baseWage + overtimeWage + weekendBonus + bonuses + mealAllowance - deductions;
+            
+            return {
+                success: true,
+                baseWage: Math.round(baseWage * 100) / 100,
+                overtimeWage: Math.round(overtimeWage * 100) / 100,
+                weekendBonus: Math.round(weekendBonus * 100) / 100,
+                bonuses: bonuses,
+                deductions: deductions,
+                mealAllowance: mealAllowance,
+                totalWage: Math.round(totalWage * 100) / 100,
+                hourlyRate: empDetails.hourlyRate,
+                details: {
+                    regularHours: workHours.regularHours,
+                    overtimeHours: workHours.overtimeHours,
+                    dayType: isHoliday(date) ? "holiday" : (isWeekend(date) ? "weekend" : "workday"),
+                    multiplier: dayMultiplier
+                }
+            };
+            
+        } catch (error) {
+            core.addError(entry(), error.toString(), "calculateDailyWage", error);
+            return {
+                success: false,
+                error: error.toString(),
+                wage: 0
+            };
+        }
+    }
     /**
      * Získa hodinovú sadzbu zamestnanca pre daný dátum
      * @param {Entry} employee - Zamestnanec

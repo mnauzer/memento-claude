@@ -37,7 +37,7 @@ var MementoBusiness = (function() {
         return {
             debug: true,
             version: "1.0.2",
-            
+             
             // Business rules
             defaultWorkHoursPerDay: 8,
             overtimeThreshold: 8,

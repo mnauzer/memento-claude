@@ -284,29 +284,42 @@ var MementoCore = (function() {
      * @param {string} fieldName - Názov Link to Entry poľa
      * @returns {Array} Pole linknutých objektov
      */
-    function safeGetLinks(entry, fieldName) {
+    // function safeGetLinks(entry, fieldName) {
+    //     try {
+    //         if (!entry || !fieldName) {
+    //             return [];
+    //         }
+            
+    //         var field = entry.field(fieldName);
+    //         if (!field) {
+    //             return [];
+    //         }
+            
+    //         // Ak je to už pole, vráť ho
+    //         if (Array.isArray(field)) {
+    //             return field;
+    //         }
+            
+    //         // Ak je to single link, vráť ako pole
+    //         return [field];
+    //     } catch (e) {
+    //         return [];
+    //     }
+    // }
+    function safeGetLinks(entry, linkFieldName) {
         try {
-            if (!entry || !fieldName) {
-                return [];
-            }
+            if (!entry || !linkFieldName) return [];
             
-            var field = entry.field(fieldName);
-            if (!field) {
-                return [];
-            }
+            var links = entry.field(linkFieldName);
+            if (!links) return [];
+         
+            return links;
             
-            // Ak je to už pole, vráť ho
-            if (Array.isArray(field)) {
-                return field;
-            }
-            
-            // Ak je to single link, vráť ako pole
-            return [field];
-        } catch (e) {
+        } catch (error) {
+            addError(entry, "Chyba pri získavaní linkov: " + error.toString(), "MememtoCore/safeGetLinks", error);
             return [];
         }
     }
-    
     // ==============================================
     // FORMÁTOVANIE
     // ==============================================
