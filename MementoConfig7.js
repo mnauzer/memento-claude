@@ -146,7 +146,7 @@ var MementoConfig = (function() {
             // Sadzby zamestnancov polia
             wages: {
                 employee: "Zamestnanec",
-                hourlyRate: "Hodinová sadzba",
+                hourlyRate: "Sadzba",
                 validFrom: "Platnosť od",
                 validTo: "Platnosť do",
                 rateType: "Typ sadzby",

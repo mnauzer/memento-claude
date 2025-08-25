@@ -102,7 +102,8 @@ var MementoBusiness = (function() {
                 };
         }
     }
-    
+
+
     /**
      * Kontroluje či je dátum víkend
      * @param {Date|string} date - Dátum na kontrolu
@@ -570,7 +571,33 @@ var MementoBusiness = (function() {
     // ==============================================
     // WAGE & RATE FUNCTIONS
     // ==============================================
-
+    /**
+     * Nájde platnú sadzbu pre zamestnanca
+     */
+    function findValidSalary(entry, employee, date) {
+        var core = getCore();
+        var config = getConfig();
+        
+        try {
+            var employeeName = formatEmployeeName(employee);
+            core.addDebug(entry, "🔍 Hľadám platnú sadzbu");
+            
+            var hodinovka = findValidHourlyRate(employee, date);
+            
+            if (!hodinovka || hodinovka <= 0) {
+                core.addError(entry, "Zamestnanec " + employeeName + " nemá platnú sadzbu", "business/findValidSalary");
+                return null;
+            }
+            
+            core.addDebug(entry, "  💶 Platná hodinovka: " + hodinovka + " €/h");
+            return hodinovka;
+    
+            
+        } catch (error) {
+            core.addError(entry, error.toString(), "business/findValidSalary", error);
+            return null;
+        }
+    }
     /**
      * Vyhľadá platnú hodinovú sadzbu pre zamestnanca k dátumu
      * @param {Entry} employee - Zamestnanec
@@ -585,11 +612,13 @@ var MementoBusiness = (function() {
         try {
             if (!employee || !date) return null;
             
-            var fields = fieldMappings || config.fields.wages;
-            var libraryName = config.libraries.wages || "sadzby zamestnancov";
+            var fields = config.fields.wages;
+            var libraryName = config.libraries.wages;
             
             // Získaj sadzby cez linksFrom
-            var rates = employee.linksFrom(libraryName, fields.employee);
+            var rates = core.safeGetLinks(employee, libraryName, fields.employee);
+            // Alebo použij starú metódu
+            // var rates = employee.linksFrom(libraryName, fields.employee);
             
             if (!rates || rates.length === 0) {
                 return null;
@@ -616,7 +645,7 @@ var MementoBusiness = (function() {
             
         } catch (error) {
             if (core) {
-                core.addError(entry(), "Chyba pri hľadaní sadzby: " + error.toString(), "findValidHourlyRate", error);
+                core.addError(entry(), "Chyba pri hľadaní sadzby: " + error.toString() + ", Line: " + error.lineNumber, "findValidHourlyRate", error);
             }
             return null;
         }
