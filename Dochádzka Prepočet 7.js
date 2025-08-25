@@ -449,8 +449,7 @@ function createInfoRecord(workTimeResult, employeeResult) {
 // ==============================================
 
 function logFinalSummary(steps) {
-
-    
+   
     try {
         utils.addDebug(currentEntry, "\n📊 === FINÁLNY SÚHRN ===");
         
