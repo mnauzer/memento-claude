@@ -49,8 +49,7 @@ var MementoBusiness = (function() {
      * @param {number} breakMinutes - Prestávka v minútach (optional)
      * @returns {Object} {hours: number, minutes: number, totalMinutes: number}
      */
- function calculateWorkHours(startTime, endTime) {
-    
+    function calculateWorkHours(startTime, endTime) {
         try {
             var start = moment(startTime);
             var end = moment(endTime);
@@ -91,14 +90,14 @@ var MementoBusiness = (function() {
                 crossesMidnight: crossesMidnight,
                 formatted: core.formatTime(hours * 60 + minutes)
             };
-            
+                
         } catch (error) {
-            core.addError(entry(), error.toString(), "calculateWorkHours", error);
-            return {
-                hours: 0,
-                minutes: 0,
-                error: error.toString()
-            };
+                core.addError(entry(), error.toString(), "calculateWorkHours", error);
+                return {
+                    hours: 0,
+                    minutes: 0,
+                    error: error.toString()
+                };
         }
     }
     
