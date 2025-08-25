@@ -34,6 +34,7 @@
 
 
 // Jednoduchý import všetkého cez MementoUtils
+var utils = MementoUtils;
 var config = utils.getConfig();
 var currentEntry = entry();
 var CONFIG = {
