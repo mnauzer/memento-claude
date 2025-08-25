@@ -479,7 +479,7 @@ var MementoCore = (function() {
     // }
     function roundToQuarter(time, direction) {
         try {
-            var config = getConfig();
+            //var config = getConfig();
             var quarterMinutes = config ? config.global.quarterRoundingMinutes : 15;
             
             if (!time) return moment();
@@ -504,6 +504,7 @@ var MementoCore = (function() {
             
             return mom;
         } catch (e) {
+            addDebug(null, "Chyba pri zaokrúhľovaní času: " + e.toString() + e.lineNumber);
             return moment();
         }
     }
