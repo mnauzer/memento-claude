@@ -399,70 +399,70 @@ var MementoBusiness = (function() {
     // MZDY A SADZBY
     // ==============================================
     
-    function calculateDailyWage(employeeEntry, workHours, date, extras) {
+    // function calculateDailyWage(employeeEntry, workHours, date, extras) {
         
-        extras = extras || {};
+    //     extras = extras || {};
         
-        try {
-            var empDetails = getEmployeeDetails(employeeEntry, date);
-            if (!empDetails.hasValidRate) {
-                return {
-                    success: false,
-                    error: "Employee has no valid rate",
-                    wage: 0
-                };
-            }
+    //     try {
+    //         var empDetails = getEmployeeDetails(employeeEntry, date);
+    //         if (!empDetails.hasValidRate) {
+    //             return {
+    //                 success: false,
+    //                 error: "Employee has no valid rate",
+    //                 wage: 0
+    //             };
+    //         }
             
-            var baseWage = empDetails.hourlyRate * workHours.hours;
-            var overtimeWage = 0;
-            var weekendBonus = 0;
-            var wageBonus = extras.wageBonus || 0; // Príplatok za prácu
-            baseWage += wageBonus * workHours.hours; // Pridaj príplatok k základnej mzde
-            var bonuses = extras.bonus || 0;
-            var deductions = extras.deduction || 0;
-            var mealAllowance = extras.mealAllowance || 0;
+    //         var baseWage = empDetails.hourlyRate * workHours.hours;
+    //         var overtimeWage = 0;
+    //         var weekendBonus = 0;
+    //         var wageBonus = extras.wageBonus || 0; // Príplatok za prácu
+    //         baseWage += wageBonus * workHours.hours; // Pridaj príplatok k základnej mzde
+    //         var bonuses = extras.bonus || 0;
+    //         var deductions = extras.deduction || 0;
+    //         var mealAllowance = extras.mealAllowance || 0;
             
-            // Výpočet nadčasov
-            if (workHours.overtimeHours > 0) {
-                var overtimeRate = empDetails.hourlyRate * 1.25; // 25% navýšenie
-                overtimeWage = overtimeRate * workHours.overtimeHours;
-            }
+    //         // Výpočet nadčasov
+    //         if (workHours.overtimeHours > 0) {
+    //             var overtimeRate = empDetails.hourlyRate * 1.25; // 25% navýšenie
+    //             overtimeWage = overtimeRate * workHours.overtimeHours;
+    //         }
             
-            // Víkendový príplatok
-            var dayMultiplier = getWorkDayMultiplier(date);
-            if (dayMultiplier > 1) {
-                weekendBonus = baseWage * (dayMultiplier - 1);
-            }
+    //         // Víkendový príplatok
+    //         var dayMultiplier = getWorkDayMultiplier(date);
+    //         if (dayMultiplier > 1) {
+    //             weekendBonus = baseWage * (dayMultiplier - 1);
+    //         }
             
-            var totalWage = baseWage + overtimeWage + weekendBonus + bonuses + mealAllowance - deductions;
+    //         var totalWage = baseWage + overtimeWage + weekendBonus + bonuses + mealAllowance - deductions;
             
-            return {
-                success: true,
-                baseWage: Math.round(baseWage * 100) / 100,
-                overtimeWage: Math.round(overtimeWage * 100) / 100,
-                weekendBonus: Math.round(weekendBonus * 100) / 100,
-                bonuses: bonuses,
-                deductions: deductions,
-                mealAllowance: mealAllowance,
-                totalWage: Math.round(totalWage * 100) / 100,
-                hourlyRate: empDetails.hourlyRate,
-                details: {
-                    regularHours: workHours.regularHours,
-                    overtimeHours: workHours.overtimeHours,
-                    dayType: isHoliday(date) ? "holiday" : (isWeekend(date) ? "weekend" : "workday"),
-                    multiplier: dayMultiplier
-                }
-            };
+    //         return {
+    //             success: true,
+    //             baseWage: Math.round(baseWage * 100) / 100,
+    //             overtimeWage: Math.round(overtimeWage * 100) / 100,
+    //             weekendBonus: Math.round(weekendBonus * 100) / 100,
+    //             bonuses: bonuses,
+    //             deductions: deductions,
+    //             mealAllowance: mealAllowance,
+    //             totalWage: Math.round(totalWage * 100) / 100,
+    //             hourlyRate: empDetails.hourlyRate,
+    //             details: {
+    //                 regularHours: workHours.regularHours,
+    //                 overtimeHours: workHours.overtimeHours,
+    //                 dayType: isHoliday(date) ? "holiday" : (isWeekend(date) ? "weekend" : "workday"),
+    //                 multiplier: dayMultiplier
+    //             }
+    //         };
             
-        } catch (error) {
-            core.addError(entry(), error.toString(), "calculateDailyWage", error);
-            return {
-                success: false,
-                error: error.toString(),
-                wage: 0
-            };
-        }
-    }
+    //     } catch (error) {
+    //         core.addError(entry(), error.toString(), "calculateDailyWage", error);
+    //         return {
+    //             success: false,
+    //             error: error.toString(),
+    //             wage: 0
+    //         };
+    //     }
+    // }
     /**
      * Získa hodinovú sadzbu zamestnanca pre daný dátum
      * @param {Entry} employee - Zamestnanec
