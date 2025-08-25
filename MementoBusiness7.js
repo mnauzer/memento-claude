@@ -50,7 +50,7 @@ var MementoBusiness = (function() {
      * @returns {Object} {hours: number, minutes: number, totalMinutes: number}
      */
  function calculateWorkHours(startTime, endTime) {
-        ensureCore();
+    
         try {
             var start = moment(startTime);
             var end = moment(endTime);
