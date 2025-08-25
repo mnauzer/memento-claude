@@ -341,6 +341,7 @@ var MementoCore = (function() {
             
             return moment(date).format(format || defaultFormat);
         } catch (e) {
+            addError(null, "Chyba pri formátovaní dátumu: " + e.toString(), "formatDate", e);
             return date ? date.toString() : "";
         }
     }
@@ -386,6 +387,7 @@ var MementoCore = (function() {
             return moment(time).format(config.timeFormat);
             
         } catch (e) {
+            addError(null, "Chyba pri formátovaní času: " + e.toString(), "formatTime", e);
             return "00:00";
         }
     }
