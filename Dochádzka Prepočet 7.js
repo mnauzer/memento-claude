@@ -60,74 +60,40 @@ var CONFIG = {
     // Správne mapovanie pre sadzby
     sadzbyFields: centralConfig.fields.wages // Toto používa správne názvy
 };
-// // Globálne premenné
-// var totalPracovnaDoba = 0;
-// var totalCistyPracovnyCas = 0;
-// var totalOdpracovane = 0;
-// var totalNaZakazkach = 0;
-// var totalPrestoje = 0;
-// var totalMzdoveNaklady = 0;
-// var totalPrestavka = 0;
 
-// ==============================================
-// HELPER FUNKCIE PRE ČASOVÉ VÝPOČTY
-// ==============================================
-
-/**
- * Vypočíta rozdiel medzi dvoma časmi v minútach
- * Ak je end pred start, predpokladá prechod cez polnoc
- */
-// function calculateTimeDifference(start, end) {
-//     try {
-//         if (!start || !end) {
-//             return 0;
-//         }
-        
-//         var startTime = moment(start, "HH:mm");
-//         var endTime = moment(end, "HH:mm");
-        
-//         if (!startTime.isValid() || !endTime.isValid()) {
-//             return 0;
-//         }
-        
-//         // Ak je koniec pred začiatkom, pridaj 24 hodín (prechod cez polnoc)
-//         if (endTime.isBefore(startTime)) {
-//             endTime.add(1, 'day');
-//         }
-        
-//         return endTime.diff(startTime, 'minutes');
-//     } catch (error) {
-//         utils.addError(currentEntry, "Chyba pri výpočte času: " + error.toString(), "calculateTimeDifference", error);
-//         return 0;
-//     }
-// }
-
-
-function validateInputData(fields) {
+function validateInputData() {
     try {
-        utils.addDebug(fields);
-        var validatedFields = utils.validateRequiredFields(currentEntry, fields.requiredFields);    
         utils.addDebug(currentEntry, "\n📋 KROK 1: Validácia vstupných dát");
-        if (!validatedFields) {
+        
+        // Definuj povinné polia
+        var requiredFields = [
+            CONFIG.fields.attendance.date,
+            CONFIG.fields.attendance.arrival,
+            CONFIG.fields.attendance.departure,
+            CONFIG.fields.attendance.employees
+        ];
+        
+        // Validuj povinné polia
+        if (!utils.validateRequiredFields(currentEntry, requiredFields)) {
             return { success: false, error: "Chýbajú povinné polia" };
         }
-        var date = currentEntry.field(fields.date);
-        var arrival = currentEntry.field(fields.arrival);
-        var departure = currentEntry.field(fields.departure);
-        var employees = currentEntry.field(fields.employees);
         
-        // Kontrola dátumu
+        // Získaj hodnoty
+        var date = currentEntry.field(CONFIG.fields.attendance.date);
+        var arrival = currentEntry.field(CONFIG.fields.attendance.arrival);
+        var departure = currentEntry.field(CONFIG.fields.attendance.departure);
+        var employees = currentEntry.field(CONFIG.fields.attendance.employees) || [];
+        
+        // Dodatočné kontroly
         if (!date) {
             return { success: false, error: "Dátum nie je vyplnený" };
         }
         
-        // Kontrola času
         if (!arrival || !departure) {
             return { success: false, error: "Príchod alebo odchod nie je vyplnený" };
         }
         
-        // Kontrola zamestnancov
-        if (employees.length === 0) {
+        if (!employees || employees.length === 0) {
             return { success: false, error: "Žiadni zamestnanci v zázname" };
         }
         
@@ -149,7 +115,6 @@ function validateInputData(fields) {
         return { success: false, error: error.toString() };
     }
 }
-
 // ==============================================
 // KROK 2: VÝPOČET PRACOVNEJ DOBY
 // ==============================================
@@ -504,55 +469,40 @@ function main() {
         // KROK 1: Validácia vstupných dát
         utils.addDebug(currentEntry, "\n📋 KROK 1: Validácia vstupných dát");
         
-        const { attendance } = CONFIG.fields;
-        utils.addDebug(attendance);
-        var validationResult = validateInputData(attendance);
+        var validationResult = validateInputData();  // ✅ Volaj bez parametrov
         if (!validationResult.success) {
             utils.addError(currentEntry, "Validácia zlyhala: " + validationResult.error, CONFIG.scriptName);
-            return;
+            message("❌ " + validationResult.error);
+            return false;
         }
         steps.step1.success = true;
-        // var requiredFields = CONFIG.fields.attendance.requiredFields;
-        
-        // if (!utils.validateRequiredFields(currentEntry, requiredFields)) {
-        //     utils.addError(currentEntry, "Chýbajú povinné polia", "validácia");
-        //     message("❌ Chyba: Vyplňte všetky povinné polia!");
-        //     return false;
-        // }
-        
-        // KROK 2: Získanie údajov
+
+        // KROK 2: Výpočet pracovného času
         utils.addDebug(currentEntry, "\n📋 KROK 2: Získavanie údajov");
-        
-        var workTimeResult = calculateWorkTime(validationResult.date, validationResult.arrival, validationResult.departure);
+        var workTimeResult = calculateWorkTime(
+            validationResult.date, 
+            validationResult.arrival, 
+            validationResult.departure
+        );
         if (!workTimeResult.success) {
-            utils.addError(currentEntry, "Výpočet času zlyhal", CONFIG.scriptName);
-            return;
+            utils.addError(currentEntry, "Výpočet času zlyhal: " + workTimeResult.error, CONFIG.scriptName);
+            return false;
         }
         steps.step2.success = true;
-        // var date = utils.safeGet(currentEntry, CONFIG.fields.attendance.date);
-        // var prichod = utils.safeGet(currentEntry, CONFIG.fields.attendance.arrival);
-        // var odchod = utils.safeGet(currentEntry, CONFIG.fields.attendance.departure);
-        // var zamestnanci = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.employees);
-        // var praceLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.works);
-        // var jazdyLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.rides);
-        
-        // utils.addDebug(currentEntry, "📅 Dátum: " + utils.formatDate(date));
-        // utils.addDebug(currentEntry, "⏰ Príchod: " + prichod + " | Odchod: " + odchod);
-        // utils.addDebug(currentEntry, "👥 Zamestnancov: " + zamestnanci.length);
-        // utils.addDebug(currentEntry, "🔨 Prác: " + praceLinks.length);
-        // utils.addDebug(currentEntry, "🚗 Jázd: " + jazdyLinks.length);
         
         // KROK 3: Spracovanie zamestnancov
-        utils.addDebug(currentEntry, "\n📋 KROK 3: Výpočet pracovného času a prestávok");
+        utils.addDebug(currentEntry, "\n📋 KROK 3: Spracovanie zamestnancov");
         var employeeResult = processEmployees(validationResult.employees, workTimeResult.pracovnaDobaHodiny, validationResult.date);
         steps.step3.success = employeeResult.success;
         
         // KROK 4: Celkové výpočty
+        utils.addDebug(currentEntry, "\n📋 KROK 4: Celkové výpočty");
         if (employeeResult.success) {
             steps.step4.success = calculateTotals(employeeResult);
         }
         
         // KROK 5: Info záznam
+        utils.addDebug(currentEntry, "\n📋 KROK 5: Vytvorenie info záznamu");
         steps.step5.success = createInfoRecord(workTimeResult, employeeResult);
         
         // Finálny log
