@@ -78,8 +78,8 @@ var MementoBusiness = (function() {
 
             
             // Výpočet nadčasov
-            var regularHours = Math.min(hours + (minutes / 60), config.defaultWorkHoursPerDay);
-            var overtimeHours = Math.max(0, (hours + (minutes / 60)) - config.defaultWorkHoursPerDay);
+            var regularHours = Math.min(hours + (minutes / 60), config.defaults.WorkHoursPerDay);
+            var overtimeHours = Math.max(0, (hours + (minutes / 60)) - config.defaults.WorkHoursPerDay);
             
             return {
                 hours: hours + (minutes / 60),

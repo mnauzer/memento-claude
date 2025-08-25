@@ -21,7 +21,12 @@ var MementoConfig = (function() {
     // Interná konfigurácia
     var CONFIG = {
         version: "7.0",
-        
+        // Defaultné hodnoty pre globálne nastavenia
+        defaults: {
+            debug: false,
+            workHoursPerDay: 8,
+        },
+
         // === GLOBÁLNE NASTAVENIA ===
         global: {
             debug: true,
