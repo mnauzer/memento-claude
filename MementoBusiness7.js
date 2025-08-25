@@ -728,6 +728,7 @@ var MementoBusiness = (function() {
         getEmployeeWageForDate: getEmployeeWageForDate,
         calculateDailyWage: calculateDailyWage,
         findValidHourlyRate: findValidHourlyRate,
+        findValidSalary: findValidSalary,
         
         // Štatistiky
         calculateMonthlyStats: calculateMonthlyStats,
