@@ -477,11 +477,24 @@ var MementoCore = (function() {
     //         return minutes || 0;
     //     }
     // }
-    function roundToQuarter(time) {
+    function roundToQuarter(time, direction) {
         try {
+            var config = getConfig();
+            var quarterMinutes = config ? config.global.quarterRoundingMinutes : 15;
+            
+            if (!time) return moment();
+            
             var mom = moment(time);
             var minutes = mom.minutes();
-            var roundedMinutes = Math.round(minutes / config.quarterRoundingMinutes) * config.quarterRoundingMinutes;
+            var roundedMinutes;
+            
+            if (direction === 'up') {
+                roundedMinutes = Math.ceil(minutes / quarterMinutes) * quarterMinutes;
+            } else if (direction === 'down') {
+                roundedMinutes = Math.floor(minutes / quarterMinutes) * quarterMinutes;
+            } else {
+                roundedMinutes = Math.round(minutes / quarterMinutes) * quarterMinutes;
+            }
             
             if (roundedMinutes === 60) {
                 mom.add(1, 'hour').minutes(0);
@@ -490,7 +503,6 @@ var MementoCore = (function() {
             }
             
             return mom;
-            
         } catch (e) {
             return moment();
         }
@@ -503,32 +515,34 @@ var MementoCore = (function() {
     // ==============================================
     
     function validateRequiredFields(entry, requiredFields) {
-        var result = {
-            valid: true,
-            errors: [],
-            missingFields: []
-        };
-        
-        if (!entry || !requiredFields || !Array.isArray(requiredFields)) {
-            result.valid = false;
-            result.errors.push("Invalid parameters");
-            return result;
-        }
-        
-        for (var i = 0; i < requiredFields.length; i++) {
-            var fieldName = CONFIG.requiredFields[i];
-            var value = entry.field(fieldName);
-            
-            if (value === null || value === undefined || value === "") {
-                result.valid = false;
-                result.missingFields.push(fieldName);
-                result.errors.push("Pole '" + fieldName + "' je povinné");
+        try {
+            if (!entry || !requiredFields || !Array.isArray(requiredFields)) {
+                return false;
             }
+            
+            var missingFields = [];
+            
+            for (var i = 0; i < requiredFields.length; i++) {
+                var fieldName = requiredFields[i];
+                var value = entry.field(fieldName);
+                
+                if (value === null || value === undefined || value === "" || 
+                    (Array.isArray(value) && value.length === 0)) {
+                    missingFields.push(fieldName);
+                }
+            }
+            
+            if (missingFields.length > 0) {
+                addDebug(entry, "❌ Chýbajú povinné polia: " + missingFields.join(", "));
+                return false;
+            }
+            
+            return true;
+        } catch (e) {
+            addError(entry, "Chyba pri validácii polí: " + e.toString(), "validateRequiredFields", e);
+            return false;
         }
-        
-        addDebug(entry, " Validácia povinných polí: " + (result.valid ? "OK" : "Chýbajú polia: " + result.missingFields.join(", ")));
-        return result;
-    }   
+    } 
     /**
      * Validuje povinné polia
      * @param {Entry} entry - Memento entry objekt
