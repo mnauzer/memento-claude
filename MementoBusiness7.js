@@ -541,34 +541,7 @@ var MementoBusiness = (function() {
         }
     }
     
-    // Pridaj tieto funkcie do MementoBusiness7.js pred sekciu PUBLIC API:
-
-    // ==============================================
-    // SLOVAK LOCALE HELPERS
-    // ==============================================
-
-    /**
-     * Získa slovenský názov dňa
-     * @param {number} dayNumber - Číslo dňa (0-6, 0=Nedeľa)
-     * @returns {string} Názov dňa po slovensky
-     */
-    function getDayNameSK(dayNumber) {
-        var days = ["Nedeľa", "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota"];
-        return days[dayNumber] || "";
-    }
-
-    /**
-     * Získa správny tvar slova "osoba" podľa počtu
-     * @param {number} count - Počet osôb
-     * @returns {string} "osoba", "osoby" alebo "osôb"
-     */
-    function getPersonCountForm(count) {
-        if (count === 1) return "osoba";
-        if (count >= 2 && count <= 4) return "osoby";
-        return "osôb";
-    }
-
-    // ==============================================
+       // ==============================================
     // WAGE & RATE FUNCTIONS
     // ==============================================
     /**
@@ -605,7 +578,7 @@ var MementoBusiness = (function() {
      * @param {Object} fieldMappings - Mapovanie názvov polí (optional)
      * @returns {number|null} Hodinová sadzba alebo null
      */
-    function findValidHourlyRate(employee, date, fieldMappings) {
+    function findValidHourlyRate(employee, date) {
         var core = getCore();
         var config = getConfig();
         

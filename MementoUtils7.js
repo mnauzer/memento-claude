@@ -169,6 +169,8 @@ var MementoUtils = (function() {
         getSettings: lazyCall('core', 'getSettings'),
         isWeekend: lazyCall('core', 'isWeekend'),
         getCurrentUser: lazyCall('core', 'getCurrentUser'),
+        getDayNameSK: lazyCall('core', 'getDayNameSK'),
+        selectOsobaForm: lazyCall('core', 'selectOsobaForm'),
         
         // === AI FUNKCIE (ak je modul dostupný) ===
         
@@ -202,6 +204,10 @@ var MementoUtils = (function() {
         calculateDailyWage: lazyCall('business', 'calculateDailyWage'),
         getActiveEmployees: lazyCall('business', 'getActiveEmployees'),
         getEmployeeWageForDate: lazyCall('business', 'getEmployeeWageForDate'),
+        findValidSalary: lazyCall('business', 'findValidSalary'),
+        findValidHourlyRate: lazyCall('business', 'findValidHourlyRate'),
+        calculateMonthlyStats: lazyCall('business', 'calculateMonthlyStats'),   
+
         
         // === HELPER FUNKCIE ===
         
