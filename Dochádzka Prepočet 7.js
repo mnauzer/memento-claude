@@ -27,6 +27,8 @@
 //    - Čistý pracovný čas
 // ==============================================
 
+const { addDebug } = require("./MementoUtils 3.3");
+
 // ==============================================
 // INICIALIZÁCIA MODULOV
 // ==============================================
@@ -117,7 +119,7 @@ function validateInputData() {
 // KROK 2: VÝPOČET PRACOVNEJ DOBY
 // ==============================================
 
-function calculateWorkTime(date, arrival, departure) {
+function calculateWorkTime(arrival, departure) {
 
     
     try {
@@ -128,6 +130,7 @@ function calculateWorkTime(date, arrival, departure) {
         var departureRounded = departure;
         
         if (CONFIG.settings.roundToQuarterHour) {
+            addDebug(currentEntry, "🔄 Zaokrúhľovanie časov na najbližšiu štvrťhodinu");
             arrivalRounded = utils.roundToQuarter(arrival);
             departureRounded = utils.roundToQuarter(departure);
 
@@ -478,7 +481,6 @@ function main() {
         // KROK 2: Výpočet pracovného času
         utils.addDebug(currentEntry, "📋 KROK 2: Získavanie údajov");
         var workTimeResult = calculateWorkTime(
-            validationResult.date, 
             validationResult.arrival, 
             validationResult.departure
         );
