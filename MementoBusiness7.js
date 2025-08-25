@@ -707,7 +707,7 @@ var MementoBusiness = (function() {
         calculateMonthlyStats: calculateMonthlyStats,
           
         // Slovak locale helpers - NOVÉ FUNKCIE
-        getDayNameSK: getDayNameSK,
+     
         getPersonCountForm: getPersonCountForm,
         
         // Reporting - NOVÁ FUNKCIA
