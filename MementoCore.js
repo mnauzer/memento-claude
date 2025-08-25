@@ -291,36 +291,7 @@ var MementoCore = (function() {
         }
     }
     
-    // ==============================================
-    // BASIC VALIDATION
-    // ==============================================
-    
-    function validateRequiredFields(entry, requiredFields) {
-        var result = {
-            valid: true,
-            errors: [],
-            missingFields: []
-        };
-        
-        if (!entry || !requiredFields || !Array.isArray(requiredFields)) {
-            result.valid = false;
-            result.errors.push("Invalid parameters");
-            return result;
-        }
-        
-        for (var i = 0; i < requiredFields.length; i++) {
-            var fieldName = requiredFields[i];
-            var value = entry.field(fieldName);
-            
-            if (value === null || value === undefined || value === "") {
-                result.valid = false;
-                result.missingFields.push(fieldName);
-                result.errors.push("Pole '" + fieldName + "' je povinné");
-            }
-        }
-        
-        return result;
-    }
+
     
     // ==============================================
     // UTILITY FUNCTIONS
