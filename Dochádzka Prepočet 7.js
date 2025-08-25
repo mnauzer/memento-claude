@@ -36,6 +36,7 @@
 // Jednoduchý import všetkého cez MementoUtils
 var utils = MementoUtils;
 var config = utils.getConfig();
+var central config = utils.config;
 var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
