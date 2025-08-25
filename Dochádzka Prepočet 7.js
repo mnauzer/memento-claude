@@ -86,10 +86,10 @@ function validateInputData(fields) {
         if (!validatedFields) {
             return { success: false, error: "Chýbajú povinné polia" };
         }
-        var date = currentEntry.field(CONFIG.attendance.date);
-        var arrival = currentEntry.field(CONFIG.attendance.arrival);
-        var departure = currentEntry.field(CONFIG.attendance.departure);
-        var employees = currentEntry.field(CONFIG.attendance.employees);
+        var date = currentEntry.field(fields.date);
+        var arrival = currentEntry.field(fields.arrival);
+        var departure = currentEntry.field(fields.departure);
+        var employees = currentEntry.field(fields.employees);
         
         // Kontrola dátumu
         if (!date) {
