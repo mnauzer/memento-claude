@@ -86,7 +86,7 @@ function validateInputData(fields) {
         if (!validatedFields) {
             return { success: false, error: "Chýbajú povinné polia" };
         }
-        var date = currentEntry.field(fields.date);
+      //var date = currentEntry.field(fields.date);
         var arrival = currentEntry.field(fields.arrival);
         var departure = currentEntry.field(fields.departure);
         var employees = currentEntry.field(fields.employees);
