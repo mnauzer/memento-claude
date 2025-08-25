@@ -129,12 +129,12 @@ function calculateWorkTime(date, arrival, departure) {
         var departureRounded = departure;
         
         if (CONFIG.settings.roundToQuarterHour) {
-            arrivalRounded = utils.roundToQuarter(arrival, 'up');
-            departureRounded = utils.roundToQuarter(departure, 'down');
+            arrivalRounded = utils.roundToQuarter(arrival);
+            departureRounded = utils.roundToQuarter(departure);
 
             // nastavenie zaokrúhlených časov do záznamu
-            currentEntry.set(CONFIG.fields.arrival, arrivalRounded);    
-            currentEntry.set(CONFIG.fields.departure, departureRounded);
+            currentEntry.set(CONFIG.fields.attendance.arrival, arrivalRounded);    
+            currentEntry.set(CONFIG.fields.attendance.departure, departureRounded);
 
             
             utils.addDebug(currentEntry, "  • Zaokrúhlené časy: " + 
