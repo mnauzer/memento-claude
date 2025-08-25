@@ -34,18 +34,24 @@
 
 
 // Jednoduchý import všetkého cez MementoUtils
-var utils = MementoUtils;
+var config = utils.getConfig();
 var currentEntry = entry();
-var centralConfig = utils.config; // Získaj centrálny config
-
-// Vytvor lokálny CONFIG pre tento script
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Dochádzka Prepočet",
-    version: "7.3.3",
+    version: "7.3.4",  // Aktualizovaná verzia
     
     // Referencie na centrálny config
-    fields: centralConfig.fields,
+    fields: {
+        attendance: centralConfig.fields.attendance,
+        common: centralConfig.fields.common,
+        // Pridané mapovanie pre arrival/departure polia
+        arrival: centralConfig.fields.attendance.arrival,      // "Príchod"
+        departure: centralConfig.fields.attendance.departure,  // "Odchod"
+        pracovnaDoba: centralConfig.fields.attendance.workTime, // "Pracovná doba"
+        pocetPracovnikov: centralConfig.fields.attendance.employeeCount, // "Počet pracovníkov"
+        info: centralConfig.fields.common.info
+    },
     attributes: centralConfig.attributes, 
     libraries: centralConfig.libraries,
     icons: centralConfig.icons,
@@ -59,7 +65,7 @@ var CONFIG = {
     },
     
     // Správne mapovanie pre sadzby
-    sadzbyFields: centralConfig.fields.wages // Toto používa správne názvy
+    sadzbyFields: centralConfig.fields.wages
 };
 
 function validateInputData() {
@@ -118,9 +124,7 @@ function validateInputData() {
 // KROK 2: VÝPOČET PRACOVNEJ DOBY
 // ==============================================
 
-function calculateWorkTime(arrival, departure) {
-
-    
+function calculateWorkTime(date, arrival, departure) {
     try {
         utils.addDebug(currentEntry, "--- Výpočet pracovnej doby");
         
@@ -129,32 +133,30 @@ function calculateWorkTime(arrival, departure) {
         var departureRounded = departure;
         
         if (CONFIG.settings.roundToQuarterHour) {
-            utils.addDebug(currentEntry, "🔄 Zaokrúhľovanie časov na najbližšiu štvrťhodinu");
-            arrivalRounded = utils.roundToQuarter(arrival);
-            departureRounded = utils.roundToQuarter(departure);
+            arrivalRounded = utils.roundToQuarter(arrival, 'up');
+            departureRounded = utils.roundToQuarter(departure, 'down');
 
-            // nastavenie zaokrúhlených časov do záznamu
-            utils.safeSet(currentEntry, CONFIG.fields.attendance.arrival, arrivalRounded);    
-            utils.safeSet(currentEntry, CONFIG.fields.attendance.departure, departureRounded);
-
+            // OPRAVA: Konvertuj moment objekty na čas pre Memento
+            currentEntry.set(CONFIG.fields.attendance.arrival, arrivalRounded.format("HH:mm"));    
+            currentEntry.set(CONFIG.fields.attendance.departure, departureRounded.format("HH:mm"));
             
             utils.addDebug(currentEntry, "  • Zaokrúhlené časy: " + 
-                utils.formatTime(arrivalRounded) + " - " + 
-                utils.formatTime(departureRounded));
+                arrivalRounded.format("HH:mm") + " - " + 
+                departureRounded.format("HH:mm"));
         }
         
-        // Výpočet hodín
-        var workHours = utils.calculateWorkHours(arrivalRounded, departureRounded);
+        // Výpočet hodín - použij originálne časy pre výpočet
+        var workHours = utils.calculateWorkHours(arrival, departure);
         
         if (!workHours || workHours.error) {
             return { success: false, error: workHours ? workHours.error : "Nepodarilo sa vypočítať hodiny" };
         }
         
-        var pracovnaDobaHodiny = workHours.hours + (workHours.minutes / 60);
+        var pracovnaDobaHodiny = workHours.totalMinutes / 60;
         pracovnaDobaHodiny = Math.round(pracovnaDobaHodiny * 100) / 100;
         
         // Ulož do poľa
-        currentEntry.set(CONFIG.fields.pracovnaDoba, pracovnaDobaHodiny);
+        currentEntry.set(CONFIG.fields.attendance.workTime, pracovnaDobaHodiny);
         
         utils.addDebug(currentEntry, "✅ Pracovná doba: " + pracovnaDobaHodiny + " hodín");
         
@@ -237,11 +239,11 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
             return { success: false };
         }
         
-        // SPRÁVNE NASTAVENIE ATRIBÚTOV
+        // OPRAVA: Správne nastavenie atribútov pomocou .attr() namiesto .setAttr()
         var zamArray = currentEntry.field(CONFIG.fields.attendance.employees);
         
-        if (zamArray && zamArray.length > index) {
-            // Použiť .attr() s 2 parametrami
+        if (zamArray && zamArray.length > index && zamArray[index]) {
+            // Nastav atribúty pomocou .attr() metódy
             zamArray[index].attr(CONFIG.attributes.employees.workedHours, pracovnaDobaHodiny);
             zamArray[index].attr(CONFIG.attributes.employees.hourlyRate, hodinovka);
             
@@ -258,6 +260,8 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
             zamArray[index].attr(CONFIG.attributes.employees.dailyWage, dennaMzda);
             
             utils.addDebug(currentEntry, "  ✅ Spracované úspešne");
+            utils.addDebug(currentEntry, "    • Hodinová sadzba: " + hodinovka + " €/h");
+            utils.addDebug(currentEntry, "    • Denná mzda: " + dennaMzda + " €");
             
             return {
                 success: true,
@@ -265,10 +269,11 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
                 dennaMzda: dennaMzda,
                 priplatok: priplatok,
                 premia: premia,
-                pokuta: pokuta
+                pokuta: pokuta,
+                zamestnanec: zamestnanec  // Pridané pre info záznam
             };
         } else {
-            utils.addError(currentEntry, "Nepodarilo sa získať pole zamestnancov pre index " + index, "processEmployee");
+            utils.addError(currentEntry, "Nepodarilo sa získať zamesnanca na indexe " + index, "processEmployee");
             return { success: false };
         }
         
