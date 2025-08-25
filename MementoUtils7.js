@@ -298,6 +298,7 @@ var MementoUtils = (function() {
                 constants: baseConfig.constants || {},
                 icons: baseConfig.icons || {},
                 global: baseConfig.global || {}
+                defaults: baseConfig.defaults || {}
             };
         }
     };
