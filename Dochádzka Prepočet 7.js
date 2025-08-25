@@ -83,7 +83,7 @@ var version = "7.3.2"; // verzia skriptu
 
 function validateInputData(fields) {
     try {
-        addDebug(fields);
+        utils.addDebug(fields);
         var validatedFields = utils.validateRequiredFields(currentEntry, fields.requiredFields);    
         utils.addDebug(currentEntry, "\n📋 KROK 1: Validácia vstupných dát");
         if (!validatedFields) {
@@ -481,7 +481,7 @@ function logFinalSummary(steps) {
 
 function main() {
     try {
-        utils.addDebug(currentEntry, "=== DOCHÁDZKA PREPOČET v7.3 ===");
+        utils.addDebug(currentEntry, "=== DOCHÁDZKA PREPOČET v" + version + " ===");
         utils.addDebug(currentEntry, "MementoUtils verzia: " + utils.version);
         // Kontrola závislostí
         var depCheck = utils.checkDependencies(['config', 'core', 'business']);
