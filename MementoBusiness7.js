@@ -49,38 +49,55 @@ var MementoBusiness = (function() {
      * @param {number} breakMinutes - Prestávka v minútach (optional)
      * @returns {Object} {hours: number, minutes: number, totalMinutes: number}
      */
-    function calculateWorkHours(start, end, breakMinutes) {
+ function calculateWorkHours(startTime, endTime) {
+        ensureCore();
         try {
-            if (!start || !end) {
-                return { hours: 0, minutes: 0, totalMinutes: 0 };
+            var start = moment(startTime);
+            var end = moment(endTime);
+            
+            if (!start.isValid() || !end.isValid()) {
+                return {
+                    hours: 0,
+                    minutes: 0,
+                    crossesMidnight: false,
+                    error: "Invalid time format"
+                };
             }
             
-            var startMoment = moment(start);
-            var endMoment = moment(end);
+            var diffMinutes = end.diff(start, 'minutes');
+            var crossesMidnight = false;
             
-            // Ak je koniec pred začiatkom, predpokladáme prechod cez polnoc
-            if (endMoment.isBefore(startMoment)) {
-                endMoment.add(1, 'day');
+            // Ak je rozdiel záporný, práca cez polnoc
+            if (diffMinutes < 0) {
+                diffMinutes += 24 * 60;
+                crossesMidnight = true;
             }
             
-            var diffMinutes = endMoment.diff(startMoment, 'minutes');
+            var hours = Math.floor(diffMinutes / 60);
+            var minutes = diffMinutes % 60;
             
-            // Odpočítaj prestávku
-            if (breakMinutes && breakMinutes > 0) {
-                diffMinutes -= breakMinutes;
-            }
-            
-            // Zabezpeč nezáporné hodnoty
-            diffMinutes = Math.max(0, diffMinutes);
+            // Výpočet nadčasov
+            var regularHours = Math.min(hours + (minutes / 60), config.defaultWorkHoursPerDay);
+            var overtimeHours = Math.max(0, (hours + (minutes / 60)) - config.defaultWorkHoursPerDay);
             
             return {
-                hours: Math.floor(diffMinutes / 60),
-                minutes: diffMinutes % 60,
-                totalMinutes: diffMinutes
+                hours: hours + (minutes / 60),
+                hoursOnly: hours,
+                minutes: minutes,
+                totalMinutes: diffMinutes,
+                regularHours: regularHours,
+                overtimeHours: overtimeHours,
+                crossesMidnight: crossesMidnight,
+                formatted: core.formatTime(hours * 60 + minutes)
             };
             
         } catch (error) {
-            return { hours: 0, minutes: 0, totalMinutes: 0 };
+            core.addError(entry(), error.toString(), "calculateWorkHours", error);
+            return {
+                hours: 0,
+                minutes: 0,
+                error: error.toString()
+            };
         }
     }
     
