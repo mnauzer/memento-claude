@@ -50,6 +50,7 @@ var MementoBusiness = (function() {
      * @returns {Object} {hours: number, minutes: number, totalMinutes: number}
      */
     function calculateWorkHours(startTime, endTime) {
+        var core = getCore();
         try {
             var start = moment(startTime);
             var end = moment(endTime);
@@ -196,31 +197,31 @@ var MementoBusiness = (function() {
      * @returns {string} Formátované meno
      */
     function formatEmployeeName(employeeEntry) {
-    var core = getCore();
-    var config = getConfig();
-    
-    if (!employeeEntry) return "Neznámy";
-    
-    try {
-        // Používaj konzistentné názvy polí
-        var nick = core.safeGet(employeeEntry, config.fields.employee.nick, "");
-        var meno = core.safeGet(employeeEntry, config.fields.employee.firstName, "");
-        var priezvisko = core.safeGet(employeeEntry, config.fields.employee.lastName, "");
+        var core = getCore();
+        var config = getConfig();
         
-        if (nick) {
-            return priezvisko ? nick + " (" + priezvisko + ")" : nick;
+        if (!employeeEntry) return "Neznámy";
+        
+        try {
+            // Používaj konzistentné názvy polí
+            var nick = core.safeGet(employeeEntry, config.fields.employee.nick, "");
+            var meno = core.safeGet(employeeEntry, config.fields.employee.firstName, "");
+            var priezvisko = core.safeGet(employeeEntry, config.fields.employee.lastName, "");
+            
+            if (nick) {
+                return priezvisko ? nick + " (" + priezvisko + ")" : nick;
+            }
+            
+            if (meno || priezvisko) {
+                return (meno + " " + priezvisko).trim();
+            }
+            
+            return "Zamestnanec #" + core.safeGet(employeeEntry, "ID", "?");
+            
+        } catch (error) {
+            return "Neznámy";
         }
-        
-        if (meno || priezvisko) {
-            return (meno + " " + priezvisko).trim();
-        }
-        
-        return "Zamestnanec #" + core.safeGet(employeeEntry, "ID", "?");
-        
-    } catch (error) {
-        return "Neznámy";
     }
-}
     
     /**
      * Získa detaily zamestnanca
