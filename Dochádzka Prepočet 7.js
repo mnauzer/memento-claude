@@ -1,6 +1,6 @@
 // ==============================================
 // DOCHÁDZKA PREPOČET - AUTOMATICKÝ VÝPOČET
-// Verzia: 7.3 | Dátum: August 2025 | Autor: ASISTANTO
+// Verzia: 7.3.1 | Dátum: August 2025 | Autor: ASISTANTO
 // Knižnica: Dochádzka | Trigger: Before Save
 // ==============================================
 // 📋 FUNKCIA:
