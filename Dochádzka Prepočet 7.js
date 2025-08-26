@@ -214,9 +214,6 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
     }
 }
 
-/**
- * Spracuje jedného zamestnanca - OPRAVENÉ NASTAVOVANIE ATRIBÚTOV
- */
 function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
     try {
         // Nájdi platnú hodinovku
@@ -271,9 +268,6 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
     }
 }
 
-
-
-
 // ==============================================
 // KROK 4: CELKOVÉ VÝPOČTY
 // ==============================================
@@ -299,6 +293,7 @@ function calculateTotals(employeeResult) {
         return false;
     }
 }
+
 function zobrazSuhrn() {
     var summaryData = {
         success: true,
@@ -316,10 +311,7 @@ function zobrazSuhrn() {
 // KROK 5: VYTVORENIE INFO ZÁZNAMU
 // ==============================================
 
-
 function createInfoRecord(workTimeResult, employeeResult) {
-
-    
     try {
         utils.addDebug(currentEntry, "\n📝 KROK 5: Vytvorenie info záznamu");
         
@@ -336,7 +328,7 @@ function createInfoRecord(workTimeResult, employeeResult) {
                        " - " + utils.formatTime(workTimeResult.departureRounded) + "\n";
         infoMessage += "⏱️ Pracovná doba: " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
         
-        infoMessage += "👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + " " + utils.getPersonCountForm(employeeResult.pocetPracovnikov) + ")\n";;
+        infoMessage += "👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + ")\n";;
         infoMessage += "───────────────────────────────────\n";
         
         for (var i = 0; i < employeeResult.detaily.length; i++) {

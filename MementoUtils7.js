@@ -165,9 +165,8 @@ var MementoUtils = (function() {
         validateRequiredFields: lazyCall('core', 'validateRequiredFields'),
         
         // Utility
-        findEntryById: lazyCall('core', 'findEntryById'),
         getSettings: lazyCall('core', 'getSettings'),
-        isWeekend: lazyCall('core', 'isWeekend'),
+        findEntryById: lazyCall('core', 'findEntryById'),
         getCurrentUser: lazyCall('core', 'getCurrentUser'),
         getDayNameSK: lazyCall('core', 'getDayNameSK'),
         selectOsobaForm: lazyCall('core', 'selectOsobaForm'),
@@ -198,6 +197,8 @@ var MementoUtils = (function() {
         
         calculateWorkHours: lazyCall('business', 'calculateWorkHours'),
         isHoliday: lazyCall('business', 'isHoliday'),
+        isWeekend: lazyCall('core', 'isWeekend'),
+        calculateEaster: lazyCall('core', 'calculateEaster'),
         formatEmployeeName: lazyCall('business', 'formatEmployeeName'),
         getEmployeeDetails: lazyCall('business', 'getEmployeeDetails'),
         findEmployeeByNick: lazyCall('business', 'findEmployeeByNick'),
