@@ -522,6 +522,7 @@ var MementoCore = (function() {
         addError: addError,
         addInfo: addInfo,
         clearLogs: clearLogs,
+        getSettings: getSettings,
         
         // Safe field access
         safeGet: safeGet,
@@ -542,8 +543,6 @@ var MementoCore = (function() {
         
         // Utility
         findEntryById: findEntryById,
-        getSettings: getSettings,
-        isWeekend: isWeekend,
         getCurrentUser: getCurrentUser,
 
         getDayNameSK: getDayNameSK,
