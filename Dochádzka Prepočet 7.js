@@ -321,7 +321,7 @@ function createInfoRecord(workTimeResult, employeeResult) {
 
 
         var infoMessage = "📋 DOCHÁDZKA - AUTOMATICKÝ PREPOČET\n";
-        infoMessage += "═══════════════════════════════════\n\n";
+        infoMessage += "═══════════════════════════════════\n";
         
         infoMessage += "📅 Dátum: " + dateFormatted + " (" + dayName + ")\n";
         infoMessage += "⏰ Pracovný čas: " + utils.formatTime(workTimeResult.arrivalRounded) + 
