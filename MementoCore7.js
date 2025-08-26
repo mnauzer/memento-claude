@@ -232,6 +232,21 @@ var MementoCore = (function() {
         }
     }
 
+    function safeGetLinksFrom(entry, libraryName, linkFieldName) {
+        try {
+            if (!entry || !linkFieldName || !libraryName) return [];
+            
+            var links = entry.linksFrom(libraryName, linkFieldName);
+            if (!links) return [];
+         
+            return links;
+            
+        } catch (error) {
+            addError(entry, "Chyba pri získavaní linkov: " + error.toString(), "MememtoCore/safeGetLinksFrom", error);
+            return [];
+        }
+    }
+
     function formatDate(date, format) {
         try {
             var config = getConfig();
@@ -535,6 +550,7 @@ var MementoCore = (function() {
         safeGetAttribute: safeGetAttribute,
         safeSetAttribute: safeSetAttribute,
         safeGetLinks: safeGetLinks,
+        safeGetLinksFrom: safeGetLinksFrom,
         
         // Formátovanie
         formatDate: formatDate,

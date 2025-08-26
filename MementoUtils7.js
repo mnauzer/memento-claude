@@ -153,6 +153,7 @@ var MementoUtils = (function() {
         safeGetAttribute: lazyCall('core', 'safeGetAttribute'),
         safeSetAttribute: lazyCall('core', 'safeSetAttribute'),
         safeGetLinks: lazyCall('core', 'safeGetLinks'),
+        safeGetLinksFrom: lazyCall('core', 'safeGetLinksFrom'),
         
         // Formátovanie
         formatDate: lazyCall('core', 'formatDate'),

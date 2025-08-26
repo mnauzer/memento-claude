@@ -445,7 +445,7 @@ var MementoBusiness = (function() {
             var libraryName = config.libraries.wages;
             
             // Získaj sadzby cez linksFrom
-            var rates = core.safeGetLinks(employee, libraryName, fields.employee);
+            var rates = core.safeGetLinksFrom(employee, libraryName, fields.employee);
             // Alebo použij starú metódu
             // var rates = employee.linksFrom(libraryName, fields.employee);
             
