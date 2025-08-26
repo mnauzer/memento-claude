@@ -22,7 +22,7 @@ var MementoCore = (function() {
     
     // Lazy loading pre MementoConfig
     var _config = null;
-    
+
     function getConfig() {
         if (!_config && typeof MementoConfig !== 'undefined') {
             _config = MementoConfig.getConfig();
@@ -322,6 +322,26 @@ var MementoCore = (function() {
         }
     }
 
+    function calculateEaster(year) {
+        // Algoritmus pre výpočet Veľkej noci
+        var a = year % 19;
+        var b = Math.floor(year / 100);
+        var c = year % 100;
+        var d = Math.floor(b / 4);
+        var e = b % 4;
+        var f = Math.floor((b + 8) / 25);
+        var g = Math.floor((b - f + 1) / 3);
+        var h = (19 * a + b - d - g + 15) % 30;
+        var i = Math.floor(c / 4);
+        var k = c % 4;
+        var l = (32 + 2 * e + 2 * i - h - k) % 7;
+        var m = Math.floor((a + 11 * h + 22 * l) / 451);
+        var month = Math.floor((h + l - 7 * m + 114) / 31);
+        var day = ((h + l - 7 * m + 114) % 31) + 1;
+        
+        return new Date(year, month - 1, day);
+    }
+    
     function formatMoney(amount, currency, decimals) {
         if (typeof amount !== "number") return "0.00 €";
         
@@ -529,6 +549,8 @@ var MementoCore = (function() {
         getDayNameSK: getDayNameSK,
         selectOsobaForm: selectOsobaForm,       
         isHoliday: isHoliday,
-        isWeekend: isWeekend
+        isWeekend: isWeekend,
+        calculateEaster: calculateEaster
+
     };
 })();

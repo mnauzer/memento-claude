@@ -42,13 +42,6 @@ var MementoBusiness = (function() {
     // ČASOVÉ VÝPOČTY
     // ==============================================
     
-    /**
-     * Vypočíta odpracované hodiny
-     * @param {Date|string} start - Čas príchodu
-     * @param {Date|string} end - Čas odchodu
-     * @param {number} breakMinutes - Prestávka v minútach (optional)
-     * @returns {Object} {hours: number, minutes: number, totalMinutes: number}
-     */
     function calculateWorkHours(startTime, endTime) {
         var core = getCore();
         var config = getConfig();
@@ -102,45 +95,8 @@ var MementoBusiness = (function() {
                 };
         }
     }
+ 
 
-
-   
-    
-    /**
-     * Vypočíta dátum Veľkej noci
-     * @param {number} year - Rok
-     * @returns {Date} Dátum Veľkonočnej nedele
-     */
-    function calculateEaster(year) {
-        // Algoritmus pre výpočet Veľkej noci
-        var a = year % 19;
-        var b = Math.floor(year / 100);
-        var c = year % 100;
-        var d = Math.floor(b / 4);
-        var e = b % 4;
-        var f = Math.floor((b + 8) / 25);
-        var g = Math.floor((b - f + 1) / 3);
-        var h = (19 * a + b - d - g + 15) % 30;
-        var i = Math.floor(c / 4);
-        var k = c % 4;
-        var l = (32 + 2 * e + 2 * i - h - k) % 7;
-        var m = Math.floor((a + 11 * h + 22 * l) / 451);
-        var month = Math.floor((h + l - 7 * m + 114) / 31);
-        var day = ((h + l - 7 * m + 114) % 31) + 1;
-        
-        return new Date(year, month - 1, day);
-    }
-    
-    // ==============================================
-    // ZAMESTNANCI
-    // ==============================================
-    
-    /**
-     * Formátuje meno zamestnanca
-     * @param {Entry|Object} employee - Zamestnanec entry alebo objekt
-     * @param {string} format - Formát: "full", "short", "nick" (default: "full")
-     * @returns {string} Formátované meno
-     */
     function formatEmployeeName(employeeEntry) {
         var core = getCore();
         var config = getConfig();
@@ -168,12 +124,6 @@ var MementoBusiness = (function() {
         }
     }
     
-    /**
-     * Získa detaily zamestnanca
-     * @param {Entry|string} employee - Zamestnanec entry alebo nick
-     * @param {Date} date - Dátum pre ktorý získať údaje (pre mzdy)
-     * @returns {Object} Detaily zamestnanca
-     */
     function getEmployeeDetails(employee, date) {
         try {
             var config = getConfig();
@@ -219,11 +169,6 @@ var MementoBusiness = (function() {
         }
     }
     
-    /**
-     * Nájde zamestnanca podľa nicku
-     * @param {string} nick - Nick zamestnanca
-     * @returns {Entry|null} Entry zamestnanca alebo null
-     */
     function findEmployeeByNick(nick) {
         try {
             if (!nick) return null;
@@ -240,10 +185,6 @@ var MementoBusiness = (function() {
         }
     }
     
-    /**
-     * Získa aktívnych zamestnancov
-     * @returns {Array} Pole aktívnych zamestnancov
-     */
     function getActiveEmployees() {
         try {
             var config = getConfig();
@@ -273,12 +214,6 @@ var MementoBusiness = (function() {
     // MZDY A SADZBY
     // ==============================================
     
-    /**
-     * Získa hodinovú sadzbu zamestnanca pre daný dátum
-     * @param {Entry} employee - Zamestnanec
-     * @param {Date} date - Dátum
-     * @returns {Object|null} {hourlyRate: number, rateType: string, validFrom: Date, validTo: Date}
-     */
     function getEmployeeWageForDate(employee, date) {
         try {
             if (!employee || !date) return null;
@@ -333,13 +268,6 @@ var MementoBusiness = (function() {
         }
     }
     
-    /**
-     * Vypočíta dennú mzdu zamestnanca
-     * @param {Entry} employee - Zamestnanec
-     * @param {number} hoursWorked - Počet odpracovaných hodín
-     * @param {Date} date - Dátum (pre určenie sadzby)
-     * @returns {Object} {wage: number, hourlyRate: number, overtime: number}
-     */
     function calculateDailyWage(employee, hoursWorked, date) {
         try {
             if (!employee || !hoursWorked) {
@@ -382,13 +310,6 @@ var MementoBusiness = (function() {
     // ŠTATISTIKY
     // ==============================================
     
-    /**
-     * Vypočíta mesačné štatistiky pre zamestnanca
-     * @param {Entry} employee - Zamestnanec
-     * @param {number} month - Mesiac (1-12)
-     * @param {number} year - Rok
-     * @returns {Object} Štatistiky
-     */
     function calculateMonthlyStats(employee, month, year) {
         try {
             var config = getConfig();
@@ -484,12 +405,10 @@ var MementoBusiness = (function() {
         }
     }
     
-       // ==============================================
+    // ==============================================
     // WAGE & RATE FUNCTIONS
     // ==============================================
-    /**
-     * Nájde platnú sadzbu pre zamestnanca
-     */
+  
     function findValidSalary(entry, employee, date) {
         var core = getCore();
         var config = getConfig();
@@ -514,13 +433,7 @@ var MementoBusiness = (function() {
             return null;
         }
     }
-    /**
-     * Vyhľadá platnú hodinovú sadzbu pre zamestnanca k dátumu
-     * @param {Entry} employee - Zamestnanec
-     * @param {Date} date - Dátum pre ktorý hľadáme sadzbu
-     * @param {Object} fieldMappings - Mapovanie názvov polí (optional)
-     * @returns {number|null} Hodinová sadzba alebo null
-     */
+
     function findValidHourlyRate(employee, date) {
         var core = getCore();
         var config = getConfig();
@@ -571,12 +484,6 @@ var MementoBusiness = (function() {
     // SUMMARY & REPORTING FUNCTIONS
     // ==============================================
 
-    /**
-     * Zobrazí súhrnné informácie o spracovaní
-     * @param {Entry} entry - Aktuálny záznam
-     * @param {Object} summaryData - Dáta pre súhrn
-     * @param {Object} config - Konfigurácia s názvami polí
-     */
     function showProcessingSummary(entry, summaryData, config) {
         var core = getCore();
         
@@ -631,8 +538,6 @@ var MementoBusiness = (function() {
         
         // Časové výpočty
         calculateWorkHours: calculateWorkHours,
-        isWeekend: isWeekend,
-        isHoliday: isHoliday,
         
         // Zamestnanci
         formatEmployeeName: formatEmployeeName,
