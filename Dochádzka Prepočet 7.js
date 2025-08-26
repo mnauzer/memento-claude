@@ -145,8 +145,8 @@ function calculateWorkTime(arrival, departure) {
         currentEntry.set(CONFIG.fields.attendance.workTime, pracovnaDobaHodiny);
         
         utils.addDebug(currentEntry, "✅ Pracovná doba: " + pracovnaDobaHodiny + " hodín");
-        utils.addDebug(currentEntry, "  • Príchod: " + utils.formatTime(arrival));
-        utils.addDebug(currentEntry, "  • Odchod: " + utils.formatTime(departure));
+        utils.addDebug(currentEntry, "  • Príchod: " + moment(arrival).format("HH:mm"));
+        utils.addDebug(currentEntry, "  • Odchod: " + moment(departure).format("HH:mm"));
         
         return {
             success: true,
@@ -172,7 +172,7 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
         utils.addDebug(currentEntry, "\n👥 KROK 3: Spracovanie zamestnancov");
         
         var result = {
-            success: true,
+            success: false,
             pocetPracovnikov: zamestnanci.length,
             odpracovaneTotal: 0,
             celkoveMzdy: 0,
@@ -201,6 +201,7 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
                 result.odpracovaneTotal += pracovnaDobaHodiny;
                 result.celkoveMzdy += empResult.dennaMzda;
                 result.detaily.push(empResult);
+                result.success = true;
             } else {
                 result.success = false;
             }
@@ -217,20 +218,19 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
 function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
     try {
         // Nájdi platnú hodinovku
-        var hodinovka = utils.findValidSalary(zamestnanec, datum);
+        var hodinovka = utils.findValidSalary(currentEntry, zamestnanec, datum);
         
         if (!hodinovka || hodinovka <= 0) {
             utils.addDebug(currentEntry, "  ❌ Preskakujem - nemá platnú sadzbu");
             return { success: false };
         }
         
-        // OPRAVA: Správne nastavenie atribútov pomocou .attr() namiesto .setAttr()
         var zamArray = currentEntry.field(CONFIG.fields.attendance.employees);
         
         if (zamArray && zamArray.length > index && zamArray[index]) {
             // Nastav atribúty pomocou .attr() metódy
-            zamArray[index].attr(CONFIG.attributes.employees.workedHours, pracovnaDobaHodiny);
-            zamArray[index].attr(CONFIG.attributes.employees.hourlyRate, hodinovka);
+            zamArray[index].setAttr(CONFIG.attributes.employees.workedHours, pracovnaDobaHodiny);
+            zamArray[index].setAttr(CONFIG.attributes.employees.hourlyRate, hodinovka);
             
             // Získaj príplatky
             var priplatok = zamArray[index].attr(CONFIG.attributes.employees.bonus) || 0;
@@ -324,11 +324,11 @@ function createInfoRecord(workTimeResult, employeeResult) {
         infoMessage += "═══════════════════════════════════\n";
         
         infoMessage += "📅 Dátum: " + dateFormatted + " (" + dayName + ")\n";
-        infoMessage += "⏰ Pracovný čas: " + utils.formatTime(workTimeResult.arrivalRounded) + 
-                       " - " + utils.formatTime(workTimeResult.departureRounded) + "\n";
+        infoMessage += "⏰ Pracovný čas: " + moment(workTimeResult.arrivalRounded).format("HH:mm") + 
+                       " - " + moment(workTimeResult.departureRounded).format("HH:mm") + "\n";
         infoMessage += "⏱️ Pracovná doba: " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
         
-        infoMessage += "👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + " " + utils.getPersonCountform(employeeResult.pocetPracovnikov) +")\n";;
+        infoMessage += "👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + " " + utils.selectOsobaForm(employeeResult.pocetPracovnikov) +")\n";;
         infoMessage += "───────────────────────────────────\n";
         
         for (var i = 0; i < employeeResult.detaily.length; i++) {
