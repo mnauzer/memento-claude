@@ -170,8 +170,6 @@ function calculateWorkTime(arrival, departure) {
 function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
  
     try {
-        utils.addDebug(currentEntry, CONFIG.icons.group + " KROK 3: Spracovanie zamestnancov");
-        
         var result = {
             success: false,
             pocetPracovnikov: zamestnanci.length,
@@ -188,7 +186,7 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
             var zamestnanec = zamestnanci[i];
             
             if (!zamestnanec) {
-                utils.addDebug(currentEntry, "  ⚠️ Zamestnanec[" + i + "] je null - preskakujem");
+                utils.addDebug(currentEntry, "Zamestnanec[" + i + "] je null - preskakujem", "warning");
                 continue;
             }
             
@@ -245,7 +243,7 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
             // Nastav dennú mzdu
             zamArray[index].attr(CONFIG.attributes.dailyWage, dennaMzda);
             
-            utils.addDebug(currentEntry, "  ✅ Spracované úspešne");
+            utils.addDebug(currentEntry, "Spracované úspešne", "check");
             utils.addDebug(currentEntry, "    • Hodinová sadzba: " + hodinovka + " €/h");
             utils.addDebug(currentEntry, "    • Denná mzda: " + dennaMzda + " €");
             
@@ -416,8 +414,8 @@ function main() {
             return false;
         }
         // Debug info o načítaných moduloch
-        utils.addDebug(currentEntry, "🚀 === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
-        utils.addDebug(currentEntry, "📅 Čas spustenia: " + utils.formatDate(moment()));
+        utils.addDebug(currentEntry, "=== ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===", "start");
+        utils.addDebug(currentEntry, "Čas spustenia: " + utils.formatDate(moment()), "calendar");
         
          // Kroky prepočtu
         var steps = {
@@ -429,7 +427,7 @@ function main() {
         };
 
         // KROK 1: Validácia vstupných dát
-        utils.addDebug(currentEntry, "📋 KROK 1: Validácia vstupných dát");
+        utils.addDebug(currentEntry, " KROK 1: Validácia vstupných dát"), "validation";
         
         var validationResult = validateInputData();  // ✅ Volaj bez parametrov
         if (!validationResult.success) {
@@ -440,7 +438,7 @@ function main() {
         steps.step1.success = true;
 
         // KROK 2: Výpočet pracovného času
-        utils.addDebug(currentEntry, "📋 KROK 2: Získavanie údajov");
+        utils.addDebug(currentEntry, " KROK 2: Získavanie údajov"), "update";
         var workTimeResult = calculateWorkTime(
             validationResult.arrival, 
             validationResult.departure
@@ -452,18 +450,18 @@ function main() {
         steps.step2.success = true;
         
         // KROK 3: Spracovanie zamestnancov
-        utils.addDebug(currentEntry, "📋 KROK 3: Spracovanie zamestnancov");
+        utils.addDebug(currentEntry, " KROK 3: Spracovanie zamestnancov"), "group";
         var employeeResult = processEmployees(validationResult.employees, workTimeResult.pracovnaDobaHodiny, validationResult.date);
         steps.step3.success = employeeResult.success;
         
         // KROK 4: Celkové výpočty
-        utils.addDebug(currentEntry, "📋 KROK 4: Celkové výpočty");
+        utils.addDebug(currentEntry, " KROK 4: Celkové výpočty"), "calculation";
         if (employeeResult.success) {
             steps.step4.success = calculateTotals(employeeResult);
         }
         
         // KROK 5: Info záznam
-        utils.addDebug(currentEntry, "📋 KROK 5: Vytvorenie info záznamu");
+        utils.addDebug(currentEntry, " KROK 5: Vytvorenie info záznamu"), "note";
         steps.step5.success = createInfoRecord(workTimeResult, employeeResult);
         
         // Finálny log
