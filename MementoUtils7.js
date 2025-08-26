@@ -170,6 +170,7 @@ var MementoUtils = (function() {
         getCurrentUser: lazyCall('core', 'getCurrentUser'),
         getDayNameSK: lazyCall('core', 'getDayNameSK'),
         selectOsobaForm: lazyCall('core', 'selectOsobaForm'),
+        getPersonCountForm: lazyCall('core', 'getPersonCountForm'),
         
         // === AI FUNKCIE (ak je modul dostupný) ===
         
