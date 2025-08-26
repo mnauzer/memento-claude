@@ -37,11 +37,12 @@ var MementoCore = (function() {
             var debugFieldName = config ? config.fields.common.debugLog : "Debug_Log";
             
             var timestamp = moment().format("DD.MM.YY HH:mm");
-            var debugMessage = "[" + timestamp + "] " + config.icon[iconName] + " " + message;
+            var debugMessage = "[" + timestamp + "] " + config.icons[iconName] + " " + message;
             
             var existingDebug = entry.field(debugFieldName) || "";
             entry.set(debugFieldName, existingDebug + debugMessage + "\n");
         } catch (e) {
+            addError(entry, "Nepodarilo sa pridať debug správu: " + e.toString(), "addDebug", e);
             // Nemôžeme logovať chybu logovania
         }
     }
