@@ -191,7 +191,7 @@ var MementoConfig = (function() {
                 debugMode: "Debug mód"
             },
             
-            // ASISTANTO Notifications polia
+            // Notifications polia
             notifications: {
                 status: "Status",
                 priority: "Priorita",
@@ -214,7 +214,7 @@ var MementoConfig = (function() {
                 lastError: "Posledná chyba"
             },
             
-            // ASISTANTO Telegram Groups polia
+            // Telegram Groups polia
             telegramGroups: {
                 groupName: "Názov skupiny",
                 groupType: "Typ skupiny",
