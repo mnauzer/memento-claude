@@ -297,7 +297,7 @@ var MementoUtils = (function() {
                 attributes: baseConfig.attributes || {},
                 constants: baseConfig.constants || {},
                 icons: baseConfig.icons || {},
-                global: baseConfig.global || {}
+                global: baseConfig.global || {},
                 defaults: baseConfig.defaults || {}
             };
         }
