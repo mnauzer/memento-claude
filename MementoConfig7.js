@@ -102,9 +102,9 @@ var MementoConfig = (function() {
                 employeeAttributes: {
                     workedHours: "odpracované",
                     hourlyRate: "hodinovka",
-                    bonus: "príplatok (€/h)",
-                    premium: "prémia (€)",
-                    penalty: "pokuta (€)",
+                    bonus: "+príplatok (€/h)",
+                    premium: "+prémia (€)",
+                    penalty: "-pokuta (€)",
                     dailyWage: "denná mzda",
                     note: "poznámka"
                 },
