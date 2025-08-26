@@ -193,7 +193,7 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
             }
             
             var employeeName = utils.formatEmployeeName(zamestnanec);
-            utils.addDebug(currentEntry, "\n👤 [" + (i+1) + "/" + result.pocetPracovnikov + "] " + employeeName);
+            utils.addDebug(currentEntry, CONFIG.icons.person + " [" + (i+1) + "/" + result.pocetPracovnikov + "] " + employeeName);
             
             // Spracuj zamestnanca
             var empResult = processEmployee(zamestnanec, pracovnaDobaHodiny, datum, i);
