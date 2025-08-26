@@ -29,14 +29,15 @@ var MementoCore = (function() {
         }
         return _config;
     }
+
   
-    function addDebug(entry, message) {
+    function addDebug(entry, message, iconName) {
         try {
             var config = getConfig();
             var debugFieldName = config ? config.fields.common.debugLog : "Debug_Log";
             
             var timestamp = moment().format("DD.MM.YY HH:mm");
-            var debugMessage = "[" + timestamp + "] " + message;
+            var debugMessage = "[" + timestamp + "] " + config.icon[iconName] + " " + message;
             
             var existingDebug = entry.field(debugFieldName) || "";
             entry.set(debugFieldName, existingDebug + debugMessage + "\n");
