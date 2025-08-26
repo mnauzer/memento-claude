@@ -34,6 +34,7 @@ var MementoCore = (function() {
     function addDebug(entry, message, iconName) {
         try {
             var config = getConfig();
+            
             var icon = config.icons[iconName] || " ";
             var debugFieldName = config ? config.fields.common.debugLog : "Debug_Log";
             
