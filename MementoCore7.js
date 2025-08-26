@@ -33,11 +33,12 @@ var MementoCore = (function() {
   
     function addDebug(entry, message, iconName) {
         try {
+            var icon = config.icons[iconName] || " ";
             var config = getConfig();
             var debugFieldName = config ? config.fields.common.debugLog : "Debug_Log";
             
             var timestamp = moment().format("DD.MM.YY HH:mm");
-            var debugMessage = "[" + timestamp + "] " + config.icons[iconName] + " " + message;
+            var debugMessage = "[" + timestamp + "] " + icon + " " + message;
             
             var existingDebug = entry.field(debugFieldName) || "";
             entry.set(debugFieldName, existingDebug + debugMessage + "\n");

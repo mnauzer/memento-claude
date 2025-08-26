@@ -492,7 +492,12 @@ var MementoConfig = (function() {
             work: "🔨",
             car: "🚗",
             notification: "🔔",
-            telegram: "📱"
+            telegram: "📱",
+            validation: "🛡️",
+            calculation: "🧮",
+            note: "📝",
+
+
         }
     };
     
