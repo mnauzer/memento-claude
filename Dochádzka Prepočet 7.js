@@ -230,20 +230,20 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
         
         if (zamArray && zamArray.length > index && zamArray[index]) {
             // Nastav atribúty pomocou .attr() metódy
-            zamArray[index].setAttr(CONFIG.attributes.employees.workedHours, pracovnaDobaHodiny);
-            zamArray[index].setAttr(CONFIG.attributes.employees.hourlyRate, hodinovka);
+            zamArray[index].setAttr(CONFIG.attributes.workedHours, pracovnaDobaHodiny);
+            zamArray[index].setAttr(CONFIG.attributes.hourlyRate, hodinovka);
             
             // Získaj príplatky
-            var priplatok = zamArray[index].attr(CONFIG.attributes.employees.bonus) || 0;
-            var premia = zamArray[index].attr(CONFIG.attributes.employees.premium) || 0;
-            var pokuta = zamArray[index].attr(CONFIG.attributes.employees.penalty) || 0;
+            var priplatok = zamArray[index].attr(CONFIG.attributes.bonus) || 0;
+            var premia = zamArray[index].attr(CONFIG.attributes.premium) || 0;
+            var pokuta = zamArray[index].attr(CONFIG.attributes.penalty) || 0;
             
             // Vypočítaj dennú mzdu
             var dennaMzda = (pracovnaDobaHodiny * (hodinovka + priplatok)) + premia - pokuta;
             dennaMzda = Math.round(dennaMzda * 100) / 100;
             
             // Nastav dennú mzdu
-            zamArray[index].attr(CONFIG.attributes.employees.dailyWage, dennaMzda);
+            zamArray[index].attr(CONFIG.attributes.dailyWage, dennaMzda);
             
             utils.addDebug(currentEntry, "  ✅ Spracované úspešne");
             utils.addDebug(currentEntry, "    • Hodinová sadzba: " + hodinovka + " €/h");
