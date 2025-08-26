@@ -556,7 +556,6 @@ var MementoBusiness = (function() {
           
         // Slovak locale helpers - NOVÉ FUNKCIE
      
-        getPersonCountForm: getPersonCountForm,
         
         // Reporting - NOVÁ FUNKCIA
         showProcessingSummary: showProcessingSummary

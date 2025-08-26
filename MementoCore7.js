@@ -509,6 +509,11 @@ var MementoCore = (function() {
         if (count >= 2 && count <= 4) return "osoby";
         return "osôb";
     }
+    function getPersonCountForm(count) {
+        if (count === 1) return "osoba";
+        if (count >= 2 && count <= 4) return "osoby";
+        return "osôb";
+    }
 
      // ==============================================
     // PUBLIC API
@@ -545,8 +550,10 @@ var MementoCore = (function() {
         findEntryById: findEntryById,
         getCurrentUser: getCurrentUser,
 
+
         getDayNameSK: getDayNameSK,
         selectOsobaForm: selectOsobaForm,       
+        getPersonCountForm: getPersonCountForm,
         isHoliday: isHoliday,
         isWeekend: isWeekend,
         calculateEaster: calculateEaster
