@@ -51,10 +51,11 @@ var CONFIG = {
         arrival: centralConfig.fields.attendance.arrival,      // "Príchod"
         departure: centralConfig.fields.attendance.departure,  // "Odchod"
         pracovnaDoba: centralConfig.fields.attendance.workTime, // "Pracovná doba"
+        odpracovane: centralConfig.fields.attendance.workedHours, // "Odpracované"
         pocetPracovnikov: centralConfig.fields.attendance.employeeCount, // "Počet pracovníkov"
         info: centralConfig.fields.common.info
     },
-    attributes: centralConfig.attributes, 
+    attributes: centralConfig.fields.attendance.employeeAttributes, 
     libraries: centralConfig.libraries,
     icons: centralConfig.icons,
     
@@ -169,7 +170,7 @@ function calculateWorkTime(arrival, departure) {
 function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
  
     try {
-        utils.addDebug(currentEntry, "\n👥 KROK 3: Spracovanie zamestnancov");
+        utils.addDebug(currentEntry, CONFIG.icons.group + " KROK 3: Spracovanie zamestnancov");
         
         var result = {
             success: false,
