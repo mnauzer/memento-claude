@@ -371,7 +371,7 @@ var MementoCore = (function() {
             return 0;
         }
     }
-    
+
     function formatTime(hours) {
         if (!hours && hours !== 0) return "00:00";
         
@@ -410,44 +410,44 @@ var MementoCore = (function() {
     //     }
     // }
 
-    // function roundToQuarter(time, direction) {
-    // try {
-    //     // Ak je to už string formát času, konvertuj na moment
-    //     if (typeof time === 'string') {
-    //         time = moment(time, 'HH:mm');
-    //     }
+    function roundToQuarter(time, direction) {
+    try {
+        // Ak je to už string formát času, konvertuj na moment
+        if (typeof time === 'string') {
+            time = moment(time, 'HH:mm');
+        }
         
-    //     // Ak nie je moment objekt, skús základnú konverziu
-    //     if (!time._isAMomentObject) {
-    //         time = moment(time);
-    //     }
+        // Ak nie je moment objekt, skús základnú konverziu
+        if (!time._isAMomentObject) {
+            time = moment(time);
+        }
         
-    //     var quarterMinutes = 15;
-    //     var mom = moment(time).seconds(0).milliseconds(0);
-    //     var minutes = mom.minutes();
-    //     var roundedMinutes;
+        var quarterMinutes = 15;
+        var mom = moment(time).seconds(0).milliseconds(0);
+        var minutes = mom.minutes();
+        var roundedMinutes;
         
-    //     if (direction === 'up') {
-    //         roundedMinutes = Math.ceil(minutes / quarterMinutes) * quarterMinutes;
-    //     } else if (direction === 'down') {
-    //         roundedMinutes = Math.floor(minutes / quarterMinutes) * quarterMinutes;
-    //     } else {
-    //         roundedMinutes = Math.round(minutes / quarterMinutes) * quarterMinutes;
-    //     }
+        if (direction === 'up') {
+            roundedMinutes = Math.ceil(minutes / quarterMinutes) * quarterMinutes;
+        } else if (direction === 'down') {
+            roundedMinutes = Math.floor(minutes / quarterMinutes) * quarterMinutes;
+        } else {
+            roundedMinutes = Math.round(minutes / quarterMinutes) * quarterMinutes;
+        }
         
-    //     if (roundedMinutes >= 60) {
-    //         mom.add(1, 'hour').minutes(0);
-    //     } else {
-    //         mom.minutes(roundedMinutes);
-    //     }
+        if (roundedMinutes >= 60) {
+            mom.add(1, 'hour').minutes(0);
+        } else {
+            mom.minutes(roundedMinutes);
+        }
         
-    //     return mom;
+        return mom;
         
-    // } catch (e) {
-    //     // Ak zlyhá všetko, vráť originálny čas
-    //     return moment(time);
-    // }
-    // }
+    } catch (e) {
+        // Ak zlyhá všetko, vráť originálny čas
+        return moment(time);
+    }
+    }
 
     function validateRequiredFields(entry, requiredFields) {
         try {
