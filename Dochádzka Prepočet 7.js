@@ -627,31 +627,20 @@ function main() {
         // utils.safeSet(currentEntry, "Prestávka", totalPrestavka);  // Prestávka pole
         // utils.safeSet(currentEntry, "Čistý pracovný čas", totalCistyPracovnyCas);  // Čistý pracovný čas pole
         
-        // // KROK 9: Farba záznamu
-        // utils.addDebug(currentEntry, "\n📋 KROK 9: Nastavenie farby záznamu");
-        
-        // var farba = "#FFFFFF"; // Biela - štandard
-        // if (jeSviatok) {
-        //     farba = "#FFE6CC"; // Oranžová - sviatok
-        // } else if (jeVikend) {
-        //     farba = "#FFFFCC"; // Žltá - víkend
-        // } else if (totalPrestoje > 2) {
-        //     farba = "#FFCCCC"; // Červená - veľa prestojov
-        // }
-        
+       
         // utils.safeSet(currentEntry, CONFIG.fields.common.backgroundColor, farba);
         
-        // // KROK 10: Info pole
-        // vytvorInfoZaznam();
+        // KROK 10: Info pole
+        vytvorInfoZaznam();
         
-        // // Záverečné štatistiky
-        // utils.addDebug(currentEntry, "\n📊 === VÝSLEDKY PREPOČTU ===");
-        // utils.addDebug(currentEntry, "👥 Pracovníkov: " + pocetPracovnikov);
-        // utils.addDebug(currentEntry, "⏱️ Hrubý čas: " + formatMinutesToTime(hrubyCasMinuty));
-        // utils.addDebug(currentEntry, "⏸️ Prestávka: " + prestavkaMinuty + " minút");
-        // utils.addDebug(currentEntry, "✅ Čistý čas: " + formatMinutesToTime(cistyPracovnyCasMinuty));
-        // utils.addDebug(currentEntry, "💰 Mzdové náklady: " + utils.formatMoney(totalMzdoveNaklady));
-        // utils.addDebug(currentEntry, "✅ === PREPOČET DOKONČENÝ ===");
+        // Záverečné štatistiky
+        utils.addDebug(currentEntry, "\n📊 === VÝSLEDKY PREPOČTU ===");
+        utils.addDebug(currentEntry, "Pracovníkov: " + pocetPracovnikov, "group");
+        //utils.addDebug(currentEntry, "⏱️ Hrubý čas: " + formatMinutesToTime(hrubyCasMinuty));
+        //utils.addDebug(currentEntry, "⏸️ Prestávka: " + prestavkaMinuty + " minút");
+        //utils.addDebug(currentEntry, "✅ Čistý čas: " + formatMinutesToTime(cistyPracovnyCasMinuty));
+        utils.addDebug(currentEntry, "Mzdové náklady: " + utils.formatMoney(totalMzdoveNaklady), "money");
+        utils.addDebug(currentEntry, "=== PREPOČET DOKONČENÝ ===", "checkmark");
         
         //
         var farba = "#FFFFFF"; // Biela - štandard
@@ -664,7 +653,7 @@ function main() {
         utils.safeSetAttribute(currentEntry, CONFIG.fields.attendance, CONFIG.attributes.arrivalRounded);
         utils.safeSetAttribute(currentEntry, CONFIG.fields.attendance, CONFIG.attributes.departureRounded); 
         utils.safeSet(currentEntry, CONFIG.fields.common.backgroundColor, farba);
-        
+
         return true;
         
     } catch (error) {
