@@ -487,6 +487,7 @@ var MementoConfig = (function() {
             cross: "❎",
             questionMark: "❓",
             exclamation: "❗",
+            round: "🔄",
             
             // Špecifické
             attendance: "📋",
