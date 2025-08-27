@@ -107,7 +107,7 @@ function validateInputData() {
             return { success: false, error: "Žiadni zamestnanci v zázname" };
         }
         
-        utils.addDebug(currentEntry, "  • Dátum: " + moment(date).format("DD.MM.YYYY"));
+        utils.addDebug(currentEntry, "  • Dátum: " + moment(date).format("DD.MM.YYYY") + " (" + utils.getDayNameSK(moment(date).day()).toUpperCase() + ")");
         utils.addDebug(currentEntry, "  • Čas: " + moment(arrival).format("HH:mm") + " - " + moment(departure).format("HH:mm"));
         utils.addDebug(currentEntry, "  • Počet zamestnancov: " + employees.length);
         utils.addDebug(currentEntry, "  Validácia úspešná", "success");
@@ -181,8 +181,8 @@ function calculateWorkTime(arrival, departure) {
         var departureFinal = departureParsed;
         
         if (CONFIG.settings.roundToQuarterHour) {
-            arrivalFinal = utils.roundTimeToQuarter(arrivalParsed, "down"); // Príchod zaokrúhli nadol
-            departureFinal = utils.roundTimeToQuarter(departureParsed, "up"); // Odchod zaokrúhli nahor
+            arrivalFinal = utils.roundTimeToQuarter(arrivalParsed); // Príchod zaokrúhli  
+            departureFinal = utils.roundTimeToQuarter(departureParsed); // Odchod zaokrúhli
             
             utils.addDebug(currentEntry, " Zaokrúhlenie aktivované:", "round");
             utils.addDebug(currentEntry, " • Príchod: " + utils.formatTime(arrivalParsed) + " → " + utils.formatTime(arrivalFinal));
@@ -202,8 +202,6 @@ function calculateWorkTime(arrival, departure) {
         // Ulož do poľa
         currentEntry.set(CONFIG.fields.attendance.workTime, pracovnaDobaHodiny);
         
-        utils.addDebug(currentEntry, " • Príchod (15min): " + utils.formatTime(arrivalFinal));
-        utils.addDebug(currentEntry, " • Odchod (15min): " + utils.formatTime(departureFinal));
         utils.addDebug(currentEntry, "Pracovná doba: " + pracovnaDobaHodiny + " hodín"), "success";
         
         return {
