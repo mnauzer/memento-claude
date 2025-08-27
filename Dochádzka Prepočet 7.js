@@ -61,7 +61,7 @@ var CONFIG = {
     
     // Lokálne nastavenia pre tento script
     settings: {
-        roundToQuarterHour: false,  // VYPNUTÉ - ako quickfix!
+        roundToQuarterHour: true,  // VYPNUTÉ - ako quickfix!
         includeBreaks: true,
         breakThreshold: 6, // hodín
         breakDuration: 30  // minút
@@ -243,7 +243,7 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
             // Nastav dennú mzdu
             zamArray[index].attr(CONFIG.attributes.dailyWage, dennaMzda);
             
-            utils.addDebug(currentEntry, "Spracované úspešne", "check");
+            utils.addDebug(currentEntry, "Spracované úspešne", "checkmark");
             utils.addDebug(currentEntry, "    • Hodinová sadzba: " + hodinovka + " €/h");
             utils.addDebug(currentEntry, "    • Denná mzda: " + dennaMzda + " €");
             
@@ -332,7 +332,7 @@ function createInfoRecord(workTimeResult, employeeResult) {
         
         for (var i = 0; i < employeeResult.detaily.length; i++) {
             var detail = employeeResult.detaily[i];
-            infoMessage += "• Zamestnanec " + (i+1) + ": " + utils.formatEmployeeName(employeeResult.detaily[i].zamestnanec) + "\n";
+            infoMessage += "👤 " + (i+1) + ": " + utils.formatEmployeeName(employeeResult.detaily[i].zamestnanec) + "\n";
             infoMessage += "• Hodinovka: " + detail.hodinovka + " €/h\n";
             if (detail.priplatok > 0) infoMessage += "  + Príplatok: " + detail.priplatok + " €/h\n";
             if (detail.premia > 0) infoMessage += "  + Prémia: " + detail.premia + " €\n";
@@ -438,15 +438,20 @@ function main() {
         steps.step1.success = true;
 
         // KROK 2: Výpočet pracovného času
-        utils.addDebug(currentEntry, " KROK 2: Získavanie údajov"), "update";
-        var workTimeResult = calculateWorkTime(
-            validationResult.arrival, 
-            validationResult.departure
-        );
+        utils.addDebug(currentEntry, " KROK 2: Získavanie údajov", "update");
+
+        var arrivalRounded = roundToQuarterHour(validationResult.arrival);
+        var departureRounded = roundToQuarterHour(validationResult.departure);
+        var workTimeResult = calculateWorkTime(arrivalRounded, departureRounded);    
+
         if (!workTimeResult.success) {
             utils.addError(currentEntry, "Výpočet času zlyhal: " + workTimeResult.error, CONFIG.scriptName);
             return false;
         }
+
+        utils.safeSetAttribute(currentEntry, CONFIG.fields.attendance, CONFIG.attributes.arrivalRounded);
+        utils.safeSetAttribute(currentEntry, CONFIG.fields.attendance, CONFIG.attributes.departureRounded); 
+        
         steps.step2.success = true;
         
         // KROK 3: Spracovanie zamestnancov
