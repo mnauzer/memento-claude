@@ -110,7 +110,7 @@ function validateInputData() {
         utils.addDebug(currentEntry, "  • Dátum: " + moment(date).format("DD.MM.YYYY"));
         utils.addDebug(currentEntry, "  • Čas: " + moment(arrival).format("HH:mm") + " - " + moment(departure).format("HH:mm"));
         utils.addDebug(currentEntry, "  • Počet zamestnancov: " + employees.length);
-        utils.addDebug(currentEntry, "Validácia úspešná", "success");
+        utils.addDebug(currentEntry, "  Validácia úspešná", "success");
         
         return {
             success: true,
@@ -497,8 +497,6 @@ function main() {
         utils.addDebug(currentEntry, " KROK 2: Získavanie údajov", "update");
         var isHoliday = utils.isHoliday(validationResult.date);
         var isWeekend = utils.isWeekend(validationResult.date);
-        var arrivalRounded = utils.roundToQuarterHour(validationResult.arrival);
-        var departureRounded = utils.roundToQuarterHour(validationResult.departure);
         var workTimeResult = calculateWorkTime(arrivalRounded, departureRounded);    
 
         if (!workTimeResult.success) {
