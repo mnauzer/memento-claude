@@ -486,18 +486,18 @@ function createBidirectionalLink(sourceEntry, notification, linkFieldName) {
                           " prilinková k záznamu #" + sourceEntry.field("ID"));
         }
         
-        // 3. Nastav spätnú referenciu v notifikácii (už by malo byť nastavené pri vytvorení)
-        // ale pre istotu skontrolujeme
-        var sourceLibraryField = "Zdrojová knižnica";
-        var sourceEntryField = "Zdrojový záznam";
+        // // 3. Nastav spätnú referenciu v notifikácii (už by malo byť nastavené pri vytvorení)
+        // // ale pre istotu skontrolujeme
+        // var sourceLibraryField = "Zdrojová knižnica";
+        // var sourceEntryField = "Zdrojový záznam";
         
-        if (!notification.field(sourceLibraryField)) {
-            notification.set(sourceLibraryField, lib().title);
-        }
+        // if (!notification.field(sourceLibraryField)) {
+        //     notification.set(sourceLibraryField, lib().title);
+        // }
         
-        if (!notification.field(sourceEntryField)) {
-            notification.set(sourceEntryField, sourceEntry);
-        }
+        // if (!notification.field(sourceEntryField)) {
+        //     notification.set(sourceEntryField, sourceEntry);
+        // }
         
         return true;
         
@@ -566,8 +566,8 @@ function cleanupOldNotifications(sourceEntry, linkFieldName) {
             }
         }
         
-        // 3. Vyčisti pole v zdrojovom zázname
-        sourceEntry.set(linkFieldName, []);
+        // // 3. Vyčisti pole v zdrojovom zázname
+        // sourceEntry.set(linkFieldName, []);
         
         // 4. Výsledok
         if (failedDeletions.length > 0) {
