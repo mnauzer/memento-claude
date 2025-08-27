@@ -212,11 +212,11 @@ function getTelegramGroup(libraryConfig) {
         
         var defaultSettings = defaultsLib.lastEntry();
         if (!defaultSettings || defaultSettings.length === 0) return null;
-        
+
         var telegramGroup = utils.safeGet(defaultSettings, libraryConfig.telegramGroupField);
         
         if (!telegramGroup) {
-            utils.addError(currentEntry, "Telegram skupina nie je nastavená v poli '" + libraryConfig.telegramGroupField + "'", "getTelegramGroup");
+            utils.addError(currentEntry, "Telegram skupina nie je nastavená v poli '" + libraryConfig.libraryConfig[libraryConfig.name].telegramGroupField + "'", "getTelegramGroup");
             return null;
         }
         
