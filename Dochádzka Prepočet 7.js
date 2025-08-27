@@ -497,7 +497,7 @@ function main() {
         utils.addDebug(currentEntry, " KROK 2: Získavanie údajov", "update");
         var isHoliday = utils.isHoliday(validationResult.date);
         var isWeekend = utils.isWeekend(validationResult.date);
-        var workTimeResult = calculateWorkTime(arrivalRounded, departureRounded);    
+        var workTimeResult = calculateWorkTime(validationResult.arrival,validationResult.departure);    
 
         if (!workTimeResult.success) {
             utils.addError(currentEntry, "Výpočet času zlyhal: " + workTimeResult.error, CONFIG.scriptName);
