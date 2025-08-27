@@ -187,6 +187,8 @@ function calculateWorkTime(arrival, departure) {
             utils.addDebug(currentEntry, " Zaokrúhlenie aktivované:", "round");
             utils.addDebug(currentEntry, " • Príchod: " + utils.formatTime(arrivalParsed) + " → " + utils.formatTime(arrivalFinal));
             utils.addDebug(currentEntry, " • Odchod: " + utils.formatTime(departureParsed) + " → " + utils.formatTime(departureFinal));
+            utils.safeSet(currentEntry, CONFIG.fields.attendance,  workTimeResult.arrivalFinal);
+            utils.safeSet(currentEntry, CONFIG.fields.attendance,  workTimeResult.departureFinal); 
         }
         
         // Výpočet hodín s novými časmi
@@ -703,8 +705,7 @@ function main() {
             farba = "#FFFFCC"; // Žltá - víkend
         }
         // pre nastavíme zaokrúhlené časy príchodu a odchodu
-        utils.safeSet(currentEntry, CONFIG.fields.attendance,  workTimeResult.arrivalRounded);
-        utils.safeSet(currentEntry, CONFIG.fields.attendance,  workTimeResult.departureRounded); 
+       
         utils.safeSet(currentEntry, CONFIG.fields.common.backgroundColor, farba);
 
         return true;
