@@ -216,7 +216,8 @@ function getTelegramGroup(libraryConfig) {
         var defaultSettings = settings[settings.length - 1];
         var enabled = utils.safeGet(defaultSettings, libraryConfig.telegramGroupField , " ");
         utils.addDebug(currentEntry, "  • " + libraryConfig.telegramGroupField + ": " + (enabled ? "NÁJDENÁ" : "NENÁJDENÁ"));
-        var telegramGroup = utils.safeGet(defaultSettings, libraryConfig.telegramGroupField); // Telegram skupina dochádzky hardcoded for now
+        var telegramGroupEntries = utils.safeGet(defaultSettings, libraryConfig.telegramGroupField); // Telegram skupina dochádzky hardcoded for no
+        var telegramGroup = telegramGroupEntries[0];
         utils.addDebug(currentEntry, "  • Telegram skupina: " + utils.safeGet(telegramGroup, "Názov skupiny") + " " + utils.safeGet(telegramGroup, "Názov témy"));
         if (!telegramGroup) {
             utils.addError(currentEntry, "Telegram skupina nie je nastavená v poli '" + libraryConfig.telegramGroupField + "'", "getTelegramGroup");
