@@ -232,6 +232,7 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
             success: false,
             pocetPracovnikov: zamestnanci.length,
             odpracovaneTotal: 0,
+            pracovnaDoba: pracovnaDobaHodiny,
             celkoveMzdy: 0,
             detaily: []
         };
@@ -337,10 +338,15 @@ function calculateTotals(employeeResult) {
         // Ulož celkové hodnoty
         utils.safeSet(currentEntry, CONFIG.fields.attendance.workedHours, employeeResult.odpracovaneTotal);
         utils.safeSet(currentEntry, CONFIG.fields.attendance.wageCosts, employeeResult.celkoveMzdy);
+        utils.safeSet(currentEntry, CONFIG.fields.attendance.onProjects, 0);
+        utils.safeSet(currentEntry, CONFIG.fields.attendance.downtime, 0);
         
         utils.addDebug(currentEntry, "✅ Celkové výpočty:");
+        utils.addDebug(currentEntry, "  • Pracovná doba: " + workTimeResult.pracovnaDobaHodiny + " hodín");
         utils.addDebug(currentEntry, "  • Odpracované spolu: " + employeeResult.odpracovaneTotal + " hodín");
         utils.addDebug(currentEntry, "  • Mzdové náklady: " + utils.formatMoney(employeeResult.celkoveMzdy));
+        utils.addDebug(currentEntry, "  • Na zákazkách: " + "0 hodín");
+        utils.addDebug(currentEntry, "  • Prestoje: " + "0 hodín");
         
         return true;
         
