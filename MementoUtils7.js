@@ -161,6 +161,7 @@ var MementoUtils = (function() {
         formatMoney: lazyCall('core', 'formatMoney'),
         parseTimeToMinutes: lazyCall('core', 'parseTimeToMinutes'),
         roundToQuarter: lazyCall('core', 'roundToQuarter'),
+        roundToQuarterHour: lazyCall('core', 'roundToQuarterHour'),
         
         // Validácia
         validateRequiredFields: lazyCall('core', 'validateRequiredFields'),
