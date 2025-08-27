@@ -180,7 +180,7 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
         };
         
         // Ulož počet pracovníkov
-        currentEntry.set(CONFIG.fields.pocetPracovnikov, result.pocetPracovnikov);
+     utils.safeSet(currentEntry, CONFIG.fields.pocetPracovnikov, result.pocetPracovnikov);
         
         // Spracuj každého zamestnanca
         for (var i = 0; i < zamestnanci.length; i++) {
@@ -279,8 +279,8 @@ function calculateTotals(employeeResult) {
         utils.addDebug(currentEntry, "\n💰 KROK 4: Celkové výpočty");
         
         // Ulož celkové hodnoty
-        currentEntry.set(CONFIG.fields.attendance.workedHours, employeeResult.odpracovaneTotal);
-        currentEntry.set(CONFIG.fields.attendance.wageCosts, employeeResult.celkoveMzdy);
+        utils.safeSet(currentEntry, CONFIG.fields.attendance.workedHours, employeeResult.odpracovaneTotal);
+        utils.safeSet(currentEntry, CONFIG.fields.attendance.wageCosts, employeeResult.celkoveMzdy);
         
         utils.addDebug(currentEntry, "✅ Celkové výpočty:");
         utils.addDebug(currentEntry, "  • Odpracované spolu: " + employeeResult.odpracovaneTotal + " hodín");
@@ -635,13 +635,13 @@ function main() {
         //vytvorInfoZaznam();
         
         // Záverečné štatistiky
-        utils.addDebug(currentEntry, "\n📊 === VÝSLEDKY PREPOČTU ===");
-        utils.addDebug(currentEntry, "Pracovníkov: " + pocetPracovnikov, "group");
-        //utils.addDebug(currentEntry, "⏱️ Hrubý čas: " + formatMinutesToTime(hrubyCasMinuty));
-        //utils.addDebug(currentEntry, "⏸️ Prestávka: " + prestavkaMinuty + " minút");
-        //utils.addDebug(currentEntry, "✅ Čistý čas: " + formatMinutesToTime(cistyPracovnyCasMinuty));
-        utils.addDebug(currentEntry, "Mzdové náklady: " + utils.formatMoney(totalMzdoveNaklady), "money");
-        utils.addDebug(currentEntry, "=== PREPOČET DOKONČENÝ ===", "checkmark");
+        // utils.addDebug(currentEntry, "\n📊 === VÝSLEDKY PREPOČTU ===");
+        // utils.addDebug(currentEntry, "Pracovníkov: " + employeeResult.pocetPracovnikov, "group");
+        // //utils.addDebug(currentEntry, "⏱️ Hrubý čas: " + formatMinutesToTime(hrubyCasMinuty));
+        // //utils.addDebug(currentEntry, "⏸️ Prestávka: " + prestavkaMinuty + " minút");
+        // //utils.addDebug(currentEntry, "✅ Čistý čas: " + formatMinutesToTime(cistyPracovnyCasMinuty));
+        // utils.addDebug(currentEntry, "Mzdové náklady: " + utils.formatMoney(totalMzdoveNaklady), "money");
+        // utils.addDebug(currentEntry, "=== PREPOČET DOKONČENÝ ===", "checkmark");
         
         //
         var farba = "#FFFFFF"; // Biela - štandard
