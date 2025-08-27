@@ -235,7 +235,7 @@ function getTelegramGroup(libraryConfig) {
 
 function validateTelegramGroup(telegramGroup) {
     // Kontrola povolených notifikácií
-    var notificationsEnabled = utils.safeGet(telegramGroup, "Dochádzka skupinové notifikácie", false); // Hardcoded for now
+    var notificationsEnabled = utils.safeGet(telegramGroup, "Povoliť notifikácie", false); // Hardcoded for now
     if (!notificationsEnabled) {
         utils.addDebug(currentEntry, utils.getIcon("warning") + " Skupina má vypnuté notifikácie");
         return false;
