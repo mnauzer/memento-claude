@@ -440,8 +440,8 @@ function main() {
         utils.addDebug(currentEntry, " KROK 2: Získavanie údajov", "update");
         var isHoliday = utils.isHoliday(validationResult.date);
         var isWeekend = utils.isWeekend(validationResult.date);
-        var arrivalRounded = roundToQuarterHour(validationResult.arrival);
-        var departureRounded = roundToQuarterHour(validationResult.departure);
+        var arrivalRounded = roundToQuarter(validationResult.arrival);
+        var departureRounded = roundToQuarter(validationResult.departure);
         var workTimeResult = calculateWorkTime(arrivalRounded, departureRounded);    
 
         if (!workTimeResult.success) {
