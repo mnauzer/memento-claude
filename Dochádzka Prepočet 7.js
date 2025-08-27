@@ -146,7 +146,8 @@ function calculateWorkTime(arrival, departure) {
         currentEntry.set(CONFIG.fields.attendance.workTime, pracovnaDobaHodiny);
         
         utils.addDebug(currentEntry, "✅ Pracovná doba: " + pracovnaDobaHodiny + " hodín");
-        utils.addDebug(currentEntry, "  • Príchod: " + moment(arrival).format("HH:mm"));
+        //utils.addDebug(currentEntry, "  • Príchod: " + moment(arrival).format("HH:mm"));
+        utils.addDebug(currentEntry, "  • Príchod: " + utils.formatTime(arrival));
         utils.addDebug(currentEntry, "  • Odchod: " + moment(departure).format("HH:mm"));
         
         return {
@@ -631,7 +632,7 @@ function main() {
         // utils.safeSet(currentEntry, CONFIG.fields.common.backgroundColor, farba);
         
         // KROK 10: Info pole
-        vytvorInfoZaznam();
+        //vytvorInfoZaznam();
         
         // Záverečné štatistiky
         utils.addDebug(currentEntry, "\n📊 === VÝSLEDKY PREPOČTU ===");
