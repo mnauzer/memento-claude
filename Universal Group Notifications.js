@@ -107,12 +107,30 @@ function main() {
         }
         
         // 7. VYTVORENIE NOTIFIKÁCIE
-        var notification = createNotification({
+        utils.addDebug(currentEntry, utils.getIcon("delete") + " Cleanup starých notifikácií");
+
+        var notificationResult = safeCreateNotificationWithCleanup(currentEntry, {
             libraryConfig: libraryConfig,
             telegramGroup: telegramGroup,
             message: message,
             data: extractedData
         });
+
+        if (!notificationResult.success) {
+            utils.addError(currentEntry, "Nepodarilo sa vytvoriť notifikáciu: " + 
+                        (notificationResult.error || "Neznáma chyba"), "main");
+            return false;
+        }
+
+        var notification = notificationResult.notification;
+
+        utils.addDebug(currentEntry, utils.getIcon("success") + " Notifikácia vytvorená (ID: " + 
+                    notification.field("ID") + ")");
+
+        if (notificationResult.cleanupCount > 0) {
+            utils.addDebug(currentEntry, "  • Vymazaných starých notifikácií: " + 
+                        notificationResult.cleanupCount);
+        }
         
         if (!notification) {
             utils.addError(currentEntry, "Nepodarilo sa vytvoriť notifikáciu", "main");
@@ -260,7 +278,10 @@ function extractData(libraryConfig) {
             utils.addDebug(currentEntry, "  • Použijem info_telegram pole");
             return {
                 formattedMessage: telegramInfo,
-                useDirectMessage: true
+                useDirectMessage: true,
+                 // Pridaj základné dáta pre info záznam
+                date: utils.safeGet(currentEntry, libraryConfig.fields.date || libraryConfig.fields.datum),
+                id: currentEntry.field("ID")
             };
         }
         
@@ -272,14 +293,10 @@ function extractData(libraryConfig) {
             utils.addDebug(currentEntry, "  • Konvertujem info pole na Markdown");
             return {
                 formattedMessage: convertTextToMarkdown(infoContent),
-                useDirectMessage: true
+                useDirectMessage: true,
+                date: utils.safeGet(currentEntry, libraryConfig.fields.date || libraryConfig.fields.datum),
+                id: currentEntry.field("ID")
             };
-        }
-        
-        // Fallback na pôvodný data extractor
-        utils.addDebug(currentEntry, "  • Používam štandardný data extractor");
-        if (libraryConfig.dataExtractor) {
-            return libraryConfig.dataExtractor(currentEntry, libraryConfig.fields);
         }
         
         return null;
@@ -408,6 +425,32 @@ function createNotificationInfo(params) {
     }
     
     return info;
+}
+
+// Pridať pred funkciu convertTextToMarkdown alebo na koniec pomocných funkcií
+function escapeMarkdown(text) {
+    if (!text) return "";
+    
+    return String(text)
+        .replace(/\\/g, "\\\\")  // Najprv escape backslash
+        .replace(/\*/g, "\\*")
+        .replace(/_/g, "\\_")
+        .replace(/\[/g, "\\[")
+        .replace(/\]/g, "\\]")
+        .replace(/\(/g, "\\(")
+        .replace(/\)/g, "\\)")
+        .replace(/~/g, "\\~")
+        .replace(/`/g, "\\`")
+        .replace(/>/g, "\\>")
+        .replace(/#/g, "\\#")
+        .replace(/\+/g, "\\+")
+        .replace(/-/g, "\\-")
+        .replace(/=/g, "\\=")
+        .replace(/\|/g, "\\|")
+        .replace(/\{/g, "\\{")
+        .replace(/\}/g, "\\}")
+        .replace(/\./g, "\\.")
+        .replace(/!/g, "\\!");
 }
 // ==============================================
 // BIDIRECTIONAL LINKING FUNKCIE
