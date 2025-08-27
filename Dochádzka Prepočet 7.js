@@ -187,8 +187,8 @@ function calculateWorkTime(arrival, departure) {
             utils.addDebug(currentEntry, " Zaokrúhlenie aktivované:", "round");
             utils.addDebug(currentEntry, " • Príchod: " + utils.formatTime(arrivalParsed) + " → " + utils.formatTime(arrivalFinal));
             utils.addDebug(currentEntry, " • Odchod: " + utils.formatTime(departureParsed) + " → " + utils.formatTime(departureFinal));
-            utils.safeSet(currentEntry, CONFIG.fields.attendance.arrival, utils.parseTimeInput(arrivalFinal));
-            utils.safeSet(currentEntry, CONFIG.fields.attendance.departure, utils.parseTimeInput(departureFinal)); 
+            utils.safeSet(currentEntry, CONFIG.fields.attendance.arrival, arrivalFinal.toDate());
+            utils.safeSet(currentEntry, CONFIG.fields.attendance.departure, departureFinal.toDate()); 
         }
         
         // Výpočet hodín s novými časmi
@@ -342,7 +342,7 @@ function calculateTotals(employeeResult) {
         utils.safeSet(currentEntry, CONFIG.fields.attendance.downtime, 0);
         
         utils.addDebug(currentEntry, "✅ Celkové výpočty:");
-        utils.addDebug(currentEntry, "  • Pracovná doba: " + workTimeResult.pracovnaDobaHodiny + " hodín");
+        utils.addDebug(currentEntry, "  • Pracovná doba: " + employeeResult.pracovnaDoba + " hodín");
         utils.addDebug(currentEntry, "  • Odpracované spolu: " + employeeResult.odpracovaneTotal + " hodín");
         utils.addDebug(currentEntry, "  • Mzdové náklady: " + utils.formatMoney(employeeResult.celkoveMzdy));
         utils.addDebug(currentEntry, "  • Na zákazkách: " + "0 hodín");
@@ -528,6 +528,17 @@ function main() {
         utils.addDebug(currentEntry, " KROK 5: Vytvorenie info záznamu", "note");
         steps.step5.success = createInfoRecord(workTimeResult, employeeResult);
         
+        var farba = "#FFFFFF"; // Biela - štandard
+        if (isHoliday) {
+            farba = "#FFE6CC"; // Oranžová - sviatok
+        } else if (isWeekend) {
+            farba = "#FFFFCC"; // Žltá - víkend
+        }
+        // pre nastavíme zaokrúhlené časy príchodu a odchodu
+       
+        utils.safeSet(currentEntry, CONFIG.fields.common.backgroundColor, farba);
+
+        return true;
         // Finálny log
         logFinalSummary(steps);
         // // Vypočítaj hrubý pracovný čas
@@ -704,17 +715,7 @@ function main() {
         // utils.addDebug(currentEntry, "=== PREPOČET DOKONČENÝ ===", "checkmark");
         
         //
-        var farba = "#FFFFFF"; // Biela - štandard
-        if (isHoliday) {
-            farba = "#FFE6CC"; // Oranžová - sviatok
-        } else if (isWeekend) {
-            farba = "#FFFFCC"; // Žltá - víkend
-        }
-        // pre nastavíme zaokrúhlené časy príchodu a odchodu
        
-        utils.safeSet(currentEntry, CONFIG.fields.common.backgroundColor, farba);
-
-        return true;
         
     } catch (error) {
         utils.addError(currentEntry, "Kritická chyba v hlavnej funkcii", "main", error);
