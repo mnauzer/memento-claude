@@ -62,6 +62,7 @@ var CONFIG = {
     // Lokálne nastavenia pre tento script
     settings: {
         roundToQuarterHour: true,  // VYPNUTÉ - ako quickfix!
+        roundDirection: "nearest", // "up", "down", "nearest"
         includeBreaks: true,
         breakThreshold: 6, // hodín
         breakDuration: 30  // minút
@@ -128,12 +129,68 @@ function validateInputData() {
 // KROK 2: VÝPOČET PRACOVNEJ DOBY
 // ==============================================
 
+// function calculateWorkTime(arrival, departure) {
+//     try {
+//         utils.addDebug(currentEntry, "--- Výpočet pracovnej doby");
+        
+//         // Výpočet hodín - priamo bez úprav času
+//         var workHours = utils.calculateWorkHours(arrival, departure);
+        
+//         if (!workHours || workHours.error) {
+//             return { success: false, error: workHours ? workHours.error : "Nepodarilo sa vypočítať hodiny" };
+//         }
+        
+//         var pracovnaDobaHodiny = workHours.totalMinutes / 60;
+//         pracovnaDobaHodiny = Math.round(pracovnaDobaHodiny * 100) / 100;
+        
+//         // Ulož do poľa
+//         currentEntry.set(CONFIG.fields.attendance.workTime, pracovnaDobaHodiny);
+        
+//         utils.addDebug(currentEntry, "✅ Pracovná doba: " + pracovnaDobaHodiny + " hodín");
+//         //utils.addDebug(currentEntry, "  • Príchod: " + moment(arrival).format("HH:mm"));
+//         utils.addDebug(currentEntry, "  • Príchod: " + utils.formatTime(arrival));
+//         utils.addDebug(currentEntry, "  • Odchod: " + moment(departure).format("HH:mm"));
+        
+//         return {
+//             success: true,
+//             arrivalRounded: arrival,      // Používame originálne časy
+//             departureRounded: departure,  // Používame originálne časy
+//             pracovnaDobaHodiny: pracovnaDobaHodiny,
+//             workHours: workHours
+//         };
+        
+//     } catch (error) {
+//         utils.addError(currentEntry, error.toString(), "calculateWorkTime", error);
+//         return { success: false, error: error.toString() };
+//     }
+// }
 function calculateWorkTime(arrival, departure) {
     try {
         utils.addDebug(currentEntry, "--- Výpočet pracovnej doby");
         
-        // Výpočet hodín - priamo bez úprav času
-        var workHours = utils.calculateWorkHours(arrival, departure);
+        // Spracuj časy cez nové funkcie
+        var arrivalParsed = utils.parseTimeInput(arrival);
+        var departureParsed = utils.parseTimeInput(departure);
+        
+        if (!arrivalParsed || !departureParsed) {
+            return { success: false, error: "Nepodarilo sa spracovať časy" };
+        }
+        
+        // Zaokrúhli časy ak je to povolené
+        var arrivalFinal = arrivalParsed;
+        var departureFinal = departureParsed;
+        
+        if (CONFIG.settings.roundToQuarterHour) {
+            arrivalFinal = utils.roundTimeToQuarter(arrivalParsed, "down"); // Príchod zaokrúhli nadol
+            departureFinal = utils.roundTimeToQuarter(departureParsed, "up"); // Odchod zaokrúhli nahor
+            
+            utils.addDebug(currentEntry, "⏰ Zaokrúhlenie aktivované:");
+            utils.addDebug(currentEntry, " • Príchod: " + utils.formatTime(arrivalParsed) + " → " + utils.formatTime(arrivalFinal));
+            utils.addDebug(currentEntry, " • Odchod: " + utils.formatTime(departureParsed) + " → " + utils.formatTime(departureFinal));
+        }
+        
+        // Výpočet hodín s novými časmi
+        var workHours = utils.calculateWorkHours(arrivalFinal, departureFinal);
         
         if (!workHours || workHours.error) {
             return { success: false, error: workHours ? workHours.error : "Nepodarilo sa vypočítať hodiny" };
@@ -146,14 +203,15 @@ function calculateWorkTime(arrival, departure) {
         currentEntry.set(CONFIG.fields.attendance.workTime, pracovnaDobaHodiny);
         
         utils.addDebug(currentEntry, "✅ Pracovná doba: " + pracovnaDobaHodiny + " hodín");
-        //utils.addDebug(currentEntry, "  • Príchod: " + moment(arrival).format("HH:mm"));
-        utils.addDebug(currentEntry, "  • Príchod: " + utils.formatTime(arrival));
-        utils.addDebug(currentEntry, "  • Odchod: " + moment(departure).format("HH:mm"));
+        utils.addDebug(currentEntry, " • Príchod: " + utils.formatTime(arrivalFinal));
+        utils.addDebug(currentEntry, " • Odchod: " + utils.formatTime(departureFinal));
         
         return {
             success: true,
-            arrivalRounded: arrival,      // Používame originálne časy
-            departureRounded: departure,  // Používame originálne časy
+            arrivalRounded: arrivalFinal,
+            departureRounded: departureFinal,
+            arrivalOriginal: arrivalParsed,
+            departureOriginal: departureParsed,
             pracovnaDobaHodiny: pracovnaDobaHodiny,
             workHours: workHours
         };
@@ -163,7 +221,6 @@ function calculateWorkTime(arrival, departure) {
         return { success: false, error: error.toString() };
     }
 }
-
 // ==============================================
 // KROK 3: SPRACOVANIE ZAMESTNANCOV
 // ==============================================
