@@ -51,7 +51,7 @@ var MementoConfig = (function() {
             
             // Firemné a systémové knižnice
             defaults: "ASISTANTO Defaults",
-            notifications: "ASISTANTO Notifications",
+            notifications: "Notifications",
             employees: "Zamestnanci",
             customers: "Zákazky",
             vehicles: "Vozidlá",
@@ -59,8 +59,7 @@ var MementoConfig = (function() {
             obligations: "Záväzky",
             
             // Telegram knižnice
-            telegramGroups: "ASISTANTO Telegram Groups",
-            telegramMessages: "Telegram Messages"
+            telegramGroups: "Telegram Groups",
         },
         
         // === NÁZVY POLÍ ===
