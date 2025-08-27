@@ -472,7 +472,7 @@ function main() {
         }
         // Debug info o načítaných moduloch
         utils.addDebug(currentEntry, "=== ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===", "start");
-        utils.addDebug(currentEntry, "Čas spustenia: " + utils.formatDate(moment()), "calendar");
+        utils.addDebug(currentEntry, "Čas spustenia: " + utils.formatDate(moment()) ,"calendar");
         
          // Kroky prepočtu
         var steps = {
@@ -705,8 +705,8 @@ function main() {
             farba = "#FFFFCC"; // Žltá - víkend
         }
         // pre nastavíme zaokrúhlené časy príchodu a odchodu
-        utils.safeSetAttribute(currentEntry, CONFIG.fields.attendance, CONFIG.attributes.arrivalRounded);
-        utils.safeSetAttribute(currentEntry, CONFIG.fields.attendance, CONFIG.attributes.departureRounded); 
+        utils.safeSet(currentEntry, CONFIG.fields.attendance,  workTimeResult.arrivalRounded);
+        utils.safeSet(currentEntry, CONFIG.fields.attendance,  workTimeResult.departureRounded); 
         utils.safeSet(currentEntry, CONFIG.fields.common.backgroundColor, farba);
 
         return true;
