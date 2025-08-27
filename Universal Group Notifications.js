@@ -210,13 +210,16 @@ function getTelegramGroup(libraryConfig) {
         if (!defaultsLib) return null;
         
         
-        var defaultSettings = defaultsLib.lastEntry();
-        if (!defaultSettings || defaultSettings.length === 0) return null;
-
-        var telegramGroup = utils.safeGet(defaultSettings, "Telegram skupina dochádzky"); // Telegram skupina dochádzky hardcoded for now
+        var settings = defaultsLib.entries();
+        if (!settings || settings.length === 0) return false;
+        
+        var defaultSettings = settings[settings.length - 1];
+        var enabled = utils.safeGet(defaultSettings, libraryConfig.telegramGroupField , " ");
+        utils.addDebug(currentEntry, "  • " + libraryConfig.telegramGroupField + ": " + (enabled ? "NÁJDENÁ" : "NENÁJDENÁ"));
+        var telegramGroup = utils.safeGet(defaultSettings, libraryConfig.telegramGroupField); // Telegram skupina dochádzky hardcoded for now
         
         if (!telegramGroup) {
-            utils.addError(currentEntry, "Telegram skupina nie je nastavená v poli '" + "Telegram skupina dochádzky" + "'", "getTelegramGroup");
+            utils.addError(currentEntry, "Telegram skupina nie je nastavená v poli '" + libraryConfig.telegramGroupField + "'", "getTelegramGroup");
             return null;
         }
         
