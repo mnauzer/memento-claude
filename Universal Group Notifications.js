@@ -49,8 +49,8 @@ var CONFIG = {
             permissionField: "Dochádzka skupinové notifikácie",
             messageType: "Dochádzka",
             fields: centralConfig.fields.attendance,
-            formatFunction: formatAttendanceMessage,
-            dataExtractor: extractAttendanceData
+            formatFunction: formatMessage,
+            dataExtractor: extractData
         },
         "Záznam práce": {
             type: "workRecord",
