@@ -209,10 +209,10 @@ function getTelegramGroup(libraryConfig) {
         var defaultsLib = libByName(CONFIG.libraries.defaults);
         if (!defaultsLib) return null;
         
-        var settings = defaultsLib.entries();
-        if (!settings || settings.length === 0) return null;
         
-        var defaultSettings = settings[settings.length - 1];
+        var defaultSettings = defaultsLib.lastEntry();
+        if (!defaultSettings || defaultSettings.length === 0) return null;
+        
         var telegramGroup = utils.safeGet(defaultSettings, libraryConfig.telegramGroupField);
         
         if (!telegramGroup) {
