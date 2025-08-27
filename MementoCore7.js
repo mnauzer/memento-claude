@@ -372,19 +372,19 @@ var MementoCore = (function() {
         }
     }
 
-    function formatTime(hours) {
-        if (!hours && hours !== 0) return "00:00";
+    // function formatTime(hours) {
+    //     if (!hours && hours !== 0) return "00:00";
         
-        var totalMinutes = Math.round(hours * 60);
-        var h = Math.floor(totalMinutes / 60);
-        var m = totalMinutes % 60;
-        return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
-    }
+    //     var totalMinutes = Math.round(hours * 60);
+    //     var h = Math.floor(totalMinutes / 60);
+    //     var m = totalMinutes % 60;
+    //     return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
+    // }
 
-    function roundToQuarterHour(hours) {
-        if (!hours && hours !== 0) return 0;
-        return Math.round(hours * 4) / 4;
-    }
+    // function roundToQuarterHour(hours) {
+    //     if (!hours && hours !== 0) return 0;
+    //     return Math.round(hours * 4) / 4;
+    // }
     // function formatTime(time) {
     //     if (!time) return "00:00";
         
@@ -410,45 +410,156 @@ var MementoCore = (function() {
     //     }
     // }
 
-    function roundToQuarter(time, direction) {
-    try {
-        // Ak je to už string formát času, konvertuj na moment
-        if (typeof time === 'string') {
-            time = moment(time, 'HH:mm');
+    // function roundToQuarter(time, direction) {
+    // try {
+    //     // Ak je to už string formát času, konvertuj na moment
+    //     if (typeof time === 'string') {
+    //         time = moment(time, 'HH:mm');
+    //     }
+        
+    //     // Ak nie je moment objekt, skús základnú konverziu
+    //     if (!time._isAMomentObject) {
+    //         time = moment(time);
+    //     }
+        
+    //     var quarterMinutes = 15;
+    //     var mom = moment(time).seconds(0).milliseconds(0);
+    //     var minutes = mom.minutes();
+    //     var roundedMinutes;
+        
+    //     if (direction === 'up') {
+    //         roundedMinutes = Math.ceil(minutes / quarterMinutes) * quarterMinutes;
+    //     } else if (direction === 'down') {
+    //         roundedMinutes = Math.floor(minutes / quarterMinutes) * quarterMinutes;
+    //     } else {
+    //         roundedMinutes = Math.round(minutes / quarterMinutes) * quarterMinutes;
+    //     }
+        
+    //     if (roundedMinutes >= 60) {
+    //         mom.add(1, 'hour').minutes(0);
+    //     } else {
+    //         mom.minutes(roundedMinutes);
+    //     }
+        
+    //     return mom;
+        
+    // } catch (e) {
+    //     // Ak zlyhá všetko, vráť originálny čas
+    //     return moment(time);
+    // }
+    // }
+
+    function formatTime(timeValue) {
+        try {
+            if (!timeValue && timeValue !== 0) return "00:00";
+            
+            // Ak je to moment objekt
+            if (timeValue._isAMomentObject) {
+                return timeValue.format("HH:mm");
+            }
+            
+            // Ak je to číslo hodín (napr. 8.25 = 8:15)
+            if (typeof timeValue === "number") {
+                var totalMinutes = Math.round(timeValue * 60);
+                var hours = Math.floor(totalMinutes / 60);
+                var minutes = totalMinutes % 60;
+                return (hours < 10 ? "0" : "") + hours + ":" + (minutes < 10 ? "0" : "") + minutes;
+            }
+            
+            // Ak je to string alebo Date objekt
+            var momentTime = moment(timeValue);
+            if (momentTime.isValid()) {
+                return momentTime.format("HH:mm");
+            }
+            
+            return "00:00";
+        } catch (e) {
+            addError(null, "Chyba pri formátovaní času: " + e.toString(), "formatTime", e);
+            return "00:00";
         }
-        
-        // Ak nie je moment objekt, skús základnú konverziu
-        if (!time._isAMomentObject) {
-            time = moment(time);
-        }
-        
-        var quarterMinutes = 15;
-        var mom = moment(time).seconds(0).milliseconds(0);
-        var minutes = mom.minutes();
-        var roundedMinutes;
-        
-        if (direction === 'up') {
-            roundedMinutes = Math.ceil(minutes / quarterMinutes) * quarterMinutes;
-        } else if (direction === 'down') {
-            roundedMinutes = Math.floor(minutes / quarterMinutes) * quarterMinutes;
-        } else {
-            roundedMinutes = Math.round(minutes / quarterMinutes) * quarterMinutes;
-        }
-        
-        if (roundedMinutes >= 60) {
-            mom.add(1, 'hour').minutes(0);
-        } else {
-            mom.minutes(roundedMinutes);
-        }
-        
-        return mom;
-        
-    } catch (e) {
-        // Ak zlyhá všetko, vráť originálny čas
-        return moment(time);
-    }
     }
 
+    function roundTimeToQuarter(timeValue, direction) {
+        try {
+            if (!timeValue) return null;
+            
+            var momentTime;
+            
+            // Konverzia na moment objekt
+            if (timeValue._isAMomentObject) {
+                momentTime = moment(timeValue);
+            } else if (typeof timeValue === "string") {
+                // Pre čas v string formáte ako "08:30"
+                momentTime = moment(timeValue, "HH:mm");
+            } else {
+                momentTime = moment(timeValue);
+            }
+            
+            if (!momentTime.isValid()) {
+                return timeValue; // Vráť originál ak konverzia zlyhala
+            }
+            
+            // Zaokrúhli na 15 minút
+            var minutes = momentTime.minutes();
+            var roundedMinutes;
+            
+            switch(direction) {
+                case 'up':
+                    roundedMinutes = Math.ceil(minutes / 15) * 15;
+                    break;
+                case 'down':
+                    roundedMinutes = Math.floor(minutes / 15) * 15;
+                    break;
+                default:
+                    roundedMinutes = Math.round(minutes / 15) * 15;
+            }
+            
+            // Ak presahuje 60 minút, pridaj hodinu
+            if (roundedMinutes >= 60) {
+                momentTime.add(1, 'hour').minutes(0);
+            } else {
+                momentTime.minutes(roundedMinutes);
+            }
+            
+            // Vynuluj sekundy a milisekundy
+            momentTime.seconds(0).milliseconds(0);
+            
+            return momentTime;
+            
+        } catch (e) {
+            addError(null, "Chyba pri zaokrúhľovaní času: " + e.toString(), "roundTimeToQuarter", e);
+            return timeValue;
+        }
+    }
+
+    function parseTimeInput(timeInput) {
+        try {
+            if (!timeInput) return null;
+            
+            // Ak je už moment objekt
+            if (timeInput._isAMomentObject) {
+                return timeInput;
+            }
+            
+            // Ak je to string v formáte "HH:mm"
+            if (typeof timeInput === "string") {
+                var parsed = moment(timeInput, "HH:mm");
+                if (parsed.isValid()) {
+                    return parsed;
+                }
+            }
+            
+            // Ak je to Date objekt alebo timestamp
+            var parsed = moment(timeInput);
+            if (parsed.isValid()) {
+                return parsed;
+            }
+            
+            return null;
+        } catch (e) {
+            return null;
+        }
+    }
     function validateRequiredFields(entry, requiredFields) {
         try {
             if (!entry || !requiredFields || !Array.isArray(requiredFields)) {
@@ -581,8 +692,11 @@ var MementoCore = (function() {
         formatTime: formatTime,
         formatMoney: formatMoney,
         parseTimeToMinutes: parseTimeToMinutes,
-        roundToQuarter: roundToQuarter,
-        roundToQuarterHour: roundToQuarterHour,
+        roundTimeToQuarter: roundTimeToQuarter,
+        parseTimeInput: parseTimeInput,
+        
+        //roundToQuarter: roundToQuarter,
+        //roundToQuarterHour: roundToQuarterHour,
         
         // Validácia
         validateRequiredFields: validateRequiredFields,
