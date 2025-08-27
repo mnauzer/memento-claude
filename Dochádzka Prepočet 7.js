@@ -107,7 +107,7 @@ function validateInputData() {
             return { success: false, error: "Žiadni zamestnanci v zázname" };
         }
         
-        utils.addDebug(currentEntry, "  • Dátum:" + moment(date).format("DD.MM.YYYY"));
+        utils.addDebug(currentEntry, "  • Dátum: " + moment(date).format("DD.MM.YYYY"));
         utils.addDebug(currentEntry, "  • Čas: " + moment(arrival).format("HH:mm") + " - " + moment(departure).format("HH:mm"));
         utils.addDebug(currentEntry, "  • Počet zamestnancov: " + employees.length);
         utils.addDebug(currentEntry, "Validácia úspešná", "success");
@@ -166,7 +166,7 @@ function validateInputData() {
 // }
 function calculateWorkTime(arrival, departure) {
     try {
-        utils.addDebug(currentEntry, " Výpočet pracovnej doby"), "calculation";
+        utils.addDebug(currentEntry, " Výpočet pracovnej doby", "calculation");
         
         // Spracuj časy cez nové funkcie
         var arrivalParsed = utils.parseTimeInput(arrival);
