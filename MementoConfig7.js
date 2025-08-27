@@ -477,6 +477,7 @@ var MementoConfig = (function() {
             person: "👤",
             group: "👥",
             money: "💰",
+            rate: "💶",
             time: "⏰",
             calendar: "📅",
             document: "📄",

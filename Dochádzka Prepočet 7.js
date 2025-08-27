@@ -107,10 +107,10 @@ function validateInputData() {
             return { success: false, error: "Žiadni zamestnanci v zázname" };
         }
         
-        utils.addDebug(currentEntry, "✅ Validácia úspešná");
         utils.addDebug(currentEntry, "  • Dátum:" + moment(date).format("DD.MM.YYYY"));
         utils.addDebug(currentEntry, "  • Čas: " + moment(arrival).format("HH:mm") + " - " + moment(departure).format("HH:mm"));
         utils.addDebug(currentEntry, "  • Počet zamestnancov: " + employees.length);
+        utils.addDebug(currentEntry, "Validácia úspešná", "success");
         
         return {
             success: true,
@@ -166,7 +166,7 @@ function validateInputData() {
 // }
 function calculateWorkTime(arrival, departure) {
     try {
-        utils.addDebug(currentEntry, "--- Výpočet pracovnej doby");
+        utils.addDebug(currentEntry, " Výpočet pracovnej doby"), "calculation";
         
         // Spracuj časy cez nové funkcie
         var arrivalParsed = utils.parseTimeInput(arrival);
@@ -184,7 +184,7 @@ function calculateWorkTime(arrival, departure) {
             arrivalFinal = utils.roundTimeToQuarter(arrivalParsed, "down"); // Príchod zaokrúhli nadol
             departureFinal = utils.roundTimeToQuarter(departureParsed, "up"); // Odchod zaokrúhli nahor
             
-            utils.addDebug(currentEntry, "⏰ Zaokrúhlenie aktivované:");
+            utils.addDebug(currentEntry, " Zaokrúhlenie aktivované:", "round");
             utils.addDebug(currentEntry, " • Príchod: " + utils.formatTime(arrivalParsed) + " → " + utils.formatTime(arrivalFinal));
             utils.addDebug(currentEntry, " • Odchod: " + utils.formatTime(departureParsed) + " → " + utils.formatTime(departureFinal));
         }
@@ -202,9 +202,9 @@ function calculateWorkTime(arrival, departure) {
         // Ulož do poľa
         currentEntry.set(CONFIG.fields.attendance.workTime, pracovnaDobaHodiny);
         
-        utils.addDebug(currentEntry, "✅ Pracovná doba: " + pracovnaDobaHodiny + " hodín");
-        utils.addDebug(currentEntry, " • Príchod: " + utils.formatTime(arrivalFinal));
-        utils.addDebug(currentEntry, " • Odchod: " + utils.formatTime(departureFinal));
+        utils.addDebug(currentEntry, " • Príchod (15min): " + utils.formatTime(arrivalFinal));
+        utils.addDebug(currentEntry, " • Odchod (15min): " + utils.formatTime(departureFinal));
+        utils.addDebug(currentEntry, "Pracovná doba: " + pracovnaDobaHodiny + " hodín"), "success";
         
         return {
             success: true,
@@ -301,9 +301,8 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
             // Nastav dennú mzdu
             zamArray[index].attr(CONFIG.attributes.dailyWage, dennaMzda);
             
-            utils.addDebug(currentEntry, "Spracované úspešne", "checkmark");
-            utils.addDebug(currentEntry, "    • Hodinová sadzba: " + hodinovka + " €/h");
-            utils.addDebug(currentEntry, "    • Denná mzda: " + dennaMzda + " €");
+            utils.addDebug(currentEntry, " Denná mzda: " + dennaMzda + " €","money");
+            utils.addDebug(currentEntry, "Spracované úspešne", "success");
             
             return {
                 success: true,
