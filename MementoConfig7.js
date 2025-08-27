@@ -77,7 +77,9 @@ var MementoConfig = (function() {
                 modifiedDate: "dátum úpravy",
                 rowColor: "farba záznamu",
                 backgroundColor: "farba pozadia",
-                debugFields: "Debug_Fields"
+                debugFields: "Debug_Fields",
+                infoTelegram: "info_telegram",    // NOVÉ
+                notifications: "Notifikácie",     // NOVÉ - link field
             },
             
             // Dochádzka polia

@@ -179,6 +179,11 @@ var MementoUtils = (function() {
         isHoliday: lazyCall('core', 'isHoliday'),
         isWeekend: lazyCall('core', 'isWeekend'),
         calculateEaster: lazyCall('core', 'calculateEaster'),
+
+        // Notifikácie
+        getLinkedNotifications: lazyCall('core', 'getLinkedNotifications'),
+        linkNotificationToSource: lazyCall('core', 'linkNotificationToSource'),
+        deleteNotificationAndTelegram: lazyCall('core', 'deleteNotificationAndTelegram'),
         
         // === AI FUNKCIE (ak je modul dostupný) ===
         
