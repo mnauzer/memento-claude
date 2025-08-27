@@ -297,19 +297,37 @@ function checkTimeRestrictions(telegramGroup) {
 
 function extractData(libraryConfig) {
     try {
+        // Prioritne hľadaj info_telegram pole
+        var telegramInfoField = "info_telegram";
+        var telegramInfo = utils.safeGet(currentEntry, telegramInfoField);
+        
+        if (telegramInfo) {
+            utils.addDebug(currentEntry, "  • Použijem info_telegram pole");
+            return {
+                formattedMessage: telegramInfo,
+                useDirectMessage: true
+            };
+        }
+        
+        // Ak nie je info_telegram, skús obyčajné info pole a preformátuj
+        var infoField = CONFIG.fields.common.info;
+        var infoContent = utils.safeGet(currentEntry, infoField);
+        
+        if (infoContent) {
+            utils.addDebug(currentEntry, "  • Konvertujem info pole na Markdown");
+            return {
+                formattedMessage: convertTextToMarkdown(infoContent),
+                useDirectMessage: true
+            };
+        }
+        
+        // Fallback na pôvodný data extractor
+        utils.addDebug(currentEntry, "  • Používam štandardný data extractor");
         if (libraryConfig.dataExtractor) {
             return libraryConfig.dataExtractor(currentEntry, libraryConfig.fields);
         }
         
-        // Default extractor - získa všetky definované polia
-        var data = {};
-        for (var fieldKey in libraryConfig.fields) {
-            if (libraryConfig.fields.hasOwnProperty(fieldKey)) {
-                var fieldName = libraryConfig.fields[fieldKey];
-                data[fieldKey] = utils.safeGet(currentEntry, fieldName);
-            }
-        }
-        return data;
+        return null;
         
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "extractData", error);
@@ -319,17 +337,61 @@ function extractData(libraryConfig) {
 
 function formatMessage(libraryConfig, data) {
     try {
+        // Ak máme priamo formátovanú správu, použi ju
+        if (data && data.useDirectMessage && data.formattedMessage) {
+            return data.formattedMessage;
+        }
+        
+        // Inak použi štandardný formatter
         if (libraryConfig.formatFunction) {
             return libraryConfig.formatFunction(data, currentEntry);
         }
         
-        // Default formatter
         return formatDefaultMessage(libraryConfig.messageType, data);
         
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "formatMessage", error);
         return null;
     }
+}
+
+// Pomocná funkcia na konverziu textu na Markdown
+function convertTextToMarkdown(text) {
+    if (!text) return "";
+    
+    // Základná konverzia
+    var lines = text.split('\n');
+    var markdown = "";
+    
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        
+        // Detekuj hlavičky (riadky s veľkými písmenami alebo === podčiarknutím)
+        if (line.match(/^[A-Z\s]+$/) || line.match(/^═+$/)) {
+            if (line.match(/^═+$/)) {
+                continue; // Preskočí podčiarknutie
+            }
+            markdown += "*" + line.trim() + "*\n";
+        }
+        // Detekuj sekcie (riadky s dvojbodkou na konci)
+        else if (line.match(/^.+:$/)) {
+            markdown += "\n*" + line + "*\n";
+        }
+        // Detekuj položky zoznamu
+        else if (line.match(/^[•●▪▫◦‣⁃]\s/) || line.match(/^[-*]\s/)) {
+            markdown += line + "\n";
+        }
+        // Zvýrazni čísla a sumy
+        else if (line.match(/\d+\s*(€|EUR|hodín|h|km)/)) {
+            markdown += line.replace(/(\d+(?:\.\d+)?)\s*(€|EUR|hodín|h|km)/g, "*$1 $2*") + "\n";
+        }
+        // Ostatné riadky
+        else {
+            markdown += escapeMarkdown(line) + "\n";
+        }
+    }
+    
+    return markdown;
 }
 
 function createNotification(params) {
@@ -392,271 +454,204 @@ function createNotificationInfo(params) {
     
     return info;
 }
-
 // ==============================================
-// DATA EXTRACTORS - Pre každý typ knižnice
-// ==============================================
-
-function extractAttendanceData(entry, fields) {
-    return {
-        date: utils.safeGet(entry, fields.date),
-        arrival: utils.safeGet(entry, fields.arrival),
-        departure: utils.safeGet(entry, fields.departure),
-        employees: utils.safeGet(entry, fields.employees, []),
-        workedHours: utils.safeGet(entry, fields.workedHours, 0),
-        wageCosts: utils.safeGet(entry, fields.wageCosts, 0),
-        workTime: utils.safeGet(entry, fields.workTime, 0),
-        employeeCount: utils.safeGet(entry, fields.employeeCount, 0)
-    };
-}
-
-function extractWorkRecordData(entry, fields) {
-    return {
-        date: utils.safeGet(entry, fields.date),
-        customer: utils.safeGet(entry, fields.customer),
-        timeInterval: utils.safeGet(entry, fields.timeInterval),
-        employees: utils.safeGet(entry, fields.employees, []),
-        workDescription: utils.safeGet(entry, fields.workDescription),
-        workedHours: utils.safeGet(entry, fields.workedHours, 0),
-        wageCosts: utils.safeGet(entry, fields.wageCosts, 0),
-        hzsSum: utils.safeGet(entry, fields.hzsSum, 0)
-    };
-}
-
-function extractBookOfRidesData(entry, fields) {
-    return {
-        date: utils.safeGet(entry, fields.date),
-        rideType: utils.safeGet(entry, fields.rideType),
-        vehicle: utils.safeGet(entry, fields.vehicle),
-        driver: utils.safeGet(entry, fields.driver),
-        crew: utils.safeGet(entry, fields.crew, []),
-        km: utils.safeGet(entry, fields.km, 0),
-        totalTime: utils.safeGet(entry, fields.totalTime, 0),
-        start: utils.safeGet(entry, fields.start),
-        destination: utils.safeGet(entry, fields.destination),
-        customers: utils.safeGet(entry, fields.customers, [])
-    };
-}
-
-function extractObligationsData(entry, fields) {
-    return {
-        state: utils.safeGet(entry, fields.state),
-        date: utils.safeGet(entry, fields.date),
-        type: utils.safeGet(entry, fields.type),
-        employee: utils.safeGet(entry, fields.employee),
-        creditor: utils.safeGet(entry, fields.creditor),
-        amount: utils.safeGet(entry, fields.amount, 0),
-        paid: utils.safeGet(entry, fields.paid, 0),
-        balance: utils.safeGet(entry, fields.balance, 0),
-        description: utils.safeGet(entry, fields.description)
-    };
-}
-
-function extractCashRegisterData(entry, fields) {
-    return {
-        date: utils.safeGet(entry, fields.date),
-        movement: utils.safeGet(entry, fields.movement),
-        fromCashRegister: utils.safeGet(entry, fields.fromCashRegister),
-        toCashRegister: utils.safeGet(entry, fields.toCashRegister),
-        amount: utils.safeGet(entry, "Suma", 0), // Toto pole asi chýba v configu
-        purpose: utils.safeGet(entry, fields.transferPurpose),
-        employee: utils.safeGet(entry, fields.employee),
-        customer: utils.safeGet(entry, fields.customer)
-    };
-}
-
-// ==============================================
-// MESSAGE FORMATTERS - Pre každý typ knižnice
+// BIDIRECTIONAL LINKING FUNKCIE
 // ==============================================
 
-function formatAttendanceMessage(data, entry) {
-    var msg = "📋 *DOCHÁDZKA*\n";
-    msg += "═══════════════\n\n";
-    
-    msg += "📅 *Dátum:* " + utils.formatDate(data.date) + " (" + utils.getDayNameSK(moment(data.date).day()) + ")\n";
-    
-    if (data.arrival && data.departure) {
-        msg += "⏰ *Čas:* " + utils.formatTime(data.arrival) + " - " + utils.formatTime(data.departure) + "\n";
-    }
-    
-    msg += "⏱️ *Odpracované:* " + data.workedHours.toFixed(2) + " hodín\n";
-    
-    if (data.employees && data.employees.length > 0) {
-        msg += "\n👥 *Zamestnanci* (" + data.employees.length + "):\n";
-        for (var i = 0; i < data.employees.length; i++) {
-            msg += "• " + escapeMarkdown(utils.formatEmployeeName(data.employees[i])) + "\n";
-        }
-    }
-    
-    msg += "\n💰 *Mzdové náklady:* " + utils.formatMoney(data.wageCosts) + "\n";
-    msg += "\n📝 _Záznam #" + entry.field("ID") + "_";
-    
-    return msg;
-}
-
-function formatWorkRecordMessage(data, entry) {
-    var msg = "🔨 *ZÁZNAM PRÁCE*\n";
-    msg += "═══════════════\n\n";
-    
-    msg += "📅 *Dátum:* " + utils.formatDate(data.date) + "\n";
-    
-    if (data.customer) {
-        var customerName = typeof data.customer === 'object' ? 
-            utils.safeGet(data.customer, "Názov", "Neznámy") : data.customer;
-        msg += "🏢 *Zákazka:* " + escapeMarkdown(customerName) + "\n";
-    }
-    
-    if (data.timeInterval) {
-        msg += "⏰ *Čas:* " + data.timeInterval + "\n";
-    }
-    
-    msg += "⏱️ *Odpracované:* " + data.workedHours.toFixed(2) + " hodín\n";
-    
-    if (data.workDescription) {
-        msg += "\n📝 *Popis:* " + escapeMarkdown(data.workDescription) + "\n";
-    }
-    
-    if (data.employees && data.employees.length > 0) {
-        msg += "\n👥 *Pracovníci* (" + data.employees.length + "):\n";
-        for (var i = 0; i < data.employees.length; i++) {
-            msg += "• " + escapeMarkdown(utils.formatEmployeeName(data.employees[i])) + "\n";
-        }
-    }
-    
-    msg += "\n💰 *HZS suma:* " + utils.formatMoney(data.hzsSum) + "\n";
-    msg += "\n📝 _Záznam #" + entry.field("ID") + "_";
-    
-    return msg;
-}
-
-function formatBookOfRidesMessage(data, entry) {
-    var msg = "🚗 *KNIHA JÁZD*\n";
-    msg += "═══════════════\n\n";
-    
-    msg += "📅 *Dátum:* " + utils.formatDate(data.date) + "\n";
-    msg += "🏷️ *Typ:* " + (data.rideType || "Neurčený") + "\n";
-    
-    if (data.vehicle) {
-        var vehicleName = typeof data.vehicle === 'object' ? 
-            utils.safeGet(data.vehicle, "Názov", "Neznáme") : data.vehicle;
-        msg += "🚗 *Vozidlo:* " + escapeMarkdown(vehicleName) + "\n";
-    }
-    
-    if (data.driver) {
-        msg += "👤 *Vodič:* " + escapeMarkdown(utils.formatEmployeeName(data.driver)) + "\n";
-    }
-    
-    msg += "📍 *Trasa:* " + escapeMarkdown(formatLocation(data.start)) + 
-           " → " + escapeMarkdown(formatLocation(data.destination)) + "\n";
-    msg += "📏 *Vzdialenosť:* " + data.km + " km\n";
-    msg += "⏱️ *Čas jazdy:* " + data.totalTime.toFixed(2) + " hodín\n";
-    
-    if (data.crew && data.crew.length > 0) {
-        msg += "\n👥 *Posádka* (" + data.crew.length + "):\n";
-        for (var i = 0; i < data.crew.length; i++) {
-            msg += "• " + escapeMarkdown(utils.formatEmployeeName(data.crew[i])) + "\n";
-        }
-    }
-    
-    msg += "\n📝 _Záznam #" + entry.field("ID") + "_";
-    
-    return msg;
-}
-
-function formatObligationsMessage(data, entry) {
-    var msg = "💳 *ZÁVÄZKY*\n";
-    msg += "═══════════════\n\n";
-    
-    msg += "📅 *Dátum:* " + utils.formatDate(data.date) + "\n";
-    msg += "🏷️ *Typ:* " + (data.type || "Neurčený") + "\n";
-    msg += "📊 *Stav:* " + (data.state || "Neurčený") + "\n";
-    
-    if (data.employee) {
-        msg += "👤 *Zamestnanec:* " + escapeMarkdown(utils.formatEmployeeName(data.employee)) + "\n";
-    }
-    
-    if (data.creditor) {
-        var creditorName = typeof data.creditor === 'object' ? 
-            utils.safeGet(data.creditor, "Názov", "Neznámy") : data.creditor;
-        msg += "🏢 *Veriteľ:* " + escapeMarkdown(creditorName) + "\n";
-    }
-    
-    msg += "\n💰 *Suma:* " + utils.formatMoney(data.amount) + "\n";
-    msg += "✅ *Zaplatené:* " + utils.formatMoney(data.paid) + "\n";
-    msg += "📊 *Zostatok:* " + utils.formatMoney(data.balance) + "\n";
-    
-    if (data.description) {
-        msg += "\n📝 *Popis:* " + escapeMarkdown(data.description) + "\n";
-    }
-    
-    msg += "\n📝 _Záznam #" + entry.field("ID") + "_";
-    
-    return msg;
-}
-
-function formatCashRegisterMessage(data, entry) {
-    var msg = "💵 *POKLADŇA*\n";
-    msg += "═══════════════\n\n";
-    
-    msg += "📅 *Dátum:* " + utils.formatDate(data.date) + "\n";
-    msg += "🔄 *Pohyb:* " + (data.movement || "Neurčený") + "\n";
-    
-    if (data.fromCashRegister) {
-        msg += "📤 *Z:* " + escapeMarkdown(getCashRegisterName(data.fromCashRegister)) + "\n";
-    }
-    
-    if (data.toCashRegister) {
-        msg += "📥 *Do:* " + escapeMarkdown(getCashRegisterName(data.toCashRegister)) + "\n";
-    }
-    
-    msg += "💰 *Suma:* " + utils.formatMoney(data.amount) + "\n";
-    
-    if (data.purpose) {
-        msg += "📋 *Účel:* " + escapeMarkdown(data.purpose) + "\n";
-    }
-    
-    if (data.employee) {
-        msg += "👤 *Zamestnanec:* " + escapeMarkdown(utils.formatEmployeeName(data.employee)) + "\n";
-    }
-    
-    if (data.customer) {
-        var customerName = typeof data.customer === 'object' ? 
-            utils.safeGet(data.customer, "Názov", "Neznámy") : data.customer;
-        msg += "🏢 *Zákazka:* " + escapeMarkdown(customerName) + "\n";
-    }
-    
-    msg += "\n📝 _Záznam #" + entry.field("ID") + "_";
-    
-    return msg;
-}
-
-function formatDefaultMessage(messageType, data) {
-    var msg = "📋 *" + messageType.toUpperCase() + "*\n";
-    msg += "═══════════════\n\n";
-    
-    // Vypiš všetky neprázdne hodnoty
-    for (var key in data) {
-        if (data.hasOwnProperty(key) && data[key] !== null && data[key] !== undefined && data[key] !== "") {
-            var label = key.charAt(0).toUpperCase() + key.slice(1);
-            var value = data[key];
-            
-            if (typeof value === 'object' && value.constructor === Date) {
-                value = utils.formatDate(value);
-            } else if (typeof value === 'number') {
-                value = value.toFixed(2);
-            } else if (typeof value === 'object') {
-                continue; // Preskočiť komplexné objekty
+/**
+ * Vytvorí obojstranné prepojenie medzi zdrojovým záznamom a notifikáciou
+ * @param {Entry} sourceEntry - Zdrojový záznam
+ * @param {Entry} notification - Vytvorená notifikácia
+ * @param {string} linkFieldName - Názov poľa pre linkovanie (default: "Notifikácie")
+ */
+function createBidirectionalLink(sourceEntry, notification, linkFieldName) {
+    try {
+        linkFieldName = linkFieldName || "Notifikácie";
+        
+        // 1. Získaj existujúce notifikácie zo zdrojového záznamu
+        var existingNotifications = utils.safeGet(sourceEntry, linkFieldName, []);
+        
+        // 2. Pridaj novú notifikáciu ak tam ešte nie je
+        var notificationExists = false;
+        for (var i = 0; i < existingNotifications.length; i++) {
+            if (existingNotifications[i].id === notification.id) {
+                notificationExists = true;
+                break;
             }
-            
-            msg += "*" + label + ":* " + escapeMarkdown(String(value)) + "\n";
         }
+        
+        if (!notificationExists) {
+            existingNotifications.push(notification);
+            sourceEntry.set(linkFieldName, existingNotifications);
+            
+            utils.addDebug(sourceEntry, "  • Notifikácia #" + notification.field("ID") + 
+                          " prilinková k záznamu #" + sourceEntry.field("ID"));
+        }
+        
+        // 3. Nastav spätnú referenciu v notifikácii (už by malo byť nastavené pri vytvorení)
+        // ale pre istotu skontrolujeme
+        var sourceLibraryField = "Zdrojová knižnica";
+        var sourceEntryField = "Zdrojový záznam";
+        
+        if (!notification.field(sourceLibraryField)) {
+            notification.set(sourceLibraryField, lib().title);
+        }
+        
+        if (!notification.field(sourceEntryField)) {
+            notification.set(sourceEntryField, sourceEntry);
+        }
+        
+        return true;
+        
+    } catch (error) {
+        utils.addError(sourceEntry, "Chyba pri vytváraní prepojenia: " + error.toString(), 
+                      "createBidirectionalLink", error);
+        return false;
     }
-    
-    msg += "\n📝 _Záznam #" + currentEntry.field("ID") + "_";
-    
-    return msg;
 }
 
+/**
+ * Vymaže staré notifikácie pred vytvorením nových
+ * @param {Entry} sourceEntry - Zdrojový záznam
+ * @param {string} linkFieldName - Názov poľa s notifikáciami
+ * @returns {Object} {success: boolean, deletedCount: number}
+ */
+function cleanupOldNotifications(sourceEntry, linkFieldName) {
+    try {
+        linkFieldName = linkFieldName || "Notifikácie";
+        
+        utils.addDebug(sourceEntry, utils.getIcon("delete") + " Začínam cleanup notifikácií");
+        
+        // 1. Získaj existujúce notifikácie
+        var existingNotifications = utils.safeGet(sourceEntry, linkFieldName, []);
+        
+        if (existingNotifications.length === 0) {
+            utils.addDebug(sourceEntry, "  • Žiadne notifikácie na vymazanie");
+            return { success: true, deletedCount: 0 };
+        }
+        
+        var deletedCount = 0;
+        var failedDeletions = [];
+        
+        // 2. Vymaž každú notifikáciu
+        for (var i = 0; i < existingNotifications.length; i++) {
+            try {
+                var notification = existingNotifications[i];
+                
+                // Kontrola či notifikácia stále existuje
+                if (!notification || !notification.field) {
+                    utils.addDebug(sourceEntry, "  ⚠️ Notifikácia na indexe " + i + " už neexistuje");
+                    continue;
+                }
+                
+                var notifId = notification.field("ID");
+                var status = notification.field(CONFIG.fields.notifications.status);
+                
+                // Nevymazať už odoslané notifikácie (voliteľné)
+                if (status === "Odoslané") {
+                    utils.addDebug(sourceEntry, "  ℹ️ Notifikácia #" + notifId + 
+                                  " už bola odoslaná - preskakujem");
+                    continue;
+                }
+                
+                // Vymaž notifikáciu
+                notification.trash();
+                deletedCount++;
+                
+                utils.addDebug(sourceEntry, "  ✅ Notifikácia #" + notifId + " vymazaná");
+                
+            } catch (deleteError) {
+                failedDeletions.push({
+                    index: i,
+                    error: deleteError.toString()
+                });
+            }
+        }
+        
+        // 3. Vyčisti pole v zdrojovom zázname
+        sourceEntry.set(linkFieldName, []);
+        
+        // 4. Výsledok
+        if (failedDeletions.length > 0) {
+            utils.addError(sourceEntry, "Nepodarilo sa vymazať " + failedDeletions.length + 
+                          " notifikácií", "cleanupOldNotifications");
+            
+            return {
+                success: false,
+                deletedCount: deletedCount,
+                failedCount: failedDeletions.length,
+                errors: failedDeletions
+            };
+        }
+        
+        utils.addDebug(sourceEntry, utils.getIcon("success") + " Cleanup dokončený - vymazaných " + 
+                      deletedCount + " notifikácií");
+        
+        return {
+            success: true,
+            deletedCount: deletedCount
+        };
+        
+    } catch (error) {
+        utils.addError(sourceEntry, "Kritická chyba pri cleanup: " + error.toString(), 
+                      "cleanupOldNotifications", error);
+        return {
+            success: false,
+            deletedCount: 0,
+            error: error.toString()
+        };
+    }
+}
+
+/**
+ * Bezpečné vytvorenie notifikácie s cleanup a linkovaním
+ * @param {Entry} sourceEntry - Zdrojový záznam
+ * @param {Object} notificationData - Dáta pre notifikáciu
+ * @returns {Object} {success: boolean, notification: Entry}
+ */
+function safeCreateNotificationWithCleanup(sourceEntry, notificationData) {
+    try {
+        // 1. Najprv cleanup starých notifikácií
+        var cleanupResult = cleanupOldNotifications(sourceEntry);
+        
+        if (!cleanupResult.success) {
+            utils.addError(sourceEntry, "Cleanup zlyhal, pokračujem s vytvorením novej notifikácie", 
+                          "safeCreateNotificationWithCleanup");
+        }
+        
+        // 2. Vytvor novú notifikáciu
+        var notification = createNotification(notificationData);
+        
+        if (!notification) {
+            return {
+                success: false,
+                error: "Nepodarilo sa vytvoriť notifikáciu"
+            };
+        }
+        
+        // 3. Vytvor bidirectional link
+        var linkResult = createBidirectionalLink(sourceEntry, notification);
+        
+        if (!linkResult) {
+            utils.addError(sourceEntry, "Notifikácia vytvorená ale linking zlyhal", 
+                          "safeCreateNotificationWithCleanup");
+        }
+        
+        return {
+            success: true,
+            notification: notification,
+            cleanupCount: cleanupResult.deletedCount
+        };
+        
+    } catch (error) {
+        utils.addError(sourceEntry, "Kritická chyba: " + error.toString(), 
+                      "safeCreateNotificationWithCleanup", error);
+        return {
+            success: false,
+            error: error.toString()
+        };
+    }
+}
 // ==============================================
 // POMOCNÉ FUNKCIE
 // ==============================================

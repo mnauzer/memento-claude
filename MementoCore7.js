@@ -666,6 +666,52 @@ var MementoCore = (function() {
         return "osôb";
     }
 
+    // ==============================================
+    // NOTIFIKÁCIE
+    //
+    // V MementoCore7.js
+    function getLinkedNotifications(entry) {
+        try {
+            var config = getConfig();
+            var notifications = safeGetLinks(entry, config.fields.common.notifications);
+            return notifications || [];
+        } catch (error) {
+            return [];
+        }
+    }
+
+    function linkNotificationToSource(sourceEntry, notificationEntry) {
+        try {
+            var config = getConfig();
+            var currentNotifications = safeGetLinks(sourceEntry, config.fields.common.notifications);
+            currentNotifications.push(notificationEntry);
+            sourceEntry.set(config.fields.common.notifications, currentNotifications);
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function deleteNotificationAndTelegram(notificationEntry) {
+        try {
+            // 1. Získaj Telegram údaje
+            var chatId = safeGet(notificationEntry, "Chat ID");
+            var messageId = safeGet(notificationEntry, "Message ID");
+            
+            // 2. Vymaž z Telegramu (ak existuje message ID)
+            if (chatId && messageId && typeof MementoTelegram !== 'undefined') {
+                MementoTelegram.deleteTelegramMessage(chatId, messageId);
+            }
+            
+            // 3. Vymaž z knižnice Notifications
+            notificationEntry.remove();
+            return true;
+        } catch (error) {
+            return false;
+        }
+}
+
+
      // ==============================================
     // PUBLIC API
     // ==============================================
@@ -712,7 +758,12 @@ var MementoCore = (function() {
         getPersonCountForm: getPersonCountForm,
         isHoliday: isHoliday,
         isWeekend: isWeekend,
-        calculateEaster: calculateEaster
+        calculateEaster: calculateEaster,
+
+        // Notifikácie
+        getLinkedNotifications: getLinkedNotifications,
+        linkNotificationToSource: linkNotificationToSource,
+        deleteNotificationAndTelegram: deleteNotificationAndTelegram 
 
     };
 })();

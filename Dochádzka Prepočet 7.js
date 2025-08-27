@@ -424,7 +424,95 @@ function createInfoRecord(workTimeResult, employeeResult) {
         return false;
     }
 }
+// ==============================================
+// VYTVORENIE INFO_TELEGRAM ZÁZNAMU
+// ==============================================
 
+function createTelegramInfoRecord(workTimeResult, employeeResult) {
+    try {
+        var date = currentEntry.field(CONFIG.fields.attendance.date);
+        var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
+        var dayName = utils.getDayNameSK(moment(date).day()).toUpperCase();
+
+        // Markdown formátovaná správa
+        var telegramInfo = "📋 *DOCHÁDZKA - AUTOMATICKÝ PREPOČET*\n";
+        telegramInfo += "═══════════════════════════════════\n\n";
+        
+        telegramInfo += "📅 *Dátum:* " + dateFormatted + " (" + dayName + ")\n";
+        telegramInfo += "⏰ *Pracovný čas:* " + utils.formatTime(workTimeResult.arrivalRounded) + 
+                        " - " + utils.formatTime(workTimeResult.departureRounded) + "\n";
+        telegramInfo += "⏱️ *Pracovná doba:* " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
+        
+        telegramInfo += "👥 *ZAMESTNANCI* (" + employeeResult.pocetPracovnikov + " " + 
+                        utils.selectOsobaForm(employeeResult.pocetPracovnikov) + ")\n";
+        telegramInfo += "───────────────────────────────────\n";
+        
+        for (var i = 0; i < employeeResult.detaily.length; i++) {
+            var detail = employeeResult.detaily[i];
+            var empName = escapeMarkdown(utils.formatEmployeeName(employeeResult.detaily[i].zamestnanec));
+            
+            telegramInfo += "• *" + empName + "*\n";
+            telegramInfo += "  💶 Hodinovka: " + detail.hodinovka + " €/h\n";
+            
+            if (detail.priplatok > 0) {
+                telegramInfo += "  ➕ Príplatok: " + detail.priplatok + " €/h\n";
+            }
+            if (detail.premia > 0) {
+                telegramInfo += "  🎁 Prémia: " + detail.premia + " €\n";
+            }
+            if (detail.pokuta > 0) {
+                telegramInfo += "  ➖ Pokuta: " + detail.pokuta + " €\n";
+            }
+            
+            telegramInfo += "  💰 *Denná mzda: " + detail.dennaMzda + " €*\n\n";
+        }
+        
+        telegramInfo += "💰 *SÚHRN*\n";
+        telegramInfo += "───────────────────────────────────\n";
+        telegramInfo += "• Odpracované celkom: *" + employeeResult.odpracovaneTotal + " hodín*\n";
+        telegramInfo += "• Mzdové náklady: *" + utils.formatMoney(employeeResult.celkoveMzdy) + "*\n\n";
+        
+        telegramInfo += "🔧 _Script: " + CONFIG.scriptName + " v" + CONFIG.version + "_\n";
+        telegramInfo += "⏰ _Spracované: " + moment().format("HH:mm:ss") + "_\n";
+        telegramInfo += "📝 _Záznam #" + currentEntry.field("ID") + "_";
+        
+        // Ulož do poľa info_telegram
+        currentEntry.set("info_telegram", telegramInfo);
+        
+        utils.addDebug(currentEntry, utils.getIcon("success") + " Info_telegram záznam vytvorený");
+        
+        return true;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "createTelegramInfoRecord", error);
+        return false;
+    }
+}
+
+// Helper funkcia pre escape markdown znakov
+function escapeMarkdown(text) {
+    if (!text) return "";
+    
+    return String(text)
+        .replace(/\*/g, "\\*")
+        .replace(/_/g, "\\_")
+        .replace(/\[/g, "\\[")
+        .replace(/\]/g, "\\]")
+        .replace(/\(/g, "\\(")
+        .replace(/\)/g, "\\)")
+        .replace(/~/g, "\\~")
+        .replace(/`/g, "\\`")
+        .replace(/>/g, "\\>")
+        .replace(/#/g, "\\#")
+        .replace(/\+/g, "\\+")
+        .replace(/-/g, "\\-")
+        .replace(/=/g, "\\=")
+        .replace(/\|/g, "\\|")
+        .replace(/\{/g, "\\{")
+        .replace(/\}/g, "\\}")
+        .replace(/\./g, "\\.")
+        .replace(/!/g, "\\!");
+}
 // ==============================================
 // FINÁLNY SÚHRN
 // ==============================================
@@ -480,7 +568,8 @@ function main() {
             step2: { success: false, name: "Výpočet pracovnej doby" },
             step3: { success: false, name: "Spracovanie zamestnancov" },
             step4: { success: false, name: "Celkové výpočty" },
-            step5: { success: false, name: "Vytvorenie info záznamu" }
+            step5: { success: false, name: "Vytvorenie info záznamu" },
+            step6: { success: false, name: "Vytvorenie info_telegram záznamu" }
         };
 
         // KROK 1: Validácia vstupných dát
@@ -521,6 +610,7 @@ function main() {
         // KROK 5: Info záznam
         utils.addDebug(currentEntry, " KROK 5: Vytvorenie info záznamu", "note");
         steps.step5.success = createInfoRecord(workTimeResult, employeeResult);
+        steps.step6.success = createTelegramInfoRecord(workTimeResult, employeeResult) && steps.step5.success;  
         
         var farba = "#FFFFFF"; // Biela - štandard
         if (isHoliday) {
