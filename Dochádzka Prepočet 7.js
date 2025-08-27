@@ -441,7 +441,7 @@ function main() {
         var isHoliday = utils.isHoliday(validationResult.date);
         var isWeekend = utils.isWeekend(validationResult.date);
         var arrivalRounded = utils.roundToQuarter(validationResult.arrival);
-        var departureRounded = utils.oundToQuarter(validationResult.departure);
+        var departureRounded = utils.roundToQuarter(validationResult.departure);
         var workTimeResult = calculateWorkTime(arrivalRounded, departureRounded);    
 
         if (!workTimeResult.success) {
