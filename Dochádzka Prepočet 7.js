@@ -187,8 +187,8 @@ function calculateWorkTime(arrival, departure) {
             utils.addDebug(currentEntry, " Zaokrúhlenie aktivované:", "round");
             utils.addDebug(currentEntry, " • Príchod: " + utils.formatTime(arrivalParsed) + " → " + utils.formatTime(arrivalFinal));
             utils.addDebug(currentEntry, " • Odchod: " + utils.formatTime(departureParsed) + " → " + utils.formatTime(departureFinal));
-            utils.safeSet(currentEntry, CONFIG.fields.attendance.arrival, formatTime(arrivalFinal));
-            utils.safeSet(currentEntry, CONFIG.fields.attendance.departure, formatTime(departureFinal)); 
+            utils.safeSet(currentEntry, CONFIG.fields.attendance.arrival, utils.formatTime(arrivalFinal));
+            utils.safeSet(currentEntry, CONFIG.fields.attendance.departure, utils.formatTime(departureFinal)); 
         }
         
         // Výpočet hodín s novými časmi
