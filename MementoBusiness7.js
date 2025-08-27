@@ -424,7 +424,7 @@ var MementoBusiness = (function() {
                 return null;
             }
             
-            core.addDebug(entry, " Platná hodinovka: " + hodinovka + " €/h", "rate");
+            core.addDebug(entry, "  • Platná hodinovka: " + hodinovka + " €/h");
             return hodinovka;
     
             
