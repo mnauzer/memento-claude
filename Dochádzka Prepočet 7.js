@@ -427,8 +427,7 @@ function main() {
         };
 
         // KROK 1: Validácia vstupných dát
-        utils.addDebug(currentEntry, " KROK 1: Validácia vstupných dát"), "validation";
-        
+        utils.addDebug(currentEntry, " KROK 1: Validácia vstupných dát", "validation");
         var validationResult = validateInputData();  // ✅ Volaj bez parametrov
         if (!validationResult.success) {
             utils.addError(currentEntry, "Validácia zlyhala: " + validationResult.error, CONFIG.scriptName);
@@ -439,7 +438,8 @@ function main() {
 
         // KROK 2: Výpočet pracovného času
         utils.addDebug(currentEntry, " KROK 2: Získavanie údajov", "update");
-
+        var isHoliday = utils.isHoliday(validationResult.date);
+        var isWeekend = utils.isWeekend(validationResult.date);
         var arrivalRounded = roundToQuarterHour(validationResult.arrival);
         var departureRounded = roundToQuarterHour(validationResult.departure);
         var workTimeResult = calculateWorkTime(arrivalRounded, departureRounded);    
@@ -449,24 +449,22 @@ function main() {
             return false;
         }
 
-        utils.safeSetAttribute(currentEntry, CONFIG.fields.attendance, CONFIG.attributes.arrivalRounded);
-        utils.safeSetAttribute(currentEntry, CONFIG.fields.attendance, CONFIG.attributes.departureRounded); 
-        
+      
         steps.step2.success = true;
         
         // KROK 3: Spracovanie zamestnancov
-        utils.addDebug(currentEntry, " KROK 3: Spracovanie zamestnancov"), "group";
+        utils.addDebug(currentEntry, " KROK 3: Spracovanie zamestnancov", "group");
         var employeeResult = processEmployees(validationResult.employees, workTimeResult.pracovnaDobaHodiny, validationResult.date);
         steps.step3.success = employeeResult.success;
         
         // KROK 4: Celkové výpočty
-        utils.addDebug(currentEntry, " KROK 4: Celkové výpočty"), "calculation";
+        utils.addDebug(currentEntry, " KROK 4: Celkové výpočty", "calculation");
         if (employeeResult.success) {
             steps.step4.success = calculateTotals(employeeResult);
         }
         
         // KROK 5: Info záznam
-        utils.addDebug(currentEntry, " KROK 5: Vytvorenie info záznamu"), "note";
+        utils.addDebug(currentEntry, " KROK 5: Vytvorenie info záznamu", "note");
         steps.step5.success = createInfoRecord(workTimeResult, employeeResult);
         
         // Finálny log
@@ -654,6 +652,18 @@ function main() {
         // utils.addDebug(currentEntry, "✅ Čistý čas: " + formatMinutesToTime(cistyPracovnyCasMinuty));
         // utils.addDebug(currentEntry, "💰 Mzdové náklady: " + utils.formatMoney(totalMzdoveNaklady));
         // utils.addDebug(currentEntry, "✅ === PREPOČET DOKONČENÝ ===");
+        
+        //
+        var farba = "#FFFFFF"; // Biela - štandard
+        if (isHoliday) {
+            farba = "#FFE6CC"; // Oranžová - sviatok
+        } else if (isWeekend) {
+            farba = "#FFFFCC"; // Žltá - víkend
+        }
+        // pre nastavíme zaokrúhlené časy príchodu a odchodu
+        utils.safeSetAttribute(currentEntry, CONFIG.fields.attendance, CONFIG.attributes.arrivalRounded);
+        utils.safeSetAttribute(currentEntry, CONFIG.fields.attendance, CONFIG.attributes.departureRounded); 
+        utils.safeSet(currentEntry, CONFIG.fields.common.backgroundColor, farba);
         
         return true;
         
