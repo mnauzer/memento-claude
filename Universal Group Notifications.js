@@ -52,52 +52,7 @@ var CONFIG = {
             formatFunction: formatMessage,
             dataExtractor: extractData
         },
-        "Záznam práce": {
-            type: "workRecord",
-            telegramGroupField: "Telegram skupina záznamu prác",
-            permissionField: "Záznam prác skupinové notifikácie",
-            messageType: "Záznam prác",
-            fields: centralConfig.fields.workRecord,
-            formatFunction: formatWorkRecordMessage,
-            dataExtractor: extractWorkRecordData
-        },
-        "ASISTANTO API": {
-            type: "workRecord",
-            telegramGroupField: "Telegram skupina záznamu prác",
-            permissionField: "Záznam prác skupinové notifikácie",
-            messageType: "Záznam prác",
-            fields: centralConfig.fields.workRecord,
-            formatFunction: formatWorkRecordMessage,
-            dataExtractor: extractWorkRecordData
-        },
-        "Kniha jázd": {
-            type: "bookOfRides",
-            telegramGroupField: "Telegram skupina knihy jázd",
-            permissionField: "Kniha jázd skupinové notifikácie",
-            messageType: "Kniha jázd",
-            fields: centralConfig.fields.bookOfRides,
-            formatFunction: formatBookOfRidesMessage,
-            dataExtractor: extractBookOfRidesData
-        },
-        "Záväzky": {
-            type: "obligations",
-            telegramGroupField: "Telegram skupina záväzkov",
-            permissionField: "Záväzky skupinové notifikácie",
-            messageType: "Záväzky",
-            fields: centralConfig.fields.obligations,
-            formatFunction: formatObligationsMessage,
-            dataExtractor: extractObligationsData
-        },
-        "Pokladňa": {
-            type: "cashRegister",
-            telegramGroupField: "Telegram skupina pokladne",
-            permissionField: "Pokladňa skupinové notifikácie",
-            messageType: "Pokladňa",
-            fields: centralConfig.fields.cashRegister,
-            formatFunction: formatCashRegisterMessage,
-            dataExtractor: extractCashRegisterData
-        }
-    }
+           }
 };
 
 // ==============================================
