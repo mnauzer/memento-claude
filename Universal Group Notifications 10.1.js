@@ -212,11 +212,22 @@ function getTelegramGroup(libraryConfig) {
         if (!settings || settings.length === 0) return null;
         
         var defaultSettings = settings[settings.length - 1];
-        var telegramGroup = utils.safeGet(defaultSettings, libraryConfig.telegramGroupField);
         
-        if (!telegramGroup) {
+        // Získaj pole telegram skupín (je to array!)
+        var telegramGroupEntries = utils.safeGet(defaultSettings, libraryConfig.telegramGroupField);
+        
+        if (!telegramGroupEntries || telegramGroupEntries.length === 0) {
             utils.addError(currentEntry, "Telegram skupina nie je nastavená v poli '" + libraryConfig.telegramGroupField + "'", "getTelegramGroup");
             return null;
+        }
+        
+        // Vyber prvú skupinu z array
+        var telegramGroup = telegramGroupEntries[0];
+        
+        utils.addDebug(currentEntry, "  • " + libraryConfig.telegramGroupField + ": " + (telegramGroup ? "NÁJDENÁ" : "NENÁJDENÁ"));
+        
+        if (telegramGroup) {
+            utils.addDebug(currentEntry, "  • Telegram skupina: " + utils.safeGet(telegramGroup, "Názov skupiny") + " " + utils.safeGet(telegramGroup, "Názov témy"));
         }
         
         // Validácia skupiny
@@ -428,26 +439,26 @@ function extractCashRegisterData(entry, fields) {
 // ==============================================
 
 function formatAttendanceMessage(data, entry) {
-    var msg = "📋 *DOCHÁDZKA*\n";
+    var msg = "📋 <b>DOCHÁDZKA</b>\n";
     msg += "═══════════════\n\n";
     
-    msg += "📅 *Dátum:* " + utils.formatDate(data.date) + " (" + utils.getDayNameSK(moment(data.date).day()) + ")\n";
+    msg += "📅 <b>Dátum:</b> " + utils.formatDate(data.date) + " (" + utils.getDayNameSK(moment(data.date).day()) + ")\n";
     
     if (data.arrival && data.departure) {
-        msg += "⏰ *Čas:* " + utils.formatTime(data.arrival) + " - " + utils.formatTime(data.departure) + "\n";
+        msg += "⏰ <b>Čas:</b> " + utils.formatTime(data.arrival) + " - " + utils.formatTime(data.departure) + "\n";
     }
     
-    msg += "⏱️ *Odpracované:* " + data.workedHours.toFixed(2) + " hodín\n";
+    msg += "⏱️ <b>Odpracované:</b> " + data.workedHours.toFixed(2) + " hodín\n";
     
     if (data.employees && data.employees.length > 0) {
-        msg += "\n👥 *Zamestnanci* (" + data.employees.length + "):\n";
+        msg += "\n👥 <b>Zamestnanci</b> (" + data.employees.length + "):\n";
         for (var i = 0; i < data.employees.length; i++) {
-            msg += "• " + escapeMarkdown(utils.formatEmployeeName(data.employees[i])) + "\n";
+            msg += "• " + escapeHTML(utils.formatEmployeeName(data.employees[i])) + "\n";
         }
     }
     
-    msg += "\n💰 *Mzdové náklady:* " + utils.formatMoney(data.wageCosts) + "\n";
-    msg += "\n📝 _Záznam #" + entry.field("ID") + "_";
+    msg += "\n💰 <b>Mzdové náklady:</b> " + utils.formatMoney(data.wageCosts) + "\n";
+    msg += "\n📝 <i>Záznam #" + entry.field("ID") + "</i>";
     
     return msg;
 }
