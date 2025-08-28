@@ -31,7 +31,7 @@ var currentLibrary = lib();
 
 var CONFIG = {
     scriptName: "Universal Group Notification",
-    version: "10.0",
+    version: "10.1",
     
     // Referencie na centrálny config
     fields: centralConfig.fields,
