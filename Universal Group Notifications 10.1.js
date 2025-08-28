@@ -306,7 +306,7 @@ function createNotification(params) {
             utils.safeGet(params.telegramGroup, CONFIG.fields.telegramGroups.messagePriority, "Normálna"));
         notification.set(CONFIG.fields.notifications.messageType, params.libraryConfig.messageType);
         notification.set(CONFIG.fields.notifications.messageSource, "Automatická");
-        notification.set(CONFIG.fields.notifications.formatting, "Markdown");
+        notification.set(CONFIG.fields.notifications.formatting, "HTML");
         
         // Telegram polia
         notification.set(CONFIG.fields.notifications.chatId, 

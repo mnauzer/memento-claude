@@ -434,24 +434,24 @@ function createTelegramInfoRecord(workTimeResult, employeeResult) {
         var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
         var dayName = utils.getDayNameSK(moment(date).day()).toUpperCase();
 
-        // Markdown formátovaná správa
-        var telegramInfo = "📋 *DOCHÁDZKA - AUTOMATICKÝ PREPOČET*\n";
+        // HTML formátovaná správa (namiesto Markdown)
+        var telegramInfo = "📋 <b>DOCHÁDZKA - AUTOMATICKÝ PREPOČET</b>\n";
         telegramInfo += "═══════════════════════════════════\n\n";
         
-        telegramInfo += "📅 *Dátum:* " + dateFormatted + " (" + dayName + ")\n";
-        telegramInfo += "⏰ *Pracovný čas:* " + utils.formatTime(workTimeResult.arrivalRounded) + 
+        telegramInfo += "📅 <b>Dátum:</b> " + dateFormatted + " (" + dayName + ")\n";
+        telegramInfo += "⏰ <b>Pracovný čas:</b> " + utils.formatTime(workTimeResult.arrivalRounded) + 
                         " - " + utils.formatTime(workTimeResult.departureRounded) + "\n";
-        telegramInfo += "⏱️ *Pracovná doba:* " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
+        telegramInfo += "⏱️ <b>Pracovná doba:</b> " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
         
-        telegramInfo += "👥 *ZAMESTNANCI* (" + employeeResult.pocetPracovnikov + " " + 
+        telegramInfo += "👥 <b>ZAMESTNANCI</b> (" + employeeResult.pocetPracovnikov + " " + 
                         utils.selectOsobaForm(employeeResult.pocetPracovnikov) + ")\n";
         telegramInfo += "───────────────────────────────────\n";
         
         for (var i = 0; i < employeeResult.detaily.length; i++) {
             var detail = employeeResult.detaily[i];
-            var empName = escapeMarkdown(utils.formatEmployeeName(employeeResult.detaily[i].zamestnanec));
+            var empName = utils.formatEmployeeName(employeeResult.detaily[i].zamestnanec);
             
-            telegramInfo += "• *" + empName + "*\n";
+            telegramInfo += "• <b>" + empName + "</b>\n";
             telegramInfo += "  💶 Hodinovka: " + detail.hodinovka + " €/h\n";
             
             if (detail.priplatok > 0) {
@@ -464,17 +464,17 @@ function createTelegramInfoRecord(workTimeResult, employeeResult) {
                 telegramInfo += "  ➖ Pokuta: " + detail.pokuta + " €\n";
             }
             
-            telegramInfo += "  💰 *Denná mzda: " + detail.dennaMzda + " €*\n\n";
+            telegramInfo += "  💰 <b>Denná mzda: " + detail.dennaMzda + " €</b>\n\n";
         }
         
-        telegramInfo += "💰 *SÚHRN*\n";
+        telegramInfo += "💰 <b>SÚHRN</b>\n";
         telegramInfo += "───────────────────────────────────\n";
-        telegramInfo += "• Odpracované celkom: *" + employeeResult.odpracovaneTotal + " hodín*\n";
-        telegramInfo += "• Mzdové náklady: *" + utils.formatMoney(employeeResult.celkoveMzdy) + "*\n\n";
+        telegramInfo += "• Odpracované celkom: <b>" + employeeResult.odpracovaneTotal + " hodín</b>\n";
+        telegramInfo += "• Mzdové náklady: <b>" + utils.formatMoney(employeeResult.celkoveMzdy) + "</b>\n\n";
         
-        telegramInfo += "🔧 _Script: " + CONFIG.scriptName + " v" + CONFIG.version + "_\n";
-        telegramInfo += "⏰ _Spracované: " + moment().format("HH:mm:ss") + "_\n";
-        telegramInfo += "📝 _Záznam #" + currentEntry.field("ID") + "_";
+        telegramInfo += "🔧 <i>Script: " + CONFIG.scriptName + " v" + CONFIG.version + "</i>\n";
+        telegramInfo += "⏰ <i>Spracované: " + moment().format("HH:mm:ss") + "</i>\n";
+        telegramInfo += "📝 <i>Záznam #" + currentEntry.field("ID") + "</i>";
         
         // Ulož do poľa info_telegram
         currentEntry.set("info_telegram", telegramInfo);
@@ -489,11 +489,17 @@ function createTelegramInfoRecord(workTimeResult, employeeResult) {
     }
 }
 
+
 // Helper funkcia pre escape markdown znakov
 function escapeMarkdown(text) {
     if (!text) return "";
     
-    return String(text)
+    // Najskôr odstráň všetky existujúce backslashes
+    text = String(text).replace(/\\/g, '');
+    
+    // Potom escape-ni markdown znaky OKREM lomítka (/)
+    // Lomítko necháme bez escape-u aby nevznikli odkazy na botov
+    return text
         .replace(/\*/g, "\\*")
         .replace(/_/g, "\\_")
         .replace(/\[/g, "\\[")
@@ -512,6 +518,7 @@ function escapeMarkdown(text) {
         .replace(/\}/g, "\\}")
         .replace(/\./g, "\\.")
         .replace(/!/g, "\\!");
+        // POZOR: Neescapujeme lomítko (/) aby €/h nefungovalo ako odkaz
 }
 // ==============================================
 // FINÁLNY SÚHRN
