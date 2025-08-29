@@ -1,6 +1,6 @@
 // ==============================================
 // NOTIFICATION DELETE TRIGGER - Vymazanie z Telegramu
-// Verzia: 8.1 | Dátum: December 2024 | Autor: ASISTANTO
+// Verzia: 9.0 | Dátum: December 2024 | Autor: ASISTANTO
 // Knižnica: Notifications | Trigger: Deleting an Entry
 // ==============================================
 // 📋 FUNKCIA:
@@ -15,11 +15,12 @@
 //    - MementoConfig v7.0+ (centrálny CONFIG)
 //    - MementoCore v7.0+ (základné funkcie)
 // ==============================================
-// ✅ REFAKTOROVANÉ v8.1:
+// ✅ REFAKTOROVANÉ v9.0:
 //    - Odstránené všetky return statements
 //    - Použitie shouldContinue flag logiky
 //    - Kompletná integrácia s MementoUtils
 //    - Logovanie do ASISTANTO Logs knižnice
+//    - Vylepšené error handling a validácie
 // ==============================================
 
 // ==============================================
@@ -34,7 +35,7 @@ var deletedEntry = entry(); // Záznam ktorý sa maže
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Notification Delete Trigger",
-    version: "8.1",
+    version: "9.0",
     
     // Referencie na centrálny config
     fields: centralConfig.fields,
