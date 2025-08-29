@@ -1,6 +1,6 @@
 // ==============================================
 // UNIVERSAL GROUP NOTIFICATION - Vytvorenie notifikácie
-// Verzia: 10.2 | Dátum: December 2024 | Autor: ASISTANTO
+// Verzia: 10.2 | Dátum: August 2025 | Autor: ASISTANTO
 // Knižnica: Univerzálna | Trigger: After Save
 // ==============================================
 // 📋 FUNKCIA:
