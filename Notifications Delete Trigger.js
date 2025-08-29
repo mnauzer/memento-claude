@@ -56,8 +56,8 @@ var CONFIG = {
         library: "library", 
         script: "script",
         line: "line",
-        debugLog: "Debug_Logs",
-        errorLog: "Error_Logs",
+        debugLog: "Debug_Log",
+        errorLog: "Error_Log",
         info: "info"
     }
 };
