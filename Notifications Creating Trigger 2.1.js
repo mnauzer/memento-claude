@@ -174,12 +174,12 @@ function getTelegramID() {
             };
         }
         
-        // Pre skupiny (Skupina, Skupina-Téma)
-        if (recipientType === "Skupina" || recipientType === "Skupina-Téma") {
+        // Pre skupiny (Skupina, Skupina-Téma, Zákazka)
+        if (recipientType === "Skupina" || recipientType === "Skupina-Téma" || recipientType === "Zákazka") {
             return getTelegramFromGroup(recipientConfig);
         }
         
-        // Pre jednotlivcov (Partner, Zamestnanec, Klient, Zákazka)
+        // Pre jednotlivcov (Partner, Zamestnanec, Klient)
         return getTelegramFromIndividual(recipientConfig);
         
     } catch (error) {
