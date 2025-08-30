@@ -1,20 +1,18 @@
 // ==============================================
-// NOTIFICATIONS CREATING TRIGGER - Odoslanie na Telegram
-// Verzia: 2.1 | Dátum: August 2025 | Autor: ASISTANTO
-// Knižnica: Notifications | Trigger: Creating a new entry
+// NOTIFICATION CREATE TRIGGER - Vytvorenie a odoslanie
+// Verzia: 2.2 | Dátum: December 2024 | Autor: ASISTANTO
+// Knižnica: Notifications | Trigger: After Save
 // ==============================================
 // 📋 FUNKCIA:
-//    - Automatické odoslanie notifikácie na Telegram
-//    - Kontrola časových obmedzení (pracovný čas, víkendy)
-//    - Kontrola duplicitného odoslania
-//    - Dynamické formátovanie (HTML/Markdown/Text)
-//    - Inteligentné error handling
-//    - Update statusu po odoslaní
+//    - Vytvorí záznam v knižnici Notifications
+//    - Odošle správu na Telegram
+//    - Aktualizuje info pole s detailami odoslania
+//    - Získava Telegram ID podľa typu adresáta
 // ==============================================
-// 🔧 ZMENY v2.1:
-//    - Vrátené časové kontroly
-//    - Status "Čaká" pre nesplnené časové podmienky
-//    - Pripravené pre scheduled trigger
+// 🔧 ZMENY v2.2:
+//    - Pridaná funkcia getTelegramID
+//    - Dynamické získavanie chat/thread ID podľa adresáta
+//    - Rozšírené info pole o detaily odoslania
 // ==============================================
 
 // ==============================================
@@ -26,19 +24,42 @@ var centralConfig = utils.config;
 var currentEntry = entry();
 
 var CONFIG = {
-    scriptName: "Notifications Creating Trigger",
-    version: "2.1",
+    scriptName: "Notification Create Trigger",
+    version: "2.2",
     
     // Referencie na centrálny config
-    fields: centralConfig.fields.notifications,
-    telegramFields: centralConfig.fields.telegramGroups,
+    fields: centralConfig.fields,
+    libraries: centralConfig.libraries,
     icons: centralConfig.icons,
     
-    // Lokálne nastavenia
-    settings: {
-        maxRetries: 3,
-        retryDelay: 5000, // ms
-        defaultFormatting: "Markdown"
+    // Mapovanie typov adresátov na polia
+    recipientMapping: {
+        "Partner": {
+            linkField: "Partner",
+            telegramField: "Telegram ID"
+        },
+        "Zamestnanec": {
+            linkField: "Zamestnanec",
+            telegramField: "Telegram ID"
+        },
+        "Klient": {
+            linkField: "Klient",
+            telegramField: "Telegram ID"
+        },
+        "Zákazka": {
+            linkField: "Zákazka",
+            telegramField: "Telegram ID"
+        },
+        "Skupina": {
+            linkField: "Skupina/Téma",
+            chatIdField: "Chat ID",
+            threadIdField: null
+        },
+        "Skupina-Téma": {
+            linkField: "Skupina/Téma",
+            chatIdField: "Chat ID",
+            threadIdField: "Thread ID"
+        }
     }
 };
 
@@ -49,244 +70,392 @@ var CONFIG = {
 function main() {
     try {
         utils.addDebug(currentEntry, utils.getIcon("start") + " === " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
+        utils.addDebug(currentEntry, "Čas spustenia: " + utils.formatDate(moment()));
         
-        // 1. Kontrola statusu
-        var status = utils.safeGet(currentEntry, CONFIG.fields.status, "");
-        utils.addDebug(currentEntry, "Status: " + status);
+        // 1. Kontrola či je to nový záznam
+        if (!isNewRecord()) {
+            utils.addDebug(currentEntry, "Nie je nový záznam - preskakujem");
+            return true;
+        }
         
+        // 2. Kontrola statusu
+        var status = utils.safeGet(currentEntry, CONFIG.fields.notifications.status);
         if (status !== "Čaká") {
-            utils.addDebug(currentEntry, utils.getIcon("info") + " Status '" + status + "' - nič nerobím");
+            utils.addDebug(currentEntry, "Status nie je 'Čaká' - preskakujem");
             return true;
         }
         
-        // 2. Kontrola duplicitného odoslania
-        var existingMessageId = utils.safeGet(currentEntry, CONFIG.fields.messageId);
-        if (existingMessageId) {
-            utils.addDebug(currentEntry, utils.getIcon("warning") + " Notifikácia už bola odoslaná (Message ID: " + existingMessageId + ")");
-            utils.safeSet(currentEntry, CONFIG.fields.status, "Duplicita");
-            return true;
-        }
-        
-        // 3. Validácia potrebných polí
-        var requiredFields = [CONFIG.fields.chatId, CONFIG.fields.message];
-        if (!utils.validateRequiredFields(currentEntry, requiredFields)) {
-            utils.addError(currentEntry, "Chýbajú povinné polia", "main");
-            utils.safeSet(currentEntry, CONFIG.fields.status, "Chyba");
-            utils.safeSet(currentEntry, CONFIG.fields.lastError, "Chýbajú povinné polia");
+        // 3. Získanie Telegram ID podľa adresáta
+        var telegramData = getTelegramID();
+        if (!telegramData.success) {
+            utils.addError(currentEntry, "Nepodarilo sa získať Telegram údaje: " + telegramData.error, "main");
+            updateStatus("Zlyhalo", telegramData.error);
             return false;
         }
         
-        // 4. Kontrola časových obmedzení
-        var telegramGroup = utils.safeGet(currentEntry, CONFIG.fields.groupOrTopic);
-        if (telegramGroup && telegramGroup.length > 0) {
-            telegramGroup = telegramGroup[0]; // Link to Entry je array
-            
-            if (!checkTimeRestrictions(telegramGroup)) {
-                utils.addDebug(currentEntry, utils.getIcon("time") + " Nesplnené časové podmienky - správa čaká na vhodný čas");
-                // Status ostáva "Čaká" pre scheduled trigger
-                return true;
-            }
+        utils.addDebug(currentEntry, "Telegram údaje získané:");
+        utils.addDebug(currentEntry, "  • Chat ID: " + telegramData.chatId);
+        if (telegramData.threadId) {
+            utils.addDebug(currentEntry, "  • Thread ID: " + telegramData.threadId);
         }
         
-        // 5. Získanie dát pre odoslanie
-        var chatId = utils.safeGet(currentEntry, CONFIG.fields.chatId);
-        var message = utils.safeGet(currentEntry, CONFIG.fields.message);
-        var threadId = utils.safeGet(currentEntry, CONFIG.fields.threadId);
-        var formatting = utils.safeGet(currentEntry, CONFIG.fields.formatting, CONFIG.settings.defaultFormatting);
-        var priority = utils.safeGet(currentEntry, CONFIG.fields.priority, "Normálna");
-        
-        utils.addDebug(currentEntry, "Chat ID: " + chatId);
-        utils.addDebug(currentEntry, "Thread ID: " + (threadId || "žiadny"));
-        utils.addDebug(currentEntry, "Formátovanie: " + formatting);
-        utils.addDebug(currentEntry, "Priorita: " + priority);
-        
-        // 6. Príprava možností odoslania
-        var sendOptions = {
-            parseMode: formatting === "Text" ? undefined : formatting,
-            disableNotification: priority === "Nízka",
-            disablePreview: true
-        };
-        
-        // Pridaj thread ID ak existuje
-        if (threadId) {
-            sendOptions.threadId = threadId;
+        // 4. Príprava správy
+        var message = utils.safeGet(currentEntry, CONFIG.fields.notifications.message);
+        if (!message) {
+            utils.addError(currentEntry, "Správa je prázdna", "main");
+            updateStatus("Zlyhalo", "Prázdna správa");
+            return false;
         }
         
-        // 7. Odoslanie na Telegram
-        utils.addDebug(currentEntry, utils.getIcon("telegram") + " Odosielam na Telegram...");
+        // 5. Odoslanie na Telegram
+        var sendResult = sendToTelegram(telegramData.chatId, message, telegramData.threadId);
         
-        var result = utils.sendTelegramMessage(chatId, message, sendOptions);
-        
-        // 8. Spracovanie výsledku
-        if (result && result.success) {
-            // Úspešné odoslanie
-            utils.safeSet(currentEntry, CONFIG.fields.status, "Odoslané");
-            utils.safeSet(currentEntry, CONFIG.fields.messageId, result.messageId);
-            utils.safeSet(currentEntry, CONFIG.fields.lastMessage, new Date());
-            
-            // Vyčisti chybové pole
-            utils.safeSet(currentEntry, CONFIG.fields.lastError, "");
-            
-            // Aktualizuj počítadlo
-            var messageCount = utils.safeGet(currentEntry, CONFIG.fields.messageCount, 0);
-            utils.safeSet(currentEntry, CONFIG.fields.messageCount, messageCount + 1);
-            
-            // Aktualizuj štatistiky skupiny
-            updateGroupStats(telegramGroup);
-            
-            utils.addDebug(currentEntry, utils.getIcon("success") + " Notifikácia odoslaná (Message ID: " + result.messageId + ")");
-            
-        } else {
-            // Chyba pri odoslaní
-            var errorMessage = result ? result.error : "Neznáma chyba";
-            
-            // Rozlíš typy chýb
-            var errorStatus = categorizeError(errorMessage);
-            
-            utils.safeSet(currentEntry, CONFIG.fields.status, errorStatus);
-            utils.safeSet(currentEntry, CONFIG.fields.lastError, errorMessage);
-            utils.safeSet(currentEntry, CONFIG.fields.lastUpdate, new Date());
-            
-            // Aktualizuj retry counter
-            var retryCount = utils.safeGet(currentEntry, CONFIG.fields.retryCount, 0);
-            utils.safeSet(currentEntry, CONFIG.fields.retryCount, retryCount + 1);
-            
-            utils.addError(currentEntry, "Odoslanie zlyhalo: " + errorMessage, "main");
+        if (!sendResult.success) {
+            utils.addError(currentEntry, "Odoslanie zlyhalo: " + sendResult.error, "main");
+            updateStatus("Zlyhalo", sendResult.error);
+            return false;
         }
         
-        utils.addDebug(currentEntry, utils.getIcon("success") + " === SCRIPT DOKONČENÝ ===");
+        // 6. Aktualizácia záznamu po úspešnom odoslaní
+        updateAfterSuccess(sendResult, telegramData);
+        
+        // 7. Aktualizácia info poľa zdrojového záznamu
+        updateSourceEntryInfo(sendResult, telegramData);
+        
+        utils.addDebug(currentEntry, utils.getIcon("success") + " === NOTIFIKÁCIA ÚSPEŠNE ODOSLANÁ ===");
+        
         return true;
         
     } catch (error) {
         utils.addError(currentEntry, "Kritická chyba v hlavnej funkcii", "main", error);
-        utils.safeSet(currentEntry, CONFIG.fields.status, "Kritická chyba");
-        utils.safeSet(currentEntry, CONFIG.fields.lastError, error.toString());
+        updateStatus("Chyba", error.toString());
         return false;
     }
 }
 
 // ==============================================
-// ČASOVÉ KONTROLY
+// FUNKCIA PRE ZÍSKANIE TELEGRAM ID
 // ==============================================
 
-/**
- * Kontroluje časové obmedzenia pre odoslanie
- * @param {Entry} telegramGroup - Telegram skupina s nastaveniami
- * @returns {boolean} true ak možno odoslať
- */
-function checkTimeRestrictions(telegramGroup) {
+function getTelegramID() {
     try {
-        var now = moment();
+        // Získaj typ adresáta
+        var recipientType = utils.safeGet(currentEntry, CONFIG.fields.notifications.recipient);
         
-        // 1. Kontrola víkendu
-        if (utils.isWeekend(now)) {
-            var weekendAllowed = utils.safeGet(telegramGroup, CONFIG.telegramFields.weekendEnabled, false);
-            if (!weekendAllowed) {
-                utils.addDebug(currentEntry, utils.getIcon("warning") + " Víkendové správy nie sú povolené pre túto skupinu");
-                return false;
-            }
-        }
-        
-        // 2. Kontrola sviatku
-        if (utils.isHoliday(now)) {
-            // Sviatky považujeme ako víkendy
-            var weekendAllowed = utils.safeGet(telegramGroup, CONFIG.telegramFields.weekendEnabled, false);
-            if (!weekendAllowed) {
-                utils.addDebug(currentEntry, utils.getIcon("warning") + " Správy počas sviatkov nie sú povolené");
-                return false;
-            }
-        }
-        
-        // 3. Kontrola pracovného času
-        var workTimeFrom = utils.safeGet(telegramGroup, CONFIG.telegramFields.workTimeFrom);
-        var workTimeTo = utils.safeGet(telegramGroup, CONFIG.telegramFields.workTimeTo);
-        
-        if (workTimeFrom && workTimeTo) {
-            var currentTime = now.format("HH:mm");
-            var fromTime = moment(workTimeFrom).format("HH:mm");
-            var toTime = moment(workTimeTo).format("HH:mm");
+        if (!recipientType) {
+            // Ak nie je vyplnený adresát, použi priame polia
+            var directChatId = utils.safeGet(currentEntry, CONFIG.fields.notifications.chatId);
+            var directThreadId = utils.safeGet(currentEntry, CONFIG.fields.notifications.threadId);
             
-            // Kontrola či je aktuálny čas v rozmedzí
-            var isInWorkTime = isTimeInRange(currentTime, fromTime, toTime);
+            if (directChatId) {
+                utils.addDebug(currentEntry, "Používam priame Chat ID: " + directChatId);
+                return {
+                    success: true,
+                    chatId: directChatId,
+                    threadId: directThreadId,
+                    source: "direct"
+                };
+            } else {
+                return {
+                    success: false,
+                    error: "Nie je definovaný adresát ani priame Chat ID"
+                };
+            }
+        }
+        
+        utils.addDebug(currentEntry, "Typ adresáta: " + recipientType);
+        
+        // Získaj konfiguráciu pre daný typ
+        var recipientConfig = CONFIG.recipientMapping[recipientType];
+        if (!recipientConfig) {
+            return {
+                success: false,
+                error: "Neznámy typ adresáta: " + recipientType
+            };
+        }
+        
+        // Pre skupiny (Skupina, Skupina-Téma)
+        if (recipientType === "Skupina" || recipientType === "Skupina-Téma") {
+            return getTelegramFromGroup(recipientConfig);
+        }
+        
+        // Pre jednotlivcov (Partner, Zamestnanec, Klient, Zákazka)
+        return getTelegramFromIndividual(recipientConfig);
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba v getTelegramID: " + error.toString(), "getTelegramID", error);
+        return {
+            success: false,
+            error: error.toString()
+        };
+    }
+}
+
+// ==============================================
+// POMOCNÉ FUNKCIE PRE ZÍSKANIE TELEGRAM ID
+// ==============================================
+
+function getTelegramFromIndividual(config) {
+    try {
+        // Získaj linknutý záznam
+        var linkedRecords = utils.safeGet(currentEntry, config.linkField);
+        
+        if (!linkedRecords || linkedRecords.length === 0) {
+            return {
+                success: false,
+                error: "Nie je vyplnené pole '" + config.linkField + "'"
+            };
+        }
+        
+        var linkedRecord = linkedRecords[0];
+        
+        // Získaj Telegram ID z linknutého záznamu
+        var telegramId = utils.safeGet(linkedRecord, config.telegramField);
+        
+        if (!telegramId) {
+            var recordName = utils.safeGet(linkedRecord, "Nick") || 
+                           utils.safeGet(linkedRecord, "Názov") || 
+                           utils.safeGet(linkedRecord, "Meno") || 
+                           "Neznámy";
+                           
+            return {
+                success: false,
+                error: "Adresát '" + recordName + "' nemá vyplnené Telegram ID"
+            };
+        }
+        
+        utils.addDebug(currentEntry, "Telegram ID získané z " + config.linkField + ": " + telegramId);
+        
+        return {
+            success: true,
+            chatId: telegramId,
+            threadId: null,
+            source: config.linkField,
+            recipientName: recordName
+        };
+        
+    } catch (error) {
+        return {
+            success: false,
+            error: "Chyba pri získavaní Telegram ID: " + error.toString()
+        };
+    }
+}
+
+function getTelegramFromGroup(config) {
+    try {
+        // Získaj linknutú skupinu
+        var linkedGroups = utils.safeGet(currentEntry, config.linkField);
+        
+        if (!linkedGroups || linkedGroups.length === 0) {
+            return {
+                success: false,
+                error: "Nie je vyplnené pole '" + config.linkField + "'"
+            };
+        }
+        
+        var groupRecord = linkedGroups[0];
+        
+        // Získaj Chat ID
+        var chatId = utils.safeGet(groupRecord, config.chatIdField);
+        
+        if (!chatId) {
+            var groupName = utils.safeGet(groupRecord, "Názov skupiny") || "Neznáma skupina";
+            return {
+                success: false,
+                error: "Skupina '" + groupName + "' nemá vyplnené Chat ID"
+            };
+        }
+        
+        // Pre Skupina-Téma získaj aj Thread ID
+        var threadId = null;
+        if (config.threadIdField) {
+            threadId = utils.safeGet(groupRecord, config.threadIdField);
             
-            if (!isInWorkTime) {
-                utils.addDebug(currentEntry, utils.getIcon("time") + " Mimo pracovného času (" + fromTime + " - " + toTime + ")");
-                utils.addDebug(currentEntry, "  • Aktuálny čas: " + currentTime);
-                return false;
+            if (!threadId && recipientType === "Skupina-Téma") {
+                utils.addDebug(currentEntry, "⚠️ Skupina-Téma nemá Thread ID, posielam do hlavného chatu");
             }
         }
         
-        // 4. Kontrola denného limitu správ
-        var dailyLimit = utils.safeGet(telegramGroup, CONFIG.telegramFields.dailyMessageLimit, 0);
-        if (dailyLimit > 0) {
-            var todayMessages = getTodayMessageCount(telegramGroup);
-            if (todayMessages >= dailyLimit) {
-                utils.addDebug(currentEntry, utils.getIcon("warning") + " Prekročený denný limit správ (" + todayMessages + "/" + dailyLimit + ")");
-                return false;
-            }
+        utils.addDebug(currentEntry, "Chat údaje získané zo skupiny: " + groupName);
+        
+        return {
+            success: true,
+            chatId: chatId,
+            threadId: threadId,
+            source: "group",
+            groupName: groupName
+        };
+        
+    } catch (error) {
+        return {
+            success: false,
+            error: "Chyba pri získavaní skupinových údajov: " + error.toString()
+        };
+    }
+}
+
+// ==============================================
+// ODOSLANIE NA TELEGRAM
+// ==============================================
+
+function sendToTelegram(chatId, message, threadId) {
+    try {
+        var formatting = utils.safeGet(currentEntry, CONFIG.fields.notifications.formatting, "Markdown");
+        var silent = utils.safeGet(currentEntry, "Tichá správa", false);
+        
+        var options = {
+            parseMode: formatting,
+            silent: silent,
+            createNotification: false // Netvoriť ďalšiu notifikáciu
+        };
+        
+        if (threadId) {
+            options.threadId = threadId;
         }
         
-        utils.addDebug(currentEntry, utils.getIcon("checkmark") + " Časové podmienky splnené");
-        return true;
+        utils.addDebug(currentEntry, "Odosielam správu:");
+        utils.addDebug(currentEntry, "  • Chat ID: " + chatId);
+        utils.addDebug(currentEntry, "  • Thread ID: " + (threadId || "N/A"));
+        utils.addDebug(currentEntry, "  • Formátovanie: " + formatting);
+        utils.addDebug(currentEntry, "  • Tichá správa: " + (silent ? "Áno" : "Nie"));
+        
+        var result = utils.sendTelegramMessage(chatId, message, options);
+        
+        if (result.success) {
+            utils.addDebug(currentEntry, utils.getIcon("success") + " Správa odoslaná, Message ID: " + result.messageId);
+            return {
+                success: true,
+                messageId: result.messageId,
+                chatId: result.chatId,
+                date: result.date
+            };
+        } else {
+            return {
+                success: false,
+                error: result.error || "Neznáma chyba"
+            };
+        }
         
     } catch (error) {
-        utils.addError(currentEntry, error.toString(), "checkTimeRestrictions", error);
-        return true; // Pri chybe povoľ odoslanie
+        utils.addError(currentEntry, "Chyba pri odosielaní: " + error.toString(), "sendToTelegram", error);
+        return {
+            success: false,
+            error: error.toString()
+        };
     }
 }
 
-/**
- * Kontroluje či je čas v rozmedzí
- * @param {string} time - Kontrolovaný čas (HH:mm)
- * @param {string} from - Začiatok rozmedzia (HH:mm)
- * @param {string} to - Koniec rozmedzia (HH:mm)
- * @returns {boolean} true ak je čas v rozmedzí
- */
-function isTimeInRange(time, from, to) {
-    var timeMoment = moment(time, "HH:mm");
-    var fromMoment = moment(from, "HH:mm");
-    var toMoment = moment(to, "HH:mm");
-    
-    // Ak je koniec pred začiatkom, ide cez polnoc
-    if (toMoment.isBefore(fromMoment)) {
-        return timeMoment.isSameOrAfter(fromMoment) || timeMoment.isSameOrBefore(toMoment);
-    } else {
-        return timeMoment.isSameOrAfter(fromMoment) && timeMoment.isSameOrBefore(toMoment);
-    }
-}
+// ==============================================
+// AKTUALIZÁCIA PO ÚSPEŠNOM ODOSLANÍ
+// ==============================================
 
-/**
- * Získa počet správ odoslaných dnes do skupiny
- * @param {Entry} telegramGroup - Telegram skupina
- * @returns {number} Počet správ dnes
- */
-function getTodayMessageCount(telegramGroup) {
+function updateAfterSuccess(sendResult, telegramData) {
     try {
-        // Tu by si mohol implementovať logiku na počítanie správ
-        // Zatiaľ vrátime 0
-        return 0;
+        // Aktualizuj status
+        currentEntry.set(CONFIG.fields.notifications.status, "Odoslané");
+        
+        // Ulož Telegram údaje
+        currentEntry.set(CONFIG.fields.notifications.messageId, sendResult.messageId);
+        currentEntry.set(CONFIG.fields.notifications.chatId, sendResult.chatId);
+        
+        if (telegramData.threadId) {
+            currentEntry.set(CONFIG.fields.notifications.threadId, telegramData.threadId);
+        }
+        
+        // Časové údaje
+        currentEntry.set(CONFIG.fields.notifications.lastMessage, new Date());
+        
+        // Aktualizuj info pole
+        var infoMsg = utils.safeGet(currentEntry, CONFIG.fields.common.info, "");
+        infoMsg += "\n\n✅ ÚSPEŠNE ODOSLANÉ\n";
+        infoMsg += "Čas odoslania: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
+        infoMsg += "Message ID: " + sendResult.messageId + "\n";
+        infoMsg += "Chat ID: " + sendResult.chatId + "\n";
+        
+        if (telegramData.threadId) {
+            infoMsg += "Thread ID: " + telegramData.threadId + "\n";
+        }
+        
+        infoMsg += "Zdroj Chat ID: " + telegramData.source + "\n";
+        
+        if (telegramData.recipientName) {
+            infoMsg += "Adresát: " + telegramData.recipientName + "\n";
+        }
+        
+        if (telegramData.groupName) {
+            infoMsg += "Skupina: " + telegramData.groupName + "\n";
+        }
+        
+        currentEntry.set(CONFIG.fields.common.info, infoMsg);
+        
+        utils.addDebug(currentEntry, "Záznam aktualizovaný po odoslaní");
+        
     } catch (error) {
-        return 0;
+        utils.addError(currentEntry, "Chyba pri aktualizácii záznamu: " + error.toString(), "updateAfterSuccess", error);
     }
 }
 
-/**
- * Aktualizuje štatistiky skupiny po úspešnom odoslaní
- * @param {Entry} telegramGroup - Telegram skupina
- */
-function updateGroupStats(telegramGroup) {
+// ==============================================
+// AKTUALIZÁCIA ZDROJOVÉHO ZÁZNAMU
+// ==============================================
+
+function updateSourceEntryInfo(sendResult, telegramData) {
     try {
-        if (!telegramGroup) return;
+        // Získaj zdrojový záznam (ak existuje prepojenie)
+        var sourceLibrary = utils.safeGet(currentEntry, "Zdrojová knižnica");
+        var sourceEntryId = utils.safeGet(currentEntry, "Zdrojový záznam ID");
         
-        var currentCount = utils.safeGet(telegramGroup, CONFIG.telegramFields.messageCount, 0);
-        var totalCount = utils.safeGet(telegramGroup, CONFIG.telegramFields.totalMessageCount, 0);
+        if (!sourceLibrary || !sourceEntryId) {
+            utils.addDebug(currentEntry, "Zdrojový záznam nie je definovaný");
+            return;
+        }
         
-        telegramGroup.set(CONFIG.telegramFields.messageCount, currentCount + 1);
-        telegramGroup.set(CONFIG.telegramFields.totalMessageCount, totalCount + 1);
-        telegramGroup.set(CONFIG.telegramFields.lastMessage, new Date());
+        // Nájdi zdrojový záznam
+        var sourceLib = libByName(sourceLibrary);
+        if (!sourceLib) {
+            utils.addDebug(currentEntry, "Zdrojová knižnica '" + sourceLibrary + "' nenájdená");
+            return;
+        }
+        
+        var sourceEntries = sourceLib.find("ID", sourceEntryId);
+        if (!sourceEntries || sourceEntries.length === 0) {
+            utils.addDebug(currentEntry, "Zdrojový záznam ID " + sourceEntryId + " nenájdený");
+            return;
+        }
+        
+        var sourceEntry = sourceEntries[0];
+        
+        // Aktualizuj info pole zdrojového záznamu
+        var existingInfo = utils.safeGet(sourceEntry, CONFIG.fields.common.info, "");
+        
+        var updateInfo = "\n\n📨 TELEGRAM NOTIFIKÁCIA ODOSLANÁ\n";
+        updateInfo += "═══════════════════════════════════\n";
+        updateInfo += "Čas: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
+        updateInfo += "Message ID: " + sendResult.messageId + "\n";
+        updateInfo += "Chat ID: " + sendResult.chatId + "\n";
+        
+        if (telegramData.threadId) {
+            updateInfo += "Thread ID: " + telegramData.threadId + "\n";
+        }
+        
+        if (telegramData.recipientName) {
+            updateInfo += "Adresát: " + telegramData.recipientName + "\n";
+        }
+        
+        if (telegramData.groupName) {
+            updateInfo += "Skupina: " + telegramData.groupName + "\n";
+        }
+        
+        updateInfo += "Notifikácia ID: " + currentEntry.field("ID") + "\n";
+        updateInfo += "Script: " + CONFIG.scriptName + " v" + CONFIG.version;
+        
+        sourceEntry.set(CONFIG.fields.common.info, existingInfo + updateInfo);
+        
+        utils.addDebug(currentEntry, "Info pole zdrojového záznamu aktualizované");
         
     } catch (error) {
-        // Ignoruj chyby štatistík
+        utils.addError(currentEntry, "Chyba pri aktualizácii zdrojového záznamu: " + error.toString(), "updateSourceEntryInfo", error);
     }
 }
 
@@ -294,33 +463,32 @@ function updateGroupStats(telegramGroup) {
 // POMOCNÉ FUNKCIE
 // ==============================================
 
-/**
- * Kategorizuje chybu pre lepší status
- * @param {string} errorMessage - Chybová správa
- * @returns {string} Kategória chyby
- */
-function categorizeError(errorMessage) {
-    if (!errorMessage) return "Zlyhalo";
+function isNewRecord() {
+    var createdDate = utils.safeGet(currentEntry, CONFIG.fields.common.createdDate);
+    var modifiedDate = utils.safeGet(currentEntry, CONFIG.fields.common.modifiedDate);
     
-    var error = errorMessage.toLowerCase();
+    if (!createdDate || !modifiedDate) return true;
     
-    if (error.includes("chat not found") || error.includes("chat_id_invalid")) {
-        return "Neplatný chat";
-    } else if (error.includes("message is too long") || error.includes("message_too_long")) {
-        return "Príliš dlhá správa";
-    } else if (error.includes("forbidden") || error.includes("bot was blocked")) {
-        return "Bot blokovaný";
-    } else if (error.includes("too many requests") || error.includes("429")) {
-        return "Rate limit";
-    } else if (error.includes("parse_mode") || error.includes("can't parse")) {
-        return "Chyba formátovania";
-    } else if (error.includes("network") || error.includes("timeout")) {
-        return "Sieťová chyba";
-    } else if (error.includes("thread_id_invalid")) {
-        return "Neplatné vlákno";
+    var timeDiff = Math.abs(moment(createdDate).diff(moment(modifiedDate), 'seconds'));
+    return timeDiff < 5;
+}
+
+function updateStatus(status, error) {
+    try {
+        currentEntry.set(CONFIG.fields.notifications.status, status);
+        
+        if (error) {
+            currentEntry.set(CONFIG.fields.notifications.lastError, error);
+            
+            var retryCount = utils.safeGet(currentEntry, CONFIG.fields.notifications.retryCount, 0);
+            currentEntry.set(CONFIG.fields.notifications.retryCount, retryCount + 1);
+        }
+        
+        currentEntry.set(CONFIG.fields.notifications.lastUpdate, new Date());
+        
+    } catch (e) {
+        utils.addError(currentEntry, "Chyba pri update statusu: " + e.toString(), "updateStatus", e);
     }
-    
-    return "Zlyhalo";
 }
 
 // ==============================================
@@ -328,7 +496,7 @@ function categorizeError(errorMessage) {
 // ==============================================
 
 // Kontrola závislostí
-var dependencyCheck = utils.checkDependencies(['config', 'core']);
+var dependencyCheck = utils.checkDependencies(['config', 'core', 'telegram']);
 if (!dependencyCheck.success) {
     message("❌ Chýbajú potrebné moduly: " + dependencyCheck.missing.join(", "));
     cancel();
@@ -337,8 +505,7 @@ if (!dependencyCheck.success) {
 // Spustenie hlavnej funkcie
 var result = main();
 
-// Ak hlavná funkcia zlyhala, zruš vytvorenie záznamu
+// Ak hlavná funkcia zlyhala, zaloguj ale neprerušuj uloženie (After Save)
 if (!result) {
-    utils.addError(currentEntry, "Script zlyhal - ruším vytvorenie záznamu", "main");
-    cancel();
+    utils.addError(currentEntry, "Script zlyhal ale záznam bol uložený", "main");
 }
