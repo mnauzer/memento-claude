@@ -239,13 +239,7 @@ function createNotification(params) {
         
         var notification = notifLib.create({});
         
-        // Základné polia
-        notification.set(CONFIG.fields.notifications.status, "Čaká");
-        notification.set(CONFIG.fields.notifications.priority, 
-            utils.safeGet(params.telegramGroup, CONFIG.fields.telegramGroups.messagePriority, CONFIG.fields.notifications.messagePriority));
-        notification.set(CONFIG.fields.notifications.messageType, params.messageType);
-        notification.set(CONFIG.fields.notifications.messageSource, "Automatická");
-        notification.set(CONFIG.fields.notifications.recipientType, threadId ? "Skupina-Téma":"Skupina");
+    
         
         // Formátovanie - detekuj podľa obsahu správy
         var formatting = detectFormatting(params.message);
@@ -265,7 +259,13 @@ function createNotification(params) {
         
         // Prepojenia
         notification.set(CONFIG.fields.notifications.groupOrTopic, params.telegramGroup);
-        
+            // Základné polia
+        notification.set(CONFIG.fields.notifications.status, "Čaká");
+        notification.set(CONFIG.fields.notifications.priority, 
+            utils.safeGet(params.telegramGroup, CONFIG.fields.telegramGroups.messagePriority, CONFIG.fields.notifications.messagePriority));
+        notification.set(CONFIG.fields.notifications.messageType, params.messageType);
+        notification.set(CONFIG.fields.notifications.messageSource, "Automatická");
+        notification.set(CONFIG.fields.notifications.recipientType, threadId ? "Skupina-Téma":"Skupina");
         // Info pole
         var infoMsg = "📋 NOTIFIKÁCIA - " + params.messageType.toUpperCase() + "\n";
         infoMsg += "Vytvorené: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";

@@ -260,7 +260,7 @@ function extractNotificationData() {
         utils.addDebug(logEntry, "  • Bot Token: " + (botToken ? "✓ OK" : "✗ Chýba"));
         
         // Získaj základné údaje
-        var id = deletedEntry.field("ID");
+        var id = utils.safeGet(deletedEntry, CONFIG.fields.common.id);
         var status = utils.safeGet(deletedEntry, CONFIG.fields.notifications.status, "Neznámy");
         var messageId = utils.safeGet(deletedEntry, CONFIG.fields.notifications.messageId);
         var chatId = utils.safeGet(deletedEntry, CONFIG.fields.notifications.chatId);
