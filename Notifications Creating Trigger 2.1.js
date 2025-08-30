@@ -1,6 +1,6 @@
 // ==============================================
 // NOTIFICATION CREATE TRIGGER - Vytvorenie a odoslanie
-// Verzia: 2.2 | Dátum: December 2024 | Autor: ASISTANTO
+// Verzia: 2.3 | Dátum: December 2024 | Autor: ASISTANTO
 // Knižnica: Notifications | Trigger: After Save
 // ==============================================
 // 📋 FUNKCIA:
@@ -9,10 +9,10 @@
 //    - Aktualizuje info pole s detailami odoslania
 //    - Získava Telegram ID podľa typu adresáta
 // ==============================================
-// 🔧 ZMENY v2.2:
-//    - Pridaná funkcia getTelegramID
-//    - Dynamické získavanie chat/thread ID podľa adresáta
-//    - Rozšírené info pole o detaily odoslania
+// 🔧 ZMENY v2.3:
+//    - Opravená logika pre typ Zákazka
+//    - Dvojúrovňová navigácia cez zákazku k Telegram skupine
+//    - Vylepšené debug logy pre sledovanie navigácie
 // ==============================================
 
 // ==============================================
@@ -25,7 +25,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Notification Create Trigger",
-    version: "2.2",
+    version: "2.3",
     
     // Referencie na centrálny config
     fields: centralConfig.fields,
@@ -36,30 +36,35 @@ var CONFIG = {
     recipientMapping: {
         "Partner": {
             linkField: "Partner",
-            telegramField: "Telegram ID"
+            telegramField: "Telegram ID",
+            type: "individual"
         },
         "Zamestnanec": {
             linkField: "Zamestnanec",
-            telegramField: "Telegram ID"
+            telegramField: "Telegram ID",
+            type: "individual"
         },
         "Klient": {
             linkField: "Klient",
-            telegramField: "Telegram ID"
+            telegramField: "Telegram ID",
+            type: "individual"
         },
         "Zákazka": {
             linkField: "Zákazka",
-            chatIdField: "Chat ID",
-            threadIdField: "Thread ID"
+            telegramGroupField: "Telegram skupina",  // Pole v zákazke
+            type: "customer"  // Špeciálny typ
         },
         "Skupina": {
             linkField: "Skupina/Téma",
             chatIdField: "Chat ID",
-            threadIdField: null
+            threadIdField: null,
+            type: "group"
         },
         "Skupina-Téma": {
             linkField: "Skupina/Téma",
             chatIdField: "Chat ID",
-            threadIdField: "Thread ID"
+            threadIdField: "Thread ID",
+            type: "group"
         }
     }
 };
@@ -175,19 +180,115 @@ function getTelegramID() {
             };
         }
         
-        // Pre skupiny (Skupina, Skupina-Téma, Zákazka)
-        if (recipientType === "Skupina" || recipientType === "Skupina-Téma" || recipientType === "Zákazka") {
-            return getTelegramFromGroup(recipientConfig);
+        // Spracuj podľa typu
+        switch (recipientConfig.type) {
+            case "individual":
+                return getTelegramFromIndividual(recipientConfig);
+                
+            case "group":
+                return getTelegramFromGroup(recipientConfig);
+                
+            case "customer":
+                return getTelegramFromCustomer(recipientConfig);
+                
+            default:
+                return {
+                    success: false,
+                    error: "Neznámy typ konfigurácie: " + recipientConfig.type
+                };
         }
-        
-        // Pre jednotlivcov (Partner, Zamestnanec, Klient)
-        return getTelegramFromIndividual(recipientConfig);
         
     } catch (error) {
         utils.addError(currentEntry, "Chyba v getTelegramID: " + error.toString(), "getTelegramID", error);
         return {
             success: false,
             error: error.toString()
+        };
+    }
+}
+
+// ==============================================
+// FUNKCIA PRE ZÍSKANIE TELEGRAM ID ZO ZÁKAZKY
+// ==============================================
+
+function getTelegramFromCustomer(config) {
+    try {
+        utils.addDebug(currentEntry, "Získavam Telegram údaje cez Zákazku");
+        
+        // 1. Získaj zákazku z notifikácie
+        var customerRecords = utils.safeGet(currentEntry, config.linkField);
+        
+        if (!customerRecords || customerRecords.length === 0) {
+            return {
+                success: false,
+                error: "Nie je vyplnené pole '" + config.linkField + "'"
+            };
+        }
+        
+        var customerRecord = customerRecords[0];
+        var customerName = utils.safeGet(customerRecord, "Názov") || 
+                          utils.safeGet(customerRecord, "Zákazka") || 
+                          "Neznáma zákazka";
+                          
+        utils.addDebug(currentEntry, "  • Zákazka: " + customerName);
+        
+        // 2. Získaj Telegram skupinu zo zákazky
+        var telegramGroups = utils.safeGet(customerRecord, config.telegramGroupField);
+        
+        if (!telegramGroups || telegramGroups.length === 0) {
+            return {
+                success: false,
+                error: "Zákazka '" + customerName + "' nemá priradenú Telegram skupinu"
+            };
+        }
+        
+        var telegramGroup = telegramGroups[0];
+        var groupName = utils.safeGet(telegramGroup, CONFIG.fields.telegramGroups.groupName) || "Neznáma skupina";
+        
+        utils.addDebug(currentEntry, "  • Telegram skupina: " + groupName);
+        
+        // 3. Získaj Chat ID z Telegram skupiny
+        var chatId = utils.safeGet(telegramGroup, CONFIG.fields.telegramGroups.chatId);
+        
+        if (!chatId) {
+            return {
+                success: false,
+                error: "Telegram skupina '" + groupName + "' nemá vyplnené Chat ID"
+            };
+        }
+        
+        // 4. Získaj Thread ID (ak existuje)
+        var threadId = utils.safeGet(telegramGroup, CONFIG.fields.telegramGroups.threadId);
+        
+        // 5. Kontrola či má skupina povolené notifikácie
+        var notificationsEnabled = utils.safeGet(telegramGroup, CONFIG.fields.telegramGroups.enableNotifications, true);
+        
+        if (!notificationsEnabled) {
+            return {
+                success: false,
+                error: "Skupina '" + groupName + "' má vypnuté notifikácie"
+            };
+        }
+        
+        utils.addDebug(currentEntry, "  • Chat ID získané: " + chatId);
+        if (threadId) {
+            utils.addDebug(currentEntry, "  • Thread ID získané: " + threadId);
+        }
+        
+        return {
+            success: true,
+            chatId: chatId,
+            threadId: threadId,
+            source: "customer",
+            customerName: customerName,
+            groupName: groupName
+        };
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri získavaní údajov zo zákazky: " + error.toString(), "getTelegramFromCustomer", error);
+        return {
+            success: false,
+            error: "Chyba pri spracovaní zákazky: " + error.toString()
         };
     }
 }
@@ -246,24 +347,16 @@ function getTelegramFromIndividual(config) {
 function getTelegramFromGroup(config) {
     try {
         // Získaj linknutú skupinu
-        var linkedEntry = utils.safeGet(currentEntry, config.linkField);
+        var linkedGroups = utils.safeGet(currentEntry, config.linkField);
         
-        if (!linkedEntry || linkedEntry.length === 0) {
+        if (!linkedGroups || linkedGroups.length === 0) {
             return {
                 success: false,
                 error: "Nie je vyplnené pole '" + config.linkField + "'"
             };
         }
-
-        var groupRecord = null;
-        if (config.linkField === "Zákazka"){
-            var ordersGroupRecord = utils.safeGet(linkedEntry[0], CONFIG.fields.orders.telegramGroup);
-            groupRecord = ordersGroupRecord[0];
-        } else {
-            groupRecord = linkedEntry[0];
-        }
-        utils.addDebug(currentEntry, "Linknutá skupina: " + groupRecord.field("Názov skupiny"))
         
+        var groupRecord = linkedGroups[0];
         
         // Získaj Chat ID
         var chatId = utils.safeGet(groupRecord, config.chatIdField);
@@ -281,7 +374,7 @@ function getTelegramFromGroup(config) {
         if (config.threadIdField) {
             threadId = utils.safeGet(groupRecord, config.threadIdField);
             
-            if (!threadId && recipientType === "Skupina-Téma") {
+            if (!threadId && config.threadIdField) {
                 utils.addDebug(currentEntry, "⚠️ Skupina-Téma nemá Thread ID, posielam do hlavného chatu");
             }
         }
@@ -392,6 +485,10 @@ function updateAfterSuccess(sendResult, telegramData) {
             infoMsg += "Adresát: " + telegramData.recipientName + "\n";
         }
         
+        if (telegramData.customerName) {
+            infoMsg += "Zákazka: " + telegramData.customerName + "\n";
+        }
+        
         if (telegramData.groupName) {
             infoMsg += "Skupina: " + telegramData.groupName + "\n";
         }
@@ -450,6 +547,10 @@ function updateSourceEntryInfo(sendResult, telegramData) {
         
         if (telegramData.recipientName) {
             updateInfo += "Adresát: " + telegramData.recipientName + "\n";
+        }
+        
+        if (telegramData.customerName) {
+            updateInfo += "Zákazka: " + telegramData.customerName + "\n";
         }
         
         if (telegramData.groupName) {
