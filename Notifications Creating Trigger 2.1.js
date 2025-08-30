@@ -258,8 +258,10 @@ function getTelegramFromGroup(config) {
         if (config.linkField === "Zákazky"){
             var ordersGroupRecord = utils.safeGet(linkedGroups[0], CONFIG.fields.orders.telegramGroup);
             groupRecord = ordersGroupRecord[0];
+            utils.addDebug(currentEntry, "Linknutá zákazka: " + groupRecord.field("Názov"))
         } else {
             groupRecord = linkedGroups[0];
+            utils.addDebug(currentEntry, "Linknutá skupina: " + groupRecord.field("Názov skupiny"))
         }
 
         
