@@ -246,11 +246,6 @@ function getTelegramFromIndividual(config) {
 function getTelegramFromGroup(config) {
     try {
         // Získaj linknutú skupinu
-        if (config.linkField === "Zákazky"){
-            var ordersTelegramGroup = utils.safeGet(currentEntry, CONFIG.fields.orders.telegramGroup);
-            currentEntry = ordersTelegramGroup[0];
-
-        }
         var linkedGroups = utils.safeGet(currentEntry, config.linkField);
         
         if (!linkedGroups || linkedGroups.length === 0) {
@@ -259,8 +254,14 @@ function getTelegramFromGroup(config) {
                 error: "Nie je vyplnené pole '" + config.linkField + "'"
             };
         }
-        
-        var groupRecord = linkedGroups[0];
+        var groupRecord = null;
+        if (config.linkField === "Zákazky"){
+            var ordersGroupRecord = utils.safeGet(linkedGroups[0], CONFIG.fields.orders.telegramGroup);
+            groupRecord = ordersGroupRecord[0];
+        } else {
+            groupRecord = linkedGroups[0];
+        }
+
         
         // Získaj Chat ID
         var chatId = utils.safeGet(groupRecord, config.chatIdField);
