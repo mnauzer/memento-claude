@@ -81,7 +81,9 @@ var MementoConfig = (function() {
                 infoTelegram: "info_telegram",    // NOVÉ
                 notifications: "Notifikácie",     // NOVÉ - link field
             },
-            
+            orders: {
+                telegramGroup: "Telegram skupina"
+            },
             // Dochádzka polia
             attendance: {
                 //requiredFields: [date, arrival, departure, employees],
@@ -141,7 +143,8 @@ var MementoConfig = (function() {
                 telegramId: "Telegram ID",
                 address: "Adresa",
                 birthDate: "Dátum narodenia",
-                startDate: "Dátum nástupu"
+                startDate: "Dátum nástupu",
+                telegramID: "Telegram ID"
             },
             
             // Sadzby zamestnancov polia

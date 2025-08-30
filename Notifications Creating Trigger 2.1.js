@@ -48,7 +48,8 @@ var CONFIG = {
         },
         "Zákazka": {
             linkField: "Zákazka",
-            telegramField: "Telegram ID"
+            chatIdField: "Chat ID",
+            threadIdField: "Thread ID"
         },
         "Skupina": {
             linkField: "Skupina/Téma",
@@ -245,6 +246,11 @@ function getTelegramFromIndividual(config) {
 function getTelegramFromGroup(config) {
     try {
         // Získaj linknutú skupinu
+        if (config.linkField === "Zákazky"){
+            var ordersTelegramGroup = utils.safeGet(currentEntry.CONFIG.fields.orders.telegramGroup);
+            currentEntry = ordersTelegramGroup[0];
+
+        }
         var linkedGroups = utils.safeGet(currentEntry, config.linkField);
         
         if (!linkedGroups || linkedGroups.length === 0) {
