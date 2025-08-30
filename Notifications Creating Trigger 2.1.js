@@ -247,7 +247,7 @@ function getTelegramFromGroup(config) {
     try {
         // Získaj linknutú skupinu
         if (config.linkField === "Zákazky"){
-            var ordersTelegramGroup = utils.safeGet(currentEntry.CONFIG.fields.orders.telegramGroup);
+            var ordersTelegramGroup = utils.safeGet(currentEntry, CONFIG.fields.orders.telegramGroup);
             currentEntry = ordersTelegramGroup[0];
 
         }
