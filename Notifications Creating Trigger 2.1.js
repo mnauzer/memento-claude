@@ -246,24 +246,24 @@ function getTelegramFromIndividual(config) {
 function getTelegramFromGroup(config) {
     try {
         // Získaj linknutú skupinu
-        var linkedGroups = utils.safeGet(currentEntry, config.linkField);
+        var linkedEntry = utils.safeGet(currentEntry, config.linkField);
         
-        if (!linkedGroups || linkedGroups.length === 0) {
+        if (!linkedEntry || linkedEntry.length === 0) {
             return {
                 success: false,
                 error: "Nie je vyplnené pole '" + config.linkField + "'"
             };
         }
+
         var groupRecord = null;
         if (config.linkField === "Zákazka"){
-            var ordersGroupRecord = utils.safeGet(linkedGroups[0], CONFIG.fields.orders.telegramGroup);
+            var ordersGroupRecord = utils.safeGet(linkedEntry[0], CONFIG.fields.orders.telegramGroup);
             groupRecord = ordersGroupRecord[0];
-            utils.addDebug(currentEntry, "Linknutá zákazka: " + groupRecord.field("Názov"))
         } else {
-            groupRecord = linkedGroups[0];
-            utils.addDebug(currentEntry, "Linknutá skupina: " + groupRecord.field("Názov skupiny"))
+            groupRecord = linkedEntry[0];
         }
-
+        utils.addDebug(currentEntry, "Linknutá skupina: " + groupRecord.field("Názov skupiny"))
+        
         
         // Získaj Chat ID
         var chatId = utils.safeGet(groupRecord, config.chatIdField);
