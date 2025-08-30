@@ -37,22 +37,18 @@ var CONFIG = {
     // Mapovanie knižníc na ich konfigurácie
     libraryMapping: {
         "Dochádzka": {
-            messageType: "Dochádzka",
             telegramGroupField: "Telegram skupina dochádzky",
             permissionField: "Dochádzka skupinové notifikácie"
         },
         "Záznam práce": {
-            messageType: "Záznam prác",
             telegramGroupField: "Telegram skupina záznamu prác",
             permissionField: "Záznam prác skupinové notifikácie"
         },
         "ASISTANTO API": {
-            messageType: "Záznam prác",
             telegramGroupField: "Telegram skupina záznamu prác",
             permissionField: "Záznam prác skupinové notifikácie"
         },
         "Kniha jázd": {
-            messageType: "Kniha jázd",
             telegramGroupField: "Telegram skupina knihy jázd",
             permissionField: "Kniha jázd skupinové notifikácie"
         }
@@ -259,13 +255,15 @@ function createNotification(params) {
         
         // Prepojenia
         notification.set(CONFIG.fields.notifications.groupOrTopic, params.telegramGroup);
-            // Základné polia
+
+        // Základné polia
         notification.set(CONFIG.fields.notifications.status, "Čaká");
         notification.set(CONFIG.fields.notifications.priority, 
             utils.safeGet(params.telegramGroup, CONFIG.fields.telegramGroups.messagePriority, CONFIG.fields.notifications.messagePriority));
         notification.set(CONFIG.fields.notifications.messageType, params.messageType);
         notification.set(CONFIG.fields.notifications.messageSource, "Automatická");
-        notification.set(CONFIG.fields.notifications.recipientType, threadId ? "Skupina-Téma":"Skupina");
+        notification.set(CONFIG.fields.notifications.recipient, threadId ? "Skupina-Téma":"Skupina");
+        
         // Info pole
         var infoMsg = "📋 NOTIFIKÁCIA - " + params.messageType.toUpperCase() + "\n";
         infoMsg += "Vytvorené: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
