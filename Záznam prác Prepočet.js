@@ -70,9 +70,12 @@ function validateInputs() {
     utils.addDebug(currentEntry, CONFIG.icons.step + " KROK 1: Validácia vstupných dát");
     
     var requiredFields = [
-         CONFIG.fields.date,
+        CONFIG.fields.date,
         CONFIG.fields.startTime, 
-        CONFIG.fields.endTime
+        CONFIG.fields.endTime,
+        CONFIG.fields.customer,
+        CONFIG.fields.employees
+        
     ];
     
     // Použitie MementoUtils validácie
@@ -93,6 +96,7 @@ function validateInputs() {
         success: true,
         hasCustomer: customer && customer.length > 0,
         customer: customer,
+        employees: employees,
         date: date
     };
 }
