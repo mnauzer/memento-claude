@@ -70,9 +70,9 @@ function validateInputs() {
     utils.addDebug(currentEntry, CONFIG.icons.step + " KROK 1: Validácia vstupných dát");
     
     var requiredFields = [
-        CONFIG.date,
-        CONFIG.startTime,
-        CONFIG.endTime
+        CONFIG.fields.date,
+        CONFIG.fields.startTime,
+        CONFIG.fields.endTime
     ];
     
     // Použitie MementoUtils validácie
