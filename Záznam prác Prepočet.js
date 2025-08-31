@@ -3,7 +3,7 @@
 // Verzia: 8.0 | Dátum: 31.08.2025 | Autor: ASISTANTO
 // Knižnica: Záznam práce | Trigger: Before Save
 // ==============================================
-// ✅ REFAKTOROVANÉ v8.0:
+// ✅ REFAKTOROVANÉ v8.0.1:
 //    - Plná integrácia s MementoUtils v7.0+
 //    - Využitie centrálneho MementoConfig
 //    - Odstránené všetky duplikácie
