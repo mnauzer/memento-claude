@@ -88,7 +88,7 @@ var MementoConfig = (function() {
             },
             // Dochádzka polia
             attendance: {
-                //requiredFields: [date, arrival, departure, employees],
+                requiredFields: [date, arrival, departure, employees],
                 date: "Dátum",
                 arrival: "Príchod",
                 departure: "Odchod",
@@ -117,6 +117,7 @@ var MementoConfig = (function() {
             
             // Záznam práce polia
             workRecord: {
+                requiredFields: [date, startTime, endTime, employees, customer],
                 date: "Dátum",
                 customer: "Zákazka",
                 timeInterval: "Od – Do",

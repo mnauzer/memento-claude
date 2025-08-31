@@ -58,64 +58,6 @@ var CONFIG = {
     }
 };
 
-// ==============================================
-// POMOCNÉ FUNKCIE
-// ==============================================
-
-/**
- * Formátuje dátum do slovenského formátu
- */
-function formatDate(dateValue) {
-    if (!dateValue) return "N/A";
-    try {
-        return moment(dateValue).format("DD.MM.YYYY");
-    } catch (e) {
-        return "Invalid Date";
-    }
-}
-
-/**
- * Bezpečné volanie linksFrom s error handling
- */
-function safeLinksFrom(sourceEntry, targetLibrary, linkField) {
-    try {
-        if (!sourceEntry || typeof sourceEntry !== "object" || !sourceEntry.linksFrom) {
-            utils.addDebug(currentEntry, "⚠️ sourceEntry nie je validný Entry objekt");
-            return [];
-        }
-        
-        var results = sourceEntry.linksFrom(targetLibrary, linkField) || [];
-        utils.addDebug(currentEntry, "🔍 LinksFrom '" + targetLibrary + "': " + results.length + " nájdených");
-        
-        return results;
-        
-    } catch (error) {
-        utils.addError(currentEntry, error, "safeLinksFrom");
-        return [];
-    }
-}
-
-/**
- * Získa meno zamestnanca v správnom formáte
- */
-function getEmployeeName(employee) {
-    try {
-        if (!employee) return "Neznámy";
-        
-        var nick = utils.safeGet(employee, CONFIG.employeeFields.nick);
-        var lastName = utils.safeGet(employee, CONFIG.employeeFields.lastName);
-        
-        if (nick && lastName) {
-            return nick + " (" + lastName + ")";
-        } else if (nick) {
-            return nick;
-        } else {
-            return utils.formatEmployeeName(employee);
-        }
-    } catch (e) {
-        return "Neznámy";
-    }
-}
 
 // ==============================================
 // VALIDÁCIA
@@ -128,9 +70,9 @@ function validateInputs() {
     utils.addDebug(currentEntry, CONFIG.icons.step + " KROK 1: Validácia vstupných dát");
     
     var requiredFields = [
-        CONFIG.fields.date,
-        CONFIG.fields.startTime,
-        CONFIG.fields.endTime
+        CONFIG.date,
+        CONFIG.startTime,
+        CONFIG.endTime
     ];
     
     // Použitie MementoUtils validácie
