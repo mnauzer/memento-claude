@@ -127,23 +127,24 @@ function getEmployeeName(employee) {
 function validateInputs() {
     utils.addDebug(currentEntry, CONFIG.icons.step + " KROK 1: Validácia vstupných dát");
     
-    var requiredFields = [
-        CONFIG.fields.date,
-        CONFIG.fields.startTime,
-        CONFIG.fields.endTime
-    ];
+    // Priama kontrola polí
+    var date = utils.safeGet(currentEntry, CONFIG.fields.date);
+    var startTime = utils.safeGet(currentEntry, CONFIG.fields.startTime);
+    var endTime = utils.safeGet(currentEntry, CONFIG.fields.endTime);
     
-    // Použitie MementoUtils validácie
-    var validation = utils.validateRequiredFields(currentEntry, requiredFields);
-    if (!validation.valid) {
+    var missingFields = [];
+    if (!date) missingFields.push("Dátum");
+    if (!startTime) missingFields.push("Od");
+    if (!endTime) missingFields.push("Do");
+    
+    if (missingFields.length > 0) {
         return {
             success: false,
-            message: "Chýbajúce povinné polia: " + validation.missing.join(", ")
+            message: "Chýbajúce povinné polia: " + missingFields.join(", ")
         };
     }
     
     var customer = utils.safeGetLinks(currentEntry, CONFIG.fields.customer);
-    var date = utils.safeGet(currentEntry, CONFIG.fields.date);
     
     utils.addDebug(currentEntry, "  ✅ Validácia úspešná");
     
