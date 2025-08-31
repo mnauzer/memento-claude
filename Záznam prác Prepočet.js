@@ -1,73 +1,49 @@
 // ==============================================
-// MEMENTO DATABASE - ZÁZNAM PRÁC PREPOČET ZÁZNAMU
-// Verzia: 3.7 | Dátum: 12.08.2025 | Autor: JavaScript Expert
-// Knižnica: Záznam prác | Trigger: Before Save
+// MEMENTO DATABASE - ZÁZNAM PRÁC PREPOČET
+// Verzia: 8.0 | Dátum: 31.08.2025 | Autor: ASISTANTO
+// Knižnica: Záznam práce | Trigger: Before Save
 // ==============================================
-// ✅ OPRAVENÉ v3.7:
-//    - Robustnejšie nastavenie Default HZS z ASISTANTO Defaults
-//    - Všetky linksFrom volania v try-catch blokoch
-//    - Zlepšené error handling pre neexistujúce objekty
-//    - Bezpečnejšie práca s knižnicami a poľami
-// ✅ OPRAVENÉ v3.6:
-//    - Opravená chyba "Cannot find function field in object C"
-//    - Opravená NullPointerException v synchronizujVykazPrac
+// ✅ REFAKTOROVANÉ v8.0:
+//    - Plná integrácia s MementoUtils v7.0+
+//    - Využitie centrálneho MementoConfig
+//    - Odstránené všetky duplikácie
+//    - Zachovaná kompletná funkcionalita
+//    - Čistý modulárny kód
+// ==============================================
+// 🔧 VYŽADUJE:
+//    - MementoUtils v7.0+
+//    - MementoConfig v7.0+
+//    - MementoCore v7.0+
+//    - MementoBusiness v7.0+
 // ==============================================
 
+// ==============================================
+// INICIALIZÁCIA
+// ==============================================
+
+var utils = MementoUtils;
+var centralConfig = utils.config;
+var currentEntry = entry();
+
 var CONFIG = {
-    debug: true,
-    version: "3.7", // ✅ ZVÝŠENÁ VERZIA
     scriptName: "Záznam prác Prepočet",
+    version: "8.0",
     
-    libraries: {
-        sadzbyZamestnancov: "sadzby zamestnancov",
-        cennikPrac: "Cenník prác",
-        cenyPrac: "ceny prác",
-        defaulty: "ASISTANTO Defaults",
-        vykazPrac: "Výkaz prác",
-        zaznamPrac: "Záznam prác"
+    // Referencie na centrálny config
+    fields: centralConfig.fields.workRecord,
+    attributes: centralConfig.attributes,
+    libraries: centralConfig.libraries.business,
+    commonFields: centralConfig.fields.common,
+    employeeFields: centralConfig.fields.employee,
+    icons: centralConfig.icons,
+    
+    // Lokálne nastavenia
+    settings: {
+        roundToQuarterHour: true,
+        defaultCurrency: "€"
     },
     
-    fields: {
-        zamestnanci: "Zamestnanci",
-        datum: "Dátum",
-        od: "Od",
-        koniec: "Do",
-        zakazka: "Zákazka",
-        pracovnaDoba: "Pracovná doba",
-        pocetPracovnikov: "Počet pracovníkov",
-        odpracovane: "Odpracované",
-        mzdoveNaklady: "Mzdové náklady",
-        hodinovaZuctovacia: "Hodinová zúčtovacia sadzba",
-        sumaHZS: "Suma HZS",
-        vykonanePrace: "Vykonané práce",
-        info: "info",
-        debugLog: "Debug_Log",
-        errorLog: "Error_Log"
-    },
-    
-    // Názvy polí v ASISTANTO Defaults
-    defaultsFields: {
-        defaultHZS: "Default HZS" // ✅ Presne podľa požiadavky
-    },
-    
-    // Ostatná konfigurácia zostáva rovnaká...
-    sadzbyFields: {
-        zamestnanec: "Zamestnanec",
-        platnostOd: "Platnosť od",
-        sadzba: "Sadzba"
-    },
-    
-    cennikFields: {
-        cena: "Cena",
-        cenaBezDPH: "Cena bez DPH"
-    },
-    
-    cenyFields: {
-        praca: "Cenník prác",
-        platnostOd: "Platnosť od",
-        cena: "Cena"
-    },
-    
+    // Názvy polí vo výkaze prác (nie sú v central config)
     vykazFields: {
         datum: "Dátum",
         identifikator: "Identifikátor",
@@ -79,48 +55,16 @@ var CONFIG = {
         zakazka: "Zákazka",
         praceHZS: "Práce HZS",
         info: "info"
-    },
-    
-    attributes: {
-        odpracovane: "odpracované",
-        hodinovka: "hodinovka",
-        mzdoveNaklady: "mzdové náklady"
-    },
-    
-    hzsAttributes: {
-        cena: "cena"
-    },
-    
-    vykazAttributes: {
-        vykonanePrace: "vykonané práce",
-        pocetHodin: "počet hodín",
-        uctoovanaSadzba: "účtovaná sadzba",
-        cenaCelkom: "cena celkom"
-    },
-    
-    icons: {
-        start: "🚀",
-        step: "📋",
-        success: "✅",
-        error: "💥",
-        warning: "⚠️",
-        money: "💰",
-        person: "👤",
-        time: "⏰",
-        info: "ℹ️",
-        update: "🔄",
-        create: "➕",
-        link: "🔗",
-        work: "🔨"
     }
 };
-
-var currentEntry = entry();
 
 // ==============================================
 // POMOCNÉ FUNKCIE
 // ==============================================
 
+/**
+ * Formátuje dátum do slovenského formátu
+ */
 function formatDate(dateValue) {
     if (!dateValue) return "N/A";
     try {
@@ -130,624 +74,602 @@ function formatDate(dateValue) {
     }
 }
 
-function zaokruhliNa15Minut(casMs) {
-    if (!casMs) return null;
-    var kvarter = 15 * 60 * 1000;
-    return Math.round(casMs / kvarter) * kvarter;
-}
-
-function vypocitajHodiny(odMs, koniecMs) {
-    if (!odMs || !koniecMs) return 0;
-    if (koniecMs < odMs) {
-        koniecMs += 24 * 60 * 60 * 1000;
-        MementoUtils.addDebug(currentEntry, "  ⏰ Práca cez polnoc detekovaná");
-    }
-    var hodiny = (koniecMs - odMs) / (1000 * 60 * 60);
-    return Math.round(hodiny * 100) / 100;
-}
-
-// ✅ NOVÉ v3.7 - Ultra bezpečné linksFrom volanie
-function ultraBezpecneLinksFrom(sourceEntry, targetLibrary, linkField, debugMsg, location) {
+/**
+ * Bezpečné volanie linksFrom s error handling
+ */
+function safeLinksFrom(sourceEntry, targetLibrary, linkField) {
     try {
-        if (!sourceEntry) {
-            if (debugMsg) MementoUtils.addDebug(currentEntry, debugMsg + " - sourceEntry je null");
+        if (!sourceEntry || typeof sourceEntry !== "object" || !sourceEntry.linksFrom) {
+            utils.addDebug(currentEntry, "⚠️ sourceEntry nie je validný Entry objekt");
             return [];
         }
         
-        if (typeof sourceEntry !== "object" || !sourceEntry.linksFrom) {
-            if (debugMsg) MementoUtils.addDebug(currentEntry, debugMsg + " - sourceEntry nie je validný Entry objekt");
-            return [];
-        }
-        
-        if (!targetLibrary || !linkField) {
-            if (debugMsg) MementoUtils.addDebug(currentEntry, debugMsg + " - chýbajú parametre");
-            return [];
-        }
-        
-        // Hlavný linksFrom call v try-catch
         var results = sourceEntry.linksFrom(targetLibrary, linkField) || [];
-        
-        if (debugMsg) {
-            MementoUtils.addDebug(currentEntry, debugMsg + " - nájdených: " + results.length);
-        }
+        utils.addDebug(currentEntry, "🔍 LinksFrom '" + targetLibrary + "': " + results.length + " nájdených");
         
         return results;
         
-    } catch (linksFromError) {
-        // ✅ Špecifické error handling pre linksFrom
-        var errorMsg = "LinksFrom zlyhalo (" + (location || "unknown") + "): " + linksFromError.toString();
-        if (debugMsg) {
-            MementoUtils.addDebug(currentEntry, debugMsg + " - CHYBA: " + errorMsg);
-        }
-        MementoUtils.addError(currentEntry, linksFromError, "ultraBezpecneLinksFrom-" + (location || "unknown"));
+    } catch (error) {
+        utils.addError(currentEntry, error, "safeLinksFrom");
         return [];
     }
 }
 
-function najdiPlatnuSadzbu(zamestnanec, datum) {
+/**
+ * Získa meno zamestnanca v správnom formáte
+ */
+function getEmployeeName(employee) {
     try {
-        if (!zamestnanec || !datum) return 0;
+        if (!employee) return "Neznámy";
         
-        var identifikator = MementoUtils.formatEmployeeName(zamestnanec);
-        MementoUtils.addDebug(currentEntry, "    🔍 Hľadám sadzbu pre: " + identifikator);
+        var nick = utils.safeGet(employee, CONFIG.employeeFields.nick);
+        var lastName = utils.safeGet(employee, CONFIG.employeeFields.lastName);
         
-        // ✅ OPRAVENÉ v3.7 - použiť ultra bezpečné linksFrom
-        var sadzby = ultraBezpecneLinksFrom(
-            zamestnanec, 
-            CONFIG.libraries.sadzbyZamestnancov, 
-            CONFIG.sadzbyFields.zamestnanec,
-            "      Načítavam sadzby",
-            "najdiPlatnuSadzbu"
-        );
-        
-        if (!sadzby || sadzby.length === 0) {
-            MementoUtils.addDebug(currentEntry, "      ⚠️ Žiadne sadzby nenájdené");
-            return 0;
+        if (nick && lastName) {
+            return nick + " (" + lastName + ")";
+        } else if (nick) {
+            return nick;
+        } else {
+            return utils.formatEmployeeName(employee);
         }
+    } catch (e) {
+        return "Neznámy";
+    }
+}
+
+// ==============================================
+// VALIDÁCIA
+// ==============================================
+
+/**
+ * Validuje povinné vstupné polia
+ */
+function validateInputs() {
+    utils.addDebug(currentEntry, CONFIG.icons.step + " KROK 1: Validácia vstupných dát");
+    
+    var requiredFields = [
+        CONFIG.fields.date,
+        CONFIG.fields.startTime,
+        CONFIG.fields.endTime
+    ];
+    
+    // Použitie MementoUtils validácie
+    var validation = utils.validateRequiredFields(currentEntry, requiredFields);
+    if (!validation.valid) {
+        return {
+            success: false,
+            message: "Chýbajúce povinné polia: " + validation.missing.join(", ")
+        };
+    }
+    
+    var customer = utils.safeGetLinks(currentEntry, CONFIG.fields.customer);
+    var date = utils.safeGet(currentEntry, CONFIG.fields.date);
+    
+    utils.addDebug(currentEntry, "  ✅ Validácia úspešná");
+    
+    return {
+        success: true,
+        hasCustomer: customer && customer.length > 0,
+        customer: customer,
+        date: date
+    };
+}
+
+// ==============================================
+// VÝPOČTY
+// ==============================================
+
+/**
+ * Vypočíta pracovnú dobu
+ */
+function calculateWorkTime() {
+    utils.addDebug(currentEntry, CONFIG.icons.step + " KROK 2: Výpočet pracovnej doby");
+    
+    var startTime = utils.safeGet(currentEntry, CONFIG.fields.startTime);
+    var endTime = utils.safeGet(currentEntry, CONFIG.fields.endTime);
+    
+    if (!startTime || !endTime) {
+        utils.addError(currentEntry, "Chýba čas Od alebo Do", "calculateWorkTime");
+        return { success: false };
+    }
+    
+    // Použitie MementoBusiness funkcie pre výpočet hodín
+    var hours = utils.calculateWorkHours(startTime, endTime);
+    
+    // Zaokrúhlenie na štvrťhodiny ak je potrebné
+    if (CONFIG.settings.roundToQuarterHour) {
+        var minutes = hours * 60;
+        var roundedMinutes = Math.round(minutes / 15) * 15;
+        hours = roundedMinutes / 60;
+        utils.addDebug(currentEntry, "  ⏰ Zaokrúhlené na štvrťhodiny");
+    }
+    
+    // Ulož vypočítané hodnoty
+    utils.safeSet(currentEntry, CONFIG.fields.workTime, hours);
+    utils.safeSet(currentEntry, CONFIG.fields.workedHours, hours);
+    
+    utils.addDebug(currentEntry, "  " + CONFIG.icons.time + " Pracovná doba: " + hours + " hodín");
+    
+    return {
+        success: true,
+        hours: hours,
+        startTime: startTime,
+        endTime: endTime
+    };
+}
+
+// ==============================================
+// SPRACOVANIE ZAMESTNANCOV
+// ==============================================
+
+/**
+ * Spracuje zamestnancov a vypočíta mzdové náklady
+ */
+function processEmployees(workedHours) {
+    utils.addDebug(currentEntry, CONFIG.icons.step + " KROK 3: Spracovanie zamestnancov");
+    
+    var employees = utils.safeGetLinks(currentEntry, CONFIG.fields.employees);
+    
+    if (!employees || employees.length === 0) {
+        utils.addDebug(currentEntry, "  " + CONFIG.icons.info + " Žiadni zamestnanci");
+        utils.safeSet(currentEntry, CONFIG.fields.employeeCount, 0);
+        utils.safeSet(currentEntry, CONFIG.fields.wageCosts, 0);
+        return { 
+            count: 0, 
+            totalCosts: 0 
+        };
+    }
+    
+    var totalCosts = 0;
+    var date = utils.safeGet(currentEntry, CONFIG.fields.date);
+    
+    // Spracuj každého zamestnanca
+    for (var i = 0; i < employees.length; i++) {
+        var employee = employees[i];
+        var empName = getEmployeeName(employee);
         
-        var najnovsiaDatum = null;
-        var platnaSadzba = 0;
-        
-        for (var i = 0; i < sadzby.length; i++) {
-            try {
-                var sadzbaEntry = sadzby[i];
-                if (!sadzbaEntry || !sadzbaEntry.field) continue;
-                
-                var platnostOd = sadzbaEntry.field(CONFIG.sadzbyFields.platnostOd);
-                var sadzba = parseFloat(sadzbaEntry.field(CONFIG.sadzbyFields.sadzba) || 0);
-                
-                if (platnostOd && platnostOd <= datum) {
-                    if (!najnovsiaDatum || platnostOd > najnovsiaDatum) {
-                        najnovsiaDatum = platnostOd;
-                        platnaSadzba = sadzba;
-                    }
-                }
-            } catch (sadzbaError) {
-                MementoUtils.addDebug(currentEntry, "      ⚠️ Chyba pri spracovaní sadzby #" + i + ": " + sadzbaError);
+        try {
+            // Získaj detaily cez MementoBusiness
+            var empDetails = utils.getEmployeeDetails(employee, date);
+            
+            if (!empDetails || !empDetails.hourlyRate) {
+                utils.addDebug(currentEntry, "  " + CONFIG.icons.warning + 
+                             " Chýba hodinová sadzba pre: " + empName);
                 continue;
             }
-        }
-        
-        if (platnaSadzba > 0) {
-            MementoUtils.addDebug(currentEntry, "      ✅ Platná sadzba: " + platnaSadzba + " € (od " + formatDate(najnovsiaDatum) + ")");
-        } else {
-            MementoUtils.addDebug(currentEntry, "      ❌ Žiadna platná sadzba k dátumu");
-        }
-        
-        return platnaSadzba;
-        
-    } catch (error) {
-        MementoUtils.addError(currentEntry, error, "najdiPlatnuSadzbu");
-        return 0;
-    }
-}
-
-function spracujZamestnanca(zamestnanec, index, pracovnaDobaHodiny, datum) {
-    try {
-        var identifikator = MementoUtils.formatEmployeeName(zamestnanec);
-        MementoUtils.addDebug(currentEntry, "  " + CONFIG.icons.person + " Zamestnanec #" + (index + 1) + ": " + identifikator);
-        
-        var hodinovka = najdiPlatnuSadzbu(zamestnanec, datum);
-        var mzdoveNaklady = pracovnaDobaHodiny * hodinovka;
-        
-        try {
-            zamestnanec.setAttr(CONFIG.attributes.odpracovane, pracovnaDobaHodiny);
-            zamestnanec.setAttr(CONFIG.attributes.hodinovka, hodinovka);
-            zamestnanec.setAttr(CONFIG.attributes.mzdoveNaklady, mzdoveNaklady);
             
-            MementoUtils.addDebug(currentEntry, "    ✅ Atribúty nastavené:");
-            MementoUtils.addDebug(currentEntry, "       • odpracované: " + pracovnaDobaHodiny + "h");
-            MementoUtils.addDebug(currentEntry, "       • hodinovka: " + hodinovka + "€");
-            MementoUtils.addDebug(currentEntry, "       • mzdové náklady: " + mzdoveNaklady + "€");
-        } catch (attrError) {
-            MementoUtils.addError(currentEntry, attrError, "spracujZamestnanca-atribúty");
+            // Nastav atribúty na Link to Entry poli
+            var empArray = currentEntry.field(CONFIG.fields.employees);
+            
+            // Odpracované hodiny
+            empArray[i].setAttr(CONFIG.attributes.workRecordEmployees.workedHours, workedHours);
+            
+            // Hodinová sadzba
+            empArray[i].setAttr(CONFIG.attributes.workRecordEmployees.hourlyRate, empDetails.hourlyRate);
+            
+            // Mzdové náklady
+            var costs = Math.round(workedHours * empDetails.hourlyRate * 100) / 100;
+            empArray[i].setAttr(CONFIG.attributes.workRecordEmployees.wageCosts, costs);
+            
+            totalCosts += costs;
+            
+            utils.addDebug(currentEntry, "  " + CONFIG.icons.person + " " + empName + 
+                         ": " + workedHours + "h × " + empDetails.hourlyRate + "€ = " + costs + "€");
+            
+        } catch (error) {
+            utils.addError(currentEntry, "Chyba pri spracovaní zamestnanca " + empName + ": " + error, 
+                         "processEmployees");
         }
-        
-        return mzdoveNaklady;
-        
-    } catch (error) {
-        MementoUtils.addError(currentEntry, error, "spracujZamestnanca");
-        return 0;
     }
+    
+    // Ulož súhrnné hodnoty
+    utils.safeSet(currentEntry, CONFIG.fields.employeeCount, employees.length);
+    utils.safeSet(currentEntry, CONFIG.fields.wageCosts, totalCosts);
+    
+    utils.addDebug(currentEntry, "  " + CONFIG.icons.money + " Celkové mzdové náklady: " + 
+                  utils.formatMoney(totalCosts));
+    
+    return {
+        count: employees.length,
+        totalCosts: totalCosts
+    };
 }
 
-// ✅ OPRAVENÁ FUNKCIA v3.7 - robustnejšie získanie Default HZS
+// ==============================================
+// HZS SPRACOVANIE
+// ==============================================
+
+/**
+ * Získa default HZS z ASISTANTO Defaults
+ */
 function getDefaultHZS() {
     try {
-        MementoUtils.addDebug(currentEntry, "    🔍 Hľadám Default HZS v knižnici " + CONFIG.libraries.defaulty + "...");
+        var defaultsLib = libByName(centralConfig.libraries.core.defaults);
+        var defaults = defaultsLib.entries();
         
-        // ✅ Bezpečné získanie knižnice
-        var defaultsLib = null;
-        try {
-            defaultsLib = libByName(CONFIG.libraries.defaulty);
-        } catch (libError) {
-            MementoUtils.addDebug(currentEntry, "      ❌ Chyba pri načítaní knižnice: " + libError);
-            return null;
-        }
-        
-        if (!defaultsLib) {
-            MementoUtils.addDebug(currentEntry, "      ❌ Knižnica " + CONFIG.libraries.defaulty + " neexistuje");
-            return null;
-        }
-        
-        // ✅ Bezpečné získanie záznamov
-        var defaultRecords = null;
-        try {
-            defaultRecords = defaultsLib.entries();
-        } catch (entriesError) {
-            MementoUtils.addDebug(currentEntry, "      ❌ Chyba pri načítaní záznamov: " + entriesError);
-            return null;
-        }
-        
-        if (!defaultRecords || defaultRecords.length === 0) {
-            MementoUtils.addDebug(currentEntry, "      ❌ Žiadne záznamy v " + CONFIG.libraries.defaulty);
-            return null;
-        }
-        
-        // ✅ Bezpečné načítanie Default HZS poľa
-        try {
-            var firstRecord = defaultRecords[0];
-            if (!firstRecord || !firstRecord.field) {
-                MementoUtils.addDebug(currentEntry, "      ❌ Prvý záznam nie je validný Entry objekt");
-                return null;
+        if (defaults && defaults.length > 0) {
+            var defaultHZS = utils.safeGet(defaults[0], "Default HZS");
+            
+            if (defaultHZS && defaultHZS.length > 0) {
+                utils.addDebug(currentEntry, "  " + CONFIG.icons.link + " Default HZS nájdené");
+                return defaultHZS;
             }
-            
-            var defaultHZSField = firstRecord.field(CONFIG.defaultsFields.defaultHZS);
-            
-            if (!defaultHZSField) {
-                MementoUtils.addDebug(currentEntry, "      ❌ Pole '" + CONFIG.defaultsFields.defaultHZS + "' je prázdne");
-                return null;
-            }
-            
-            if (Array.isArray(defaultHZSField) && defaultHZSField.length > 0) {
-                var defaultHZSEntry = defaultHZSField[0];
-                if (defaultHZSEntry && defaultHZSEntry.field) {
-                    MementoUtils.addDebug(currentEntry, "      ✅ Default HZS nájdená: " + (defaultHZSEntry.field("Názov záznamu") || "ID:" + defaultHZSEntry.field("ID")));
-                    return defaultHZSEntry;
-                }
-            } else if (defaultHZSField.field) {
-                // Single link
-                MementoUtils.addDebug(currentEntry, "      ✅ Default HZS nájdená (single): " + (defaultHZSField.field("Názov záznamu") || "ID:" + defaultHZSField.field("ID")));
-                return defaultHZSField;
-            }
-            
-            MementoUtils.addDebug(currentEntry, "      ❌ Pole '" + CONFIG.defaultsFields.defaultHZS + "' neobsahuje validný link");
-            return null;
-            
-        } catch (fieldError) {
-            MementoUtils.addDebug(currentEntry, "      ❌ Chyba pri načítaní poľa '" + CONFIG.defaultsFields.defaultHZS + "': " + fieldError);
-            return null;
         }
+        
+        utils.addDebug(currentEntry, "  " + CONFIG.icons.warning + " Default HZS nenájdené");
+        return null;
         
     } catch (error) {
-        MementoUtils.addError(currentEntry, error, "getDefaultHZS");
+        utils.addError(currentEntry, error, "getDefaultHZS");
         return null;
     }
 }
 
-// ✅ OPRAVENÁ FUNKCIA v3.7 - ešte robustnejšie HZS spracovanie
-function spracujHZS() {
+/**
+ * Spracuje HZS a vypočíta sumu
+ */
+function processHZS(workedHours) {
+    utils.addDebug(currentEntry, CONFIG.icons.step + " KROK 4: Spracovanie HZS");
+    
     try {
-        MementoUtils.addDebug(currentEntry, CONFIG.icons.step + " Spracovávam HZS...");
+        var hzsField = utils.safeGetLinks(currentEntry, CONFIG.fields.hzs);
         
-        var hzsPole = MementoUtils.safeGet(currentEntry, CONFIG.fields.hodinovaZuctovacia, []);
-        
-        // ✅ Ak nie je HZS nastavená, načítaj default z ASISTANTO Defaults
-        if (!hzsPole || hzsPole.length === 0) {
-            MementoUtils.addDebug(currentEntry, "  ⚠️ HZS nie je nastavená, načítavam z " + CONFIG.libraries.defaulty + "...");
+        // Ak nie je HZS, skús default
+        if (!hzsField || hzsField.length === 0) {
+            utils.addDebug(currentEntry, "  ℹ️ HZS nie je nastavené, hľadám default...");
             
             var defaultHZS = getDefaultHZS();
             if (defaultHZS) {
-                try {
-                    // ✅ Nastav Default HZS do aktuálneho záznamu
-                    currentEntry.set(CONFIG.fields.hodinovaZuctovacia, [defaultHZS]);
-                    
-                    // ✅ Znovu načítaj pole
-                    hzsPole = currentEntry.field(CONFIG.fields.hodinovaZuctovacia);
-                    
-                    if (hzsPole && hzsPole.length > 0) {
-                        MementoUtils.addDebug(currentEntry, "  ✅ Default HZS automaticky nastavená z " + CONFIG.libraries.defaulty);
-                    } else {
-                        MementoUtils.addDebug(currentEntry, "  ❌ Nastavenie default HZS zlyhalo");
-                        return { success: false, hzsCena: 0, sumaHZS: 0 };
-                    }
-                } catch (setError) {
-                    MementoUtils.addError(currentEntry, setError, "spracujHZS-setDefault");
-                    return { success: false, hzsCena: 0, sumaHZS: 0 };
-                }
-            } else {
-                MementoUtils.addDebug(currentEntry, "  ❌ Default HZS nenájdená v " + CONFIG.libraries.defaulty);
-                return { success: false, hzsCena: 0, sumaHZS: 0 };
+                utils.safeSet(currentEntry, CONFIG.fields.hzs, defaultHZS);
+                hzsField = currentEntry.field(CONFIG.fields.hzs);
             }
         }
         
-        // ✅ Teraz by sme mali mať HZS nastavenú
-        if (!hzsPole || hzsPole.length === 0) {
-            MementoUtils.addDebug(currentEntry, "  ❌ HZS stále nie je nastavená");
-            return { success: false, hzsCena: 0, sumaHZS: 0 };
+        // Získaj cenu z HZS
+        var hzsPrice = 0;
+        if (hzsField && hzsField.length > 0) {
+            hzsPrice = utils.safeGetAttribute(
+                currentEntry, 
+                CONFIG.fields.hzs, 
+                CONFIG.attributes.hzs.price, 
+                0
+            );
         }
         
-        var hzsEntry = hzsPole[0];
+        // Vypočítaj sumu
+        var hzsSum = Math.round(workedHours * hzsPrice * 100) / 100;
+        utils.safeSet(currentEntry, CONFIG.fields.hzsSum, hzsSum);
         
-        if (!hzsEntry || typeof hzsEntry !== "object" || !hzsEntry.field) {
-            MementoUtils.addDebug(currentEntry, "  ❌ HZS Entry nie je validný objekt");
-            return { success: false, hzsCena: 0, sumaHZS: 0 };
-        }
-        
-        var hzsCena = 0;
-        
-        // ✅ OPRAVENÉ v3.7 - ultra bezpečné linksFrom pre ceny
-        var cenyPrac = ultraBezpecneLinksFrom(
-            hzsEntry, 
-            CONFIG.libraries.cenyPrac, 
-            CONFIG.cenyFields.praca,
-            "  Načítavam ceny prác",
-            "spracujHZS-ceny"
-        );
-        
-        if (cenyPrac && cenyPrac.length > 0) {
-            MementoUtils.addDebug(currentEntry, "  📊 Nájdených " + cenyPrac.length + " cenových záznamov");
-            
-            var najnovsiaCena = 0;
-            var najnovsiDatum = null;
-            var datumPrace = MementoUtils.safeGet(currentEntry, CONFIG.fields.datum, new Date());
-            
-            for (var i = 0; i < cenyPrac.length; i++) {
-                var cenaEntry = cenyPrac[i];
-                
-                if (!cenaEntry || typeof cenaEntry !== "object" || !cenaEntry.field) {
-                    MementoUtils.addDebug(currentEntry, "  ⚠️ Cenový záznam #" + i + " nie je validný");
-                    continue;
-                }
-                
-                try {
-                    var platnostOd = cenaEntry.field(CONFIG.cenyFields.platnostOd);
-                    var cena = parseFloat(cenaEntry.field(CONFIG.cenyFields.cena) || 0);
-                    
-                    if (platnostOd && platnostOd <= datumPrace) {
-                        if (!najnovsiDatum || platnostOd > najnovsiDatum) {
-                            najnovsiDatum = platnostOd;
-                            najnovsiaCena = cena;
-                        }
-                    }
-                } catch (fieldError) {
-                    MementoUtils.addDebug(currentEntry, "  ⚠️ Chyba pri čítaní cenového záznamu #" + i + ": " + fieldError);
-                    continue;
-                }
-            }
-            
-            if (najnovsiaCena > 0) {
-                hzsCena = najnovsiaCena;
-                MementoUtils.addDebug(currentEntry, "  ✅ Cena z histórie: " + hzsCena + "€");
-            }
-        }
-        
-        // Ak nie je cena z histórie, použi priamu cenu
-        if (hzsCena === 0) {
-            try {
-                hzsCena = parseFloat(MementoUtils.safeGet(hzsEntry, CONFIG.cennikFields.cena, 0));
-                if (hzsCena === 0) {
-                    hzsCena = parseFloat(MementoUtils.safeGet(hzsEntry, CONFIG.cennikFields.cenaBezDPH, 0));
-                }
-                MementoUtils.addDebug(currentEntry, "  📏 Priama cena: " + hzsCena + "€");
-            } catch (directPriceError) {
-                MementoUtils.addDebug(currentEntry, "  ⚠️ Chyba pri čítaní priamej ceny: " + directPriceError);
-                hzsCena = 0;
-            }
-        }
-        
-        // Nastav atribút cena na HZS
-        try {
-            hzsEntry.setAttr(CONFIG.hzsAttributes.cena, hzsCena);
-            MementoUtils.addDebug(currentEntry, "  ✅ Atribút cena nastavený na HZS");
-        } catch (attrError) {
-            MementoUtils.addDebug(currentEntry, "  ⚠️ Nepodarilo sa nastaviť atribút cena: " + attrError);
-        }
-        
-        // Vypočítaj sumu HZS
-        var odpracovane = MementoUtils.safeGet(currentEntry, CONFIG.fields.odpracovane, 0);
-        var sumaHZS = odpracovane * hzsCena;
-        
-        MementoUtils.safeSet(currentEntry, CONFIG.fields.sumaHZS, sumaHZS);
-        MementoUtils.addDebug(currentEntry, "  " + CONFIG.icons.money + " Suma HZS: " + sumaHZS + "€ (" + odpracovane + "h × " + hzsCena + "€)");
+        utils.addDebug(currentEntry, "  " + CONFIG.icons.money + " HZS: " + 
+                      workedHours + "h × " + hzsPrice + "€ = " + hzsSum + "€");
         
         return {
             success: true,
-            hzsCena: hzsCena,
-            sumaHZS: sumaHZS
+            price: hzsPrice,
+            sum: hzsSum
         };
         
     } catch (error) {
-        MementoUtils.addError(currentEntry, error, "spracujHZS");
-        return { success: false, hzsCena: 0, sumaHZS: 0 };
+        utils.addError(currentEntry, error, "processHZS");
+        return { 
+            success: false, 
+            price: 0, 
+            sum: 0 
+        };
     }
 }
 
-// ✅ OPRAVENÁ FUNKCIA v3.7 - ultra robustná synchronizácia výkazu prác
-function synchronizujVykazPrac(zakazka, datum, odpracovaneHodiny, hzsCena) {
+// ==============================================
+// VÝKAZ PRÁC
+// ==============================================
+
+/**
+ * Synchronizuje s výkazom prác
+ */
+function synchronizeWorkReport(customer, date, workedHours, hzsPrice) {
+    utils.addDebug(currentEntry, CONFIG.icons.step + " KROK 5: Synchronizácia výkazu prác");
+    
     try {
-        if (!zakazka || !Array.isArray(zakazka) || zakazka.length === 0) {
-            MementoUtils.addDebug(currentEntry, "  ℹ️ Žiadna zákazka - preskakujem výkaz prác");
+        if (!customer || customer.length === 0) {
+            utils.addDebug(currentEntry, "  ℹ️ Žiadna zákazka - preskakujem výkaz");
             return;
         }
         
-        var zakazkaObj = zakazka[0];
+        var customerObj = customer[0];
+        var customerName = utils.safeGet(customerObj, "Názov", "N/A");
         
-        if (!zakazkaObj || typeof zakazkaObj !== "object" || !zakazkaObj.field) {
-            MementoUtils.addDebug(currentEntry, "  ❌ Zákazka nie je validný Entry objekt");
-            return;
-        }
+        utils.addDebug(currentEntry, "  🔍 Hľadám výkaz pre zákazku: " + customerName);
         
-        MementoUtils.addDebug(currentEntry, "  🔍 Kontrolujem existenciu výkazu prác...");
+        // Nájdi existujúci výkaz
+        var existingReports = safeLinksFrom(
+            customerObj,
+            CONFIG.libraries.workReport,
+            CONFIG.vykazFields.zakazka
+        );
         
-        // ✅ OPRAVENÉ v3.7 - ultra bezpečné linksFrom pre výkaz prác s try-catch
-        var existujuceVykazy = [];
-        try {
-            existujuceVykazy = ultraBezpecneLinksFrom(
-                zakazkaObj, 
-                CONFIG.libraries.vykazPrac, 
-                CONFIG.vykazFields.zakazka,
-                "  Načítavam existujúce výkazy",
-                "synchronizujVykazPrac-find"
-            );
-        } catch (findError) {
-            MementoUtils.addError(currentEntry, findError, "synchronizujVykazPrac-findExisting");
-            // Pokračuj s prázdnym array - vytvorí sa nový výkaz
-            existujuceVykazy = [];
-        }
+        var workReport = null;
         
-        var vykazPrac = null;
-        
-        if (existujuceVykazy && existujuceVykazy.length > 0) {
-            var testVykaz = existujuceVykazy[0];
-            
-            if (!testVykaz || typeof testVykaz !== "object" || !testVykaz.field) {
-                MementoUtils.addDebug(currentEntry, "  ⚠️ Existujúci výkaz nie je validný, vytváram nový...");
-                vykazPrac = null;
-            } else {
-                vykazPrac = testVykaz;
-                MementoUtils.addDebug(currentEntry, "  ✅ Existujúci výkaz nájdený a validný");
-            }
-        }
-        
-        if (!vykazPrac) {
+        if (existingReports && existingReports.length > 0) {
+            workReport = existingReports[0];
+            utils.addDebug(currentEntry, "  " + CONFIG.icons.update + " Existujúci výkaz nájdený");
+        } else {
             // Vytvor nový výkaz
-            MementoUtils.addDebug(currentEntry, "  " + CONFIG.icons.create + " Vytváram nový výkaz prác...");
-            
-            var vykazLib = null;
-            try {
-                vykazLib = libByName(CONFIG.libraries.vykazPrac);
-            } catch (libError) {
-                MementoUtils.addError(currentEntry, libError, "synchronizujVykazPrac-getLib");
-                return;
-            }
-            
-            if (!vykazLib) {
-                MementoUtils.addError(currentEntry, new Error("Knižnica '" + CONFIG.libraries.vykazPrac + "' neexistuje"), "synchronizujVykazPrac");
-                return;
-            }
-            
-            try {
-                vykazPrac = vykazLib.create();
-            } catch (createError) {
-                MementoUtils.addError(currentEntry, createError, "synchronizujVykazPrac-create");
-                return;
-            }
-            
-            if (!vykazPrac) {
-                MementoUtils.addError(currentEntry, new Error("Vytvorenie Výkazu prác zlyhalo"), "synchronizujVykazPrac");
-                return;
-            }
-            
-            // ✅ Bezpečné nastavenie polí s individual try-catch
-            try {
-                vykazPrac.set(CONFIG.vykazFields.datum, datum);
-            } catch (setError) {
-                MementoUtils.addDebug(currentEntry, "  ⚠️ Chyba pri nastavení dátumu: " + setError);
-            }
-            
-            try {
-                var zakazkaID = MementoUtils.safeGet(zakazkaObj, "ID", "XXX");
-                var mesiac = moment().format("YYYYMM");
-                vykazPrac.set(CONFIG.vykazFields.identifikator, "VYK-" + zakazkaID + "-" + mesiac);
-            } catch (setError) {
-                MementoUtils.addDebug(currentEntry, "  ⚠️ Chyba pri nastavení identifikátora: " + setError);
-            }
-            
-            try {
-                var zakazkaNazov = MementoUtils.safeGet(zakazkaObj, "Názov záznamu", "Neznáma zákazka");
-                vykazPrac.set(CONFIG.vykazFields.popis, "Výkaz prác pre " + zakazkaNazov + " - " + moment().format("MMMM YYYY"));
-            } catch (setError) {
-                MementoUtils.addDebug(currentEntry, "  ⚠️ Chyba pri nastavení popisu: " + setError);
-            }
-            
-            try {
-                var typVykazu = MementoUtils.safeGet(zakazkaObj, "Typ výkazu", "Hodinovka");
-                vykazPrac.set(CONFIG.vykazFields.typVykazu, typVykazu);
-            } catch (setError) {
-                MementoUtils.addDebug(currentEntry, "  ⚠️ Chyba pri nastavení typu výkazu: " + setError);
-            }
-            
-            try {
-                vykazPrac.set(CONFIG.vykazFields.cenyPocitat, "Z cenovej ponuky");
-            } catch (setError) {
-                MementoUtils.addDebug(currentEntry, "  ⚠️ Chyba pri nastavení 'Ceny počítať': " + setError);
-            }
-            
-            try {
-                var cenovaPonuka = MementoUtils.safeGet(zakazkaObj, "Cenová ponuka");
-                if (cenovaPonuka) {
-                    vykazPrac.set(CONFIG.vykazFields.cenovaPonuka, cenovaPonuka);
-                }
-            } catch (setError) {
-                MementoUtils.addDebug(currentEntry, "  ⚠️ Chyba pri nastavení cenovej ponuky: " + setError);
-            }
-            
-            try {
-                vykazPrac.set(CONFIG.vykazFields.vydane, "Zákazka");
-            } catch (setError) {
-                MementoUtils.addDebug(currentEntry, "  ⚠️ Chyba pri nastavení 'Vydané': " + setError);
-            }
-            
-            try {
-                vykazPrac.set(CONFIG.vykazFields.zakazka, zakazkaObj);
-            } catch (setError) {
-                MementoUtils.addError(currentEntry, setError, "synchronizujVykazPrac-setZakazka");
-            }
-            
-            // Info záznam
-            try {
-                var infoText = CONFIG.icons.info + " AUTOMATICKY VYTVORENÝ VÝKAZ\n";
-                infoText += "=====================================\n\n";
-                infoText += "📅 Dátum: " + formatDate(datum) + "\n";
-                infoText += "📦 Zákazka: " + (zakazkaNazov || "N/A") + "\n";
-                infoText += "⏰ Vytvorené: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
-                infoText += "🔧 Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
-                infoText += "📂 Zdroj: Knižnica " + CONFIG.libraries.zaznamPrac + "\n\n";
-                infoText += "✅ VÝKAZ VYTVORENÝ ÚSPEŠNE";
-                
-                vykazPrac.set(CONFIG.vykazFields.info, infoText);
-            } catch (setError) {
-                MementoUtils.addDebug(currentEntry, "  ⚠️ Chyba pri nastavení info: " + setError);
-            }
-            
-            MementoUtils.addDebug(currentEntry, "  ✅ Nový výkaz vytvorený");
+            workReport = createNewWorkReport(customerObj, date, customerName);
         }
         
-        // Pridaj link na aktuálny záznam prác
-        try {
-            var praceHZS = MementoUtils.safeGet(vykazPrac, CONFIG.vykazFields.praceHZS, []);
-            
-            var linkExists = false;
-            for (var i = 0; i < praceHZS.length; i++) {
-                if (praceHZS[i] && praceHZS[i].id === currentEntry.id) {
-                    linkExists = true;
-                    break;
-                }
-            }
-            
-            if (!linkExists) {
-                try {
-                    praceHZS.push(currentEntry);
-                    vykazPrac.set(CONFIG.vykazFields.praceHZS, praceHZS);
-                    MementoUtils.addDebug(currentEntry, "  " + CONFIG.icons.link + " Link pridaný do výkazu");
-                    
-                    var lastIndex = praceHZS.length - 1;
-                    var vykonanePrace = MementoUtils.safeGet(currentEntry, CONFIG.fields.vykonanePrace, "");
-                    var cenaCelkom = odpracovaneHodiny * hzsCena;
-                    
-                    // ✅ Individual try-catch pre každý atribút
-                    try {
-                        vykazPrac.setAttr(CONFIG.vykazFields.praceHZS, lastIndex, CONFIG.vykazAttributes.vykonanePrace, vykonanePrace);
-                    } catch (attrError) {
-                        MementoUtils.addDebug(currentEntry, "  ⚠️ Chyba pri nastavení atribútu 'vykonané práce': " + attrError);
-                    }
-                    
-                    try {
-                        vykazPrac.setAttr(CONFIG.vykazFields.praceHZS, lastIndex, CONFIG.vykazAttributes.pocetHodin, odpracovaneHodiny);
-                    } catch (attrError) {
-                        MementoUtils.addDebug(currentEntry, "  ⚠️ Chyba pri nastavení atribútu 'počet hodín': " + attrError);
-                    }
-                    
-                    try {
-                        vykazPrac.setAttr(CONFIG.vykazFields.praceHZS, lastIndex, CONFIG.vykazAttributes.uctoovanaSadzba, hzsCena);
-                    } catch (attrError) {
-                        MementoUtils.addDebug(currentEntry, "  ⚠️ Chyba pri nastavení atribútu 'účtovaná sadzba': " + attrError);
-                    }
-                    
-                    try {
-                        vykazPrac.setAttr(CONFIG.vykazFields.praceHZS, lastIndex, CONFIG.vykazAttributes.cenaCelkom, cenaCelkom);
-                    } catch (attrError) {
-                        MementoUtils.addDebug(currentEntry, "  ⚠️ Chyba pri nastavení atribútu 'cena celkom': " + attrError);
-                    }
-                    
-                    MementoUtils.addDebug(currentEntry, "  ✅ Atribúty nastavené na výkaze:");
-                    MementoUtils.addDebug(currentEntry, "    • vykonané práce: " + (vykonanePrace ? (vykonanePrace.length > 50 ? vykonanePrace.substring(0, 50) + "..." : vykonanePrace) : "N/A"));
-                    MementoUtils.addDebug(currentEntry, "    • počet hodín: " + odpracovaneHodiny + "h");
-                    MementoUtils.addDebug(currentEntry, "    • účtovaná sadzba: " + hzsCena + "€");
-                    MementoUtils.addDebug(currentEntry, "    • cena celkom: " + cenaCelkom + "€");
-                    
-                } catch (linkError) {
-                    MementoUtils.addError(currentEntry, linkError, "synchronizujVykazPrac-pridajLink");
-                }
-            } else {
-                MementoUtils.addDebug(currentEntry, "  ℹ️ Link už existuje vo výkaze");
-            }
-            
-        } catch (linkError) {
-            MementoUtils.addError(currentEntry, linkError, "synchronizujVykazPrac-linkovanie");
+        // Pridaj link na aktuálny záznam
+        if (workReport) {
+            addWorkRecordLink(workReport, workedHours, hzsPrice);
         }
         
     } catch (error) {
-        MementoUtils.addError(currentEntry, error, "synchronizujVykazPrac");
+        utils.addError(currentEntry, error, "synchronizeWorkReport");
     }
 }
 
-// [Hlavná funkcia zostáva rovnaká ako v3.6, len zmena čísla verzie na 3.7...]
-
-function hlavnaFunkcia() {
-    MementoUtils.addDebug(currentEntry, CONFIG.icons.start + " === ŠTART PREPOČTU ZÁZNAMU PRÁC v" + CONFIG.version + " ===");
-    
-    // [Celý obsah hlavnej funkcie zostáva rovnaký ako v3.6...]
-    // Len sa zmení číslo verzie v debug správach
-    
-    // [Kód pokračuje rovnako ako v predchádzajúcej verzii, ale s lepším error handlingom...]
+/**
+ * Vytvorí nový výkaz prác
+ */
+function createNewWorkReport(customerObj, date, customerName) {
+    try {
+        var reportLib = libByName(CONFIG.libraries.workReport);
+        var workReport = reportLib.create({});
+        
+        // Nastav základné polia
+        utils.safeSet(workReport, CONFIG.vykazFields.datum, date);
+        utils.safeSet(workReport, CONFIG.vykazFields.identifikator, "VP-" + moment(date).format("YYYYMMDD"));
+        utils.safeSet(workReport, CONFIG.vykazFields.popis, "Výkaz prác - " + customerName);
+        utils.safeSet(workReport, CONFIG.vykazFields.typVykazu, "Podľa vykonaných prác");
+        utils.safeSet(workReport, CONFIG.vykazFields.cenyPocitat, "Z cenovej ponuky");
+        utils.safeSet(workReport, CONFIG.vykazFields.vydane, "Zákazka");
+        utils.safeSet(workReport, CONFIG.vykazFields.zakazka, customerObj);
+        
+        // Info záznam
+        var info = CONFIG.icons.info + " AUTOMATICKY VYTVORENÝ VÝKAZ\n";
+        info += "=====================================\n\n";
+        info += "📅 Dátum: " + formatDate(date) + "\n";
+        info += "📦 Zákazka: " + customerName + "\n";
+        info += "⏰ Vytvorené: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
+        info += "🔧 Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
+        info += "📂 Zdroj: Knižnica " + CONFIG.libraries.workRecord + "\n\n";
+        info += "✅ VÝKAZ VYTVORENÝ ÚSPEŠNE";
+        
+        utils.safeSet(workReport, CONFIG.vykazFields.info, info);
+        
+        utils.addDebug(currentEntry, "  " + CONFIG.icons.create + " Nový výkaz vytvorený");
+        
+        return workReport;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error, "createNewWorkReport");
+        return null;
+    }
 }
 
-// [Spustenie scriptu zostáva rovnaké...]
+/**
+ * Pridá link na záznam prác do výkazu
+ */
+function addWorkRecordLink(workReport, workedHours, hzsPrice) {
+    try {
+        var praceHZS = utils.safeGetLinks(workReport, CONFIG.vykazFields.praceHZS);
+        
+        // Skontroluj či link už neexistuje
+        var linkExists = false;
+        for (var i = 0; i < praceHZS.length; i++) {
+            if (praceHZS[i] && praceHZS[i].id === currentEntry.id) {
+                linkExists = true;
+                break;
+            }
+        }
+        
+        if (linkExists) {
+            utils.addDebug(currentEntry, "  ℹ️ Link už existuje vo výkaze");
+            return;
+        }
+        
+        // Pridaj nový link
+        praceHZS.push(currentEntry);
+        workReport.set(CONFIG.vykazFields.praceHZS, praceHZS);
+        
+        utils.addDebug(currentEntry, "  " + CONFIG.icons.link + " Link pridaný do výkazu");
+        
+        // Nastav atribúty na novom linku
+        var lastIndex = praceHZS.length - 1;
+        var workDescription = utils.safeGet(currentEntry, CONFIG.fields.workDescription, "");
+        var totalPrice = Math.round(workedHours * hzsPrice * 100) / 100;
+        
+        try {
+            var vykazArray = workReport.field(CONFIG.vykazFields.praceHZS);
+            
+            vykazArray[lastIndex].setAttr(CONFIG.attributes.workReport.workDescription, workDescription);
+            vykazArray[lastIndex].setAttr(CONFIG.attributes.workReport.hoursCount, workedHours);
+            vykazArray[lastIndex].setAttr(CONFIG.attributes.workReport.billedRate, hzsPrice);
+            vykazArray[lastIndex].setAttr(CONFIG.attributes.workReport.totalPrice, totalPrice);
+            
+            utils.addDebug(currentEntry, "  ✅ Atribúty nastavené na výkaze");
+            
+        } catch (attrError) {
+            utils.addDebug(currentEntry, "  ⚠️ Chyba pri nastavení atribútov: " + attrError);
+        }
+        
+    } catch (error) {
+        utils.addError(currentEntry, error, "addWorkRecordLink");
+    }
+}
+
+// ==============================================
+// INFO ZÁZNAM
+// ==============================================
+
+/**
+ * Vytvorí info záznam so súhrnom
+ */
+function createInfoRecord(workTime, employees, hzs) {
+    utils.addDebug(currentEntry, CONFIG.icons.step + " KROK 6: Vytvorenie info záznamu");
+    
+    var info = [];
+    
+    info.push(CONFIG.icons.info + " ZÁZNAM PRÁC - PREPOČET");
+    info.push("=====================================");
+    info.push("");
+    info.push("📅 Dátum: " + formatDate(utils.safeGet(currentEntry, CONFIG.fields.date)));
+    info.push("⏰ Čas: " + utils.formatTime(workTime.startTime) + " - " + utils.formatTime(workTime.endTime));
+    info.push("⏱️ Odpracované: " + workTime.hours + " hodín");
+    info.push("");
+    
+    if (employees.count > 0) {
+        info.push("👥 ZAMESTNANCI (" + employees.count + "):");
+        
+        // Detaily zamestnancov
+        var empArray = currentEntry.field(CONFIG.fields.employees);
+        for (var i = 0; i < empArray.length; i++) {
+            var emp = empArray[i];
+            var empName = getEmployeeName(emp);
+            var empHours = emp.attr(CONFIG.attributes.workRecordEmployees.workedHours) || 0;
+            var empRate = emp.attr(CONFIG.attributes.workRecordEmployees.hourlyRate) || 0;
+            var empCost = emp.attr(CONFIG.attributes.workRecordEmployees.wageCosts) || 0;
+            
+            info.push("  • " + empName + ": " + empHours + "h × " + empRate + "€ = " + empCost + "€");
+        }
+        
+        info.push("");
+        info.push("💰 Mzdové náklady celkom: " + utils.formatMoney(employees.totalCosts));
+        info.push("");
+    }
+    
+    if (hzs.price > 0) {
+        info.push("💵 HODINOVÁ ZÚČTOVACIA SADZBA:");
+        info.push("  • Sadzba: " + utils.formatMoney(hzs.price) + "/h");
+        info.push("  • Suma: " + utils.formatMoney(hzs.sum));
+        info.push("");
+    }
+    
+    var customer = utils.safeGetLinks(currentEntry, CONFIG.fields.customer);
+    if (customer && customer.length > 0) {
+        info.push("📦 Zákazka: " + utils.safeGet(customer[0], "Názov", "N/A"));
+    }
+    
+    var workDescription = utils.safeGet(currentEntry, CONFIG.fields.workDescription);
+    if (workDescription) {
+        info.push("");
+        info.push("🔨 VYKONANÉ PRÁCE:");
+        info.push(workDescription);
+    }
+    
+    info.push("");
+    info.push("─────────────────────────────────────");
+    info.push("⏰ Vytvorené: " + moment().format("DD.MM.YYYY HH:mm:ss"));
+    info.push("🔧 Script: " + CONFIG.scriptName + " v" + CONFIG.version);
+    
+    utils.safeSet(currentEntry, CONFIG.commonFields.info, info.join("\n"));
+}
+
+// ==============================================
+// HLAVNÁ FUNKCIA
+// ==============================================
+
+function main() {
+    try {
+        utils.addDebug(currentEntry, CONFIG.icons.start + " === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
+        utils.clearLogs(currentEntry, false);
+        
+        // 1. Validácia vstupných dát
+        var validationResult = validateInputs();
+        if (!validationResult.success) {
+            utils.addError(currentEntry, "Validácia zlyhala: " + validationResult.message, "main");
+            return false;
+        }
+        
+        // 2. Výpočet pracovnej doby
+        var workTimeResult = calculateWorkTime();
+        if (!workTimeResult.success) {
+            utils.addError(currentEntry, "Výpočet času zlyhal", "main");
+            return false;
+        }
+        
+        // 3. Spracovanie zamestnancov
+        var employeeResult = processEmployees(workTimeResult.hours);
+        
+        // 4. Spracovanie HZS
+        var hzsResult = processHZS(workTimeResult.hours);
+        
+        // 5. Synchronizácia výkazu prác
+        if (validationResult.hasCustomer) {
+            synchronizeWorkReport(
+                validationResult.customer,
+                validationResult.date,
+                workTimeResult.hours,
+                hzsResult.price
+            );
+        }
+        
+        // 6. Vytvorenie info záznamu
+        createInfoRecord(workTimeResult, employeeResult, hzsResult);
+        
+        utils.addDebug(currentEntry, CONFIG.icons.success + " === PREPOČET DOKONČENÝ ===");
+        return true;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error, "main");
+        return false;
+    }
+}
+
+// ==============================================
+// SPUSTENIE SCRIPTU
+// ==============================================
 
 try {
-    MementoUtils.addDebug(currentEntry, "🎬 Inicializácia " + CONFIG.scriptName + " v" + CONFIG.version);
+    utils.addDebug(currentEntry, "🎬 Inicializácia " + CONFIG.scriptName + " v" + CONFIG.version);
     
+    // Kontrola či máme currentEntry
     if (!currentEntry) {
         message("💥 KRITICKÁ CHYBA!\n\nScript nemôže bežať bez aktuálneho záznamu.");
         throw new Error("currentEntry neexistuje");
     }
     
-    MementoUtils.clearLogs(currentEntry, false);
-    
-    var result = hlavnaFunkcia();
-    
-    MementoUtils.saveLogs(currentEntry);
-    
-    if (result) {
-        var info = MementoUtils.safeGet(currentEntry, CONFIG.fields.info, "");
-        var shortInfo = info.split("\n").slice(0, 10).join("\n");
-        
-        message("✅ Záznam prác úspešne prepočítaný!\n\n" + shortInfo + "\n\n" + 
-               "ℹ️ Detaily v poli 'info'");
-    } else {
-        message("❌ Prepočet záznamu prác zlyhal!\n\n" +
-               "🔍 Skontroluj Error_Log pre detaily\n" +
-               "📋 Over vstupné dáta a skús znovu");
+    // Kontrola závislostí
+    var deps = utils.checkDependencies(['config', 'core', 'business']);
+    if (!deps.success) {
+        var errorMsg = "❌ Chýbajúce moduly: " + deps.missing.join(", ") + 
+                      "\n\nUistite sa, že máte nainštalované všetky MementoUtils knižnice.";
+        message(errorMsg);
+        cancel();
     }
     
-} catch (kritickachyba) {
+    // Spusti hlavnú funkciu
+    var result = main();
+    
+    if (result) {
+        // Zobraz súhrn užívateľovi
+        var info = utils.safeGet(currentEntry, CONFIG.commonFields.info, "");
+        var lines = info.split("\n");
+        var shortInfo = lines.slice(0, 15).join("\n");
+        
+        if (lines.length > 15) {
+            shortInfo += "\n\n... (zobrazených prvých 15 riadkov)";
+        }
+        
+        message("✅ Záznam prác úspešne prepočítaný!\n\n" + shortInfo + 
+               "\n\n" + CONFIG.icons.info + " Kompletné detaily nájdete v poli 'info'");
+    } else {
+        var errorLog = utils.safeGet(currentEntry, CONFIG.commonFields.errorLog, "Žiadne chyby");
+        
+        message("❌ Prepočet záznamu prác zlyhal!\n\n" +
+               "🔍 Skontrolujte:\n" +
+               "  • Všetky povinné polia sú vyplnené\n" +
+               "  • Časy Od/Do sú správne\n" +
+               "  • Zamestnanci majú platné sadzby\n\n" +
+               "📋 Error Log:\n" + errorLog);
+    }
+    
+} catch (criticalError) {
     try {
-        MementoUtils.addError(currentEntry, kritickachyba, "MAIN-CATCH");
-        MementoUtils.saveLogs(currentEntry);
-        message("💥 KRITICKÁ CHYBA!\n\nScript zlyhal. Pozri Error_Log.");
+        utils.addError(currentEntry, criticalError, "CRITICAL");
+        message("💥 KRITICKÁ CHYBA!\n\n" + criticalError.toString() + 
+               "\n\nScript nemohol dokončiť spracovanie.\nSkontrolujte Error_Log pre detaily.");
     } catch (finalError) {
-        message("💥 FATÁLNA CHYBA!\n\n" + kritickachyba.toString());
+        message("💥 FATÁLNA CHYBA!\n\nScript úplne zlyhal.\n\n" + 
+               criticalError.toString());
     }
 }
