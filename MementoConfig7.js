@@ -117,7 +117,7 @@ var MementoConfig = (function() {
             
             // Záznam práce polia
             workRecord: {
-                requiredFields: [date, startTime, endTime, employees, customer],
+                //requiredFields: [date, startTime, endTime, employees, customer],
                 date: "Dátum",
                 customer: "Zákazka",
                 timeInterval: "Od – Do",
