@@ -46,6 +46,8 @@ var MementoConfig = (function() {
             attendance: "Dochádzka",
             workRecords: "Záznam práce",
             wages: "sadzby zamestnancov",
+            workPrices: "ceny prác",
+            workReport: "Výkaz prác",
             priceList: "Cenník prác",
             bookOfRides: "Kniha jázd",
             
@@ -126,7 +128,9 @@ var MementoConfig = (function() {
                 workTime: "Pracovná doba",
                 workedHours: "Odpracované",
                 wageCosts: "Mzdové náklady",
-                hzsSum: "Suma HZS"
+                hzsSum: "Suma HZS",
+                startTime: "Od",
+                endTime: "Do"
             },
             
             // Zamestnanci polia
@@ -322,7 +326,19 @@ var MementoConfig = (function() {
                 dailyWage: "denná mzda",
                 note: "poznámka"
             },
-            
+            // V MementoConfig7.js - attributes sekcii pridaj:
+            workRecordEmployees: {
+                workedHours: "odpracované",
+                hourlyRate: "hodinovka", 
+                wageCosts: "mzdové náklady"
+            },
+            workReport: {
+                workDescription: "vykonané práce",
+                hoursCount: "počet hodín",
+                billedRate: "účtovaná sadzba",
+                totalPrice: "cena celkom"
+            },
+                        
             // HZS atribúty
             hzs: {
                 price: "cena"
