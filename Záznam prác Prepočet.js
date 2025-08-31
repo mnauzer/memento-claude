@@ -71,7 +71,7 @@ function validateInputs() {
     
     var requiredFields = [
         CONFIG.fields.date,
-        CONFIG.fields.startTime,
+        CONFIG.fields.startTime, 
         CONFIG.fields.endTime
     ];
     
