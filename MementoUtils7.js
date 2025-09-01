@@ -222,6 +222,7 @@ var MementoUtils = (function() {
         showProcessingSummary: lazyCall('business', 'showProcessingSummary'),
         findValidWorkPrice: lazyCall('business', 'findValidWorkPrice'),
         findValidItemPrice: lazyCall('business', 'findValidItemPrice'),
+        processEmployees: lazyCall('business', 'processEmployees'),
 
         
         // === HELPER FUNKCIE ===

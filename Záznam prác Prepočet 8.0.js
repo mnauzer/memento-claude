@@ -456,7 +456,7 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
             return { success: false };
         }
         
-        var zamArray = currentEntry.field(CONFIG.fields.attendance.employees);
+        var zamArray = currentEntry.field(CONFIG.fields.workRecord.employees);
         
         if (zamArray && zamArray.length > index && zamArray[index]) {
             // Nastav atribúty pomocou .attr() metódy
