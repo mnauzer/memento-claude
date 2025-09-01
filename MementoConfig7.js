@@ -146,7 +146,10 @@ var MementoConfig = (function() {
                 vydane: "Vydané",
                 zakazka: "Zákazka",
                 praceHZS: "Práce HZS",
-                info: "info"
+                info: "info",
+                totalHours: "Celkové hodiny",
+                hzsSum: "Suma HZS",
+                hzsCount: "Počet záznamov"
             },
             // Zamestnanci polia
             employee: {

@@ -823,23 +823,19 @@ function recalculateWorkReportTotals(workReport) {
         
         // Spočítaj všetky záznamy
         for (var i = 0; i < vykazArray.length; i++) {
-            var hours = vykazArray[i].attr(CONFIG.vykazAttributes.hoursCount) || 0;
-            var price = vykazArray[i].attr(CONFIG.vykazAttributes.totalPrice) || 0;
+            var hours = utils.safeGet(vykazArray[i], CONFIG.fields.workReport.workHours || 0);
+            var price = utils.safeGet(vykazArray[i], CONFIG.fields.workReport.hzsSum || 0);
             
             totalHours += hours;
             totalAmount += price;
         }
         
         // Ulož súčty do výkazu (ak máš také polia)
-        if (workReport.field("Celkové hodiny") !== undefined) {
-            workReport.set("Celkové hodiny", totalHours);
-        }
-        if (workReport.field("Suma HZS") !== undefined) {
-            workReport.set("Suma HZS", totalAmount);
-        }
-        if (workReport.field("Počet záznamov") !== undefined) {
-            workReport.set("Počet záznamov", recordCount);
-        }
+            utils.safeSet(workReport, CONFIG.fields.workReport.totalHours, totalHours);
+            utils.safeSet(workReport, CONFIG.fields.workReport.hzsSum, totalAmmount);
+            utils.safeSet(workReport, CONFIG.fields.workReport.hzsCount, recordCount);
+            //utils.safeSet(workReport, CONFIG.fields.workReport.vat, vat); // TODO: dopočítať DPH
+            //utils.safeSet(workReport, CONFIG.fields.workReport.hzsSumTotal, sumTotal);
         
         utils.addDebug(currentEntry, "  📊 Výkaz prepočítaný:");
         utils.addDebug(currentEntry, "    • Celkové hodiny: " + totalHours);
