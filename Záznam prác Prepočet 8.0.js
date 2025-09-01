@@ -773,13 +773,13 @@ function syncWorkRecordLink(workReport, workedHours, hzsPrice) {
         var totalPrice = Math.round(workedHours * hzsPrice * 100) / 100;
         
         try {
+            var vykazArray = workReport.field(CONFIG.vykazFields.praceHZS);
             
-            utils.addDebug(currentEntry, "  " + utils.getIcon("info") + " Synchronizujem atribúty, index: " + lastIndex);
-            if (praceHZS && praceHZS[lastIndex]) {
-                praceHZS[lastIndex].setAttr(CONFIG.vykazAttributes.workDescription, workDescription);
-                praceHZS[lastIndex].setAttr(CONFIG.vykazAttributes.hoursCount, workedHours);
-                praceHZS[lastIndex].setAttr(CONFIG.vykazAttributes.billedRate, hzsPrice);
-                praceHZS[lastIndex].setAttr(CONFIG.vykazAttributes.totalPrice, totalPrice);
+            if (vykazArray && vykazArray[lastIndex]) {
+                vykazArray[lastIndex].setAttr(CONFIG.vykazAttributes.workDescription, workDescription);
+                vykazArray[lastIndex].setAttr(CONFIG.vykazAttributes.hoursCount, workedHours);
+                vykazArray[lastIndex].setAttr(CONFIG.vykazAttributes.billedRate, hzsPrice);
+                vykazArray[lastIndex].setAttr(CONFIG.vykazAttributes.totalPrice, totalPrice);
                 
                 utils.addDebug(currentEntry, "  ✅ Atribúty nastavené na výkaze");
             }
