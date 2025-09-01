@@ -21,7 +21,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Záznam prác Prepočet",
-    version: "8.1",
+    version: "8.1.1",
     
     // Referencie na centrálny config
     fields: {
@@ -119,14 +119,20 @@ function main() {
         utils.addDebug(currentEntry, utils.getIcon("money") + " KROK 4: Spracovanie HZS");
         var hzsResult = processHZS(workTimeResult.pracovnaDobaHodiny);
         
-        // Krok 5: Synchronizácia výkazu prác
+         // KROK 5: Celkové výpočty
+        utils.addDebug(currentEntry, " KROK 5: Celkové výpočty", "calculation");
+        if (employeeResult.success) {
+            steps.step4.success = calculateTotals(employeeResult, hzsResult);
+        }
+
+        // Krok 6: Synchronizácia výkazu prác
         if (validationResult.hasCustomer) {
-            utils.addDebug(currentEntry, utils.getIcon("update") + " KROK 5: Synchronizácia výkazu prác");
+            utils.addDebug(currentEntry, utils.getIcon("update") + " KROK 6: Synchronizácia výkazu prác");
             synchronizeWorkReport(validationResult.customer, validationResult.date, workTimeResult.pracovnaDobaHodiny, hzsResult.price);
         }
         
-        // Krok 6: Vytvorenie info záznamov
-        utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 6: Vytvorenie info záznamov");
+        // Krok 7: Vytvorenie info záznamov
+        utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 7: Vytvorenie info záznamov");
         createInfoRecord(workTimeResult, employeeResult, hzsResult);
         createTelegramInfoRecord(workTimeResult, employeeResult, hzsResult);
         
@@ -319,6 +325,29 @@ function processEmployees(employees, workedHours, date) {
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "processEmployees", error);
         return result;
+    }
+}
+
+function calculateTotals(employeeResult, hzsResult) {
+    try {
+        // Ulož celkové hodnoty
+        utils.safeSet(currentEntry, CONFIG.fields.workRecord.workedHours, employeeResult.odpracovaneTotal);
+        utils.safeSet(currentEntry, CONFIG.fields.workRecord.wageCosts, employeeResult.celkoveMzdy);
+        utils.safeSet(currentEntry, CONFIG.fields.workRecord.hzsSum, hzsResult.sum);
+        
+        utils.addDebug(currentEntry, "  • Pracovná doba: " + employeeResult.pracovnaDoba + " hodín");
+        utils.addDebug(currentEntry, "  • Odpracované spolu: " + employeeResult.odpracovaneTotal + " hodín");
+        utils.addDebug(currentEntry, "  • Mzdové náklady: " + utils.formatMoney(employeeResult.celkoveMzdy));
+        utils.addDebug(currentEntry, "  • HZS Sadzba: " + utils.formatMoney(hzsResult.price));
+        utils.addDebug(currentEntry, "  • Suma HZS: " + utils.formatMoney(hzsResult.sum));
+
+        utils.addDebug(currentEntry, " Celkové výpočty úspešné", "success");
+        
+        return true;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "calculateTotals", error);
+        return false;
     }
 }
 
