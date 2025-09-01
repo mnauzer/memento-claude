@@ -693,7 +693,7 @@ function synchronizeWorkReport(customer, date, workedHours, hzsPrice) {
         
         // Pridaj link na aktuálny záznam
         if (workReport) {
-            addWorkRecordLink(workReport, workedHours, hzsPrice);
+            syncWorkRecordLink(workReport, workedHours, hzsPrice);
         }
         
     } catch (error) {
@@ -739,7 +739,7 @@ function createNewWorkReport(customerObj, date, customerName) {
     }
 }
 
-function addWorkRecordLink(workReport, workedHours, hzsPrice) {
+function syncWorkRecordLink(workReport, workedHours, hzsPrice) {
     try {
         var praceHZS = utils.safeGetLinks(workReport, CONFIG.vykazFields.praceHZS);
         
@@ -774,6 +774,7 @@ function addWorkRecordLink(workReport, workedHours, hzsPrice) {
         
         try {
             
+            utils.addDebug(currentEntry, "  " + utils.getIcon("info") + " Synchronizujem atribúty, index: " + lastIndex);
             if (praceHZS && praceHZS[lastIndex]) {
                 praceHZS[lastIndex].setAttr(CONFIG.vykazAttributes.workDescription, workDescription);
                 praceHZS[lastIndex].setAttr(CONFIG.vykazAttributes.hoursCount, workedHours);
