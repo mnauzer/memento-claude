@@ -148,51 +148,6 @@ function main() {
 // VALIDÁCIA
 // ==============================================
 
-<<<<<<< HEAD
-function validateInputData() {
-    try {
-        // Definuj povinné polia
-        var requiredFields = [
-            CONFIG.fields.workRecord.date,
-            CONFIG.fields.startTime,
-            CONFIG.fields.endTime
-        ];
-        
-        // Získaj hodnoty
-        var date = utils.safeGet(currentEntry, CONFIG.fields.workRecord.date);
-        var startTime = utils.safeGet(currentEntry, CONFIG.fields.startTime);
-        var endTime = utils.safeGet(currentEntry, CONFIG.fields.endTime);
-        var employees = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.employees);
-        var customer = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.customer);
-        
-        // Kontroly
-        var missingFields = [];
-        if (!date) missingFields.push("Dátum");
-        if (!startTime) missingFields.push("Od");
-        if (!endTime) missingFields.push("Do");
-        
-        if (missingFields.length > 0) {
-            return {
-                success: false,
-                error: "Chýbajú povinné polia: " + missingFields.join(", ")
-            };
-        }
-        
-        utils.addDebug(currentEntry, "  • Dátum: " + utils.formatDate(date));
-        utils.addDebug(currentEntry, "  • Čas: " + utils.formatTime(startTime) + " - " + utils.formatTime(endTime));
-        utils.addDebug(currentEntry, "  • Zamestnancov: " + (employees ? employees.length : 0));
-        utils.addDebug(currentEntry, "  • Zákazka: " + (customer && customer.length > 0 ? "ÁNO" : "NIE"));
-        utils.addDebug(currentEntry, utils.getIcon("success") + " Validácia úspešná");
-        
-        return {
-            success: true,
-            date: date,
-            startTime: startTime,
-            endTime: endTime,
-            employees: employees,
-            customer: customer,
-            hasCustomer: customer && customer.length > 0
-=======
 /**
  * Validuje povinné vstupné polia
  */
@@ -213,15 +168,12 @@ function validateInputs() {
         return {
             success: false,
             message: "Chýbajúce povinné polia: " + missingFields.join(", ")
->>>>>>> fe9558eeb24c203f32123ea841b60857b1a2a78a
         };
         
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "validateInputData", error);
         return { success: false, error: error.toString() };
     }
-<<<<<<< HEAD
-=======
     
     var customer = utils.safeGetLinks(currentEntry, CONFIG.fields.customer);
     
@@ -233,7 +185,6 @@ function validateInputs() {
         customer: customer,
         date: date
     };
->>>>>>> fe9558eeb24c203f32123ea841b60857b1a2a78a
 }
 
 // ==============================================
