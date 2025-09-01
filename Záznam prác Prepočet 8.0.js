@@ -825,8 +825,8 @@ function recalculateWorkReportTotals(workReport) {
         
         // Spočítaj všetky záznamy
         for (var i = 0; i < vykazArray.length; i++) {
-            var hours = utils.safeGet(vykazArray[i], CONFIG.fields.workReport.workHours || 0);
-            var price = utils.safeGet(vykazArray[i], CONFIG.fields.workReport.hzsSum || 0);
+            var hours = utils.safeGet(vykazArray[i], CONFIG.fields.workRecord.workHours || 0);
+            var price = utils.safeGet(vykazArray[i], CONFIG.fields.workRecord.hzsSum || 0);
             
             totalHours += hours;
             totalAmount += price;
