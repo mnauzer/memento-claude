@@ -28,6 +28,7 @@ var CONFIG = {
         workRecord: centralConfig.fields.workRecord,
         common: centralConfig.fields.common,
         employee: centralConfig.fields.employee,
+        priceFields: centralConfig.fields.priceFields ,
         // Mapovanie pre časové polia
         startTime: centralConfig.fields.workRecord.startTime || "Od",
         endTime: centralConfig.fields.workRecord.endTime || "Do",
@@ -47,7 +48,8 @@ var CONFIG = {
     libraries: {
         workReport: centralConfig.libraries.workReport || "Výkaz prác",
         defaults: centralConfig.libraries.defaults || "ASISTANTO Defaults",
-        wages: centralConfig.libraries.wages || "sadzby zamestnancov"
+        wages: centralConfig.libraries.wages || "sadzby zamestnancov",
+        priceList: centralConfig.libraries.priceList || "ceny prác"
     },
     icons: centralConfig.icons,
     
@@ -371,6 +373,10 @@ function calculateTotals(employeeResult, hzsResult) {
 // SPRACOVANIE HZS
 // ==============================================
 
+// ==============================================
+// OPRAVENÉ FUNKCIE PRE HZS SPRACOVANIE
+// ==============================================
+
 function processHZS(workedHours) {
     try {
         var hzsField = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.hzs);
@@ -389,10 +395,17 @@ function processHZS(workedHours) {
         // Získaj cenu z HZS
         var hzsPrice = 0;
         if (hzsField && hzsField.length > 0) {
-            // Získaj cenu z atribútu prvého HZS záznamu
+            var hzsRecord = hzsField[0]; // Prvý HZS záznam
+            var currentDate = utils.safeGet(currentEntry, CONFIG.fields.workRecord.date);
+            
+            // Získaj platnú cenu z histórie
+            hzsPrice = getValidHZSPrice(hzsRecord, currentDate);
+            
+            // Nastav cenu ako atribút na HZS poli
             var hzsArray = currentEntry.field(CONFIG.fields.workRecord.hzs);
             if (hzsArray && hzsArray.length > 0 && hzsArray[0]) {
-                hzsPrice = hzsArray[0].attr(CONFIG.hzsAttributes.price) || 0;
+                hzsArray[0].setAttr(CONFIG.hzsAttributes.price, hzsPrice);
+                utils.addDebug(currentEntry, "  ✅ Cena nastavená ako atribút: " + hzsPrice + " €");
             }
         }
         
@@ -411,6 +424,64 @@ function processHZS(workedHours) {
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "processHZS", error);
         return { success: false, price: 0, sum: 0 };
+    }
+}
+
+function getValidHZSPrice(hzsRecord, targetDate) {
+    try {
+        if (!hzsRecord || !targetDate) {
+            utils.addDebug(currentEntry, "  ⚠️ HZS záznam alebo dátum chýba");
+            return 0;
+        }
+        
+        // Získaj historické ceny cez linksFrom
+        var priceHistory = hzsRecord.linksFrom("ceny prác", "HZS"); // Upraviť názov poľa podľa skutočnosti
+        
+        if (!priceHistory || priceHistory.length === 0) {
+            utils.addDebug(currentEntry, "  ⚠️ Žiadne historické ceny pre HZS");
+            return 0;
+        }
+        
+        utils.addDebug(currentEntry, "  🔍 Nájdených " + priceHistory.length + " historických cien");
+        
+        // Nájdi platnú cenu k dátumu
+        var validPrice = null;
+        var latestValidFrom = null;
+        
+        for (var i = 0; i < priceHistory.length; i++) {
+            var priceRecord = priceHistory[i];
+            
+            // Získaj dátumy platnosti (upraviť názvy polí podľa skutočnej štruktúry)
+            var validFrom = utils.safeGet(priceRecord, "Platnosť od");
+            var validTo = utils.safeGet(priceRecord, "Platnosť do");
+            var price = utils.safeGet(priceRecord, "Cena", 0);
+            
+            // Kontrola platnosti
+            if (validFrom && moment(targetDate).isSameOrAfter(validFrom)) {
+                if (!validTo || moment(targetDate).isSameOrBefore(validTo)) {
+                    // Táto cena je platná, vyber najnovšiu
+                    if (!latestValidFrom || moment(validFrom).isAfter(latestValidFrom)) {
+                        validPrice = price;
+                        latestValidFrom = validFrom;
+                        
+                        utils.addDebug(currentEntry, "  • Platná cena nájdená: " + price + " € (od " + 
+                                     utils.formatDate(validFrom) + ")");
+                    }
+                }
+            }
+        }
+        
+        if (validPrice !== null) {
+            utils.addDebug(currentEntry, "  ✅ Finálna cena: " + validPrice + " €");
+            return validPrice;
+        } else {
+            utils.addDebug(currentEntry, "  ❌ Nenašla sa platná cena k dátumu " + utils.formatDate(targetDate));
+            return 0;
+        }
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri získavaní ceny HZS: " + error.toString(), "getValidHZSPrice", error);
+        return 0;
     }
 }
 

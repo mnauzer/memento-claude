@@ -83,6 +83,12 @@ var MementoConfig = (function() {
                 infoTelegram: "info_telegram",    // NOVÉ
                 notifications: "Notifikácie",     // NOVÉ - link field
             },
+            priceFields: {
+                hzsLink: "HZS",  // Pole ktoré odkazuje späť na HZS
+                validFrom: "Platnosť od",
+                validTo: "Platnosť do", 
+                price: "Cena"
+            },
             orders: {
                 telegramGroup: "Telegram skupina"
             },
