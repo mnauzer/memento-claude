@@ -1,173 +1,102 @@
 // ==============================================
 // MEMENTO DATABASE - DOCHÁDZKA SYNC ZÁVÄZKOV
-// Verzia: 5.0 | Dátum: August 2025 | Autor: ASISTANTO
+// Verzia: 6.1 | Dátum: September 2025 | Autor: ASISTANTO
 // Knižnica: Dochádzka | Trigger: After Save
 // ==============================================
-// ✅ KOMPLETNÝ REFAKTORING v5.0:
-//    - Plné využitie MementoUtils Framework
-//    - MementoConfig pre všetky nastavenia
-//    - Žiadne fallbacky ani duplicity
-//    - Čistý modulárny kód
-//    - Vylepšená business logika
+// ✅ KOMPLETNÝ REFAKTORING v6.1:
+//    - Štruktúra ako v Záznam prác 8.0 a Dochádzka 7.3
+//    - Plné využitie MementoUtils v7.0
+//    - Prepočet záväzkov a pohľadávok zamestnancov
+//    - Aktualizácia finančných polí v zamestnancoch
+//    - Čistá organizácia kódu
 // ==============================================
 // 🔗 VYŽADOVANÉ KNIŽNICE:
-//    - MementoUtils (agregátor)
+//    - MementoUtils v7.0 (agregátor)
 //    - MementoCore (základné funkcie)
 //    - MementoConfig (konfigurácia)
 //    - MementoBusiness (business funkcie)
 // ==============================================
 // 📋 FUNKCIE:
-//    - Vytvorenie nových záväzkov pre zamestnancov
-//    - Aktualizácia existujúcich záväzkov
-//    - Nastavenie finančných polí (Suma, Zostatok)
-//    - Označenie checkboxu Záväzky
-//    - Info záznamy pre audit trail
+//    - Vytvorenie/aktualizácia záväzkov z dochádzky
+//    - Prepočet finančných polí zamestnancov
+//    - Výpočet celkových záväzkov a pohľadávok
+//    - Automatické označenie checkboxov
+//    - Komplexné info záznamy
 // ==============================================
 
 // ==============================================
-// INICIALIZÁCIA MODULOV
+// INICIALIZÁCIA
 // ==============================================
 
+var utils = MementoUtils;
+var config = utils.getConfig();
+var centralConfig = utils.config;
 var currentEntry = entry();
-var utils = null;
-var config = null;
-var CONFIG = null;
 
-/**
- * Inicializuje všetky potrebné moduly a konfiguráciu
- */
-function initializeModules() {
-    var initLog = "=== INICIALIZÁCIA SYNC ZÁVÄZKOV ===\n";
+var CONFIG = {
+    scriptName: "Dochádzka Sync Záväzkov",
+    version: "6.1.2",
     
-    // 1. MementoUtils - KRITICKÉ
-    try {
-        if (typeof MementoUtils !== 'undefined') {
-            utils = MementoUtils;
-            initLog += "✅ MementoUtils v" + utils.version + " načítané\n";
-            
-            // Kontrola modulov
-            var deps = utils.checkDependencies();
-            if (!deps.allLoaded) {
-                initLog += "⚠️ Niektoré moduly chýbajú\n";
-            }
-        } else {
-            throw new Error("MementoUtils nie je definované!");
+    // Referencie na centrálny config
+    fields: {
+        attendance: centralConfig.fields.attendance || {},
+        obligations: centralConfig.fields.obligations || {},
+        employees: centralConfig.fields.employees || {},
+        common: centralConfig.fields.common || {},
+        
+        // Špecifické mapovanie pre tento script
+        datum: centralConfig.fields.attendance.date || "Dátum",
+        zamestnanci: centralConfig.fields.attendance.employees || "Zamestnanci",
+        zavazky: centralConfig.fields.attendance.obligations || "Záväzky",
+        info: centralConfig.fields.common.info || "info",
+        infoTelegram: centralConfig.fields.common.infoTelegram || "info_telegram"
+    },
+    
+    attributes: {
+        attendance: centralConfig.attributes.attendanceEmployees || {
+            dennaMzda: "denná mzda",
+            odpracovane: "odpracované",
+            hodinovka: "hodinovka"
         }
-    } catch(e) {
-        currentEntry.set("Error_Log", "❌ KRITICKÁ CHYBA: " + e.toString());
-        message("❌ MementoUtils knižnica nie je dostupná!\nScript nemôže pokračovať.");
-        cancel();
-    }
+    },
     
-    // 2. MementoConfig
-    try {
-        if (typeof MementoConfig !== 'undefined') {
-            config = MementoConfig;
-            config.init();
-            initLog += "✅ MementoConfig v" + config.version + " inicializované\n";
-            
-            // Získaj konfiguráciu
-            var baseConfig = config.getConfig('attendance');
-            var obligationsConfig = config.getFieldMappings('obligations');
-            
-            CONFIG = {
-                version: "5.0",
-                scriptName: "Dochádzka Sync záväzkov",
-                
-                // Field mappings z MementoConfig
-                fields: baseConfig.fieldMappings.attendance,
-                zavazkyFields: obligationsConfig || baseConfig.fieldMappings.obligations,
-                attributes: baseConfig.fieldMappings.attendanceAttributes,
-                zamestnanciFields: baseConfig.fieldMappings.employees,
-                
-                // Libraries
-                libraries: baseConfig.libraries,
-                
-                // Business rules
-                stavy: {
-                    neuhradene: "Neuhradené",
-                    ciastocneUhradene: "Čiastočne uhradené", 
-                    uhradene: "Uhradené"
-                }
-            };
-            
-            initLog += "✅ Konfigurácia načítaná z MementoConfig\n";
-        } else {
-            utils.addError(currentEntry, "MementoConfig nie je dostupný - používam lokálnu konfiguráciu", "init");
-            CONFIG = getLocalConfig();
+    libraries: centralConfig.libraries || {
+        business: {
+            obligations: "Záväzky",
+            employees: "Zamestnanci",
+            attendance: "Dochádzka"
         }
-    } catch(e) {
-        utils.addError(currentEntry, "Chyba pri načítaní MementoConfig: " + e.toString(), "init");
-        CONFIG = getLocalConfig();
-    }
+    },
     
-    // 3. Kontrola Business funkcií
-    if (!utils.formatEmployeeName) {
-        utils.addError(currentEntry, "MementoBusiness modul nie je načítaný - formatEmployeeName chýba", "init");
-    }
+    icons: centralConfig.icons || {},
     
-    if (!utils.calculateDailyWage) {
-        utils.addError(currentEntry, "MementoBusiness modul nie je načítaný - calculateDailyWage chýba", "init");
-    }
-    
-    utils.addDebug(currentEntry, initLog);
-    return true;
-}
-
-/**
- * Lokálna konfigurácia (len ak MementoConfig nie je dostupný)
- */
-function getLocalConfig() {
-    return {
-        version: "5.0",
-        scriptName: "Dochádzka Sync záväzkov",
-        
-        libraries: {
-            business: {
-                obligations: "Záväzky",
-                employees: "Zamestnanci",
-                attendance: "Dochádzka"
-            }
-        },
-        
-        fields: {
-            zamestnanci: "Zamestnanci",
-            datum: "Dátum",
-            zavazky: "Záväzky",
-            info: "info"
-        },
-        
-        zavazkyFields: {
-            stav: "Stav",
-            datum: "Dátum",
-            typ: "Typ",
-            zamestnanec: "Zamestnanec",
-            veritiel: "Veriteľ",
-            dochadzka: "Dochádzka",
-            popis: "Popis",
-            suma: "Suma",
-            zaplatene: "Zaplatené",
-            zostatok: "Zostatok",
-            info: "info"
-        },
-        
-        zamestnanciFields: {
-            id: "ID",
-            nick: "Nick",
-            priezvisko: "Priezvisko"
-        },
-        
-        attributes: {
-            dennaMzda: "denná mzda"
-        },
-        
+    // Špecifické konštanty pre záväzky
+    constants: {
         stavy: {
             neuhradene: "Neuhradené",
             ciastocneUhradene: "Čiastočne uhradené",
             uhradene: "Uhradené"
+        },
+        typy: {
+            mzda: "Mzda",
+            odmena: "Odmena",
+            ine: "Iné"
         }
-    };
-}
+    }
+};
+
+// ==============================================
+// SLEDOVANIE KROKOV
+// ==============================================
+
+var steps = {
+    step1: { name: "Validácia vstupných dát", success: false },
+    step2: { name: "Kontrola knižníc", success: false },
+    step3: { name: "Nájdenie existujúcich záväzkov", success: false },
+    step4: { name: "Spracovanie záväzkov", success: false },
+    step5: { name: "Prepočet financií zamestnancov", success: false },
+    step6: { name: "Finalizácia záznamu", success: false }
+};
 
 // ==============================================
 // HLAVNÁ FUNKCIA
@@ -175,78 +104,74 @@ function getLocalConfig() {
 
 function main() {
     try {
-        // Inicializácia
-        if (!initializeModules()) {
-            return false;
-        }
-        
         utils.addDebug(currentEntry, "🚀 === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
-        utils.addDebug(currentEntry, "📅 Dátum: " + utils.formatDate(moment()));
+        utils.addDebug(currentEntry, "⏰ Čas spustenia: " + utils.formatDate(moment(), "DD.MM.YYYY HH:mm:ss"));
         
-        // 1. Validácia vstupných dát
+        // KROK 1: Validácia vstupných dát
+        utils.addDebug(currentEntry, utils.getIcon("check") + " KROK 1: Validácia vstupných dát");
         var validationResult = validateInputData();
         if (!validationResult.success) {
-            utils.addError(currentEntry, validationResult.error, CONFIG.scriptName);
+            utils.addError(currentEntry, validationResult.error, "main");
             message("❌ " + validationResult.error);
             return false;
         }
+        steps.step1.success = true;
         
-        // 2. Získanie knižnice Záväzky
-        var zavazkyLib = getObligationsLibrary();
-        if (!zavazkyLib) {
-            message("❌ Knižnica Záväzky nie je dostupná!");
+        // KROK 2: Kontrola knižníc
+        utils.addDebug(currentEntry, utils.getIcon("library") + " KROK 2: Kontrola potrebných knižníc");
+        var libraries = getRequiredLibraries();
+        if (!libraries) {
+            message("❌ Nepodarilo sa načítať potrebné knižnice!");
             return false;
         }
+        steps.step2.success = true;
         
-        // 3. Nájdenie existujúcich záväzkov
-        var existingObligations = findExistingObligations();
-        utils.addDebug(currentEntry, "📊 Našiel som " + existingObligations.length + " existujúcich záväzkov");
+        // KROK 3: Nájdenie existujúcich záväzkov
+        utils.addDebug(currentEntry, utils.getIcon("search") + " KROK 3: Hľadanie existujúcich záväzkov");
+        var existingObligations = findExistingObligations(libraries.zavazky);
+        utils.addDebug(currentEntry, "📊 Nájdené existujúce záväzky: " + existingObligations.length);
+        steps.step3.success = true;
         
-        // 4. Spracovanie zamestnancov
+        // KROK 4: Spracovanie záväzkov
+        utils.addDebug(currentEntry, utils.getIcon("update") + " KROK 4: Vytvorenie/aktualizácia záväzkov");
         var processingResult = processEmployees(
-            validationResult.zamestnanci,
-            validationResult.datum,
-            zavazkyLib,
+            validationResult.employees,
+            validationResult.date,
+            libraries,
             existingObligations
         );
+        steps.step4.success = processingResult.success;
         
-        // 5. Označenie checkboxu a vytvorenie info záznamu
+        // KROK 5: Prepočet financií zamestnancov
+        utils.addDebug(currentEntry, utils.getIcon("money") + " KROK 5: Prepočet financií zamestnancov");
+        var financialResult = updateEmployeeFinancials(validationResult.employees, libraries);
+        steps.step5.success = financialResult.success;
+        
+        // KROK 6: Finalizácia
+        utils.addDebug(currentEntry, utils.getIcon("checkmark") + " KROK 6: Finalizácia záznamu");
         if (processingResult.total > 0) {
-            markObligationsCheckbox();
-            createInfoRecord(processingResult, validationResult.datum);
+            markCheckboxes();
+            createInfoRecord(processingResult, validationResult.date, financialResult);
+            steps.step6.success = true;
         }
         
-        // 6. Finálne zhrnutie
-        logFinalSummary(processingResult);
+        // Finálne zhrnutie
+        logFinalSummary(steps, processingResult);
         
-        // 7. Informuj používateľa
-        if (processingResult.total > 0) {
-            var summaryMsg = "✅ Záväzky úspešne synchronizované!\n\n";
-            summaryMsg += "📊 Výsledky:\n";
-            summaryMsg += "• Nové: " + processingResult.created + "\n";
-            summaryMsg += "• Aktualizované: " + processingResult.updated + "\n";
-            summaryMsg += "• Celková suma: " + utils.formatMoney(processingResult.totalAmount) + "\n";
-            
-            if (processingResult.errors > 0) {
-                summaryMsg += "• ⚠️ Chyby: " + processingResult.errors;
-            }
-            
-            message(summaryMsg);
-            return true;
-        } else {
-            message("❌ Synchronizácia záväzkov zlyhala!\nPozri Error_Log pre detaily.");
-            return false;
-        }
+        // Informuj používateľa
+        showUserMessage(processingResult, financialResult);
+        
+        return processingResult.success;
         
     } catch (error) {
-        utils.addError(currentEntry, "Kritická chyba: " + error.toString(), CONFIG.scriptName, error);
+        utils.addError(currentEntry, "Kritická chyba v main: " + error.toString(), "main", error);
         message("💥 Kritická chyba!\n" + error.toString());
         return false;
     }
 }
 
 // ==============================================
-// VALIDÁCIA A PRÍPRAVA DÁT
+// KROK 1: VALIDÁCIA
 // ==============================================
 
 /**
@@ -256,98 +181,154 @@ function validateInputData() {
     try {
         utils.addDebug(currentEntry, "📋 Validácia vstupných dát...");
         
-        var datum = currentEntry.field(CONFIG.fields.datum);
+        // Načítaj dáta
+        var datum = utils.safeGet(currentEntry, CONFIG.fields.datum);
         var zamestnanci = utils.safeGetLinks(currentEntry, CONFIG.fields.zamestnanci);
         
-        // Kontrola dátumu
+        // Validácia dátumu
         if (!datum) {
-            return { success: false, error: "Dátum dochádzky nie je vyplnený!" };
+            return { 
+                success: false, 
+                error: "Dátum dochádzky nie je vyplnený!" 
+            };
         }
         
-        // Kontrola zamestnancov
+        // Validácia zamestnancov
         if (!zamestnanci || zamestnanci.length === 0) {
-            return { success: false, error: "Žiadni zamestnanci v dochádzke!" };
+            return { 
+                success: false, 
+                error: "Žiadni zamestnanci v dochádzke!" 
+            };
+        }
+        
+        // Kontrola atribútov zamestnancov
+        var validEmployees = [];
+        var zamArray = currentEntry.field(CONFIG.fields.zamestnanci);
+        
+        for (var i = 0; i < zamestnanci.length; i++) {
+            var employee = zamestnanci[i];
+            if (!employee) continue;
+            
+            // Získaj atribút denná mzda
+            var dennaMzda = 0;
+            try {
+                dennaMzda = zamArray[i].attr(CONFIG.attributes.attendance.dennaMzda) || 0;
+            } catch (e) {
+                utils.addDebug(currentEntry, "⚠️ Chyba pri čítaní atribútu: " + e.toString());
+            }
+            
+            if (dennaMzda && dennaMzda > 0) {
+                validEmployees.push({
+                    entry: employee,
+                    index: i,
+                    dailyWage: dennaMzda,
+                    name: utils.formatEmployeeName ? utils.formatEmployeeName(employee) : 
+                          employee.field("Nick") || employee.field("Priezvisko") || "Zamestnanec"
+                });
+                
+                utils.addDebug(currentEntry, "✅ " + validEmployees[validEmployees.length-1].name + 
+                               " - denná mzda: " + utils.formatMoney(dennaMzda));
+            } else {
+                var empName = employee.field("Nick") || employee.field("Priezvisko") || "Zamestnanec";
+                utils.addDebug(currentEntry, "⚠️ " + empName + " - nemá nastavenú dennú mzdu");
+            }
+        }
+        
+        if (validEmployees.length === 0) {
+            return { 
+                success: false, 
+                error: "Žiadni zamestnanci nemajú nastavenú dennú mzdu!" 
+            };
         }
         
         utils.addDebug(currentEntry, "✅ Validácia úspešná");
-        utils.addDebug(currentEntry, "  • Dátum: " + utils.formatDate(datum));
-        utils.addDebug(currentEntry, "  • Počet zamestnancov: " + zamestnanci.length);
+        utils.addDebug(currentEntry, "  📅 Dátum: " + utils.formatDate(datum));
+        utils.addDebug(currentEntry, "  👥 Platní zamestnanci: " + validEmployees.length + "/" + zamestnanci.length);
         
         return {
             success: true,
-            datum: datum,
-            zamestnanci: zamestnanci
+            date: datum,
+            employees: validEmployees,
+            allEmployees: zamestnanci
         };
         
     } catch (error) {
-        utils.addError(currentEntry, "Chyba validácie: " + error.toString(), "validateInputData");
-        return { success: false, error: error.toString() };
+        utils.addError(currentEntry, "Chyba pri validácii: " + error.toString(), "validateInputData", error);
+        return { 
+            success: false, 
+            error: "Chyba pri validácii dát" 
+        };
     }
 }
 
+// ==============================================
+// KROK 2: KONTROLA KNIŽNÍC
+// ==============================================
+
 /**
- * Získa knižnicu Záväzky
+ * Získa potrebné knižnice
  */
-function getObligationsLibrary() {
+function getRequiredLibraries() {
     try {
-        utils.addDebug(currentEntry, "📚 Načítavam knižnicu Záväzky...");
+        utils.addDebug(currentEntry, "📚 Získavam potrebné knižnice...");
         
-        var libraryName = CONFIG.libraries.business.obligations || "Záväzky";
-        var zavazkyLib = libByName(libraryName);
+        var libraries = {};
         
-        if (!zavazkyLib) {
-            utils.addError(currentEntry, "Knižnica '" + libraryName + "' neexistuje!", "getObligationsLibrary");
+        // Knižnica Záväzky
+        var zavazkyName = CONFIG.libraries.business.obligations || "Záväzky";
+        libraries.zavazky = libByName(zavazkyName);
+        if (!libraries.zavazky) {
+            utils.addError(currentEntry, "Knižnica '" + zavazkyName + "' nenájdená!", "getRequiredLibraries");
             return null;
         }
+        utils.addDebug(currentEntry, "✅ Knižnica Záväzky načítaná");
         
-        utils.addDebug(currentEntry, "✅ Knižnica '" + libraryName + "' načítaná");
-        return zavazkyLib;
+        // Knižnica Zamestnanci
+        var zamestnanciName = CONFIG.libraries.business.employees || "Zamestnanci";
+        libraries.zamestnanci = libByName(zamestnanciName);
+        if (!libraries.zamestnanci) {
+            utils.addError(currentEntry, "Knižnica '" + zamestnanciName + "' nenájdená!", "getRequiredLibraries");
+            return null;
+        }
+        utils.addDebug(currentEntry, "✅ Knižnica Zamestnanci načítaná");
+        
+        return libraries;
         
     } catch (error) {
-        utils.addError(currentEntry, "Chyba pri načítaní knižnice: " + error.toString(), "getObligationsLibrary");
+        utils.addError(currentEntry, "Chyba pri získavaní knižníc: " + error.toString(), "getRequiredLibraries", error);
         return null;
     }
 }
 
 // ==============================================
-// PRÁCA SO ZÁVÄZKAMI
+// KROK 3: HĽADANIE EXISTUJÚCICH ZÁVÄZKOV
 // ==============================================
 
 /**
  * Nájde existujúce záväzky pre túto dochádzku
  */
-function findExistingObligations() {
+function findExistingObligations(zavazkyLib) {
     try {
         utils.addDebug(currentEntry, "🔍 Hľadám existujúce záväzky...");
         
-        var libraryName = CONFIG.libraries.business.obligations || "Záväzky";
-        var zavazkyLib = libByName(libraryName);
-        
-        if (!zavazkyLib) {
+        var currentEntryId = currentEntry.field("ID");
+        if (!currentEntryId) {
+            utils.addDebug(currentEntry, "⚠️ Current entry nemá ID");
             return [];
         }
         
-        var allObligations = zavazkyLib.entries();
-        var linkedObligations = [];
-        var currentEntryId = currentEntry.field("ID");
+        // Hľadaj záväzky ktoré majú link na túto dochádzku
+        var dochadzkaField = CONFIG.fields.obligations.attendance || "Dochádzka";
+        var query = dochadzkaField + " = '" + currentEntryId + "'";
         
-        for (var i = 0; i < allObligations.length; i++) {
-            var obligation = allObligations[i];
-            var dochadzkaField = utils.safeGetLinks(obligation, CONFIG.zavazkyFields.dochadzka);
-            
-            // Skontroluj či obsahuje našu dochádzku
-            for (var j = 0; j < dochadzkaField.length; j++) {
-                if (dochadzkaField[j] && dochadzkaField[j].field("ID") === currentEntryId) {
-                    linkedObligations.push(obligation);
-                    break;
-                }
-            }
-        }
+        var existingObligations = zavazkyLib.find(query);
         
-        return linkedObligations;
+        utils.addDebug(currentEntry, "📊 Nájdených záväzkov cez query: " + existingObligations.length);
+        
+        return existingObligations || [];
         
     } catch (error) {
-        utils.addError(currentEntry, "Chyba pri hľadaní záväzkov: " + error.toString(), "findExistingObligations");
+        utils.addError(currentEntry, "Chyba pri hľadaní záväzkov: " + error.toString(), "findExistingObligations", error);
         return [];
     }
 }
@@ -360,13 +341,14 @@ function findObligationForEmployee(existingObligations, employee) {
         if (!existingObligations || !employee) return null;
         
         var employeeId = employee.field("ID");
+        var zamestnanecField = CONFIG.fields.obligations.employee || "Zamestnanec";
         
         for (var i = 0; i < existingObligations.length; i++) {
             var obligation = existingObligations[i];
-            var zamestnanecField = utils.safeGetLinks(obligation, CONFIG.zavazkyFields.zamestnanec);
+            var linkedEmployees = utils.safeGetLinks(obligation, zamestnanecField);
             
-            for (var j = 0; j < zamestnanecField.length; j++) {
-                if (zamestnanecField[j] && zamestnanecField[j].field("ID") === employeeId) {
+            for (var j = 0; j < linkedEmployees.length; j++) {
+                if (linkedEmployees[j] && linkedEmployees[j].field("ID") === employeeId) {
                     return obligation;
                 }
             }
@@ -375,41 +357,91 @@ function findObligationForEmployee(existingObligations, employee) {
         return null;
         
     } catch (error) {
-        utils.addError(currentEntry, "Chyba pri hľadaní záväzku pre zamestnanca: " + error.toString(), "findObligationForEmployee");
+        utils.addError(currentEntry, "Chyba pri hľadaní záväzku: " + error.toString(), "findObligationForEmployee");
         return null;
     }
 }
 
+// ==============================================
+// KROK 4: SPRACOVANIE ZÁVÄZKOV
+// ==============================================
+
 /**
- * Vypočíta stav záväzku podľa zostatku
+ * Spracuje všetkých zamestnancov a vytvorí/aktualizuje záväzky
  */
-function calculateObligationStatus(zostatok) {
-    if (zostatok === null || zostatok === undefined) {
-        return CONFIG.stavy.neuhradene;
-    } else if (zostatok <= 0) {
-        return CONFIG.stavy.uhradene;
-    } else {
-        return CONFIG.stavy.ciastocneUhradene;
+function processEmployees(employees, datum, libraries, existingObligations) {
+    var result = {
+        created: 0,
+        updated: 0,
+        errors: 0,
+        total: 0,
+        totalAmount: 0,
+        success: false
+    };
+    
+    try {
+        utils.addDebug(currentEntry, "\n📋 Spracovávam zamestnancov...");
+        
+        for (var i = 0; i < employees.length; i++) {
+            var empData = employees[i];
+            
+            utils.addDebug(currentEntry, "\n--- Zamestnanec " + (i + 1) + "/" + employees.length + ": " + empData.name + " ---");
+            
+            try {
+                // Nájdi existujúci záväzok pre tohto zamestnanca
+                var existingObligation = findObligationForEmployee(existingObligations, empData.entry);
+                
+                if (existingObligation) {
+                    // Aktualizuj existujúci
+                    if (updateExistingObligation(existingObligation, empData.dailyWage, empData.name, datum)) {
+                        result.updated++;
+                        result.totalAmount += empData.dailyWage;
+                    } else {
+                        result.errors++;
+                    }
+                } else {
+                    // Vytvor nový
+                    if (createNewObligation(libraries.zavazky, empData.entry, datum, empData.dailyWage, empData.name)) {
+                        result.created++;
+                        result.totalAmount += empData.dailyWage;
+                    } else {
+                        result.errors++;
+                    }
+                }
+                
+                result.total++;
+                
+            } catch (error) {
+                utils.addError(currentEntry, "Chyba pri spracovaní zamestnanca: " + error.toString(), "processEmployees");
+                result.errors++;
+            }
+        }
+        
+        result.success = result.errors === 0 && result.total > 0;
+        
+        utils.addDebug(currentEntry, "\n📊 Výsledky spracovania:");
+        utils.addDebug(currentEntry, "  ✅ Vytvorené: " + result.created);
+        utils.addDebug(currentEntry, "  🔄 Aktualizované: " + result.updated);
+        utils.addDebug(currentEntry, "  ❌ Chyby: " + result.errors);
+        utils.addDebug(currentEntry, "  💰 Celková suma: " + utils.formatMoney(result.totalAmount));
+        
+        return result;
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Kritická chyba pri spracovaní: " + error.toString(), "processEmployees", error);
+        result.success = false;
+        return result;
     }
 }
-
-// ==============================================
-// VYTVORENIE A AKTUALIZÁCIA ZÁVÄZKOV
-// ==============================================
 
 /**
  * Vytvorí nový záväzok
  */
-function createNewObligation(zavazkyLib, employee, datum, amount) {
+function createNewObligation(zavazkyLib, employee, datum, amount, employeeName) {
     try {
         utils.addDebug(currentEntry, "  ➕ Vytváranie nového záväzku...");
         
-        // Použi MementoBusiness funkciu ak je dostupná
-        var employeeName = utils.formatEmployeeName ? 
-            utils.formatEmployeeName(employee) : 
-            utils.safeGet(employee, CONFIG.zamestnanciFields.nick, "Zamestnanec");
-        
-        // Popis záväzku
+        // Príprava dát
         var description = "Mzda zamestnanca " + employeeName + " za deň " + utils.formatDate(datum);
         
         // Info text
@@ -425,17 +457,17 @@ function createNewObligation(zavazkyLib, employee, datum, amount) {
         
         // Dáta pre nový záznam
         var obligationData = {};
-        obligationData[CONFIG.zavazkyFields.stav] = CONFIG.stavy.neuhradene;
-        obligationData[CONFIG.zavazkyFields.datum] = datum;
-        obligationData[CONFIG.zavazkyFields.typ] = "Mzda";
-        obligationData[CONFIG.zavazkyFields.zamestnanec] = [employee];
-        obligationData[CONFIG.zavazkyFields.veritiel] = "Zamestnanec";
-        obligationData[CONFIG.zavazkyFields.dochadzka] = [currentEntry];
-        obligationData[CONFIG.zavazkyFields.popis] = description;
-        obligationData[CONFIG.zavazkyFields.suma] = amount;
-        obligationData[CONFIG.zavazkyFields.zaplatene] = 0;
-        obligationData[CONFIG.zavazkyFields.zostatok] = amount;
-        obligationData[CONFIG.zavazkyFields.info] = infoText;
+        obligationData[CONFIG.fields.obligations.state || "Stav"] = CONFIG.constants.stavy.neuhradene;
+        obligationData[CONFIG.fields.obligations.date || "Dátum"] = datum;
+        obligationData[CONFIG.fields.obligations.type || "Typ"] = CONFIG.constants.typy.mzda;
+        obligationData[CONFIG.fields.obligations.employee || "Zamestnanec"] = [employee];
+        obligationData[CONFIG.fields.obligations.creditor || "Veriteľ"] = "Zamestnanec";
+        obligationData[CONFIG.fields.obligations.attendance || "Dochádzka"] = [currentEntry];
+        obligationData[CONFIG.fields.obligations.description || "Popis"] = description;
+        obligationData[CONFIG.fields.obligations.amount || "Suma"] = amount;
+        obligationData[CONFIG.fields.obligations.paid || "Zaplatené"] = 0;
+        obligationData[CONFIG.fields.obligations.balance || "Zostatok"] = amount;
+        obligationData[CONFIG.fields.common.info || "info"] = infoText;
         
         // Vytvor záznam
         var newObligation = zavazkyLib.create(obligationData);
@@ -449,7 +481,7 @@ function createNewObligation(zavazkyLib, employee, datum, amount) {
         }
         
     } catch (error) {
-        utils.addError(currentEntry, "Chyba pri vytváraní záväzku: " + error.toString(), "createNewObligation");
+        utils.addError(currentEntry, "Chyba pri vytváraní záväzku: " + error.toString(), "createNewObligation", error);
         return false;
     }
 }
@@ -461,17 +493,17 @@ function updateExistingObligation(obligation, amount, employeeName, datum) {
     try {
         utils.addDebug(currentEntry, "  🔄 Aktualizácia existujúceho záväzku...");
         
-        var paidAmount = utils.safeGet(obligation, CONFIG.zavazkyFields.zaplatene, 0);
+        var paidAmount = utils.safeGet(obligation, CONFIG.fields.obligations.paid || "Zaplatené", 0);
         var newBalance = amount - paidAmount;
         var newStatus = calculateObligationStatus(newBalance);
         
         // Aktualizuj polia
-        obligation.set(CONFIG.zavazkyFields.suma, amount);
-        obligation.set(CONFIG.zavazkyFields.zostatok, newBalance);
-        obligation.set(CONFIG.zavazkyFields.stav, newStatus);
+        obligation.set(CONFIG.fields.obligations.amount || "Suma", amount);
+        obligation.set(CONFIG.fields.obligations.balance || "Zostatok", newBalance);
+        obligation.set(CONFIG.fields.obligations.state || "Stav", newStatus);
         
         // Aktualizuj info
-        var existingInfo = utils.safeGet(obligation, CONFIG.zavazkyFields.info, "");
+        var existingInfo = utils.safeGet(obligation, CONFIG.fields.common.info || "info", "");
         var updateInfo = "\n\n🔄 AKTUALIZOVANÉ: " + utils.formatDate(moment(), "DD.MM.YYYY HH:mm:ss") + "\n";
         updateInfo += "• Nová suma: " + utils.formatMoney(amount) + "\n";
         updateInfo += "• Zaplatené: " + utils.formatMoney(paidAmount) + " (zachované)\n";
@@ -479,7 +511,7 @@ function updateExistingObligation(obligation, amount, employeeName, datum) {
         updateInfo += "• Stav: " + newStatus + "\n";
         updateInfo += "• Script: " + CONFIG.scriptName + " v" + CONFIG.version;
         
-        obligation.set(CONFIG.zavazkyFields.info, existingInfo + updateInfo);
+        obligation.set(CONFIG.fields.common.info || "info", existingInfo + updateInfo);
         
         utils.addDebug(currentEntry, "  ✅ Záväzok aktualizovaný");
         utils.addDebug(currentEntry, "    💰 Suma: " + utils.formatMoney(amount));
@@ -489,159 +521,219 @@ function updateExistingObligation(obligation, amount, employeeName, datum) {
         return true;
         
     } catch (error) {
-        utils.addError(currentEntry, "Chyba pri aktualizácii záväzku: " + error.toString(), "updateExistingObligation");
+        utils.addError(currentEntry, "Chyba pri aktualizácii záväzku: " + error.toString(), "updateExistingObligation", error);
+        return false;
+    }
+}
+
+/**
+ * Vypočíta stav záväzku podľa zostatku
+ */
+function calculateObligationStatus(zostatok) {
+    if (zostatok === null || zostatok === undefined) {
+        return CONFIG.constants.stavy.neuhradene;
+    } else if (zostatok <= 0) {
+        return CONFIG.constants.stavy.uhradene;
+    } else if (zostatok > 0) {
+        return CONFIG.constants.stavy.ciastocneUhradene;
+    } else {
+        return CONFIG.constants.stavy.neuhradene;
+    }
+}
+
+// ==============================================
+// KROK 5: PREPOČET FINANCIÍ ZAMESTNANCOV
+// ==============================================
+
+/**
+ * Aktualizuje finančné polia všetkých zamestnancov
+ * Prepočíta záväzky, pohľadávky a saldo
+ */
+function updateEmployeeFinancials(employees, libraries) {
+    var result = {
+        success: false,
+        processed: 0,
+        errors: 0,
+        totals: {
+            zavazky: 0,
+            pohladavky: 0,
+            saldo: 0
+        }
+    };
+    
+    try {
+        utils.addDebug(currentEntry, "\n💰 Prepočítavam financie zamestnancov...");
+        
+        // Spracuj každého zamestnanca
+        for (var i = 0; i < employees.length; i++) {
+            var empData = employees[i];
+            
+            try {
+                var employeeEntry = empData.entry;
+                utils.addDebug(currentEntry, "\n📊 Prepočet pre: " + empData.name);
+                
+                // Získaj všetky záväzky zamestnanca
+                var obligations = getEmployeeObligations(employeeEntry, libraries.zavazky);
+                
+                // Vypočítaj súhrny
+                var financials = calculateEmployeeFinancials(obligations);
+                
+                // Aktualizuj polia v zamestnancovi
+                updateEmployeeFields(employeeEntry, financials);
+                
+                // Pridaj do celkových súm
+                result.totals.zavazky += financials.totalObligations;
+                result.totals.pohladavky += financials.totalReceivables;
+                result.totals.saldo += financials.saldo;
+                
+                result.processed++;
+                
+                utils.addDebug(currentEntry, "  💸 Záväzky: " + utils.formatMoney(financials.totalObligations));
+                utils.addDebug(currentEntry, "  💰 Pohľadávky: " + utils.formatMoney(financials.totalReceivables));
+                utils.addDebug(currentEntry, "  📊 Saldo: " + utils.formatMoney(financials.saldo));
+                
+            } catch (error) {
+                utils.addError(currentEntry, "Chyba pri prepočte zamestnanca: " + error.toString(), "updateEmployeeFinancials");
+                result.errors++;
+            }
+        }
+        
+        result.success = result.errors === 0 && result.processed > 0;
+        
+        utils.addDebug(currentEntry, "\n📈 CELKOVÉ SÚHRNY:");
+        utils.addDebug(currentEntry, "  💸 Celkové záväzky: " + utils.formatMoney(result.totals.zavazky));
+        utils.addDebug(currentEntry, "  💰 Celkové pohľadávky: " + utils.formatMoney(result.totals.pohladavky));
+        utils.addDebug(currentEntry, "  📊 Celkové saldo: " + utils.formatMoney(result.totals.saldo));
+        
+        return result;
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Kritická chyba pri prepočte financií: " + error.toString(), "updateEmployeeFinancials", error);
+        result.success = false;
+        return result;
+    }
+}
+
+/**
+ * Získa všetky záväzky zamestnanca
+ */
+function getEmployeeObligations(employee, zavazkyLib) {
+    try {
+        var employeeId = employee.field("ID");
+        var zamestnanecField = CONFIG.fields.obligations.employee || "Zamestnanec";
+        
+        // Hľadaj záväzky kde je tento zamestnanec
+        var obligations = zavazkyLib.find(zamestnanecField + " = '" + employeeId + "'");
+        
+        return obligations || [];
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri získavaní záväzkov: " + error.toString(), "getEmployeeObligations");
+        return [];
+    }
+}
+
+/**
+ * Vypočíta finančné súhrny zamestnanca
+ */
+function calculateEmployeeFinancials(obligations) {
+    var result = {
+        totalObligations: 0,    // Celkové záväzky (čo firma dlží zamestnancovi)
+        totalReceivables: 0,    // Celkové pohľadávky (čo zamestnanec dlží firme)
+        paidObligations: 0,     // Zaplatené záväzky
+        paidReceivables: 0,     // Zaplatené pohľadávky
+        unpaidObligations: 0,   // Nezaplatené záväzky
+        unpaidReceivables: 0,   // Nezaplatené pohľadávky
+        saldo: 0               // Saldo (pohľadávky - záväzky)
+    };
+    
+    try {
+        for (var i = 0; i < obligations.length; i++) {
+            var obligation = obligations[i];
+            var suma = utils.safeGet(obligation, CONFIG.fields.obligations.amount || "Suma", 0);
+            var zaplatene = utils.safeGet(obligation, CONFIG.fields.obligations.paid || "Zaplatené", 0);
+            var zostatok = utils.safeGet(obligation, CONFIG.fields.obligations.balance || "Zostatok", 0);
+            var typ = utils.safeGet(obligation, CONFIG.fields.obligations.type || "Typ", "");
+            
+            // Rozlíš záväzky a pohľadávky podľa typu
+            if (typ === "Mzda" || typ === "Odmena") {
+                // Záväzky - firma dlží zamestnancovi
+                result.totalObligations += suma;
+                result.paidObligations += zaplatene;
+                result.unpaidObligations += zostatok;
+            } else if (typ === "Pôžička" || typ === "Škoda" || typ === "Zrážka") {
+                // Pohľadávky - zamestnanec dlží firme
+                result.totalReceivables += suma;
+                result.paidReceivables += zaplatene;
+                result.unpaidReceivables += zostatok;
+            }
+        }
+        
+        // Vypočítaj saldo (+ znamená že firma dlží, - znamená že zamestnanec dlží)
+        result.saldo = result.unpaidObligations - result.unpaidReceivables;
+        
+        return result;
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri výpočte financií: " + error.toString(), "calculateEmployeeFinancials");
+        return result;
+    }
+}
+
+/**
+ * Aktualizuje finančné polia v zamestnancovi
+ */
+function updateEmployeeFields(employee, financials) {
+    try {
+        // Aktualizuj polia
+        employee.set(CONFIG.fields.employees.obligations || "Záväzky", financials.unpaidObligations);
+        employee.set(CONFIG.fields.employees.receivables || "Pohľadávky", financials.unpaidReceivables);
+        employee.set(CONFIG.fields.employees.balance || "Saldo", financials.saldo);
+        
+        // Voliteľné - aktualizuj aj platené sumy
+        var paidObligField = CONFIG.fields.employees.paidObligations || "Vyplatené";
+        if (employee.field(paidObligField) !== undefined) {
+            employee.set(paidObligField, financials.paidObligations);
+        }
+        
+        return true;
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri aktualizácii polí zamestnanca: " + error.toString(), "updateEmployeeFields");
         return false;
     }
 }
 
 // ==============================================
-// SPRACOVANIE ZAMESTNANCOV
-// ==============================================
-
-/**
- * Spracuje všetkých zamestnancov a vytvorí/aktualizuje záväzky
- */
-function processEmployees(employees, datum, zavazkyLib, existingObligations) {
-    var result = {
-        created: 0,
-        updated: 0,
-        errors: 0,
-        total: 0,
-        totalAmount: 0
-    };
-    
-    try {
-        utils.addDebug(currentEntry, "\n📋 Spracovávam zamestnancov...");
-        
-        for (var i = 0; i < employees.length; i++) {
-            var employee = employees[i];
-            
-            utils.addDebug(currentEntry, "\n--- Zamestnanec " + (i + 1) + "/" + employees.length + " ---");
-            
-            if (!employee) {
-                utils.addError(currentEntry, "Zamestnanec na pozícii " + i + " je null", "processEmployees");
-                result.errors++;
-                continue;
-            }
-            
-            try {
-                // Získaj meno a dennú mzdu
-                var employeeName = utils.formatEmployeeName ? 
-                    utils.formatEmployeeName(employee) : 
-                    utils.safeGet(employee, CONFIG.zamestnanciFields.nick, "Zamestnanec " + (i+1));
-                
-                var dailyWage = getEmployeeDailyWage(employee, i);
-                
-                utils.addDebug(currentEntry, "  👤 " + employeeName);
-                utils.addDebug(currentEntry, "  💰 Denná mzda: " + utils.formatMoney(dailyWage));
-                
-                if (!dailyWage || dailyWage <= 0) {
-                    utils.addDebug(currentEntry, "  ⚠️ Denná mzda je 0 alebo záporná - preskakujem");
-                    continue;
-                }
-                
-                result.totalAmount += dailyWage;
-                
-                // Skontroluj existujúci záväzok
-                var existingObligation = findObligationForEmployee(existingObligations, employee);
-                
-                if (existingObligation) {
-                    // Aktualizuj existujúci
-                    if (updateExistingObligation(existingObligation, dailyWage, employeeName, datum)) {
-                        result.updated++;
-                        result.total++;
-                    } else {
-                        result.errors++;
-                    }
-                } else {
-                    // Vytvor nový
-                    if (createNewObligation(zavazkyLib, employee, datum, dailyWage)) {
-                        result.created++;
-                        result.total++;
-                    } else {
-                        result.errors++;
-                    }
-                }
-                
-            } catch (error) {
-                utils.addError(currentEntry, "Chyba pri spracovaní zamestnanca: " + error.toString(), "processEmployee_" + i);
-                result.errors++;
-            }
-        }
-        
-        return result;
-        
-    } catch (error) {
-        utils.addError(currentEntry, "Chyba pri spracovaní zamestnancov: " + error.toString(), "processEmployees");
-        return result;
-    }
-}
-
-/**
- * Získa dennú mzdu zamestnanca z atribútu
- */
-function getEmployeeDailyWage(employee, index) {
-    try {
-        // Získaj pole zamestnancov
-        var zamArray = currentEntry.field(CONFIG.fields.zamestnanci);
-        
-        if (!zamArray || zamArray.length <= index) {
-            utils.addError(currentEntry, "Nepodarilo sa získať pole zamestnancov", "getEmployeeDailyWage");
-            return 0;
-        }
-        
-        // Získaj atribút denná mzda
-        var dailyWage = zamArray[index].attr(CONFIG.attributes.dennaMzda);
-        
-        // Ak máme MementoBusiness, môžeme použiť calculateDailyWage
-        if (!dailyWage && utils.calculateDailyWage) {
-            var hours = zamArray[index].attr(CONFIG.attributes.odpracovane);
-            dailyWage = utils.calculateDailyWage(employee, hours, currentEntry.field(CONFIG.fields.datum));
-            
-            if (dailyWage && dailyWage.success) {
-                return dailyWage.amount;
-            }
-        }
-        
-        return dailyWage || 0;
-        
-    } catch (error) {
-        utils.addError(currentEntry, "Chyba pri získavaní dennej mzdy: " + error.toString(), "getEmployeeDailyWage");
-        return 0;
-    }
-}
-
-// ==============================================
-// FINALIZÁCIA
+// KROK 6: FINALIZÁCIA
 // ==============================================
 
 /**
  * Označí checkbox Záväzky v dochádzke
  */
-function markObligationsCheckbox() {
+function markCheckboxes() {
     try {
-        // Skús nájsť správny názov poľa
-        var checkboxField = CONFIG.fields.zavazky || "Záväzky";
-        
+        // Checkbox pre záväzky
+        var checkboxField = CONFIG.fields.zavazky;
         currentEntry.set(checkboxField, true);
         utils.addDebug(currentEntry, "☑️ Checkbox '" + checkboxField + "' označený");
         
     } catch (error) {
-        utils.addError(currentEntry, "Chyba pri označovaní checkboxu: " + error.toString(), "markObligationsCheckbox");
+        utils.addError(currentEntry, "Chyba pri označovaní checkboxu: " + error.toString(), "markCheckboxes", error);
     }
 }
 
 /**
  * Vytvorí info záznam so súhrnom
  */
-function createInfoRecord(processingResult, datum) {
+function createInfoRecord(processingResult, datum, financialResult) {
     try {
         var infoMessage = "📋 SYNCHRONIZÁCIA ZÁVÄZKOV\n";
         infoMessage += "=====================================\n\n";
         infoMessage += "📅 Dátum: " + utils.formatDate(datum) + "\n";
         infoMessage += "⏰ Čas sync: " + utils.formatDate(moment(), "DD.MM.YYYY HH:mm:ss") + "\n\n";
         
-        infoMessage += "📊 VÝSLEDKY:\n";
+        infoMessage += "📊 VÝSLEDKY ZÁVÄZKOV:\n";
         infoMessage += "• ➕ Nové záväzky: " + processingResult.created + "\n";
         infoMessage += "• 🔄 Aktualizované: " + processingResult.updated + "\n";
         infoMessage += "• 💰 Celková suma: " + utils.formatMoney(processingResult.totalAmount) + "\n";
@@ -650,14 +742,17 @@ function createInfoRecord(processingResult, datum) {
             infoMessage += "• ⚠️ Chyby: " + processingResult.errors + "\n";
         }
         
+        if (financialResult) {
+            infoMessage += "\n💰 FINANČNÉ SÚHRNY:\n";
+            infoMessage += "• 💸 Celkové záväzky: " + utils.formatMoney(financialResult.totals.zavazky) + "\n";
+            infoMessage += "• 💰 Celkové pohľadávky: " + utils.formatMoney(financialResult.totals.pohladavky) + "\n";
+            infoMessage += "• 📊 Celkové saldo: " + utils.formatMoney(financialResult.totals.saldo) + "\n";
+            infoMessage += "• 👥 Spracovaní zamestnanci: " + financialResult.processed + "\n";
+        }
+        
         infoMessage += "\n🔧 TECHNICKÉ INFO:\n";
         infoMessage += "• Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
         infoMessage += "• MementoUtils: v" + utils.version + "\n";
-        
-        if (config) {
-            infoMessage += "• MementoConfig: v" + config.version + "\n";
-        }
-        
         infoMessage += "• Trigger: After Save\n";
         infoMessage += "• Knižnica: Dochádzka\n\n";
         
@@ -669,66 +764,155 @@ function createInfoRecord(processingResult, datum) {
         }
         
         currentEntry.set(CONFIG.fields.info, infoMessage);
-        utils.addDebug(currentEntry, "📝 Info záznam vytvorený");
+        
+        // Vytvor aj Telegram info ak je pole dostupné
+        if (CONFIG.fields.infoTelegram) {
+            var telegramInfo = createTelegramInfo(processingResult, datum, financialResult);
+            currentEntry.set(CONFIG.fields.infoTelegram, telegramInfo);
+        }
+        
+        utils.addDebug(currentEntry, "📝 Info záznamy vytvorené");
         
     } catch (error) {
-        utils.addError(currentEntry, "Chyba pri vytváraní info záznamu: " + error.toString(), "createInfoRecord");
+        utils.addError(currentEntry, "Chyba pri vytváraní info záznamu: " + error.toString(), "createInfoRecord", error);
     }
+}
+
+/**
+ * Vytvorí Telegram info správu
+ */
+function createTelegramInfo(processingResult, datum, financialResult) {
+    try {
+        var msg = "*📋 SYNC ZÁVÄZKOV*\\n";
+        msg += "```" + utils.formatDate(datum, "DD.MM.YYYY") + "```\\n\\n";
+        
+        msg += "*Záväzky:*\\n";
+        msg += "• Nové: " + processingResult.created + "\\n";
+        msg += "• Aktualizované: " + processingResult.updated + "\\n";
+        msg += "• Suma: " + escapeMarkdown(utils.formatMoney(processingResult.totalAmount)) + "\\n";
+        
+        if (financialResult) {
+            msg += "\\n*Financie celkom:*\\n";
+            msg += "• Záväzky: " + escapeMarkdown(utils.formatMoney(financialResult.totals.zavazky)) + "\\n";
+            msg += "• Pohľadávky: " + escapeMarkdown(utils.formatMoney(financialResult.totals.pohladavky)) + "\\n";
+            msg += "• Saldo: " + escapeMarkdown(utils.formatMoney(financialResult.totals.saldo)) + "\\n";
+        }
+        
+        return msg;
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri vytváraní Telegram info: " + error.toString(), "createTelegramInfo");
+        return "";
+    }
+}
+
+// ==============================================
+// POMOCNÉ FUNKCIE
+// ==============================================
+
+/**
+ * Escape markdown pre Telegram
+ */
+function escapeMarkdown(text) {
+    if (!text) return "";
+    return text.toString()
+        .replace(/\\/g, "\\\\")
+        .replace(/\*/g, "\\*")
+        .replace(/_/g, "\\_")
+        .replace(/\[/g, "\\[")
+        .replace(/\]/g, "\\]")
+        .replace(/\(/g, "\\(")
+        .replace(/\)/g, "\\)")
+        .replace(/~/g, "\\~")
+        .replace(/`/g, "\\`")
+        .replace(/>/g, "\\>")
+        .replace(/#/g, "\\#")
+        .replace(/\+/g, "\\+")
+        .replace(/-/g, "\\-")
+        .replace(/=/g, "\\=")
+        .replace(/\|/g, "\\|")
+        .replace(/\{/g, "\\{")
+        .replace(/\}/g, "\\}")
+        .replace(/\./g, "\\.")
+        .replace(/!/g, "\\!");
 }
 
 /**
  * Zaloguje finálne štatistiky
  */
-function logFinalSummary(processingResult) {
-    utils.addDebug(currentEntry, "\n📊 === VÝSLEDKY SYNCHRONIZÁCIE ===");
-    utils.addDebug(currentEntry, "✅ Nové záväzky: " + processingResult.created);
-    utils.addDebug(currentEntry, "🔄 Aktualizované: " + processingResult.updated);
-    utils.addDebug(currentEntry, "💰 Celková suma: " + utils.formatMoney(processingResult.totalAmount));
-    
-    if (processingResult.errors > 0) {
-        utils.addDebug(currentEntry, "❌ Chyby: " + processingResult.errors);
+function logFinalSummary(steps, processingResult) {
+    try {
+        utils.addDebug(currentEntry, "\n📊 === FINÁLNY SÚHRN ===");
+        
+        var allSuccess = true;
+        for (var step in steps) {
+            var status = steps[step].success ? "✅" : "❌";
+            utils.addDebug(currentEntry, status + " " + steps[step].name);
+            if (!steps[step].success) allSuccess = false;
+        }
+        
+        if (allSuccess) {
+            utils.addDebug(currentEntry, "\n🎉 === VŠETKY KROKY ÚSPEŠNÉ ===");
+        } else {
+            utils.addDebug(currentEntry, "\n⚠️ === NIEKTORÉ KROKY ZLYHALI ===");
+        }
+        
+        utils.addDebug(currentEntry, "⏱️ Čas ukončenia: " + moment().format("HH:mm:ss"));
+        utils.addDebug(currentEntry, "📋 === KONIEC " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "logFinalSummary", error);
     }
-    
-    if (processingResult.total > 0 && processingResult.errors === 0) {
-        utils.addDebug(currentEntry, "\n🎉 === SYNC DOKONČENÝ ÚSPEŠNE! ===");
-    } else if (processingResult.total > 0) {
-        utils.addDebug(currentEntry, "\n⚠️ === ČIASTOČNÝ ÚSPECH ===");
-    } else {
-        utils.addDebug(currentEntry, "\n❌ === SYNC ZLYHAL ===");
+}
+
+/**
+ * Zobrazí správu používateľovi
+ */
+function showUserMessage(processingResult, financialResult) {
+    try {
+        if (processingResult.total > 0) {
+            var summaryMsg = "✅ Záväzky úspešne synchronizované!\n\n";
+            summaryMsg += "📊 Výsledky:\n";
+            summaryMsg += "• Nové: " + processingResult.created + "\n";
+            summaryMsg += "• Aktualizované: " + processingResult.updated + "\n";
+            summaryMsg += "• Celková suma: " + utils.formatMoney(processingResult.totalAmount) + "\n";
+            
+            if (financialResult && financialResult.success) {
+                summaryMsg += "\n💰 Financie zamestnancov:\n";
+                summaryMsg += "• Celkové záväzky: " + utils.formatMoney(financialResult.totals.zavazky) + "\n";
+                summaryMsg += "• Celkové pohľadávky: " + utils.formatMoney(financialResult.totals.pohladavky) + "\n";
+                summaryMsg += "• Celkové saldo: " + utils.formatMoney(financialResult.totals.saldo);
+            }
+            
+            if (processingResult.errors > 0) {
+                summaryMsg += "\n\n⚠️ Chyby: " + processingResult.errors;
+            }
+            
+            message(summaryMsg);
+        } else {
+            message("❌ Synchronizácia záväzkov zlyhala!\nPozri Error_Log pre detaily.");
+        }
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri zobrazení správy: " + error.toString(), "showUserMessage");
     }
-    
-    utils.addDebug(currentEntry, "⏱️ Čas ukončenia: " + moment().format("HH:mm:ss"));
 }
 
 // ==============================================
 // SPUSTENIE SCRIPTU
 // ==============================================
 
-try {
-    // Kontrola existencie entry
-    if (!currentEntry) {
-        message("💥 KRITICKÁ CHYBA!\n\nScript nemôže bežať bez aktuálneho záznamu.");
-        cancel();
-    }
-    
-    // Spusti hlavnú funkciu
-    var result = main();
-    
-    // Log ukončenia
-    if (utils) {
-        utils.addDebug(currentEntry, "📋 === KONIEC " + (CONFIG ? CONFIG.scriptName : "Sync záväzkov") + " ===");
-    }
-    
-} catch (kritickachyba) {
-    // Posledná záchrana
-    try {
-        if (utils) {
-            utils.addError(currentEntry, "KRITICKÁ CHYBA: " + kritickachyba.toString(), "critical", kritickachyba);
-        } else {
-            currentEntry.set("Error_Log", "💥 KRITICKÁ CHYBA: " + kritickachyba.toString());
-        }
-        message("💥 KRITICKÁ CHYBA!\n\n" + kritickachyba.toString());
-    } catch (finalError) {
-        message("💥 FATÁLNA CHYBA!\n\nScript úplne zlyhal.");
-    }
+// Kontrola závislostí
+var depCheck = utils.checkDependencies(['config', 'core', 'business']);
+if (!depCheck.success) {
+    message("❌ Chýbajú potrebné moduly: " + depCheck.missing.join(", "));
+    cancel();
+}
+
+// Spustenie hlavnej funkcie
+var result = main();
+
+// Ak hlavná funkcia zlyhala, zruš uloženie
+if (!result) {
+    utils.addError(currentEntry, "Script zlyhal - zrušené uloženie", "main");
+    cancel();
 }
