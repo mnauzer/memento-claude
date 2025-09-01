@@ -763,7 +763,7 @@ function addWorkRecordLink(workReport, workedHours, hzsPrice) {
             lastIndex = praceHZS.length - 1;
         } else {
             utils.addDebug(currentEntry, "  " + utils.getIcon("info") + " Link už existuje vo výkaze");
-            lastIndex = findRecordIndex(praceHZS, currentEntry);
+            lastIndex = utils.findRecordIndex(praceHZS, currentEntry);
         }
         
         
