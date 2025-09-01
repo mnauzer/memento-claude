@@ -179,6 +179,8 @@ var MementoUtils = (function() {
         isHoliday: lazyCall('core', 'isHoliday'),
         isWeekend: lazyCall('core', 'isWeekend'),
         calculateEaster: lazyCall('core', 'calculateEaster'),
+        findRecordIndex: lazyCall('core', 'findRecordIndex'),
+
 
         // Notifikácie
         getLinkedNotifications: lazyCall('core', 'getLinkedNotifications'),

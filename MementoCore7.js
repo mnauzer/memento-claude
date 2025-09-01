@@ -257,6 +257,20 @@ var MementoCore = (function() {
         }
     }
 
+    function findRecordIndex(recordsArray, targetRecord) {
+        for (var i = 0; i < recordsArray.length; i++) {
+            if (recordsArray[i].field("ID") === targetRecord.field("ID")) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    // Použitie:
+    //var priceHistory = hzsRecord.linksFrom("ceny prác", "HZS");
+    //var specificRecord = priceHistory[0]; // nejaký záznam
+    //var index = findRecordIndex(priceHistory, specificRecord);
+
     function formatDate(date, format) {
         try {
             var config = getConfig();
@@ -751,7 +765,7 @@ var MementoCore = (function() {
         // Utility
         findEntryById: findEntryById,
         getCurrentUser: getCurrentUser,
-
+        findRecordIndex: findRecordIndex,
 
         getDayNameSK: getDayNameSK,
         selectOsobaForm: selectOsobaForm,       

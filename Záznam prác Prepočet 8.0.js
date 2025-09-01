@@ -745,6 +745,7 @@ function addWorkRecordLink(workReport, workedHours, hzsPrice) {
         
         // Skontroluj či link už neexistuje
         var linkExists = false;
+        var lastIndex = 0;
         var currentEntryId = currentEntry.field("ID");
         
         for (var i = 0; i < praceHZS.length; i++) {
@@ -754,30 +755,30 @@ function addWorkRecordLink(workReport, workedHours, hzsPrice) {
             }
         }
         
-        if (linkExists) {
-            utils.addDebug(currentEntry, "  ℹ️ Link už existuje vo výkaze");
-            return;
+        if (!linkExists) {
+            utils.addDebug(currentEntry, "  " + utils.getIcon("link") + " Link pridaný do výkazu");
+            // Pridaj nový link
+            praceHZS.push(currentEntry);
+            workReport.set(CONFIG.vykazFields.praceHZS, praceHZS);
+            lastIndex = praceHZS.length - 1;
+        } else {
+            utils.addDebug(currentEntry, "  " + utils.getIcon("info") + " Link už existuje vo výkaze");
+            lastIndex = findRecordIndex(praceHZS, currentEntry);
         }
         
-        // Pridaj nový link
-        praceHZS.push(currentEntry);
-        workReport.set(CONFIG.vykazFields.praceHZS, praceHZS);
         
-        utils.addDebug(currentEntry, "  " + utils.getIcon("link") + " Link pridaný do výkazu");
         
         // Nastav atribúty na novom linku
-        var lastIndex = praceHZS.length - 1;
         var workDescription = utils.safeGet(currentEntry, CONFIG.fields.workRecord.workDescription, "");
         var totalPrice = Math.round(workedHours * hzsPrice * 100) / 100;
         
         try {
-            var vykazArray = workReport.field(CONFIG.vykazFields.praceHZS);
             
-            if (vykazArray && vykazArray[lastIndex]) {
-                vykazArray[lastIndex].setAttr(CONFIG.vykazAttributes.workDescription, workDescription);
-                vykazArray[lastIndex].setAttr(CONFIG.vykazAttributes.hoursCount, workedHours);
-                vykazArray[lastIndex].setAttr(CONFIG.vykazAttributes.billedRate, hzsPrice);
-                vykazArray[lastIndex].setAttr(CONFIG.vykazAttributes.totalPrice, totalPrice);
+            if (praceHZS && praceHZS[lastIndex]) {
+                praceHZS[lastIndex].setAttr(CONFIG.vykazAttributes.workDescription, workDescription);
+                praceHZS[lastIndex].setAttr(CONFIG.vykazAttributes.hoursCount, workedHours);
+                praceHZS[lastIndex].setAttr(CONFIG.vykazAttributes.billedRate, hzsPrice);
+                praceHZS[lastIndex].setAttr(CONFIG.vykazAttributes.totalPrice, totalPrice);
                 
                 utils.addDebug(currentEntry, "  ✅ Atribúty nastavené na výkaze");
             }
