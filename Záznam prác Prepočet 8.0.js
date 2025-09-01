@@ -142,7 +142,7 @@ function main() {
         // Krok 6: Synchronizácia výkazu prác
         if (validationResult.hasCustomer) {
             utils.addDebug(currentEntry, utils.getIcon("update") + " KROK 6: Synchronizácia výkazu prác");
-            steps.step6.success = synchronizeWorkReport(validationResult.customer, validationResult.date, workTimeResult.pracovnaDobaHodiny, hzsResult.price);
+            steps.step6.success = synchronizeWorkReport(validationResult.customer, validationResult.date, employeeResult.odpracovaneTotal, hzsResult.price);
        
         }
         
@@ -826,7 +826,7 @@ function recalculateWorkReportTotals(workReport) {
         
         // Spočítaj všetky záznamy
         for (var i = 0; i < vykazArray.length; i++) {
-            var hours = utils.safeGet(vykazArray[i], CONFIG.fields.workRecord.workHours || 0);
+            var hours = utils.safeGet(vykazArray[i], CONFIG.fields.workRecord.workedHours || 0);
             var price = utils.safeGet(vykazArray[i], CONFIG.fields.workRecord.hzsSum || 0);
             
             totalHours += hours;
@@ -837,8 +837,7 @@ function recalculateWorkReportTotals(workReport) {
             utils.safeSet(workReport, CONFIG.fields.workReport.totalHours, totalHours);
             utils.safeSet(workReport, CONFIG.fields.workReport.hzsSum, totalAmount);
             utils.safeSet(workReport, CONFIG.fields.workReport.hzsCount, recordCount);
-            //utils.safeSet(workReport, CONFIG.fields.workReport.vat, vat); // TODO: dopočítať DPH
-            //utils.safeSet(workReport, CONFIG.fields.workReport.hzsSumTotal, sumTotal);
+
         
         utils.addDebug(currentEntry, "  📊 Výkaz prepočítaný:");
         utils.addDebug(currentEntry, "    • Celkové hodiny: " + totalHours);
