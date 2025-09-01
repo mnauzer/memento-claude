@@ -123,7 +123,8 @@ function main() {
 
         // Krok 3: Spracovanie zamestnancov
         utils.addDebug(currentEntry, utils.getIcon("group") + " KROK 3: Spracovanie zamestnancov");
-        var employeeResult = processEmployees(validationResult.employees, workTimeResult.pracovnaDobaHodiny, validationResult.date);
+        //var employeeResult = processEmployees(validationResult.employees, workTimeResult.pracovnaDobaHodiny, validationResult.date);
+        var employeeResult = utils.processEmployees(validationResult.employees, workTimeResult.pracovnaDobaHodiny, validationResult.date);
         steps.step3.success = employeeResult.success;
 
         // Krok 4: Spracovanie HZS
@@ -463,14 +464,12 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
             zamArray[index].setAttr(CONFIG.attributes.workedHours, pracovnaDobaHodiny);
             zamArray[index].setAttr(CONFIG.attributes.hourlyRate, hodinovka);
             
-           
-            
             // Vypočítaj dennú mzdu
             var dennaMzda = (pracovnaDobaHodiny * hodinovka );
             dennaMzda = Math.round(dennaMzda * 100) / 100;
             
             // Nastav dennú mzdu
-            zamArray[index].attr(CONFIG.attributes.dailyWage, dennaMzda);
+            zamArray[index].setAttr(CONFIG.attributes.wageCosts, dennaMzda);
             
             utils.addDebug(currentEntry, "  • Mzdové náklady: " + dennaMzda + " €");
             utils.addDebug(currentEntry, "Spracované úspešne", "success");
@@ -479,9 +478,6 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
                 success: true,
                 hodinovka: hodinovka,
                 dennaMzda: dennaMzda,
-                priplatok: priplatok,
-                premia: premia,
-                pokuta: pokuta,
                 zamestnanec: zamestnanec  // Pridané pre info záznam
             };
         } else {
