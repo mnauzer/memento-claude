@@ -248,7 +248,7 @@ function calculateWorkTime(startTime, endTime) {
         }
         
         // Výpočet hodín s novými časmi
-        var workHours = utils.calculateWorkHours(arrivalFinal, endTimeFinal);
+        var workHours = utils.calculateWorkHours(startTimeFinal, endTimeFinal);
         
         if (!workHours || workHours.error) {
             return { success: false, error: workHours ? workHours.error : "Nepodarilo sa vypočítať hodiny" };
@@ -264,9 +264,9 @@ function calculateWorkTime(startTime, endTime) {
         
         return {
             success: true,
-            arrivalRounded: arrivalFinal,
+            startTimeRounded: startTimeFinal,
             endTimeRounded: endTimeFinal,
-            arrivalOriginal: arrivalParsed,
+            startTimeOriginal: startTimeParsed,
             endTimeOriginal: endTimeParsed,
             pracovnaDobaHodiny: pracovnaDobaHodiny,
             workHours: workHours
