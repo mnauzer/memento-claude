@@ -21,7 +21,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Záznam prác Prepočet",
-    version: "8.1.1",
+    version: "8.1.2",
     
     // Referencie na centrálny config
     fields: {
@@ -451,7 +451,7 @@ function processHZS(workedHours) {
             var currentDate = utils.safeGet(currentEntry, CONFIG.fields.workRecord.date);
             
             // Získaj platnú cenu z histórie
-            hzsPrice = getValidHZSPrice(hzsRecord, currentDate);
+            hzsPrice = utils.findValidWorkPrice(hzsRecord, currentDate);
             
             // Nastav cenu ako atribút na HZS poli
             var hzsArray = currentEntry.field(CONFIG.fields.workRecord.hzs);
@@ -487,7 +487,7 @@ function getValidHZSPrice(hzsRecord, targetDate) {
         }
         
         // Získaj historické ceny cez linksFrom
-        var priceHistory = hzsRecord.linksFrom(CONFIG.libraries.workPrices,CONFIG.fields.workPrices.hzsLink); // Upraviť názov poľa podľa skutočnosti
+        var priceHistory = hzsRecord.linksFrom(CONFIG.libraries.workPrices,CONFIG.fields.workPrices.work); // Upraviť názov poľa podľa skutočnosti
         
         if (!priceHistory || priceHistory.length === 0) {
             utils.addDebug(currentEntry, "  ⚠️ Žiadne historické ceny pre HZS");

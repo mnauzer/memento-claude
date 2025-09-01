@@ -84,7 +84,7 @@ var MementoConfig = (function() {
                 notifications: "Notifikácie",     // NOVÉ - link field
             },
             workPrices: {
-                hzsLink: "Práca",  // Pole ktoré odkazuje späť na HZS
+                work: "Práca",  // Pole ktoré odkazuje späť na HZS
                 validFrom: "Platnosť od",
                 price: "Cena"
             },
