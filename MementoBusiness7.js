@@ -480,6 +480,48 @@ var MementoBusiness = (function() {
         }
     }
 
+function findValidWorkPrice(workEntry, date) {
+        var core = getCore();
+        var config = getConfig();
+        
+        try {
+            if (!workEntry || !date) return null;
+            
+            var fields = config.fields.workPrices;
+            var libraryName = config.libraries.workPrices;
+            var prices = core.safeGetLinksFrom(workEntry, libraryName, fields.work);
+            
+            if (!prices || prices.length === 0) {
+                return null;
+            }
+            
+            var validPrice = null;
+            var latestValidFrom = null;
+            
+            // Nájdi najnovšiu platnú sadzbu
+            for (var i = 0; i < prices.length; i++) {
+                var rate = prices[i];
+                var validFrom = rate.field(fields.validFrom);
+                var price = rate.field(fields.price);
+                
+                if (validFrom && price && moment(validFrom).isSameOrBefore(date)) {
+                    if (!latestValidFrom || moment(validFrom).isAfter(latestValidFrom)) {
+                        latestValidFrom = validFrom;
+                        validPrice = price;
+                    }
+                }
+            }
+            
+            return validPrice;
+            
+        } catch (error) {
+            if (core) {
+                core.addError(entry(), "Chyba pri hľadaní ceny: " + error.toString() + ", Line: " + error.lineNumber, "findValidWorkPrice", error);
+            }
+            return null;
+        }
+    }
+
     // ==============================================
     // SUMMARY & REPORTING FUNCTIONS
     // ==============================================
@@ -550,6 +592,9 @@ var MementoBusiness = (function() {
         calculateDailyWage: calculateDailyWage,
         findValidHourlyRate: findValidHourlyRate,
         findValidSalary: findValidSalary,
+
+        // Párce
+        findValidWorkPrice: findValidWorkPrice,
         
         // Štatistiky
         calculateMonthlyStats: calculateMonthlyStats,

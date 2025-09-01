@@ -220,6 +220,7 @@ var MementoUtils = (function() {
         findValidHourlyRate: lazyCall('business', 'findValidHourlyRate'),
         calculateMonthlyStats: lazyCall('business', 'calculateMonthlyStats'),   
         showProcessingSummary: lazyCall('business', 'showProcessingSummary'),
+        findValidWorkPrice: lazyCall('business', 'findValidWorkPrice'),
 
         
         // === HELPER FUNKCIE ===
