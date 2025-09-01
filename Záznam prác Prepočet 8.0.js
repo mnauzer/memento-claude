@@ -129,13 +129,13 @@ function main() {
 
         // Krok 4: Spracovanie HZS
         utils.addDebug(currentEntry, utils.getIcon("money") + " KROK 4: Spracovanie HZS");
-        var hzsResult = processHZS(employeeResult.);
+        var hzsResult = processHZS(employeeResult.odpracovaneTotal);
         steps.step4.success = hzsResult.success;
 
          // KROK 5: Celkové výpočty
         utils.addDebug(currentEntry, " KROK 5: Celkové výpočty", "calculation");
         if (employeeResult.success && hzsResult.success) {
-            steps.step5.success = calculateTotals(employeeResult.odpracovaneTotal, hzsResult);
+            steps.step5.success = calculateTotals(employeeResult, hzsResult);
         }
 
         // Krok 6: Synchronizácia výkazu prác
