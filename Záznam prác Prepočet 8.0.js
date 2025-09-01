@@ -795,11 +795,7 @@ function updateWorkReportAttributes(workReport, index, workedHours, hzsPrice) {
         vykazArray[index].setAttr(CONFIG.vykazAttributes.billedRate, hzsPrice);
         vykazArray[index].setAttr(CONFIG.vykazAttributes.totalPrice, totalPrice);
         
-        // Dodatočné atribúty (ak existujú v konfigurácii)
-        if (date) {
-            vykazArray[index].setAttr("dátum", utils.formatDate(date));
-        }
-        
+       
         if (employees && employees.length > 0) {
             var employeeNames = employees.map(function(emp) {
                 return utils.formatEmployeeName(emp);
