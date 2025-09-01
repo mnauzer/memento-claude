@@ -494,10 +494,12 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
 function calculateTotals(employeeResult, hzsResult) {
     try {
         // Ulož celkové hodnoty
+        utils.safeSet(currentEntry, CONFIG.fields.workRecord.employeeCount, employeeResult.pocetPracovnikov);
         utils.safeSet(currentEntry, CONFIG.fields.workRecord.workedHours, employeeResult.odpracovaneTotal);
         utils.safeSet(currentEntry, CONFIG.fields.workRecord.wageCosts, employeeResult.celkoveMzdy);
         utils.safeSet(currentEntry, CONFIG.fields.workRecord.hzsSum, hzsResult.sum);
         
+        utils.addDebug(currentEntry, "  • Počet zamestnancov: " + employeeResult.pocetPracovnikov);
         utils.addDebug(currentEntry, "  • Pracovná doba: " + employeeResult.pracovnaDoba + " hodín");
         utils.addDebug(currentEntry, "  • Odpracované spolu: " + employeeResult.odpracovaneTotal + " hodín");
         utils.addDebug(currentEntry, "  • Mzdové náklady: " + utils.formatMoney(employeeResult.celkoveMzdy));
