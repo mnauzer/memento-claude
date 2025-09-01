@@ -156,7 +156,7 @@ function main() {
         
         // Zobraz súhrn
         zobrazSuhrn(employeeResult, hzsResult);
-        
+        logFinalSummary(steps);
         return true;
         
     } catch (error) {
@@ -719,6 +719,31 @@ function zobrazSuhrn(employeeResult, hzsResult) {
     };
     
     utils.showProcessingSummary(currentEntry, summaryData, CONFIG);
+}
+function logFinalSummary(steps) {
+   
+    try {
+        utils.addDebug(currentEntry, "\n📊 === FINÁLNY SÚHRN ===");
+        
+        var allSuccess = true;
+        for (var step in steps) {
+            var status = steps[step].success ? "✅" : "❌";
+            utils.addDebug(currentEntry, status + " " + steps[step].name);
+            if (!steps[step].success) allSuccess = false;
+        }
+        
+        if (allSuccess) {
+            utils.addDebug(currentEntry, "\n🎉 === VŠETKY KROKY ÚSPEŠNÉ ===");
+        } else {
+            utils.addDebug(currentEntry, "\n⚠️ === NIEKTORÉ KROKY ZLYHALI ===");
+        }
+        
+        utils.addDebug(currentEntry, "⏱️ Čas ukončenia: " + moment().format("HH:mm:ss"));
+        utils.addDebug(currentEntry, "📋 === KONIEC " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "logFinalSummary", error);
+    }
 }
 
 // ==============================================
