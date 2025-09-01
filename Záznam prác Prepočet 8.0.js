@@ -268,8 +268,7 @@ function calculateWorkTime(startTime, endTime) {
             endTimeRounded: endTimeFinal,
             startTimeOriginal: startTimeParsed,
             endTimeOriginal: endTimeParsed,
-            pracovnaDobaHodiny: pracovnaDobaHodiny,
-            workHours: workHours
+            pracovnaDobaHodiny: pracovnaDobaHodiny
         };
         
     } catch (error) {
@@ -323,78 +322,176 @@ function calculateWorkTime(startTime, endTime) {
 // SPRACOVANIE ZAMESTNANCOV
 // ==============================================
 
-function processEmployees(employees, workedHours, date) {
-    var result = {
-        success: false,
-        pocetPracovnikov: 0,
-        celkoveMzdy: 0,
-        detaily: []
-    };
+// function processEmployees(employees, workedHours, date) {
+//     var result = {
+//         success: false,
+//         pocetPracovnikov: zamestnanci.length,
+//         odpracovaneTotal: 0,
+//         pracovnaDoba: pracovnaDobaHodiny,
+//         celkoveMzdy: 0,
+//         detaily: []
+//     };
     
+//     try {
+//         if (!employees || employees.length === 0) {
+//             utils.addDebug(currentEntry, "  " + utils.getIcon("info") + " Žiadni zamestnanci");
+//             utils.safeSet(currentEntry, CONFIG.fields.employeeCount, 0);
+//             utils.safeSet(currentEntry, CONFIG.fields.wageCosts, 0);
+//             return result;
+//         }
+        
+//         result.pocetPracovnikov = employees.length;
+//         utils.safeSet(currentEntry, CONFIG.fields.employeeCount, result.pocetPracovnikov);
+        
+//         // Získaj pole zamestnancov pre atribúty
+//         var empArray = currentEntry.field(CONFIG.fields.workRecord.employees);
+        
+//         for (var i = 0; i < employees.length; i++) {
+//             var employee = employees[i];
+            
+//             if (!employee) {
+//                 utils.addDebug(currentEntry, "  Zamestnanec[" + i + "] je null - preskakujem");
+//                 continue;
+//             }
+            
+//             var employeeName = utils.formatEmployeeName(employee);
+//             utils.addDebug(currentEntry, utils.getIcon("person") + " [" + (i+1) + "/" + result.pocetPracovnikov + "] " + employeeName);
+            
+//             // Nájdi platnú hodinovku
+//             var hodinovka = utils.findValidHourlyRate(employee, date);
+            
+//             if (!hodinovka || hodinovka <= 0) {
+//                 utils.addDebug(currentEntry, "  ❌ Preskakujem - nemá platnú sadzbu");
+//                 continue;
+//             }
+            
+//             // Nastav atribúty
+//             if (empArray && empArray.length > i && empArray[i]) {
+//                 empArray[i].setAttr(CONFIG.attributes.workedHours, workedHours);
+//                 empArray[i].setAttr(CONFIG.attributes.hourlyRate, hodinovka);
+                
+//                 var mzdoveNaklady = Math.round(workedHours * hodinovka * 100) / 100;
+//                 empArray[i].setAttr(CONFIG.attributes.wageCosts, mzdoveNaklady);
+                
+//                 result.celkoveMzdy += mzdoveNaklady;
+//                 result.detaily.push({
+//                     zamestnanec: employee,
+//                     hodinovka: hodinovka,
+//                     mzdoveNaklady: mzdoveNaklady
+//                 });
+                
+//                 utils.addDebug(currentEntry, "  • Hodinovka: " + hodinovka + " €/h");
+//                 utils.addDebug(currentEntry, "  • Mzdové náklady: " + mzdoveNaklady + " €");
+//             }
+//         }
+        
+//         // Ulož celkové mzdové náklady
+//         utils.safeSet(currentEntry, CONFIG.fields.wageCosts, result.celkoveMzdy);
+        
+//         utils.addDebug(currentEntry, utils.getIcon("money") + " Celkové mzdové náklady: " + utils.formatMoney(result.celkoveMzdy));
+//         result.success = true;
+        
+//         return result;
+        
+//     } catch (error) {
+//         utils.addError(currentEntry, error.toString(), "processEmployees", error);
+//         return result;
+//     }
+// }
+function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
+ 
     try {
-        if (!employees || employees.length === 0) {
-            utils.addDebug(currentEntry, "  " + utils.getIcon("info") + " Žiadni zamestnanci");
-            utils.safeSet(currentEntry, CONFIG.fields.employeeCount, 0);
-            utils.safeSet(currentEntry, CONFIG.fields.wageCosts, 0);
-            return result;
-        }
+        var result = {
+            success: false,
+            pocetPracovnikov: zamestnanci.length,
+            odpracovaneTotal: 0,
+            pracovnaDoba: pracovnaDobaHodiny,
+            celkoveMzdy: 0,
+            detaily: []
+        };
         
-        result.pocetPracovnikov = employees.length;
-        utils.safeSet(currentEntry, CONFIG.fields.employeeCount, result.pocetPracovnikov);
+        // Ulož počet pracovníkov
+     utils.safeSet(currentEntry, CONFIG.fields.pocetPracovnikov, result.pocetPracovnikov);
         
-        // Získaj pole zamestnancov pre atribúty
-        var empArray = currentEntry.field(CONFIG.fields.workRecord.employees);
-        
-        for (var i = 0; i < employees.length; i++) {
-            var employee = employees[i];
+        // Spracuj každého zamestnanca
+        for (var i = 0; i < zamestnanci.length; i++) {
+            var zamestnanec = zamestnanci[i];
             
-            if (!employee) {
-                utils.addDebug(currentEntry, "  Zamestnanec[" + i + "] je null - preskakujem");
+            if (!zamestnanec) {
+                utils.addDebug(currentEntry, "Zamestnanec[" + i + "] je null - preskakujem", "warning");
                 continue;
             }
             
-            var employeeName = utils.formatEmployeeName(employee);
-            utils.addDebug(currentEntry, utils.getIcon("person") + " [" + (i+1) + "/" + result.pocetPracovnikov + "] " + employeeName);
+            var employeeName = utils.formatEmployeeName(zamestnanec);
+            utils.addDebug(currentEntry, " [" + (i+1) + "/" + result.pocetPracovnikov + "] " + employeeName, "person");
             
-            // Nájdi platnú hodinovku
-            var hodinovka = utils.findValidHourlyRate(employee, date);
+            // Spracuj zamestnanca
+            var empResult = processEmployee(zamestnanec, pracovnaDobaHodiny, datum, i);
             
-            if (!hodinovka || hodinovka <= 0) {
-                utils.addDebug(currentEntry, "  ❌ Preskakujem - nemá platnú sadzbu");
-                continue;
-            }
-            
-            // Nastav atribúty
-            if (empArray && empArray.length > i && empArray[i]) {
-                empArray[i].setAttr(CONFIG.attributes.workedHours, workedHours);
-                empArray[i].setAttr(CONFIG.attributes.hourlyRate, hodinovka);
-                
-                var mzdoveNaklady = Math.round(workedHours * hodinovka * 100) / 100;
-                empArray[i].setAttr(CONFIG.attributes.wageCosts, mzdoveNaklady);
-                
-                result.celkoveMzdy += mzdoveNaklady;
-                result.detaily.push({
-                    zamestnanec: employee,
-                    hodinovka: hodinovka,
-                    mzdoveNaklady: mzdoveNaklady
-                });
-                
-                utils.addDebug(currentEntry, "  • Hodinovka: " + hodinovka + " €/h");
-                utils.addDebug(currentEntry, "  • Mzdové náklady: " + mzdoveNaklady + " €");
+            if (empResult.success) {
+                result.odpracovaneTotal += pracovnaDobaHodiny;
+                result.celkoveMzdy += empResult.dennaMzda;
+                result.detaily.push(empResult);
+                result.success = true;
+            } else {
+                result.success = false;
             }
         }
-        
-        // Ulož celkové mzdové náklady
-        utils.safeSet(currentEntry, CONFIG.fields.wageCosts, result.celkoveMzdy);
-        
-        utils.addDebug(currentEntry, utils.getIcon("money") + " Celkové mzdové náklady: " + utils.formatMoney(result.celkoveMzdy));
-        result.success = true;
         
         return result;
         
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "processEmployees", error);
-        return result;
+        return { success: false };
+    }
+}
+
+function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
+    try {
+        // Nájdi platnú hodinovku
+        var hodinovka = utils.findValidSalary(currentEntry, zamestnanec, datum);
+        
+        if (!hodinovka || hodinovka <= 0) {
+            utils.addDebug(currentEntry, "  ❌ Preskakujem - nemá platnú sadzbu");
+            return { success: false };
+        }
+        
+        var zamArray = currentEntry.field(CONFIG.fields.attendance.employees);
+        
+        if (zamArray && zamArray.length > index && zamArray[index]) {
+            // Nastav atribúty pomocou .attr() metódy
+            zamArray[index].setAttr(CONFIG.attributes.workedHours, pracovnaDobaHodiny);
+            zamArray[index].setAttr(CONFIG.attributes.hourlyRate, hodinovka);
+            
+           
+            
+            // Vypočítaj dennú mzdu
+            var dennaMzda = (pracovnaDobaHodiny * hodinovka );
+            dennaMzda = Math.round(dennaMzda * 100) / 100;
+            
+            // Nastav dennú mzdu
+            zamArray[index].attr(CONFIG.attributes.dailyWage, dennaMzda);
+            
+            utils.addDebug(currentEntry, "  • Mzdové náklady: " + dennaMzda + " €");
+            utils.addDebug(currentEntry, "Spracované úspešne", "success");
+            
+            return {
+                success: true,
+                hodinovka: hodinovka,
+                dennaMzda: dennaMzda,
+                priplatok: priplatok,
+                premia: premia,
+                pokuta: pokuta,
+                zamestnanec: zamestnanec  // Pridané pre info záznam
+            };
+        } else {
+            utils.addError(currentEntry, "Nepodarilo sa získať zamesnanca na indexe " + index, "processEmployee");
+            return { success: false };
+        }
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "processEmployee", error);
+        return { success: false };
     }
 }
 
