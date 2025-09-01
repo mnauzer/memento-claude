@@ -328,8 +328,6 @@ function processEmployees(employees, workedHours, date) {
         success: false,
         pocetPracovnikov: 0,
         celkoveMzdy: 0,
-        workedHours: workedHours.,
-        workedTime: workedHours., 
         detaily: []
     };
     
