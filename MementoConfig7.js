@@ -136,6 +136,18 @@ var MementoConfig = (function() {
                 endTime: "Do"
             },
             
+            workReport: {
+                datum: "Dátum",
+                identifikator: "Identifikátor",
+                popis: "Popis",
+                typVykazu: "Typ výkazu",
+                cenyPocitat: "Ceny počítať",
+                cenovaPonuka: "Cenová ponuka",
+                vydane: "Vydané",
+                zakazka: "Zákazka",
+                praceHZS: "Práce HZS",
+                info: "info"
+            },
             // Zamestnanci polia
             employee: {
                 nick: "Nick",

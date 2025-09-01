@@ -666,41 +666,6 @@ function getDefaultHZS() {
 // VÝKAZ PRÁC
 // ==============================================
 
-function synchronizeWorkReport(customer, date, workedHours, hzsPrice) {
-    try {
-        if (!customer || customer.length === 0) {
-            utils.addDebug(currentEntry, "  ℹ️ Žiadna zákazka - preskakujem výkaz");
-            return;
-        }
-        
-        var customerObj = customer[0];
-        var customerName = utils.safeGet(customerObj, "Názov", "N/A");
-        
-        utils.addDebug(currentEntry, "  🔍 Hľadám výkaz pre zákazku: " + customerName);
-        
-        // Nájdi existujúci výkaz
-        var existingReports = customerObj.linksFrom(CONFIG.libraries.workReport, CONFIG.vykazFields.zakazka);
-        
-        var workReport = null;
-        
-        if (existingReports && existingReports.length > 0) {
-            workReport = existingReports[0];
-            utils.addDebug(currentEntry, "  " + utils.getIcon("update") + " Existujúci výkaz nájdený");
-        } else {
-            // Vytvor nový výkaz
-            workReport = createNewWorkReport(customerObj, date, customerName);
-        }
-        
-        // Pridaj link na aktuálny záznam
-        if (workReport) {
-            syncWorkRecordLink(workReport, workedHours, hzsPrice);
-        }
-        
-    } catch (error) {
-        utils.addError(currentEntry, error.toString(), "synchronizeWorkReport", error);
-    }
-}
-
 function createNewWorkReport(customerObj, date, customerName) {
     try {
         var reportLib = libByName(CONFIG.libraries.workReport);
@@ -739,57 +704,181 @@ function createNewWorkReport(customerObj, date, customerName) {
     }
 }
 
-function syncWorkRecordLink(workReport, workedHours, hzsPrice) {
+function synchronizeWorkReport(customer, date, workedHours, hzsPrice) {
     try {
-        var praceHZS = utils.safeGetLinks(workReport, CONFIG.vykazFields.praceHZS);
+        if (!customer || customer.length === 0) {
+            utils.addDebug(currentEntry, "  ℹ️ Žiadna zákazka - preskakujem výkaz");
+            return;
+        }
         
-        // Skontroluj či link už neexistuje
-        var linkExists = false;
-        var lastIndex = 0;
+        var customerObj = customer[0];
+        var customerName = utils.safeGet(customerObj, "Názov", "N/A");
+        
+        utils.addDebug(currentEntry, "  🔍 Hľadám výkaz pre zákazku: " + customerName);
+        
+        // Nájdi existujúci výkaz
+        var existingReports = customerObj.linksFrom(CONFIG.libraries.workReport, CONFIG.vykazFields.zakazka);
+        
+        var workReport = null;
+        
+        if (existingReports && existingReports.length > 0) {
+            workReport = existingReports[0];
+            utils.addDebug(currentEntry, "  " + utils.getIcon("update") + " Existujúci výkaz nájdený");
+        } else {
+            // Vytvor nový výkaz
+            workReport = createNewWorkReport(customerObj, date, customerName);
+        }
+        
+        // Spracuj link na aktuálny záznam
+        if (workReport) {
+            updateWorkReportLink(workReport, workedHours, hzsPrice);
+        }
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "synchronizeWorkReport", error);
+    }
+}
+
+function updateWorkReportLink(workReport, workedHours, hzsPrice) {
+    try {
+        var praceHZS = utils.safeGetLinks(workReport, CONFIG.vykazFields.praceHZS) || [];
         var currentEntryId = currentEntry.field("ID");
         
+        // Nájdi index aktuálneho záznamu v poli
+        var existingIndex = -1;
         for (var i = 0; i < praceHZS.length; i++) {
             if (praceHZS[i] && praceHZS[i].field("ID") === currentEntryId) {
-                linkExists = true;
+                existingIndex = i;
                 break;
             }
         }
         
-        if (!linkExists) {
-            utils.addDebug(currentEntry, "  " + utils.getIcon("link") + " Link pridaný do výkazu");
-            // Pridaj nový link
+        // Ak link neexistuje, pridaj ho
+        if (existingIndex === -1) {
             praceHZS.push(currentEntry);
             workReport.set(CONFIG.vykazFields.praceHZS, praceHZS);
-            lastIndex = praceHZS.length - 1;
+            existingIndex = praceHZS.length - 1;
+            utils.addDebug(currentEntry, "  " + utils.getIcon("create") + " Nový link pridaný do výkazu");
         } else {
-            utils.addDebug(currentEntry, "  " + utils.getIcon("info") + " Link už existuje vo výkaze");
-            lastIndex = utils.findRecordIndex(praceHZS, currentEntry);
+            utils.addDebug(currentEntry, "  " + utils.getIcon("update") + " Aktualizujem existujúci link vo výkaze");
         }
         
+        // Aktualizuj atribúty (či už nové alebo existujúce)
+        updateWorkReportAttributes(workReport, existingIndex, workedHours, hzsPrice);
         
-        
-        // Nastav atribúty na novom linku
-        var workDescription = utils.safeGet(currentEntry, CONFIG.fields.workRecord.workDescription, "");
-        var totalPrice = Math.round(workedHours * hzsPrice * 100) / 100;
-        
-        try {
-            var vykazArray = workReport.field(CONFIG.vykazFields.praceHZS);
-            
-            if (vykazArray && vykazArray[lastIndex]) {
-                vykazArray[lastIndex].setAttr(CONFIG.vykazAttributes.workDescription, workDescription);
-                vykazArray[lastIndex].setAttr(CONFIG.vykazAttributes.hoursCount, workedHours);
-                vykazArray[lastIndex].setAttr(CONFIG.vykazAttributes.billedRate, hzsPrice);
-                vykazArray[lastIndex].setAttr(CONFIG.vykazAttributes.totalPrice, totalPrice);
-                
-                utils.addDebug(currentEntry, "  ✅ Atribúty nastavené na výkaze");
-            }
-            
-        } catch (attrError) {
-            utils.addDebug(currentEntry, "  ⚠️ Chyba pri nastavení atribútov: " + attrError);
-        }
+        // Aktualizuj info pole výkazu
+        updateWorkReportInfo(workReport);
         
     } catch (error) {
-        utils.addError(currentEntry, error.toString(), "addWorkRecordLink", error);
+        utils.addError(currentEntry, error.toString(), "updateWorkReportLink", error);
+    }
+}
+
+function updateWorkReportAttributes(workReport, index, workedHours, hzsPrice) {
+    try {
+        var vykazArray = workReport.field(CONFIG.vykazFields.praceHZS);
+        
+        if (!vykazArray || !vykazArray[index]) {
+            utils.addError(currentEntry, "Nepodarilo sa získať pole výkazu na indexe " + index, "updateWorkReportAttributes");
+            return;
+        }
+        
+        // Získaj aktuálne údaje
+        var workDescription = utils.safeGet(currentEntry, CONFIG.fields.workRecord.workDescription, "");
+        var totalPrice = Math.round(workedHours * hzsPrice * 100) / 100;
+        var date = utils.safeGet(currentEntry, CONFIG.fields.workRecord.date);
+        var employees = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.employees);
+        
+        // Nastav/aktualizuj všetky atribúty
+        vykazArray[index].setAttr(CONFIG.vykazAttributes.workDescription, workDescription);
+        vykazArray[index].setAttr(CONFIG.vykazAttributes.hoursCount, workedHours);
+        vykazArray[index].setAttr(CONFIG.vykazAttributes.billedRate, hzsPrice);
+        vykazArray[index].setAttr(CONFIG.vykazAttributes.totalPrice, totalPrice);
+        
+        // Dodatočné atribúty (ak existujú v konfigurácii)
+        if (date) {
+            vykazArray[index].setAttr("dátum", utils.formatDate(date));
+        }
+        
+        if (employees && employees.length > 0) {
+            var employeeNames = employees.map(function(emp) {
+                return utils.formatEmployeeName(emp);
+            }).join(", ");
+            vykazArray[index].setAttr("zamestnanci", employeeNames);
+        }
+        
+        utils.addDebug(currentEntry, "  ✅ Atribúty aktualizované:");
+        utils.addDebug(currentEntry, "    • Popis: " + (workDescription || "N/A"));
+        utils.addDebug(currentEntry, "    • Hodiny: " + workedHours);
+        utils.addDebug(currentEntry, "    • Sadzba: " + hzsPrice + " €/h");
+        utils.addDebug(currentEntry, "    • Cena: " + totalPrice + " €");
+        
+        // Prepočítaj celkový súčet výkazu
+        recalculateWorkReportTotals(workReport);
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri aktualizácii atribútov: " + error.toString(), "updateWorkReportAttributes", error);
+    }
+}
+
+function recalculateWorkReportTotals(workReport) {
+    try {
+        var vykazArray = workReport.field(CONFIG.vykazFields.praceHZS);
+        if (!vykazArray) return;
+        
+        var totalHours = 0;
+        var totalAmount = 0;
+        var recordCount = vykazArray.length;
+        
+        // Spočítaj všetky záznamy
+        for (var i = 0; i < vykazArray.length; i++) {
+            var hours = vykazArray[i].attr(CONFIG.vykazAttributes.hoursCount) || 0;
+            var price = vykazArray[i].attr(CONFIG.vykazAttributes.totalPrice) || 0;
+            
+            totalHours += hours;
+            totalAmount += price;
+        }
+        
+        // Ulož súčty do výkazu (ak máš také polia)
+        if (workReport.field("Celkové hodiny") !== undefined) {
+            workReport.set("Celkové hodiny", totalHours);
+        }
+        if (workReport.field("Celková suma") !== undefined) {
+            workReport.set("Celková suma", totalAmount);
+        }
+        if (workReport.field("Počet záznamov") !== undefined) {
+            workReport.set("Počet záznamov", recordCount);
+        }
+        
+        utils.addDebug(currentEntry, "  📊 Výkaz prepočítaný:");
+        utils.addDebug(currentEntry, "    • Celkové hodiny: " + totalHours);
+        utils.addDebug(currentEntry, "    • Celková suma: " + utils.formatMoney(totalAmount));
+        utils.addDebug(currentEntry, "    • Počet záznamov: " + recordCount);
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri prepočte výkazu: " + error.toString(), "recalculateWorkReportTotals", error);
+    }
+}
+
+function updateWorkReportInfo(workReport) {
+    try {
+        var existingInfo = utils.safeGet(workReport, CONFIG.vykazFields.info, "");
+        
+        // Pridaj informáciu o aktualizácii
+        var updateInfo = "\n\n🔄 AKTUALIZOVANÉ: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
+        updateInfo += "• Záznam práce #" + currentEntry.field("ID") + " bol aktualizovaný\n";
+        updateInfo += "• Script: " + CONFIG.scriptName + " v" + CONFIG.version;
+        
+        // Obmedz dĺžku info poľa (zachovaj posledných 5000 znakov)
+        var newInfo = existingInfo + updateInfo;
+        if (newInfo.length > 5000) {
+            newInfo = "... (skrátené) ...\n" + newInfo.substring(newInfo.length - 4900);
+        }
+        
+        workReport.set(CONFIG.vykazFields.info, newInfo);
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri aktualizácii info poľa: " + error.toString(), "updateWorkReportInfo", error);
     }
 }
 
