@@ -563,6 +563,53 @@ var MementoBusiness = (function() {
         }
     }
 
+    function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
+    
+        try {
+            var result = {
+                success: false,
+                pocetPracovnikov: zamestnanci.length,
+                odpracovaneTotal: 0,
+                pracovnaDoba: pracovnaDobaHodiny,
+                celkoveMzdy: 0,
+                detaily: []
+            };
+            
+            // Ulož počet pracovníkov
+        utils.safeSet(currentEntry, CONFIG.fields.pocetPracovnikov, result.pocetPracovnikov);
+            
+            // Spracuj každého zamestnanca
+            for (var i = 0; i < zamestnanci.length; i++) {
+                var zamestnanec = zamestnanci[i];
+                
+                if (!zamestnanec) {
+                    utils.addDebug(currentEntry, "Zamestnanec[" + i + "] je null - preskakujem", "warning");
+                    continue;
+                }
+                
+                var employeeName = utils.formatEmployeeName(zamestnanec);
+                utils.addDebug(currentEntry, " [" + (i+1) + "/" + result.pocetPracovnikov + "] " + employeeName, "person");
+                
+                // Spracuj zamestnanca
+                var empResult = processEmployee(zamestnanec, pracovnaDobaHodiny, datum, i);
+                
+                if (empResult.success) {
+                    result.odpracovaneTotal += pracovnaDobaHodiny;
+                    result.celkoveMzdy += empResult.dennaMzda;
+                    result.detaily.push(empResult);
+                    result.success = true;
+                } else {
+                    result.success = false;
+                }
+            }
+            
+            return result;
+            
+        } catch (error) {
+            utils.addError(currentEntry, error.toString(), "processEmployees", error);
+            return { success: false };
+        }
+    }
     // ==============================================
     // SUMMARY & REPORTING FUNCTIONS
     // ==============================================
@@ -633,6 +680,8 @@ var MementoBusiness = (function() {
         calculateDailyWage: calculateDailyWage,
         findValidHourlyRate: findValidHourlyRate,
         findValidSalary: findValidSalary,
+        //processEmployee: processEmployee,
+        processEmployees: processEmployees,
 
         // Práce
         findValidWorkPrice: findValidWorkPrice,
