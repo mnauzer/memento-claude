@@ -834,8 +834,8 @@ function recalculateWorkReportTotals(workReport) {
         if (workReport.field("Celkové hodiny") !== undefined) {
             workReport.set("Celkové hodiny", totalHours);
         }
-        if (workReport.field("Celková suma") !== undefined) {
-            workReport.set("Celková suma", totalAmount);
+        if (workReport.field("Suma HZS") !== undefined) {
+            workReport.set("Suma HZS", totalAmount);
         }
         if (workReport.field("Počet záznamov") !== undefined) {
             workReport.set("Počet záznamov", recordCount);
