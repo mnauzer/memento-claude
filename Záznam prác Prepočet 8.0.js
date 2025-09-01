@@ -94,6 +94,17 @@ function main() {
         utils.addDebug(currentEntry, utils.getIcon("start") + " === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
         utils.addDebug(currentEntry, "Čas spustenia: " + utils.formatDate(moment()));
         
+        // Kroky prepočtu
+        var steps = {
+            step1: { success: false, name: "Načítanie a validácia dát" },
+            step2: { success: false, name: "Výpočet pracovnej doby" },
+            step3: { success: false, name: "Spracovanie zamestnancov" },
+            step4: { success: false, name: "Spracovanie HZS" },
+            step5: { success: false, name: "Celkové výpočty" },
+            step6: { success: false, name: "Synchronizácia výkazu prác" },
+            step7: { success: false, name: "Vytvorenie info záznamov" }
+        };
+
         // Krok 1: Validácia vstupných dát
         utils.addDebug(currentEntry, utils.getIcon("validation") + " KROK 1: Validácia vstupných dát");
         var validationResult = validateInputData();
@@ -102,7 +113,8 @@ function main() {
             message("❌ " + validationResult.error);
             return false;
         }
-        
+        steps.step1.success = true;
+
         // Krok 2: Výpočet pracovnej doby
         utils.addDebug(currentEntry, utils.getIcon("calculation") + " KROK 2: Výpočet pracovnej doby");
         var workTimeResult = calculateWorkTime(validationResult.startTime, validationResult.endTime);
@@ -110,30 +122,34 @@ function main() {
             utils.addError(currentEntry, "Výpočet času zlyhal: " + workTimeResult.error, "main");
             return false;
         }
-        
+        steps.step2.success = true;
+
         // Krok 3: Spracovanie zamestnancov
         utils.addDebug(currentEntry, utils.getIcon("group") + " KROK 3: Spracovanie zamestnancov");
         var employeeResult = processEmployees(validationResult.employees, workTimeResult.pracovnaDobaHodiny, validationResult.date);
-        
+        steps.step3.success = employeeResult.success;
+
         // Krok 4: Spracovanie HZS
         utils.addDebug(currentEntry, utils.getIcon("money") + " KROK 4: Spracovanie HZS");
         var hzsResult = processHZS(workTimeResult.pracovnaDobaHodiny);
-        
+        steps.step4.success = hzsResult.success;
+
          // KROK 5: Celkové výpočty
         utils.addDebug(currentEntry, " KROK 5: Celkové výpočty", "calculation");
-        if (employeeResult.success) {
-            steps.step4.success = calculateTotals(employeeResult, hzsResult);
+        if (employeeResult.success && hzsResult.success) {
+            steps.step5.success = calculateTotals(employeeResult, hzsResult);
         }
 
         // Krok 6: Synchronizácia výkazu prác
         if (validationResult.hasCustomer) {
             utils.addDebug(currentEntry, utils.getIcon("update") + " KROK 6: Synchronizácia výkazu prác");
-            synchronizeWorkReport(validationResult.customer, validationResult.date, workTimeResult.pracovnaDobaHodiny, hzsResult.price);
+            steps.step6.success = synchronizeWorkReport(validationResult.customer, validationResult.date, workTimeResult.pracovnaDobaHodiny, hzsResult.price);
+       
         }
         
         // Krok 7: Vytvorenie info záznamov
         utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 7: Vytvorenie info záznamov");
-        createInfoRecord(workTimeResult, employeeResult, hzsResult);
+        steps.step7.success = createInfoRecord(workTimeResult, employeeResult, hzsResult);
         createTelegramInfoRecord(workTimeResult, employeeResult, hzsResult);
         
         utils.addDebug(currentEntry, utils.getIcon("success") + " === PREPOČET DOKONČENÝ ===");
