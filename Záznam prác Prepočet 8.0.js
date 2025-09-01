@@ -28,7 +28,7 @@ var CONFIG = {
         workRecord: centralConfig.fields.workRecord,
         common: centralConfig.fields.common,
         employee: centralConfig.fields.employee,
-        priceFields: centralConfig.fields.priceFields ,
+        workPrices: centralConfig.fields.workPrices ,
         // Mapovanie pre časové polia
         startTime: centralConfig.fields.workRecord.startTime || "Od",
         endTime: centralConfig.fields.workRecord.endTime || "Do",
@@ -45,12 +45,7 @@ var CONFIG = {
         hourlyRate: "hodinovka", 
         wageCosts: "mzdové náklady"
     },
-    libraries: {
-        workReport: centralConfig.libraries.workReport || "Výkaz prác",
-        defaults: centralConfig.libraries.defaults || "ASISTANTO Defaults",
-        wages: centralConfig.libraries.wages || "sadzby zamestnancov",
-        priceList: centralConfig.libraries.priceList || "ceny prác"
-    },
+    libraries: centralConfig.libraries,
     icons: centralConfig.icons,
     
     // Lokálne nastavenia
@@ -225,40 +220,56 @@ function validateInputData() {
 
 // ==============================================
 // VÝPOČET PRACOVNEJ DOBY
-// ==============================================
-
 function calculateWorkTime(startTime, endTime) {
     try {
-        // Použitie MementoBusiness funkcie
-        var workHours = utils.calculateWorkHours(startTime, endTime);
+        utils.addDebug(currentEntry, "  Výpočet pracovného času na zákazke", "calculation");
+        
+        // Spracuj časy cez nové funkcie
+        var startTimeParsed = utils.parseTimeInput(startTime);
+        var endTimeParsed = utils.parseTimeInput(endTime);
+        
+        if (!startTimeParsed || !endTimeParsed) {
+            return { success: false, error: "Nepodarilo sa spracovať časy" };
+        }
+        
+        // Zaokrúhli časy ak je to povolené
+        var startTimeFinal = startTimeParsed;
+        var endTimeFinal = endTimeParsed;
+        
+        if (CONFIG.settings.roundToQuarterHour) {
+            startTimeFinal = utils.roundTimeToQuarter(startTimeParsed); // Začiato zaokrúhli  
+            endTimeFinal = utils.roundTimeToQuarter(endTimeParsed); // Koniec zaokrúhli
+            
+            utils.addDebug(currentEntry, "  Zaokrúhlenie aktivované:", "round");
+            utils.addDebug(currentEntry, "  • Od: " + utils.formatTime(startTimeParsed) + " → " + utils.formatTime(startTimeFinal));
+            utils.addDebug(currentEntry, "  • Do: " + utils.formatTime(endTimeParsed) + " → " + utils.formatTime(endTimeFinal));
+            utils.safeSet(currentEntry, CONFIG.fields.workRecord.startTime, startTimeFinal.toDate());
+            utils.safeSet(currentEntry, CONFIG.fields.workRecord.endTime, endTimeFinal.toDate()); 
+        }
+        
+        // Výpočet hodín s novými časmi
+        var workHours = utils.calculateWorkHours(arrivalFinal, endTimeFinal);
         
         if (!workHours || workHours.error) {
-            return { 
-                success: false, 
-                error: workHours ? workHours.error : "Nepodarilo sa vypočítať hodiny" 
-            };
+            return { success: false, error: workHours ? workHours.error : "Nepodarilo sa vypočítať hodiny" };
         }
         
         var pracovnaDobaHodiny = workHours.totalMinutes / 60;
+        pracovnaDobaHodiny = Math.round(pracovnaDobaHodiny * 100) / 100;
         
-        // Zaokrúhlenie ak je potrebné
-        if (CONFIG.settings.roundToQuarterHour) {
-            pracovnaDobaHodiny = Math.round(pracovnaDobaHodiny * 4) / 4;
-            utils.addDebug(currentEntry, "  Zaokrúhlené na štvrťhodiny: " + pracovnaDobaHodiny + "h");
-        }
+        // Ulož do poľa
+        currentEntry.set(CONFIG.fields.workRecord.workTime, pracovnaDobaHodiny);
         
-        // Ulož do polí
-        utils.safeSet(currentEntry, CONFIG.fields.workTime, pracovnaDobaHodiny);
-        utils.safeSet(currentEntry, CONFIG.fields.workedHours, pracovnaDobaHodiny);
-        
-        utils.addDebug(currentEntry, "  • Pracovná doba: " + pracovnaDobaHodiny + " hodín");
+        utils.addDebug(currentEntry, "  • Pracovná doba na zákazke: " + pracovnaDobaHodiny + " hodín");
         
         return {
             success: true,
+            arrivalRounded: arrivalFinal,
+            endTimeRounded: endTimeFinal,
+            arrivalOriginal: arrivalParsed,
+            endTimeOriginal: endTimeParsed,
             pracovnaDobaHodiny: pracovnaDobaHodiny,
-            workHours: workHours,
-            startTime: startTime,
-            endTime: endTime
+            workHours: workHours
         };
         
     } catch (error) {
@@ -266,6 +277,47 @@ function calculateWorkTime(startTime, endTime) {
         return { success: false, error: error.toString() };
     }
 }
+// ==============================================
+
+// function calculateWorkTime(startTime, endTime) {
+//     try {
+//         // Použitie MementoBusiness funkcie
+//         var workHours = utils.calculateWorkHours(startTime, endTime);
+        
+//         if (!workHours || workHours.error) {
+//             return { 
+//                 success: false, 
+//                 error: workHours ? workHours.error : "Nepodarilo sa vypočítať hodiny" 
+//             };
+//         }
+        
+//         var pracovnaDobaHodiny = workHours.totalMinutes / 60;
+        
+//         // Zaokrúhlenie ak je potrebné
+//         if (CONFIG.settings.roundToQuarterHour) {
+//             pracovnaDobaHodiny = Math.round(pracovnaDobaHodiny * 4) / 4;
+//             utils.addDebug(currentEntry, "  Zaokrúhlené na štvrťhodiny: " + pracovnaDobaHodiny + "h");
+//         }
+        
+//         // Ulož do polí
+//         utils.safeSet(currentEntry, CONFIG.fields.workTime, pracovnaDobaHodiny);
+//         utils.safeSet(currentEntry, CONFIG.fields.workedHours, pracovnaDobaHodiny);
+        
+//         utils.addDebug(currentEntry, "  • Pracovná doba: " + pracovnaDobaHodiny + " hodín");
+        
+//         return {
+//             success: true,
+//             pracovnaDobaHodiny: pracovnaDobaHodiny,
+//             workHours: workHours,
+//             startTime: startTime,
+//             endTime: endTime
+//         };
+        
+//     } catch (error) {
+//         utils.addError(currentEntry, error.toString(), "calculateWorkTime", error);
+//         return { success: false, error: error.toString() };
+//     }
+// }
 
 // ==============================================
 // SPRACOVANIE ZAMESTNANCOV
@@ -276,6 +328,8 @@ function processEmployees(employees, workedHours, date) {
         success: false,
         pocetPracovnikov: 0,
         celkoveMzdy: 0,
+        workedHours: workedHours.,
+        workedTime: workedHours., 
         detaily: []
     };
     
@@ -435,7 +489,7 @@ function getValidHZSPrice(hzsRecord, targetDate) {
         }
         
         // Získaj historické ceny cez linksFrom
-        var priceHistory = hzsRecord.linksFrom("ceny prác", "HZS"); // Upraviť názov poľa podľa skutočnosti
+        var priceHistory = hzsRecord.linksFrom(CONFIG.libraries.workPrices,CONFIG.fields.workPrices.hzsLink); // Upraviť názov poľa podľa skutočnosti
         
         if (!priceHistory || priceHistory.length === 0) {
             utils.addDebug(currentEntry, "  ⚠️ Žiadne historické ceny pre HZS");
@@ -444,35 +498,43 @@ function getValidHZSPrice(hzsRecord, targetDate) {
         
         utils.addDebug(currentEntry, "  🔍 Nájdených " + priceHistory.length + " historických cien");
         
-        // Nájdi platnú cenu k dátumu
-        var validPrice = null;
-        var latestValidFrom = null;
+        // Zoraď záznamy podľa dátumu platnosti (vzostupne)
+        priceHistory.sort(function(a, b) {
+            var dateA = utils.safeGet(a, CONFIG.fields.workPrices.validFrom);
+            var dateB = utils.safeGet(b, CONFIG.fields.workPrices.validFrom);
+            
+            if (!dateA && !dateB) return 0;
+            if (!dateA) return -1;
+            if (!dateB) return 1;
+            
+            return moment(dateA).diff(moment(dateB));
+        });
+        
+        // Nájdi platnú cenu - posledný záznam s dátumom <= targetDate
+        var validPrice = 0;
+        var validFrom = null;
         
         for (var i = 0; i < priceHistory.length; i++) {
             var priceRecord = priceHistory[i];
-            
-            // Získaj dátumy platnosti (upraviť názvy polí podľa skutočnej štruktúry)
-            var validFrom = utils.safeGet(priceRecord, "Platnosť od");
-            var validTo = utils.safeGet(priceRecord, "Platnosť do");
+            var recordValidFrom = utils.safeGet(priceRecord, CONFIG.fields.workPrices.validFrom);
             var price = utils.safeGet(priceRecord, "Cena", 0);
             
-            // Kontrola platnosti
-            if (validFrom && moment(targetDate).isSameOrAfter(validFrom)) {
-                if (!validTo || moment(targetDate).isSameOrBefore(validTo)) {
-                    // Táto cena je platná, vyber najnovšiu
-                    if (!latestValidFrom || moment(validFrom).isAfter(latestValidFrom)) {
-                        validPrice = price;
-                        latestValidFrom = validFrom;
-                        
-                        utils.addDebug(currentEntry, "  • Platná cena nájdená: " + price + " € (od " + 
-                                     utils.formatDate(validFrom) + ")");
-                    }
-                }
+            // Ak je dátum platnosti <= ako náš target dátum
+            if (recordValidFrom && moment(recordValidFrom).isSameOrBefore(targetDate)) {
+                validPrice = price;
+                validFrom = recordValidFrom;
+                
+                utils.addDebug(currentEntry, "  • Kandidát na platnú cenu: " + price + " € (od " + 
+                             utils.formatDate(recordValidFrom) + ")");
+            } else {
+                // Ak sme našli záznam s dátumom > targetDate, môžeme skončiť
+                break;
             }
         }
         
-        if (validPrice !== null) {
-            utils.addDebug(currentEntry, "  ✅ Finálna cena: " + validPrice + " €");
+        if (validPrice > 0) {
+            utils.addDebug(currentEntry, "  ✅ Finálna platná cena: " + validPrice + " € (platná od " + 
+                         utils.formatDate(validFrom) + ")");
             return validPrice;
         } else {
             utils.addDebug(currentEntry, "  ❌ Nenašla sa platná cena k dátumu " + utils.formatDate(targetDate));
