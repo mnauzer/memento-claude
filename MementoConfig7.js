@@ -42,26 +42,54 @@ var MementoConfig = (function() {
         
         // === NÁZVY KNIŽNÍC ===
         libraries: {
-            // Hlavné pracovné knižnice
+            // Evidencia - denné záznamy
             attendance: "Dochádzka",
             workRecords: "Záznam práce",
-            wages: "sadzby zamestnancov",
-            workPrices: "ceny prác",
+            rideLog: "Kniha jázd",
+            cashBook: "Pokladňa",
+    
+            // Evidencia pomocné
             workReport: "Výkaz prác",
-            priceList: "Cenník prác",
-            bookOfRides: "Kniha jázd",
+            materialsReport: "Výkaz materiálu",
+            transportReport: "Výkaz dopravy",
+            machinesReport: "Výkaz strojov",
             
-            // Firemné a systémové knižnice
+            priceList: "Cenník prác",
+            inventory: "Sklad",
+            
+            // Historical data 
+            workPrices: "ceny prác",
+            materialPrices: "ceny materiálu",
+            wages: "sadzby zamestnancov",
+            
+            // Systémové knižnice
             defaults: "ASISTANTO Defaults",
-            notifications: "Notifications",
+            apiKeys: "ASISTANTO API",
+            globalLogs: "ASISTANTO Logs",
+            
+            // Firemné knižnice
             employees: "Zamestnanci",
-            customers: "Zákazky",
+            suppliers: "Dodávatelia",
+            partners: "Partneri",
+            clients: "Klienti",
             vehicles: "Vozidlá",
-            cashRegister: "Pokladna",
+            machines: "Stroje",
+            places: "Miesta",
+            addresses: "Adresy",
+            accounts: "Účty",
+            
+            // Obchodné dokumenty
+            quotes: "Cenové ponuky",
+            orders: "Zákazky",
+            orderSettlements: "Vyúčtovania",
+            issuedInvoices: "Vystavené faktúry", // pridané
+            receivedInvoices: "Prijaté faktúry", // pridané
+            receivables: "Pohľadávky",
             obligations: "Záväzky",
             
             // Telegram knižnice
-            telegramGroups: "Telegram Groups",
+            notifications: "Notifications",
+            telegramGroups: "Telegram Groups"
         },
         
         // === NÁZVY POLÍ ===
@@ -135,7 +163,7 @@ var MementoConfig = (function() {
                 startTime: "Od",
                 endTime: "Do"
             },
-            
+            // Výkaz prác polia
             workReport: {
                 datum: "Dátum",
                 identifikator: "Identifikátor",
@@ -264,16 +292,27 @@ var MementoConfig = (function() {
             
             // Záväzky polia
             obligations: {
-                state: "Stav",
+                number: "Číslo", // TODO: automatické generovanie
                 date: "Dátum",
-                type: "Typ",
-                employee: "Zamestnanec",
-                creditor: "Veriteľ",
-                attendance: "Dochádzka",
+                type: "Typ", // SingleChoice: Nákup materiálu, Mzda, Podiely, Pôžička, Poistné, Faktúra
+                state: "Stav", // SingleChoice: Neuhradené, Čiastočne uhradené, Uhradené
+                creditor: "Veriteľ", //SingleChoice list: Dodávateľ, Partner, Zamestnanec, Klient
+                employee: "Zamestnanec", //linktToEntry Zamestnanci
+                supplier: "Dodávateľ", //linktToEntry Zamestnanci
+                client: "Klient", //linktToEntry Klienti
+                partner: "Partner", //linktToEntry Partneri
+                attendance: "Dochádzka", //linktToEntry Dochádzka
+                invoices: "Faktúry prijaté", //linktToEntry Faktúry prijaté
                 description: "Popis",
+                isVat: "s DPH", // Checkbox
+                vatRateOption: "sadzba dph", // Options: Základná, Znížená, Nulová
+                vatRate: "sadzba DPH",
                 amount: "Suma",
+                vatAmount: "DPH",
+                totalAmount: "Suma s DPH",
                 paid: "Zaplatené",
-                balance: "Zostatok"
+                balance: "Zostatok", // amount || totalAmount - paid
+                info: "info úhrada"
             },
             
             // Zákazky polia
