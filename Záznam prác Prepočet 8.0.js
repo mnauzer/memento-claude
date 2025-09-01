@@ -148,43 +148,55 @@ function main() {
 // VALIDÁCIA
 // ==============================================
 
-/**
- * Validuje povinné vstupné polia
- */
-function validateInputs() {
-    utils.addDebug(currentEntry, CONFIG.icons.step + " KROK 1: Validácia vstupných dát");
-    
-    // Priama kontrola polí
-    var date = utils.safeGet(currentEntry, CONFIG.fields.date);
-    var startTime = utils.safeGet(currentEntry, CONFIG.fields.startTime);
-    var endTime = utils.safeGet(currentEntry, CONFIG.fields.endTime);
-    
-    var missingFields = [];
-    if (!date) missingFields.push("Dátum");
-    if (!startTime) missingFields.push("Od");
-    if (!endTime) missingFields.push("Do");
-    
-    if (missingFields.length > 0) {
+function validateInputData() {
+    try {
+        // Definuj povinné polia
+        var requiredFields = [
+            CONFIG.fields.workRecord.date,
+            CONFIG.fields.startTime,
+            CONFIG.fields.endTime
+        ];
+        
+        // Získaj hodnoty
+        var date = utils.safeGet(currentEntry, CONFIG.fields.workRecord.date);
+        var startTime = utils.safeGet(currentEntry, CONFIG.fields.startTime);
+        var endTime = utils.safeGet(currentEntry, CONFIG.fields.endTime);
+        var employees = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.employees);
+        var customer = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.customer);
+        
+        // Kontroly
+        var missingFields = [];
+        if (!date) missingFields.push("Dátum");
+        if (!startTime) missingFields.push("Od");
+        if (!endTime) missingFields.push("Do");
+        
+        if (missingFields.length > 0) {
+            return {
+                success: false,
+                error: "Chýbajú povinné polia: " + missingFields.join(", ")
+            };
+        }
+        
+        utils.addDebug(currentEntry, "  • Dátum: " + utils.formatDate(date));
+        utils.addDebug(currentEntry, "  • Čas: " + utils.formatTime(startTime) + " - " + utils.formatTime(endTime));
+        utils.addDebug(currentEntry, "  • Zamestnancov: " + (employees ? employees.length : 0));
+        utils.addDebug(currentEntry, "  • Zákazka: " + (customer && customer.length > 0 ? "ÁNO" : "NIE"));
+        utils.addDebug(currentEntry, utils.getIcon("success") + " Validácia úspešná");
+        
         return {
-            success: false,
-            message: "Chýbajúce povinné polia: " + missingFields.join(", ")
+            success: true,
+            date: date,
+            startTime: startTime,
+            endTime: endTime,
+            employees: employees,
+            customer: customer,
+            hasCustomer: customer && customer.length > 0
         };
         
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "validateInputData", error);
         return { success: false, error: error.toString() };
     }
-    
-    var customer = utils.safeGetLinks(currentEntry, CONFIG.fields.customer);
-    
-    utils.addDebug(currentEntry, "  ✅ Validácia úspešná");
-    
-    return {
-        success: true,
-        hasCustomer: customer && customer.length > 0,
-        customer: customer,
-        date: date
-    };
 }
 
 // ==============================================
