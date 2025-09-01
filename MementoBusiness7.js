@@ -480,7 +480,48 @@ var MementoBusiness = (function() {
         }
     }
 
-function findValidWorkPrice(workEntry, date) {
+    function findValidItemPrice(itemEntry, date) {
+        var core = getCore();
+        var config = getConfig();
+        
+        try {
+            if (!itemEntry || !date) return null;
+            
+            var fields = config.fields.itemPrices;
+            var libraryName = config.libraries.itemPrices;
+            var prices = core.safeGetLinksFrom(itemEntry, libraryName, fields.item);
+            
+            if (!prices || prices.length === 0) {
+                return null;
+            }
+            
+            var validPrice = null;
+            var latestValidFrom = null;
+            
+            // Nájdi najnovšiu platnú cenu
+            for (var i = 0; i < prices.length; i++) {
+                var rate = prices[i];
+                var validFrom = rate.field(fields.validFrom);
+                var price = rate.field(fields.price);
+                
+                if (validFrom && price && moment(validFrom).isSameOrBefore(date)) {
+                    if (!latestValidFrom || moment(validFrom).isAfter(latestValidFrom)) {
+                        latestValidFrom = validFrom;
+                        validPrice = price;
+                    }
+                }
+            }
+            
+            return validPrice;
+            
+        } catch (error) {
+            if (core) {
+                core.addError(entry(), "Chyba pri hľadaní ceny: " + error.toString() + ", Line: " + error.lineNumber, "findValidWorkPrice", error);
+            }
+            return null;
+        }
+    }
+    function findValidWorkPrice(workEntry, date) {
         var core = getCore();
         var config = getConfig();
         
@@ -498,7 +539,7 @@ function findValidWorkPrice(workEntry, date) {
             var validPrice = null;
             var latestValidFrom = null;
             
-            // Nájdi najnovšiu platnú sadzbu
+            // Nájdi najnovšiu platnú cwnu
             for (var i = 0; i < prices.length; i++) {
                 var rate = prices[i];
                 var validFrom = rate.field(fields.validFrom);
@@ -593,8 +634,11 @@ function findValidWorkPrice(workEntry, date) {
         findValidHourlyRate: findValidHourlyRate,
         findValidSalary: findValidSalary,
 
-        // Párce
+        // Práce
         findValidWorkPrice: findValidWorkPrice,
+        
+        // Sklad
+        findValidItemPrice: findValidItemPrice,
         
         // Štatistiky
         calculateMonthlyStats: calculateMonthlyStats,
