@@ -25,6 +25,7 @@ var CONFIG = {
     
     // Referencie na centrálny config
     fields: {
+        workReport: centralConfig.fields.workReport,
         workRecord: centralConfig.fields.workRecord,
         common: centralConfig.fields.common,
         employee: centralConfig.fields.employee,
@@ -834,7 +835,7 @@ function recalculateWorkReportTotals(workReport) {
         
         // Ulož súčty do výkazu (ak máš také polia)
             utils.safeSet(workReport, CONFIG.fields.workReport.totalHours, totalHours);
-            utils.safeSet(workReport, CONFIG.fields.workReport.hzsSum, totalAmmount);
+            utils.safeSet(workReport, CONFIG.fields.workReport.hzsSum, totalAmount);
             utils.safeSet(workReport, CONFIG.fields.workReport.hzsCount, recordCount);
             //utils.safeSet(workReport, CONFIG.fields.workReport.vat, vat); // TODO: dopočítať DPH
             //utils.safeSet(workReport, CONFIG.fields.workReport.hzsSumTotal, sumTotal);
