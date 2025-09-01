@@ -796,12 +796,7 @@ function updateWorkReportAttributes(workReport, index, workedHours, hzsPrice) {
         vykazArray[index].setAttr(CONFIG.vykazAttributes.totalPrice, totalPrice);
         
        
-        if (employees && employees.length > 0) {
-            var employeeNames = employees.map(function(emp) {
-                return utils.formatEmployeeName(emp);
-            }).join(", ");
-            vykazArray[index].setAttr("zamestnanci", employeeNames);
-        }
+       
         
         utils.addDebug(currentEntry, "  ✅ Atribúty aktualizované:");
         utils.addDebug(currentEntry, "    • Popis: " + (workDescription || "N/A"));
