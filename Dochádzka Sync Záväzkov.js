@@ -144,18 +144,18 @@ function main() {
 
 function validateInputData() {
     try {
-        var datum = utils.safeGet(currentEntry, CONFIG.fields.datum);
-        var zamestnanci = utils.safeGetLinks(currentEntry, CONFIG.fields.zamestnanci);
+        var datum = utils.safeGet(currentEntry, CONFIG.fields.attendance.date);
+        var zamestnanci = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.employees);
         
         // Kontrola povinných polí
-        var requiredFields = [CONFIG.fields.datum, CONFIG.fields.zamestnanci];
+        var requiredFields = [CONFIG.fields.attendance.date, CONFIG.fields.employees];
         if (!utils.validateRequiredFields(currentEntry, requiredFields)) {
             return { success: false, error: "Chýbajú povinné polia!" };
         }
         
         // Kontrola atribútov - získaj len zamestnancov s dennou mzdou
         var validEmployees = [];
-        var zamArray = utils.safeGet(currentEntry, CONFIG.fields.zamestnanci);
+        var zamArray = utils.safeGet(currentEntry, CONFIG.fields.attendance.employees);
         
         for (var i = 0; i < zamestnanci.length; i++) {
             var employee = zamestnanci[i];
