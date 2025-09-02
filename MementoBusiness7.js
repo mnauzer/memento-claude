@@ -665,18 +665,20 @@ var MementoBusiness = (function() {
     // ==============================================
 
     function findExistingObligations() {
+        var core = getCore();
         try {
             var dochadzkaField = CONFIG.fields.obligations.attendance;
-            return utils.safeGetLinksFrom(currentEntry, CONFIG.libraries.obligations, dochadzkaField )
+            return core.safeGetLinksFrom(currentEntry, CONFIG.libraries.obligations, dochadzkaField )
         } catch (error) {
-            utils.addError(currentEntry, "Chyba pri hľadaní záväzkov: " + error.toString(), "findExistingObligations");
+            core.addError(currentEntry, "Chyba pri hľadaní záväzkov: " + error.toString(), "findExistingObligations");
             return [];
         }
     }
 
     function createObligation(empData, datum) {
+        var core = getCore();
         try {
-            utils.addDebug(currentEntry, "  ➕ Vytváranie nového záväzku...");
+            core.addDebug(currentEntry, "  ➕ Vytváranie nového záväzku...");
             
             var obligationData = {};
             obligationData[CONFIG.fields.obligations.state || "Stav"] = CONFIG.constants.stavy.neuhradene;
@@ -686,7 +688,7 @@ var MementoBusiness = (function() {
             obligationData[CONFIG.fields.obligations.creditor || "Veriteľ"] = "Zamestnanec";
             obligationData[CONFIG.fields.obligations.attendance || "Dochádzka"] = [currentEntry];
             obligationData[CONFIG.fields.obligations.description || "Popis"] = 
-                "Mzda zamestnanca " + empData.name + " za deň " + utils.formatDate(datum);
+                "Mzda zamestnanca " + empData.name + " za deň " + core.formatDate(datum);
             obligationData[CONFIG.fields.obligations.amount || "Suma"] = empData.dailyWage;
             obligationData[CONFIG.fields.obligations.paid || "Zaplatené"] = 0;
             obligationData[CONFIG.fields.obligations.balance || "Zostatok"] = empData.dailyWage;
@@ -694,15 +696,15 @@ var MementoBusiness = (function() {
             var newObligation = CONFIG.libraries.obligations.create(obligationData);
             
             if (newObligation) {
-                utils.addDebug(currentEntry, "  ✅ Záväzok vytvorený");
+                core.addDebug(currentEntry, "  ✅ Záväzok vytvorený");
                 
                 // Pridaj info do záväzku
                 var infoText = "📋 AUTOMATICKY VYTVORENÝ ZÁVÄZOK\n";
                 infoText += "=====================================\n\n";
-                infoText += "📅 Dátum: " + utils.formatDate(datum) + "\n";
+                infoText += "📅 Dátum: " + core.formatDate(datum) + "\n";
                 infoText += "👤 Zamestnanec: " + empData.name + "\n";
-                infoText += "💰 Suma: " + utils.formatMoney(empData.dailyWage) + "\n\n";
-                infoText += "⏰ Vytvorené: " + utils.formatDate(moment()) + "\n";
+                infoText += "💰 Suma: " + core.formatMoney(empData.dailyWage) + "\n\n";
+                infoText += "⏰ Vytvorené: " + core.formatDate(moment()) + "\n";
                 infoText += "🔧 Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
                 infoText += "📂 Zdroj: Knižnica Dochádzka";
                 
@@ -714,7 +716,7 @@ var MementoBusiness = (function() {
             return false;
             
         } catch (error) {
-            utils.addError(currentEntry, "Chyba pri vytváraní záväzku: " + error.toString(), "createObligation", error);
+            core.addError(currentEntry, "Chyba pri vytváraní záväzku: " + error.toString(), "createObligation", error);
             return false;
         }
     }
