@@ -146,7 +146,6 @@ var MementoConfig = (function() {
                     note: "poznámka"
                 },
             },
-            
             // Záznam práce polia
             workRecord: {
                 date: "Dátum",
