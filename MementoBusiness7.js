@@ -666,6 +666,7 @@ var MementoBusiness = (function() {
 
     function findExistingObligations() {
         var core = getCore();
+        var config = getConfig();
         try {
             var creditorField = CONFIG.fields.obligations.attendance;
             return core.safeGetLinksFrom(currentEntry, CONFIG.libraries.obligations, creditorField )
@@ -677,11 +678,13 @@ var MementoBusiness = (function() {
 
     function createObligation(data, creditor) {
         var core = getCore();
+        var config = getConfig();
         try { // TODO: vytvoriť univerzálnu funkciu
             core.addDebug(currentEntry, "  ➕ Vytváranie nového záväzku...");
             var lib = libByName(CONFIG.libraries.obligations)            
             var obligationData = {};
-            obligationData[CONFIG.fields.obligations.state] = CONFIG.constants.obligationStates.unpaid;
+            //obligationData[CONFIG.fields.obligations.state] = CONFIG.constants.obligationStates.unpaid;
+            obligationData[CONFIG.fields.obligations.state] = "Neuhradené";
             obligationData[CONFIG.fields.obligations.date] = data.date;
             obligationData[CONFIG.fields.obligations.type] = CONFIG.constants.obligationTypes.wages;
             obligationData[CONFIG.fields.obligations.employee] = [data.entry];
