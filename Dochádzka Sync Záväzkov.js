@@ -170,7 +170,7 @@ function validateInputData() {
             var employee = employees[i];
             var dailyWage = 0;
             try {
-                dailyWage = employee.attr(CONFIG.attributes.employees.dailyWage) || 0;
+                dailyWage = employee.attr(CONFIG.attributes.dailyWage) || 0;
             } catch (e) {
                 utils.addDebug(currentEntry, "⚠️ Chyba pri čítaní atribútu: " + e.toString());
             }
