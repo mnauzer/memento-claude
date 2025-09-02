@@ -659,6 +659,94 @@ var MementoBusiness = (function() {
             }
         }
     }
+
+    // ==============================================
+    // POMOCNÉ FUNKCIE PRE ZÁVÄZKY
+    // ==============================================
+
+    function findExistingObligations(zavazkyLib) {
+        try {
+            var currentEntryId = currentEntry.field("ID");
+            var dochadzkaField = CONFIG.fields.obligations.attendance || "Dochádzka";
+            
+            return zavazkyLib.find(dochadzkaField + " = '" + currentEntryId + "'") || [];
+            
+        } catch (error) {
+            utils.addError(currentEntry, "Chyba pri hľadaní záväzkov: " + error.toString(), "findExistingObligations");
+            return [];
+        }
+    }
+
+    function createObligation(zavazkyLib, empData, datum) {
+        try {
+            utils.addDebug(currentEntry, "  ➕ Vytváranie nového záväzku...");
+            
+            var obligationData = {};
+            obligationData[CONFIG.fields.obligations.state || "Stav"] = CONFIG.constants.stavy.neuhradene;
+            obligationData[CONFIG.fields.obligations.date || "Dátum"] = datum;
+            obligationData[CONFIG.fields.obligations.type || "Typ"] = CONFIG.constants.typy.mzda;
+            obligationData[CONFIG.fields.obligations.employee || "Zamestnanec"] = [empData.entry];
+            obligationData[CONFIG.fields.obligations.creditor || "Veriteľ"] = "Zamestnanec";
+            obligationData[CONFIG.fields.obligations.attendance || "Dochádzka"] = [currentEntry];
+            obligationData[CONFIG.fields.obligations.description || "Popis"] = 
+                "Mzda zamestnanca " + empData.name + " za deň " + utils.formatDate(datum);
+            obligationData[CONFIG.fields.obligations.amount || "Suma"] = empData.dailyWage;
+            obligationData[CONFIG.fields.obligations.paid || "Zaplatené"] = 0;
+            obligationData[CONFIG.fields.obligations.balance || "Zostatok"] = empData.dailyWage;
+            
+            var newObligation = zavazkyLib.create(obligationData);
+            
+            if (newObligation) {
+                utils.addDebug(currentEntry, "  ✅ Záväzok vytvorený");
+                
+                // Pridaj info do záväzku
+                var infoText = "📋 AUTOMATICKY VYTVORENÝ ZÁVÄZOK\n";
+                infoText += "=====================================\n\n";
+                infoText += "📅 Dátum: " + utils.formatDate(datum) + "\n";
+                infoText += "👤 Zamestnanec: " + empData.name + "\n";
+                infoText += "💰 Suma: " + utils.formatMoney(empData.dailyWage) + "\n\n";
+                infoText += "⏰ Vytvorené: " + utils.formatDate(moment()) + "\n";
+                infoText += "🔧 Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
+                infoText += "📂 Zdroj: Knižnica Dochádzka";
+                
+                newObligation.set(CONFIG.fields.common.info || "info", infoText);
+                
+                return true;
+            }
+            
+            return false;
+            
+        } catch (error) {
+            utils.addError(currentEntry, "Chyba pri vytváraní záväzku: " + error.toString(), "createObligation", error);
+            return false;
+        }
+    }
+
+    function updateObligation(obligation, amount) {
+        try {
+            utils.addDebug(currentEntry, "  🔄 Aktualizácia existujúceho záväzku...");
+            
+            var paidAmount = utils.safeGet(obligation, CONFIG.fields.obligations.paid || "Zaplatené", 0);
+            var newBalance = amount - paidAmount;
+            var newStatus = newBalance <= 0 ? CONFIG.constants.stavy.uhradene : 
+                        paidAmount > 0 ? CONFIG.constants.stavy.ciastocneUhradene : 
+                        CONFIG.constants.stavy.neuhradene;
+            
+            obligation.set(CONFIG.fields.obligations.amount || "Suma", amount);
+            obligation.set(CONFIG.fields.obligations.balance || "Zostatok", newBalance);
+            obligation.set(CONFIG.fields.obligations.state || "Stav", newStatus);
+            
+            utils.addDebug(currentEntry, "  ✅ Záväzok aktualizovaný");
+            utils.addDebug(currentEntry, "    Suma: " + utils.formatMoney(amount) + 
+                                        " | Zostatok: " + utils.formatMoney(newBalance));
+            
+            return true;
+            
+        } catch (error) {
+            utils.addError(currentEntry, "Chyba pri aktualizácii: " + error.toString(), "updateObligation", error);
+            return false;
+        }
+    }
     // ==============================================
     // PUBLIC API
     // ==============================================
@@ -696,7 +784,12 @@ var MementoBusiness = (function() {
      
         
         // Reporting - NOVÁ FUNKCIA
-        showProcessingSummary: showProcessingSummary
+        showProcessingSummary: showProcessingSummary,
+
+        // Obligations
+        createObligation: createObligation,
+        updateObligation: updateObligation,
+        findExistingObligations: findExistingObligations
     };
 })();
 
