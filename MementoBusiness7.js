@@ -678,12 +678,10 @@ var MementoBusiness = (function() {
 
     function createObligation(data, creditor) {
         var core = getCore();
-        var config = getConfig();
         try { // TODO: vytvoriť univerzálnu funkciu
-            core.addDebug(currentEntry, "  ➕ Vytváranie nového záväzku...");
+            core.addDebug(currentEntry, "  + Vytváranie nového záväzku...");
             var lib = libByName(CONFIG.libraries.obligations)            
-            var obligationData = {};
-            var newObligation = lib.create(obligationData);
+            var newObligation = lib.create({});
             //obligationData[CONFIG.fields.obligations.state] = CONFIG.constants.obligationStates.unpaid;
             core.safeSet(newObligation, CONFIG.fields.obligations.state, "Neuhradené")
             core.safeSet(newObligation, CONFIG.fields.obligations.date, data.date)
@@ -697,8 +695,6 @@ var MementoBusiness = (function() {
             core.safeSet(newObligation, CONFIG.fields.obligations.amount, data.dailyWage)
             core.safeSet(newObligation, CONFIG.fields.obligations.paid, 0)
             core.safeSet(newObligation, CONFIG.fields.obligations.balance, data.dailyWage)
-            
-           
             
             if (newObligation) {
                 core.addDebug(currentEntry, "  ✅ Záväzok vytvorený");
@@ -730,15 +726,15 @@ var MementoBusiness = (function() {
         try {
             utils.addDebug(currentEntry, "  🔄 Aktualizácia existujúceho záväzku...");
             
-            var paidAmount = utils.safeGet(obligation, CONFIG.fields.obligations.paid || "Zaplatené", 0);
+            var paidAmount = utils.safeGet(obligation, CONFIG.fields.obligations.paid || 0);
             var newBalance = amount - paidAmount;
             var newStatus = newBalance <= 0 ? CONFIG.constants.stavy.uhradene : 
                         paidAmount > 0 ? CONFIG.constants.stavy.ciastocneUhradene : 
                         CONFIG.constants.stavy.neuhradene;
             
-            obligation.set(CONFIG.fields.obligations.amount || "Suma", amount);
-            obligation.set(CONFIG.fields.obligations.balance || "Zostatok", newBalance);
-            obligation.set(CONFIG.fields.obligations.state || "Stav", newStatus);
+            obligation.set(CONFIG.fields.obligations.amount, amount);
+            obligation.set(CONFIG.fields.obligations.balance, newBalance);
+            obligation.set(CONFIG.fields.obligations.state, newStatus);
             
             utils.addDebug(currentEntry, "  ✅ Záväzok aktualizovaný");
             utils.addDebug(currentEntry, "    Suma: " + utils.formatMoney(amount) + 
