@@ -155,7 +155,7 @@ function validateInputData() {
         
         // Kontrola atribútov - získaj len zamestnancov s dennou mzdou
         var validEmployees = [];
-        var zamArray = currentEntry.field(CONFIG.fields.zamestnanci);
+        var zamArray = utils.safeGet(currentEntry, CONFIG.fields.zamestnanci);
         
         for (var i = 0; i < zamestnanci.length; i++) {
             var employee = zamestnanci[i];
@@ -163,7 +163,7 @@ function validateInputData() {
             
             var dennaMzda = 0;
             try {
-                dennaMzda = zamArray[i].attr(CONFIG.attributes.dennaMzda) || 0;
+                dennaMzda = employee.attr(CONFIG.attributes.employees.dailyWage) || 0;
             } catch (e) {
                 utils.addDebug(currentEntry, "⚠️ Chyba pri čítaní atribútu: " + e.toString());
             }
