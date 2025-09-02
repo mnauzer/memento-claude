@@ -681,14 +681,14 @@ var MementoBusiness = (function() {
             core.addDebug(currentEntry, "  ➕ Vytváranie nového záväzku...");
             var lib = libByName(CONFIG.libraries.obligations)            
             var obligationData = {};
-            obligationData[CONFIG.fields.obligations.state] = CONFIG.constants.stavy.neuhradene;
-            obligationData[CONFIG.fields.obligations.date] = datum;
-            obligationData[CONFIG.fields.obligations.type] = CONFIG.constants.typy.mzda;
+            obligationData[CONFIG.fields.obligations.state] = CONFIG.constants.obligationStates.unpaid;
+            obligationData[CONFIG.fields.obligations.date] = data.date;
+            obligationData[CONFIG.fields.obligations.type] = CONFIG.constants.obligationTypes.wages;
             obligationData[CONFIG.fields.obligations.employee] = [data.entry];
             obligationData[CONFIG.fields.obligations.creditor] = "Zamestnanec";
             obligationData[CONFIG.fields.obligations[creditor]] = [currentEntry];
             obligationData[CONFIG.fields.obligations.description] = 
-                "Mzda zamestnanca " + data.name + " za deň " + core.formatDate(datum);
+                "Mzda zamestnanca " + data.name + " za deň " + core.formatDate(data.date);
             obligationData[CONFIG.fields.obligations.amount] = data.dailyWage;
             obligationData[CONFIG.fields.obligations.paid] = 0;
             obligationData[CONFIG.fields.obligations.balance] = data.dailyWage;
@@ -701,7 +701,7 @@ var MementoBusiness = (function() {
                 // Pridaj info do záväzku
                 var infoText = "📋 AUTOMATICKY VYTVORENÝ ZÁVÄZOK\n";
                 infoText += "=====================================\n\n";
-                infoText += "📅 Dátum: " + core.formatDate(datum) + "\n";
+                infoText += "📅 Dátum: " + core.formatDate(data.date) + "\n";
                 infoText += "👤 Zamestnanec: " + data.name + "\n";
                 infoText += "💰 Suma: " + core.formatMoney(data.dailyWage) + "\n\n";
                 infoText += "⏰ Vytvorené: " + core.formatDate(moment()) + "\n";
