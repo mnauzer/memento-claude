@@ -37,25 +37,20 @@ var CONFIG = {
     
     // Referencie na centrálny config
     fields: {
-        attendance: centralConfig.fields.attendance || {},
-        obligations: centralConfig.fields.obligations || {},
-        common: centralConfig.fields.common || {},
+        attendance: centralConfig.fields.attendance,
+        obligations: centralConfig.fields.obligations,
+        common: centralConfig.fields.common,
         
         // Špecifické mapovanie
-        datum: centralConfig.fields.attendance.date || "Dátum",
-        zamestnanci: centralConfig.fields.attendance.employees || "Zamestnanci",
-        zavazky: centralConfig.fields.attendance.obligations || "Záväzky",
-        info: centralConfig.fields.common.info || "info"
+        date: centralConfig.fields.attendance.date,
+        employees: centralConfig.fields.attendance.employees,
+        obligations: centralConfig.fields.attendance.obligations,
+        info: centralConfig.fields.common.info
     },
-    
-    attributes: centralConfig.attributes.attendanceEmployees || {
-        dennaMzda: "denná mzda"
-    },
-    
-    libraries: centralConfig.libraries.business || {
-        obligations: "Záväzky"
-    },
-    
+    attributes: centralConfig.fields.attendance.employeeAttributes, 
+    libraries: centralConfig.libraries,
+    icons: centralConfig.icons,
+        
     // Konštanty pre záväzky
     constants: {
         stavy: {
@@ -148,8 +143,6 @@ function validateInputData() {
           // Definuj povinné polia
         var requiredFields = [
             CONFIG.fields.attendance.date,
-            CONFIG.fields.attendance.arrival,
-            CONFIG.fields.attendance.departure,
             CONFIG.fields.attendance.employees
         ];
         
@@ -164,23 +157,17 @@ function validateInputData() {
         if (!date) {
             return { success: false, error: "Dátum nie je vyplnený" };
         }
-        
-        if (!arrival || !departure) {
-            return { success: false, error: "Príchod alebo odchod nie je vyplnený" };
-        }
-        
+              
         if (!employees || employees.length === 0) {
             return { success: false, error: "Žiadni zamstnanci v zázname" };
         }
-        
+
         var zamArray = currentEntry.field(CONFIG.fields.attendance.employees);
 
         // Kontrola atribútov - získaj len zamestnancov s dennou mzdou
         var validEmployees = [];
         for (var i = 0; i < employees.length; i++) {
             var employee = employees[i];
-            if (!employee) continue;
-            
             var dailyWage = 0;
             try {
                 dailyWage = employee.attr(CONFIG.attributes.employees.dailyWage) || 0;
