@@ -681,17 +681,17 @@ var MementoBusiness = (function() {
             core.addDebug(currentEntry, "  ➕ Vytváranie nového záväzku...");
             
             var obligationData = {};
-            obligationData[CONFIG.fields.obligations.state || "Stav"] = CONFIG.constants.stavy.neuhradene;
-            obligationData[CONFIG.fields.obligations.date || "Dátum"] = datum;
-            obligationData[CONFIG.fields.obligations.type || "Typ"] = CONFIG.constants.typy.mzda;
-            obligationData[CONFIG.fields.obligations.employee || "Zamestnanec"] = [empData.entry];
-            obligationData[CONFIG.fields.obligations.creditor || "Veriteľ"] = "Zamestnanec";
-            obligationData[CONFIG.fields.obligations.attendance || "Dochádzka"] = [currentEntry];
-            obligationData[CONFIG.fields.obligations.description || "Popis"] = 
+            obligationData[CONFIG.fields.obligations.state] = CONFIG.constants.stavy.neuhradene;
+            obligationData[CONFIG.fields.obligations.date] = datum;
+            obligationData[CONFIG.fields.obligations.type] = CONFIG.constants.typy.mzda;
+            obligationData[CONFIG.fields.obligations.employee] = [empData.entry];
+            obligationData[CONFIG.fields.obligations.creditor] = "Zamestnanec";
+            obligationData[CONFIG.fields.obligations.attendance] = [currentEntry];
+            obligationData[CONFIG.fields.obligations.description] = 
                 "Mzda zamestnanca " + empData.name + " za deň " + core.formatDate(datum);
-            obligationData[CONFIG.fields.obligations.amount || "Suma"] = empData.dailyWage;
-            obligationData[CONFIG.fields.obligations.paid || "Zaplatené"] = 0;
-            obligationData[CONFIG.fields.obligations.balance || "Zostatok"] = empData.dailyWage;
+            obligationData[CONFIG.fields.obligations.amount] = empData.dailyWage;
+            obligationData[CONFIG.fields.obligations.paid] = 0;
+            obligationData[CONFIG.fields.obligations.balance] = empData.dailyWage;
             
             var newObligation = CONFIG.libraries.obligations.create(obligationData);
             
