@@ -678,7 +678,7 @@ var MementoBusiness = (function() {
     function createObligation(empData, datum) {
         var core = getCore();
         try {
-            addDebug(currentEntry, "  ➕ Vytváranie nového záväzku...");
+            core.addDebug(currentEntry, "  ➕ Vytváranie nového záväzku...");
             var lib = libByName(CONFIG.libraries.obligations)            
             var obligationData = {};
             obligationData[CONFIG.fields.obligations.state] = CONFIG.constants.stavy.neuhradene;
