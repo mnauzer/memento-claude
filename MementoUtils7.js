@@ -190,7 +190,7 @@ var MementoUtils = (function() {
         // Obligations
         createObligations: lazyCall('business', 'createObligations'),
         updateObligations: lazyCall('business', 'updateObligations'),
-        findExistingObligations: lazyCall('core', 'findExistingObligations'),
+        findExistingObligations: lazyCall('business', 'findExistingObligations'),
         
         // === AI FUNKCIE (ak je modul dostupný) ===
         
