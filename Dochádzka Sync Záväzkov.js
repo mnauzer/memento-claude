@@ -227,7 +227,7 @@ function processObligations(employees, datum, zavazkyLib) {
         utils.addDebug(currentEntry, "📋 Spracovávam " + employees.length + " zamestnancov...");
         
         // Nájdi existujúce záväzky pre túto dochádzku
-        var existingObligations = utils.findExistingObligations(zavazkyLib);
+        var existingObligations = utils.findExistingObligations();
         utils.addDebug(currentEntry, "📊 Nájdené existujúce záväzky: " + existingObligations.length);
         
         // Spracuj každého zamestnanca

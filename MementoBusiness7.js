@@ -664,20 +664,17 @@ var MementoBusiness = (function() {
     // POMOCNÉ FUNKCIE PRE ZÁVÄZKY
     // ==============================================
 
-    function findExistingObligations(zavazkyLib) {
+    function findExistingObligations() {
         try {
-            var currentEntryId = currentEntry.field("ID");
-            var dochadzkaField = CONFIG.fields.obligations.attendance || "Dochádzka";
-            
-            return zavazkyLib.find(dochadzkaField + " = '" + currentEntryId + "'") || [];
-            
+            var dochadzkaField = CONFIG.fields.obligations.attendance;
+            return utils.safeGetLinksFrom(currentEntry, CONFIG.libraries.obligations, dochadzkaField )
         } catch (error) {
             utils.addError(currentEntry, "Chyba pri hľadaní záväzkov: " + error.toString(), "findExistingObligations");
             return [];
         }
     }
 
-    function createObligation(zavazkyLib, empData, datum) {
+    function createObligation(empData, datum) {
         try {
             utils.addDebug(currentEntry, "  ➕ Vytváranie nového záväzku...");
             
@@ -694,7 +691,7 @@ var MementoBusiness = (function() {
             obligationData[CONFIG.fields.obligations.paid || "Zaplatené"] = 0;
             obligationData[CONFIG.fields.obligations.balance || "Zostatok"] = empData.dailyWage;
             
-            var newObligation = zavazkyLib.create(obligationData);
+            var newObligation = CONFIG.libraries.obligations.create(obligationData);
             
             if (newObligation) {
                 utils.addDebug(currentEntry, "  ✅ Záväzok vytvorený");
