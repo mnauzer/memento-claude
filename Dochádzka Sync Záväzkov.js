@@ -259,7 +259,7 @@ function processObligations(data) {
                     }
                 } else {
                     // Vytvor nový
-                    if (utils.createObligation(zavazkyLib, empData, datum)) {
+                    if (utils.createObligation(empData, "attendance")) {
                         result.created++;
                         result.totalAmount += empData.dailyWage;
                     } else {
