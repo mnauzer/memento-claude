@@ -678,8 +678,8 @@ var MementoBusiness = (function() {
     function createObligation(empData, datum) {
         var core = getCore();
         try {
-            core.addDebug(currentEntry, "  ➕ Vytváranie nového záväzku...");
-            
+            addDebug(currentEntry, "  ➕ Vytváranie nového záväzku...");
+            var lib = libByName(CONFIG.libraries.obligations)            
             var obligationData = {};
             obligationData[CONFIG.fields.obligations.state] = CONFIG.constants.stavy.neuhradene;
             obligationData[CONFIG.fields.obligations.date] = datum;
@@ -693,7 +693,7 @@ var MementoBusiness = (function() {
             obligationData[CONFIG.fields.obligations.paid] = 0;
             obligationData[CONFIG.fields.obligations.balance] = empData.dailyWage;
             
-            var newObligation = CONFIG.libraries.obligations.create(obligationData);
+            var newObligation = lib.create(obligationData);
             
             if (newObligation) {
                 core.addDebug(currentEntry, "  ✅ Záväzok vytvorený");
