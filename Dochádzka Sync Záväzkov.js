@@ -103,11 +103,7 @@ function main() {
         
         // KROK 3: Spracovanie záväzkov
         utils.addDebug(currentEntry, "💰 KROK 3: Spracovanie záväzkov");
-        var processingResult = processObligations(
-            validationResult.employees,
-            validationResult.date,
-            zavazkyLib
-        );
+        var processingResult = processObligations(validationResult);
         steps.step3.success = processingResult.success;
         
         // KROK 4: Finalizácia
@@ -213,7 +209,10 @@ function validateInputData() {
 // KROK 3: SPRACOVANIE ZÁVÄZKOV
 // ==============================================
 
-function processObligations(employees, datum, zavazkyLib) {
+function processObligations(data) {
+    var date = data.date;
+    var employees = data.employees;
+
     var result = {
         created: 0,
         updated: 0,
@@ -241,10 +240,10 @@ function processObligations(employees, datum, zavazkyLib) {
                 var existingObligation = null;
                 for (var j = 0; j < existingObligations.length; j++) {
                     var obligation = existingObligations[j];
-                    var linkedEmployees = utils.safeGetLinks(obligation, CONFIG.fields.obligations.employee || "Zamestnanec");
+                    var linkedEmployee = utils.safeGetLinks(obligation, CONFIG.fields.obligations.employee);
                     
-                    if (linkedEmployees && linkedEmployees.length > 0 && 
-                        linkedEmployees[0].field("ID") === empData.entry.field("ID")) {
+                    if (linkedEmployee && linkedEmployee.length > 0 && 
+                        linkedEmployee[0].field("ID") === empData.entry.field("ID")) {
                         existingObligation = obligation;
                         break;
                     }
