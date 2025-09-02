@@ -188,8 +188,8 @@ var MementoUtils = (function() {
         deleteNotificationAndTelegram: lazyCall('core', 'deleteNotificationAndTelegram'),
         
         // Obligations
-        createObligations: lazyCall('business', 'createObligations'),
-        updateObligations: lazyCall('business', 'updateObligations'),
+        createObligation: lazyCall('business', 'createObligation'),
+        updateObligation: lazyCall('business', 'updateObligation'),
         findExistingObligations: lazyCall('business', 'findExistingObligations'),
         
         // === AI FUNKCIE (ak je modul dostupný) ===
