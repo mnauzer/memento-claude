@@ -685,7 +685,7 @@ var MementoBusiness = (function() {
             //obligationData[CONFIG.fields.obligations.state] = CONFIG.constants.obligationStates.unpaid;
             core.safeSet(newObligation, CONFIG.fields.obligations.state, "Neuhradené")
             core.safeSet(newObligation, CONFIG.fields.obligations.date, data.date)
-            core.safeSet(newObligation, CONFIG.fields.obligations.type, "Mzdy")
+            core.safeSet(newObligation, CONFIG.fields.obligations.type, "Mzda")
             //core.safeSet(newObligation, CONFIG.fields.obligations.type] = CONFIG.constants.obligationTypes.wages)
             core.safeSet(newObligation, CONFIG.fields.obligations.employee, [data.entry])
             core.safeSet(newObligation, CONFIG.fields.obligations.creditor,"Zamestnanec")
