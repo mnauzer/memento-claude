@@ -667,31 +667,31 @@ var MementoBusiness = (function() {
     function findExistingObligations() {
         var core = getCore();
         try {
-            var dochadzkaField = CONFIG.fields.obligations.attendance;
-            return core.safeGetLinksFrom(currentEntry, CONFIG.libraries.obligations, dochadzkaField )
+            var creditorField = CONFIG.fields.obligations.attendance;
+            return core.safeGetLinksFrom(currentEntry, CONFIG.libraries.obligations, creditorField )
         } catch (error) {
             core.addError(currentEntry, "Chyba pri hľadaní záväzkov: " + error.toString(), "findExistingObligations");
             return [];
         }
     }
 
-    function createObligation(empData, datum) {
+    function createObligation(data, creditor) {
         var core = getCore();
-        try {
+        try { // TODO: vytvoriť univerzálnu funkciu
             core.addDebug(currentEntry, "  ➕ Vytváranie nového záväzku...");
             var lib = libByName(CONFIG.libraries.obligations)            
             var obligationData = {};
             obligationData[CONFIG.fields.obligations.state] = CONFIG.constants.stavy.neuhradene;
             obligationData[CONFIG.fields.obligations.date] = datum;
             obligationData[CONFIG.fields.obligations.type] = CONFIG.constants.typy.mzda;
-            obligationData[CONFIG.fields.obligations.employee] = [empData.entry];
+            obligationData[CONFIG.fields.obligations.employee] = [data.entry];
             obligationData[CONFIG.fields.obligations.creditor] = "Zamestnanec";
-            obligationData[CONFIG.fields.obligations.attendance] = [currentEntry];
+            obligationData[CONFIG.fields.obligations[creditor]] = [currentEntry];
             obligationData[CONFIG.fields.obligations.description] = 
-                "Mzda zamestnanca " + empData.name + " za deň " + core.formatDate(datum);
-            obligationData[CONFIG.fields.obligations.amount] = empData.dailyWage;
+                "Mzda zamestnanca " + data.name + " za deň " + core.formatDate(datum);
+            obligationData[CONFIG.fields.obligations.amount] = data.dailyWage;
             obligationData[CONFIG.fields.obligations.paid] = 0;
-            obligationData[CONFIG.fields.obligations.balance] = empData.dailyWage;
+            obligationData[CONFIG.fields.obligations.balance] = data.dailyWage;
             
             var newObligation = lib.create(obligationData);
             
@@ -702,8 +702,8 @@ var MementoBusiness = (function() {
                 var infoText = "📋 AUTOMATICKY VYTVORENÝ ZÁVÄZOK\n";
                 infoText += "=====================================\n\n";
                 infoText += "📅 Dátum: " + core.formatDate(datum) + "\n";
-                infoText += "👤 Zamestnanec: " + empData.name + "\n";
-                infoText += "💰 Suma: " + core.formatMoney(empData.dailyWage) + "\n\n";
+                infoText += "👤 Zamestnanec: " + data.name + "\n";
+                infoText += "💰 Suma: " + core.formatMoney(data.dailyWage) + "\n\n";
                 infoText += "⏰ Vytvorené: " + core.formatDate(moment()) + "\n";
                 infoText += "🔧 Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
                 infoText += "📂 Zdroj: Knižnica Dochádzka";
