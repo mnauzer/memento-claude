@@ -179,7 +179,7 @@ function validateInputData() {
                     name: utils.formatEmployeeName(employee)
                 });
                 
-                utils.addDebug(currentEntry, "✅ " + validEmployees[validEmployees.length-1].name + 
+                utils.addDebug(currentEntry, "  • " + validEmployees[validEmployees.length-1].name + 
                                " - denná mzda: " + utils.formatMoney(dailyWage));
             }
         }
@@ -233,7 +233,7 @@ function processObligations(data) {
         for (var i = 0; i < employees.length; i++) {
             var empData = employees[i];
             
-            utils.addDebug(currentEntry, "\n--- " + empData.name + " ---");
+            utils.addDebug(currentEntry, "  • " + empData.name);
             
             try {
                 // Nájdi existujúci záväzok pre tohto zamestnanca
