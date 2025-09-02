@@ -299,8 +299,8 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
             var dennaMzda = (pracovnaDobaHodiny * (hodinovka + priplatok)) + premia - pokuta;
             dennaMzda = Math.round(dennaMzda * 100) / 100;
             
-            // Nastav dennú mzdu
-            zamArray[index].attr(CONFIG.attributes.dailyWage, dennaMzda);
+            // Nastav dennú mzdu atribút sa nastavuje .setAtt("pole", hodnot)
+            zamArray[index].setAttr(CONFIG.attributes.dailyWage, dennaMzda);
             
             utils.addDebug(currentEntry, "  • Denná mzda: " + dennaMzda + " €");
             utils.addDebug(currentEntry, "Spracované úspešne", "success");

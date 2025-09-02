@@ -144,40 +144,60 @@ function main() {
 
 function validateInputData() {
     try {
-        var datum = utils.safeGet(currentEntry, CONFIG.fields.attendance.date);
-        var zamestnanci = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.employees);
+
+          // Definuj povinné polia
+        var requiredFields = [
+            CONFIG.fields.attendance.date,
+            CONFIG.fields.attendance.arrival,
+            CONFIG.fields.attendance.departure,
+            CONFIG.fields.attendance.employees
+        ];
         
-        // Kontrola povinných polí
-        var requiredFields = [CONFIG.fields.attendance.date, CONFIG.fields.employees];
         if (!utils.validateRequiredFields(currentEntry, requiredFields)) {
             return { success: false, error: "Chýbajú povinné polia!" };
         }
+
+        var date = utils.safeGet(currentEntry, CONFIG.fields.attendance.date);
+        var employees = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.employees);
         
+        // Dodatočné kontroly
+        if (!date) {
+            return { success: false, error: "Dátum nie je vyplnený" };
+        }
+        
+        if (!arrival || !departure) {
+            return { success: false, error: "Príchod alebo odchod nie je vyplnený" };
+        }
+        
+        if (!employees || employees.length === 0) {
+            return { success: false, error: "Žiadni zamstnanci v zázname" };
+        }
+        
+        var zamArray = currentEntry.field(CONFIG.fields.attendance.employees);
+
         // Kontrola atribútov - získaj len zamestnancov s dennou mzdou
         var validEmployees = [];
-        var zamArray = utils.safeGet(currentEntry, CONFIG.fields.attendance.employees);
-        
-        for (var i = 0; i < zamestnanci.length; i++) {
-            var employee = zamestnanci[i];
+        for (var i = 0; i < employees.length; i++) {
+            var employee = employees[i];
             if (!employee) continue;
             
-            var dennaMzda = 0;
+            var dailyWage = 0;
             try {
-                dennaMzda = employee.attr(CONFIG.attributes.employees.dailyWage) || 0;
+                dailyWage = employee.attr(CONFIG.attributes.employees.dailyWage) || 0;
             } catch (e) {
                 utils.addDebug(currentEntry, "⚠️ Chyba pri čítaní atribútu: " + e.toString());
             }
             
-            if (dennaMzda > 0) {
+            if (dailyWage > 0) {
                 validEmployees.push({
                     entry: employee,
                     index: i,
-                    dailyWage: dennaMzda,
+                    dailyWage: dailyWage,
                     name: utils.formatEmployeeName(employee)
                 });
                 
                 utils.addDebug(currentEntry, "✅ " + validEmployees[validEmployees.length-1].name + 
-                               " - denná mzda: " + utils.formatMoney(dennaMzda));
+                               " - denná mzda: " + utils.formatMoney(dailyWage));
             }
         }
         
@@ -192,7 +212,7 @@ function validateInputData() {
         
         return {
             success: true,
-            date: datum,
+            date: date,
             employees: validEmployees
         };
         
