@@ -419,7 +419,7 @@ function processObligation(date, empData) {
         
         result.success = result.errors === 0 && result.total > 0;
         
-        utils.addDebug(currentEntry, "\n📊 Výsledky:");
+        utils.addDebug(currentEntry, "📊 Výsledky:");
         utils.addDebug(currentEntry, "  ✅ Vytvorené: " + result.created);
         utils.addDebug(currentEntry, "  🔄 Aktualizované: " + result.updated);
         utils.addDebug(currentEntry, "  💰 Celková suma: " + utils.formatMoney(result.totalAmount));
