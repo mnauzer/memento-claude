@@ -273,642 +273,231 @@ var MementoTelegram = (function() {
     }
     
     // ==============================================
-    // MESSAGE FORMATTING A ŠABLÓNY
-    // ==============================================
-    
-    /**
-     * Formátuje správu pre Telegram s emoji a štruktúrou
-     * @param {Object} data - Dáta pre správu
-     * @param {string} template - Názov šablóny
-     * @returns {string} Formátovaná správa
-     */
-    function formatTelegramMessage(data, template) {
-        var templates = {
-            dochadzka: formatDochadzkaTemplate,
-            workRecord: formatWorkRecordTemplate,
-            summary: formatSummaryTemplate,
-            stats: formatStatsTemplate,
-            daily: formatDailyTemplate,
-            weekly: formatWeeklyTemplate,
-            monthly: formatMonthlyTemplate
-        };
-        
-        var formatter = templates[template] || formatDefaultTemplate;
-        return formatter(data);
-    }
-    
-    /**
-     * Šablóna pre dochádzku
-     */
-    function formatDochadzkaTemplate(data) {
-        var config = getConfig();
-        var core = getCore();
-        
-        var msg = "📋 *DOCHÁDZKA*\n";
-        msg += "═════════════════\n\n";
-        
-        msg += "📅 *Dátum:* " + formatDate(data.date) + "\n";
-        
-        if (data.arrival && data.departure) {
-            msg += "⏰ *Čas:* " + formatTime(data.arrival) + " - " + formatTime(data.departure) + "\n";
-        }
-        
-        if (data.hoursWorked !== undefined) {
-            msg += "⏱️ *Odpracované:* " + formatHours(data.hoursWorked) + "\n";
-        }
-        
-        if (data.workTime !== undefined) {
-            msg += "🕐 *Pracovná doba:* " + formatHours(data.workTime) + "\n";
-        }
-        
-        if (data.employees && data.employees.length > 0) {
-            msg += "\n👥 *Zamestnanci* (" + data.employees.length + "):\n";
-            data.employees.forEach(function(emp) {
-                msg += "• " + escapeMarkdown(emp.name || emp.nick || "Neznámy");
-                if (emp.hours) msg += " - " + formatHours(emp.hours);
-                msg += "\n";
-            });
-        }
-        
-        if (data.wageCosts !== undefined) {
-            msg += "\n💰 *Mzdové náklady:* " + formatMoney(data.wageCosts) + "\n";
-        }
-        
-        return msg;
-    }
-    
-    /**
-     * Šablóna pre záznam práce
-     */
-    function formatWorkRecordTemplate(data) {
-        var msg = "🔨 *ZÁZNAM PRÁCE*\n";
-        msg += "═════════════════\n\n";
-        
-        msg += "📅 *Dátum:* " + formatDate(data.date) + "\n";
-        
-        if (data.customer) {
-            msg += "🏢 *Zákazka:* " + escapeMarkdown(data.customer) + "\n";
-        }
-        
-        if (data.timeInterval) {
-            msg += "⏰ *Čas:* " + data.timeInterval + "\n";
-        }
-        
-        if (data.workDescription) {
-            msg += "📝 *Popis:* " + escapeMarkdown(data.workDescription) + "\n";
-        }
-        
-        if (data.employees && data.employees.length > 0) {
-            msg += "\n👥 *Pracovníci:*\n";
-            data.employees.forEach(function(emp) {
-                msg += "• " + escapeMarkdown(emp.name || emp.nick);
-                if (emp.hours) msg += " (" + formatHours(emp.hours) + ")";
-                msg += "\n";
-            });
-        }
-        
-        if (data.totalHours !== undefined) {
-            msg += "\n⏱️ *Celkom hodín:* " + formatHours(data.totalHours) + "\n";
-        }
-        
-        if (data.hzsSum !== undefined) {
-            msg += "💵 *HZS suma:* " + formatMoney(data.hzsSum) + "\n";
-        }
-        
-        return msg;
-    }
-    
-    /**
-     * Šablóna pre súhrn
-     */
-    function formatSummaryTemplate(data) {
-        var msg = "📊 *" + (data.title || "SÚHRN").toUpperCase() + "*\n";
-        msg += "═════════════════\n\n";
-        
-        if (data.period) {
-            msg += "📅 *Obdobie:* " + data.period + "\n\n";
-        }
-        
-        if (data.stats) {
-            msg += formatStatsSection(data.stats);
-        }
-        
-        if (data.topEmployees && data.topEmployees.length > 0) {
-            msg += "\n🏆 *TOP Zamestnanci:*\n";
-            data.topEmployees.forEach(function(emp, index) {
-                var medal = index === 0 ? "🥇" : (index === 1 ? "🥈" : "🥉");
-                msg += medal + " " + escapeMarkdown(emp.name) + " - " + formatHours(emp.hours) + "\n";
-            });
-        }
-        
-        if (data.projects && data.projects.length > 0) {
-            msg += "\n📂 *Projekty:*\n";
-            data.projects.forEach(function(proj) {
-                msg += "• " + escapeMarkdown(proj.name) + " - " + formatHours(proj.hours);
-                if (proj.costs) msg += " (" + formatMoney(proj.costs) + ")";
-                msg += "\n";
-            });
-        }
-        
-        return msg;
-    }
-    
-    /**
-     * Šablóna pre štatistiky
-     */
-    function formatStatsTemplate(data) {
-        var msg = "📈 *ŠTATISTIKY*\n";
-        msg += "═════════════════\n\n";
-        
-        if (data.totalHours !== undefined) {
-            msg += "⏱️ *Hodiny spolu:* " + formatHours(data.totalHours) + "\n";
-        }
-        
-        if (data.totalCosts !== undefined) {
-            msg += "💰 *Náklady spolu:* " + formatMoney(data.totalCosts) + "\n";
-        }
-        
-        if (data.entryCount !== undefined) {
-            msg += "📝 *Počet záznamov:* " + data.entryCount + "\n";
-        }
-        
-        if (data.employeeCount !== undefined) {
-            msg += "👥 *Počet zamestnancov:* " + data.employeeCount + "\n";
-        }
-        
-        if (data.avgHoursPerDay !== undefined) {
-            msg += "📊 *Priemer hodín/deň:* " + formatHours(data.avgHoursPerDay) + "\n";
-        }
-        
-        if (data.avgCostsPerDay !== undefined) {
-            msg += "💵 *Priemer náklady/deň:* " + formatMoney(data.avgCostsPerDay) + "\n";
-        }
-        
-        return msg;
-    }
-    
-    /**
-     * Denný súhrn šablóna
-     */
-    function formatDailyTemplate(data) {
-        var config = getConfig();
-        
-        var msg = "📅 *DENNÝ SÚHRN*\n";
-        msg += formatDate(data.date) + " (" + getDayName(data.date) + ")\n";
-        msg += "═════════════════\n\n";
-        
-        if (data.attendance) {
-            msg += "📋 *Dochádzka:*\n";
-            msg += "• Pracovníkov: " + data.attendance.employeeCount + "\n";
-            msg += "• Odpracované: " + formatHours(data.attendance.totalHours) + "\n";
-            msg += "• Náklady: " + formatMoney(data.attendance.totalCosts) + "\n\n";
-        }
-        
-        if (data.workRecords) {
-            msg += "🔨 *Práce:*\n";
-            msg += "• Záznamov: " + data.workRecords.count + "\n";
-            msg += "• Hodín: " + formatHours(data.workRecords.totalHours) + "\n";
-            msg += "• HZS: " + formatMoney(data.workRecords.totalHZS) + "\n\n";
-        }
-        
-        if (data.topEmployees && data.topEmployees.length > 0) {
-            msg += "🏆 *Najviac hodín:*\n";
-            data.topEmployees.slice(0, 3).forEach(function(emp) {
-                msg += "• " + escapeMarkdown(emp.name) + " - " + formatHours(emp.hours) + "\n";
-            });
-        }
-        
-        return msg;
-    }
-    
-    /**
-     * Týždenný súhrn šablóna
-     */
-    function formatWeeklyTemplate(data) {
-        var msg = "📊 *TÝŽDENNÝ SÚHRN*\n";
-        msg += "Týždeň " + data.weekNumber + "/" + data.year + "\n";
-        msg += "═════════════════\n\n";
-        
-        msg += formatStatsSection({
-            totalHours: data.totalHours,
-            totalCosts: data.totalCosts,
-            entryCount: data.entryCount,
-            employeeCount: data.uniqueEmployees
-        });
-        
-        if (data.dailyBreakdown && data.dailyBreakdown.length > 0) {
-            msg += "\n📅 *Po dňoch:*\n";
-            data.dailyBreakdown.forEach(function(day) {
-                msg += "• " + formatDate(day.date, "dd DD.MM") + ": ";
-                msg += formatHours(day.hours) + " (" + formatMoney(day.costs) + ")\n";
-            });
-        }
-        
-        return msg;
-    }
-    
-    /**
-     * Mesačný súhrn šablóna
-     */
-    function formatMonthlyTemplate(data) {
-        var msg = "📊 *MESAČNÝ SÚHRN*\n";
-        msg += data.monthName + " " + data.year + "\n";
-        msg += "═════════════════\n\n";
-        
-        msg += formatStatsSection({
-            totalHours: data.totalHours,
-            totalCosts: data.totalCosts,
-            workDays: data.workDays,
-            avgHoursPerDay: data.avgHoursPerDay
-        });
-        
-        if (data.weeklyBreakdown && data.weeklyBreakdown.length > 0) {
-            msg += "\n📅 *Po týždňoch:*\n";
-            data.weeklyBreakdown.forEach(function(week) {
-                msg += "• Týždeň " + week.number + ": ";
-                msg += formatHours(week.hours) + " (" + formatMoney(week.costs) + ")\n";
-            });
-        }
-        
-        return msg;
-    }
-    
-    /**
-     * Defaultná šablóna
-     */
-    function formatDefaultTemplate(data) {
-        var msg = "*" + (data.title || "SPRÁVA") + "*\n\n";
-        
-        for (var key in data) {
-            if (key !== 'title' && data.hasOwnProperty(key)) {
-                msg += key + ": " + escapeMarkdown(String(data[key])) + "\n";
-            }
-        }
-        
-        return msg;
-    }
-    
-    /**
-     * Pomocná funkcia pre formátovanie sekcie štatistík
-     */
-    function formatStatsSection(stats) {
-        var msg = "";
-        
-        if (stats.totalHours !== undefined) {
-            msg += "⏱️ *Hodiny spolu:* " + formatHours(stats.totalHours) + "\n";
-        }
-        
-        if (stats.totalCosts !== undefined) {
-            msg += "💰 *Náklady spolu:* " + formatMoney(stats.totalCosts) + "\n";
-        }
-        
-        if (stats.entryCount !== undefined) {
-            msg += "📝 *Počet záznamov:* " + stats.entryCount + "\n";
-        }
-        
-        if (stats.employeeCount !== undefined) {
-            msg += "👥 *Zamestnancov:* " + stats.employeeCount + "\n";
-        }
-        
-        if (stats.workDays !== undefined) {
-            msg += "📅 *Pracovných dní:* " + stats.workDays + "\n";
-        }
-        
-        if (stats.avgHoursPerDay !== undefined) {
-            msg += "📊 *Ø hodín/deň:* " + formatHours(stats.avgHoursPerDay) + "\n";
-        }
-        
-        return msg;
-    }
-    
-    // ==============================================
-    // AGREGAČNÉ FUNKCIE
-    // ==============================================
-    
-    /**
-     * Agreguje dáta pre skupinové správy
-     * @param {Array} entries - Záznamy na agregáciu
-     * @param {Object} options - Možnosti agregácie
-     * @returns {Object} Agregované dáta
-     */
-    function aggregateDataForGroup(entries, options) {
-        options = options || {};
-        
-        var aggregated = {
-            totalHours: 0,
-            totalCosts: 0,
-            employeeStats: {},
-            projectStats: {},
-            dailyStats: {},
-            periodStart: null,
-            periodEnd: null,
-            entryCount: 0,
-            recordCount: entries.length
-        };
-        
-        entries.forEach(function(entry) {
-            processEntryForAggregation(entry, aggregated, options);
-        });
-        
-        // Vypočítaj priemery
-        if (aggregated.entryCount > 0) {
-            aggregated.avgHoursPerDay = aggregated.totalHours / aggregated.entryCount;
-            aggregated.avgCostsPerDay = aggregated.totalCosts / aggregated.entryCount;
-        }
-        
-        // Konvertuj objekty na arrays pre jednoduchšie spracovanie
-        aggregated.employeeList = objectToSortedArray(aggregated.employeeStats, 'hours', true);
-        aggregated.projectList = objectToSortedArray(aggregated.projectStats, 'hours', true);
-        aggregated.dailyList = objectToSortedArray(aggregated.dailyStats, 'date', false);
-        
-        return aggregated;
-    }
-    
-    /**
-     * Spracuje jednotlivý entry pre agregáciu
-     */
-    function processEntryForAggregation(entry, aggregated, options) {
-        var config = getConfig();
-        
-        // Základné údaje
-        var date = entry.field(config.fields.attendance.date || config.fields.workRecord.date);
-        if (!date) return;
-        
-        var dateKey = moment(date).format("YYYY-MM-DD");
-        
-        // Aktualizuj obdobie
-        if (!aggregated.periodStart || moment(date).isBefore(aggregated.periodStart)) {
-            aggregated.periodStart = date;
-        }
-        if (!aggregated.periodEnd || moment(date).isAfter(aggregated.periodEnd)) {
-            aggregated.periodEnd = date;
-        }
-        
-        // Denné štatistiky
-        if (!aggregated.dailyStats[dateKey]) {
-            aggregated.dailyStats[dateKey] = {
-                date: date,
-                hours: 0,
-                costs: 0,
-                employees: {},
-                entryCount: 0
-            };
-        }
-        
-        // Spracuj podľa typu záznamu
-        if (entry.field(config.fields.attendance.employees)) {
-            // Dochádzka
-            processAttendanceEntry(entry, aggregated, dateKey, options);
-        } else if (entry.field(config.fields.workRecord.employees)) {
-            // Záznam práce
-            processWorkRecordEntry(entry, aggregated, dateKey, options);
-        }
-        
-        aggregated.entryCount++;
-    }
-    
-    /**
-     * Spracuje dochádzku pre agregáciu
-     */
-    function processAttendanceEntry(entry, aggregated, dateKey, options) {
-        var config = getConfig();
-        var core = getCore();
-        
-        var hours = core.safeGet(entry, config.fields.attendance.workedHours, 0);
-        var costs = core.safeGet(entry, config.fields.attendance.wageCosts, 0);
-        var employees = core.safeGetLinks(entry, config.fields.attendance.employees);
-        
-        // Celkové štatistiky
-        aggregated.totalHours += hours;
-        aggregated.totalCosts += costs;
-        
-        // Denné štatistiky
-        aggregated.dailyStats[dateKey].hours += hours;
-        aggregated.dailyStats[dateKey].costs += costs;
-        aggregated.dailyStats[dateKey].entryCount++;
-        
-        // Štatistiky po zamestnancoch
-        employees.forEach(function(emp, index) {
-            var empName = formatEmployeeName(emp);
-            var empHours = getAttributeValue(entry, config.fields.attendance.employees, config.attributes.employees.workedHours, index) || 0;
-            var empCosts = getAttributeValue(entry, config.fields.attendance.employees, config.attributes.employees.dailyWage, index) || 0;
+// POMOCNÉ FUNKCIE
+// ==============================================
+
+    function checkPermissions(permissionField) {
+        try {
+            var core = getCore();
+
+            var defaultsLib = libByName(CONFIG.libraries.defaults);
+            if (!defaultsLib) return false;
             
-            // Celkové štatistiky zamestnanca
-            if (!aggregated.employeeStats[empName]) {
-                aggregated.employeeStats[empName] = {
-                    name: empName,
-                    hours: 0,
-                    costs: 0,
-                    days: 0
-                };
+            var settings = defaultsLib.entries();
+            if (!settings || settings.length === 0) return false;
+            
+            var defaultSettings = settings[settings.length - 1];
+            var enabled = core.safeGet(defaultSettings, permissionField, false);
+            
+            core.addDebug(currentEntry, "  • " + permissionField + ": " + (enabled ? "ÁNO" : "NIE"));
+            
+            return enabled;
+            
+        } catch (error) {
+            core.addError(currentEntry, error.toString(), "checkPermissions", error);
+            return false;
+        }
+    }
+
+    function getTelegramGroup(telegramGroupField) {
+        try {
+            var core = getCore();
+            var defaultsLib = libByName(CONFIG.libraries.defaults);
+            if (!defaultsLib) return null;
+            
+            var settings = defaultsLib.entries();
+            if (!settings || settings.length === 0) return null;
+            
+            var defaultSettings = settings[settings.length - 1];
+            
+            // Získaj pole telegram skupín (je to array!)
+            var telegramGroupEntries = core.safeGet(defaultSettings, telegramGroupField);
+            
+            if (!telegramGroupEntries || telegramGroupEntries.length === 0) {
+                core.addError(currentEntry, "Telegram skupina nie je nastavená v poli '" + telegramGroupField + "'", "getTelegramGroup");
+                return null;
             }
             
-            aggregated.employeeStats[empName].hours += empHours;
-            aggregated.employeeStats[empName].costs += empCosts;
-            aggregated.employeeStats[empName].days++;
+            // Vyber prvú skupinu z array
+            var telegramGroup = telegramGroupEntries[0];
             
-            // Denné štatistiky zamestnanca
-            aggregated.dailyStats[dateKey].employees[empName] = empHours;
-        });
-    }
-    
-    /**
-     * Spracuje záznam práce pre agregáciu
-     */
-    function processWorkRecordEntry(entry, aggregated, dateKey, options) {
-        var config = getConfig();
-        var core = getCore();
-        
-        var hours = core.safeGet(entry, config.fields.workRecord.workedHours, 0);
-        var costs = core.safeGet(entry, config.fields.workRecord.wageCosts, 0);
-        var hzsSum = core.safeGet(entry, config.fields.workRecord.hzsSum, 0);
-        var customer = core.safeGet(entry, config.fields.workRecord.customer, "");
-        var employees = core.safeGetLinks(entry, config.fields.workRecord.employees);
-        
-        // Celkové štatistiky
-        aggregated.totalHours += hours;
-        aggregated.totalCosts += costs;
-        
-        // Projektové štatistiky
-        if (customer && options.includeProjects !== false) {
-            var customerName = typeof customer === 'object' ? core.safeGet(customer, "Názov", "Neznámy") : customer;
-            
-            if (!aggregated.projectStats[customerName]) {
-                aggregated.projectStats[customerName] = {
-                    name: customerName,
-                    hours: 0,
-                    costs: 0,
-                    hzsSum: 0,
-                    records: 0
-                };
+            // Kontrola povolených notifikácií
+            var notificationsEnabled = core.safeGet(telegramGroup, CONFIG.fields.telegramGroups.enableNotifications, false);
+            if (!notificationsEnabled) {
+                core.addDebug(currentEntry, core.getIcon("warning") + " Skupina má vypnuté notifikácie");
+                return null;
             }
             
-            aggregated.projectStats[customerName].hours += hours;
-            aggregated.projectStats[customerName].costs += costs;
-            aggregated.projectStats[customerName].hzsSum += hzsSum;
-            aggregated.projectStats[customerName].records++;
+            var groupName = core.safeGet(telegramGroup, CONFIG.fields.telegramGroups.groupName);
+            var chatId = core.safeGet(telegramGroup, CONFIG.fields.telegramGroups.chatId);
+            
+            core.addDebug(currentEntry, "  • Skupina: " + groupName);
+            core.addDebug(currentEntry, "  • Chat ID: " + chatId);
+            
+            return telegramGroup;
+            
+        } catch (error) {
+            core.addError(currentEntry, error.toString(), "getTelegramGroup", error);
+            return null;
         }
     }
-    
-    // ==============================================
-    // ŠTATISTICKÉ FUNKCIE
-    // ==============================================
-    
-    /**
-     * Vytvorí súhrnné štatistiky z agregovaných dát
-     */
-    function createSummaryStatistics(aggregatedData) {
-        var stats = {
-            overview: {
-                totalHours: Math.round(aggregatedData.totalHours * 100) / 100,
-                totalCosts: Math.round(aggregatedData.totalCosts * 100) / 100,
-                entryCount: aggregatedData.entryCount,
-                avgHoursPerDay: Math.round((aggregatedData.avgHoursPerDay || 0) * 100) / 100,
-                avgCostsPerDay: Math.round((aggregatedData.avgCostsPerDay || 0) * 100) / 100,
-                periodStart: aggregatedData.periodStart,
-                periodEnd: aggregatedData.periodEnd,
-                uniqueEmployees: Object.keys(aggregatedData.employeeStats).length,
-                uniqueProjects: Object.keys(aggregatedData.projectStats).length
-            },
+
+    function cleanupOldNotifications() {
+        try {
+            var core = getCore();
+            var existingNotifications = core.safeGet(currentEntry, "Notifikácie", []);
+            var deletedCount = 0;
             
-            // Top performers
-            topEmployees: getTopEmployees(aggregatedData.employeeStats, 5),
-            topProjects: getTopProjects(aggregatedData.projectStats, 5),
+            for (var i = 0; i < existingNotifications.length; i++) {
+                try {
+                    var notification = existingNotifications[i];
+                    if (notification && notification.trash) {
+                        notification.trash();
+                        deletedCount++;
+                    }
+                } catch (deleteError) {
+                    core.addError(currentEntry, "Chyba pri mazaní notifikácie: " + deleteError.toString(), "cleanupOldNotifications");
+                }
+            }
             
-            // Detailné dáta
-            employeeStats: aggregatedData.employeeStats,
-            projectStats: aggregatedData.projectStats,
-            dailyStats: aggregatedData.dailyStats,
+            // Vyčisti pole
+            currentEntry.set("Notifikácie", []);
             
-            // Vypočítané metriky
-            productivity: calculateProductivity(aggregatedData),
-            trends: calculateTrends(aggregatedData)
-        };
-        
-        return stats;
-    }
-    
-    /**
-     * Získa top zamestnancov podľa hodín
-     */
-    function getTopEmployees(employeeStats, limit) {
-        return objectToSortedArray(employeeStats, 'hours', true)
-            .slice(0, limit)
-            .map(function(emp) {
-                return {
-                    name: emp.name,
-                    hours: Math.round(emp.hours * 100) / 100,
-                    costs: Math.round(emp.costs * 100) / 100,
-                    days: emp.days,
-                    avgHoursPerDay: Math.round((emp.hours / emp.days) * 100) / 100
-                };
-            });
-    }
-    
-    /**
-     * Získa top projekty podľa hodín
-     */
-    function getTopProjects(projectStats, limit) {
-        return objectToSortedArray(projectStats, 'hours', true)
-            .slice(0, limit)
-            .map(function(proj) {
-                return {
-                    name: proj.name,
-                    hours: Math.round(proj.hours * 100) / 100,
-                    costs: Math.round(proj.costs * 100) / 100,
-                    hzsSum: Math.round(proj.hzsSum * 100) / 100,
-                    records: proj.records
-                };
-            });
-    }
-    
-    /**
-     * Vypočíta produktivitu
-     */
-    function calculateProductivity(aggregatedData) {
-        var totalWorkDays = Object.keys(aggregatedData.dailyStats).length;
-        var totalEmployees = Object.keys(aggregatedData.employeeStats).length;
-        
-        if (totalWorkDays === 0 || totalEmployees === 0) {
             return {
-                avgHoursPerEmployeePerDay: 0,
-                avgCostsPerEmployeePerDay: 0,
-                utilizationRate: 0
+                success: true,
+                deletedCount: deletedCount
             };
-        }
-        
-        var avgHoursPerEmployeePerDay = aggregatedData.totalHours / (totalEmployees * totalWorkDays);
-        var avgCostsPerEmployeePerDay = aggregatedData.totalCosts / (totalEmployees * totalWorkDays);
-        var utilizationRate = (avgHoursPerEmployeePerDay / 8) * 100; // Assuming 8 hour work day
-        
-        return {
-            avgHoursPerEmployeePerDay: Math.round(avgHoursPerEmployeePerDay * 100) / 100,
-            avgCostsPerEmployeePerDay: Math.round(avgCostsPerEmployeePerDay * 100) / 100,
-            utilizationRate: Math.round(utilizationRate * 10) / 10
-        };
-    }
-    
-    /**
-     * Vypočíta trendy
-     */
-    function calculateTrends(aggregatedData) {
-        var dailyList = objectToSortedArray(aggregatedData.dailyStats, 'date', false);
-        
-        if (dailyList.length < 2) {
+            
+        } catch (error) {
+            core.addError(currentEntry, "Kritická chyba pri cleanup: " + error.toString(), "cleanupOldNotifications", error);
             return {
-                hoursChange: 0,
-                costsChange: 0,
-                trend: "stable"
+                success: false,
+                deletedCount: 0
             };
         }
-        
-        // Porovnaj prvú a poslednú polovicu
-        var midPoint = Math.floor(dailyList.length / 2);
-        var firstHalf = dailyList.slice(0, midPoint);
-        var secondHalf = dailyList.slice(midPoint);
-        
-        var firstHalfAvgHours = firstHalf.reduce(function(sum, day) { return sum + day.hours; }, 0) / firstHalf.length;
-        var secondHalfAvgHours = secondHalf.reduce(function(sum, day) { return sum + day.hours; }, 0) / secondHalf.length;
-        
-        var hoursChange = ((secondHalfAvgHours - firstHalfAvgHours) / firstHalfAvgHours) * 100;
-        
-        return {
-            hoursChange: Math.round(hoursChange * 10) / 10,
-            trend: hoursChange > 10 ? "growing" : (hoursChange < -10 ? "declining" : "stable")
-        };
     }
+
+    function createNotification(params) {
+        try {
+            var core = getCore();
+            var notifLib = libByName(CONFIG.libraries.notifications);
+            if (!notifLib) {
+                core.addError(currentEntry, "Knižnica " + CONFIG.libraries.notifications + " nenájdená", "createNotification");
+                return null;
+            }
+            
+            var notification = notifLib.create({});
+            
+        
+            
+            // Formátovanie - detekuj podľa obsahu správy
+            var formatting = detectFormatting(params.message);
+            notification.set(CONFIG.fields.notifications.formatting, formatting);
+            
+            // Telegram polia
+            notification.set(CONFIG.fields.notifications.chatId, 
+                core.safeGet(params.telegramGroup, CONFIG.fields.telegramGroups.chatId));
+            
+            var threadId = core.safeGet(params.telegramGroup, CONFIG.fields.telegramGroups.threadId);
+            if (threadId) {
+                notification.set(CONFIG.fields.notifications.threadId, threadId);
+            }
+            
+            // Obsah správy
+            notification.set(CONFIG.fields.notifications.message, params.message);
+            
+            // Prepojenia
+            notification.set(CONFIG.fields.notifications.groupOrTopic, params.telegramGroup);
+
+            // Základné polia
+            notification.set(CONFIG.fields.notifications.status, "Čaká");
+            notification.set(CONFIG.fields.notifications.priority, 
+                core.safeGet(params.telegramGroup, CONFIG.fields.telegramGroups.messagePriority, CONFIG.fields.notifications.messagePriority));
+            notification.set(CONFIG.fields.notifications.messageType, params.messageType);
+            notification.set(CONFIG.fields.notifications.messageSource, "Automatická");
+            notification.set(CONFIG.fields.notifications.recipient, threadId ? "Skupina-Téma":"Skupina");
+            
+            // Info pole
+            var infoMsg = "📋 NOTIFIKÁCIA - " + params.messageType.toUpperCase() + "\n";
+            infoMsg += "Vytvorené: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
+            infoMsg += "Zdrojová knižnica: " + lib().title + "\n";
+            infoMsg += "Zdrojový záznam: #" + currentEntry.field("ID") + "\n";
+            infoMsg += "Skupina: " + core.safeGet(params.telegramGroup, CONFIG.fields.telegramGroups.groupName) + "\n";
+            infoMsg += "Chat ID: " + core.safeGet(params.telegramGroup, CONFIG.fields.telegramGroups.chatId) + "\n";
+            if (threadId) {
+                infoMsg += "Thread ID: " + threadId + "\n";
+            }
+            infoMsg += "Formátovanie: " + formatting;
+            
+            notification.set(CONFIG.fields.common.info, infoMsg);
+            
+            return notification;
+            
+        } catch (error) {
+            core.addError(currentEntry, error.toString(), "createNotification", error);
+            return null;
+        }
+    }
+
+    function detectFormatting(message) {
+        // Detekuj HTML tagy
+        if (message.match(/<[^>]+>/)) {
+            return "HTML";
+        }
+        // Detekuj Markdown
+        else if (message.match(/\*[^*]+\*|_[^_]+_|`[^`]+`|\[.+\]\(.+\)/)) {
+            return "Markdown";
+        }
+        // Defaultne text
+        return "Text";
+    }
+
+    function linkNotification(notification) {
+        try {
+            var existingNotifications = core.safeGet(currentEntry, "Notifikácie", []);
+            existingNotifications.push(notification);
+            currentEntry.set("Notifikácie", existingNotifications);
+            
+            core.addDebug(currentEntry, "  • Notifikácia nalinkovaná k záznamu");
+            
+        } catch (error) {
+            core.addError(currentEntry, "Chyba pri linkovaní notifikácie: " + error.toString(), "linkNotification", error);
+        }
+    }
+
+
     
     // ==============================================
     // GROUP MANAGEMENT
     // ==============================================
     
-    /**
-     * Získa Telegram skupinu podľa ID
-     * @param {string} groupId - ID skupiny alebo názov
-     * @returns {Entry|null} Entry skupiny alebo null
-     */
-    function getTelegramGroup(groupId) {
-        try {
-            var config = getConfig();
-            var groupsLib = config ? config.libraries.telegramGroups : "Telegram Groups";
+    // /**
+    //  * Získa Telegram skupinu podľa ID
+    //  * @param {string} groupId - ID skupiny alebo názov
+    //  * @returns {Entry|null} Entry skupiny alebo null
+    //  */
+    // function getTelegramGroup(groupId) {
+    //     try {
+    //         var config = getConfig();
+    //         var groupsLib = config ? config.libraries.telegramGroups : "Telegram Groups";
             
-            var lib = libByName(groupsLib);
-            if (!lib) {
-                return null;
-            }
+    //         var lib = libByName(groupsLib);
+    //         if (!lib) {
+    //             return null;
+    //         }
             
-            // Hľadaj podľa ID alebo názvu
-            var groups = lib.find(config.fields.telegramGroups.chatId, groupId);
-            if (!groups || groups.length === 0) {
-                groups = lib.find(config.fields.telegramGroups.groupName, groupId);
-            }
+    //         // Hľadaj podľa ID alebo názvu
+    //         var groups = lib.find(config.fields.telegramGroups.chatId, groupId);
+    //         if (!groups || groups.length === 0) {
+    //             groups = lib.find(config.fields.telegramGroups.groupName, groupId);
+    //         }
             
-            return groups && groups.length > 0 ? groups[0] : null;
+    //         return groups && groups.length > 0 ? groups[0] : null;
             
-        } catch (error) {
-            return null;
-        }
-    }
+    //     } catch (error) {
+    //         return null;
+    //     }
+    // }
     
     /**
      * Odošle správu do konkrétnej témy v skupine
@@ -918,146 +507,146 @@ var MementoTelegram = (function() {
      * @param {Object} options - Dodatočné parametre
      * @returns {Object} Výsledok operácie
      */
-    function sendToTelegramThread(groupId, threadId, text, options) {
-        options = options || {};
-        options.threadId = threadId;
+    // function sendToTelegramThread(groupId, threadId, text, options) {
+    //     options = options || {};
+    //     options.threadId = threadId;
         
-        return sendTelegramMessage(groupId, text, options);
-    }
+    //     return sendTelegramMessage(groupId, text, options);
+    // }
     
-    /**
-     * Odošle súhrnnú správu do skupiny
-     * @param {string} groupId - ID skupiny
-     * @param {Object} summaryData - Dáta pre súhrn
-     * @param {Object} options - Možnosti odoslania
-     * @returns {Object} Výsledok odoslania
-     */
-    function sendGroupSummary(groupId, summaryData, options) {
-        try {
-            var core = getCore();
-            var config = getConfig();
+    // /**
+    //  * Odošle súhrnnú správu do skupiny
+    //  * @param {string} groupId - ID skupiny
+    //  * @param {Object} summaryData - Dáta pre súhrn
+    //  * @param {Object} options - Možnosti odoslania
+    //  * @returns {Object} Výsledok odoslania
+    //  */
+    // function sendGroupSummary(groupId, summaryData, options) {
+    //     try {
+    //         var core = getCore();
+    //         var config = getConfig();
             
-            // Získaj skupinu
-            var group = getTelegramGroup(groupId);
-            if (!group) {
-                throw new Error("Skupina nenájdená: " + groupId);
-            }
+    //         // Získaj skupinu
+    //         var group = getTelegramGroup(groupId);
+    //         if (!group) {
+    //             throw new Error("Skupina nenájdená: " + groupId);
+    //         }
             
-            // Skontroluj či má skupina povolené notifikácie
-            if (!group.field(config.fields.telegramGroups.enableNotifications)) {
-                return {
-                    success: false,
-                    error: "Skupina nemá povolené notifikácie"
-                };
-            }
+    //         // Skontroluj či má skupina povolené notifikácie
+    //         if (!group.field(config.fields.telegramGroups.enableNotifications)) {
+    //             return {
+    //                 success: false,
+    //                 error: "Skupina nemá povolené notifikácie"
+    //             };
+    //         }
             
-            // Sformátuj správu podľa typu
-            var template = options.template || 'summary';
-            var message = formatTelegramMessage(summaryData, template);
+    //         // Sformátuj správu podľa typu
+    //         var template = options.template || 'summary';
+    //         var message = formatTelegramMessage(summaryData, template);
             
-            // Priprav možnosti odoslania
-            var sendOptions = {
-                parseMode: options.parseMode || "Markdown",
-                silent: options.silent || group.field(config.fields.telegramGroups.silentMessage),
-                disablePreview: true
-            };
+    //         // Priprav možnosti odoslania
+    //         var sendOptions = {
+    //             parseMode: options.parseMode || "Markdown",
+    //             silent: options.silent || group.field(config.fields.telegramGroups.silentMessage),
+    //             disablePreview: true
+    //         };
             
-            // Pridaj thread ID ak existuje
-            if (group.field(config.fields.telegramGroups.hasTopic)) {
-                sendOptions.threadId = group.field(config.fields.telegramGroups.threadId);
-            }
+    //         // Pridaj thread ID ak existuje
+    //         if (group.field(config.fields.telegramGroups.hasTopic)) {
+    //             sendOptions.threadId = group.field(config.fields.telegramGroups.threadId);
+    //         }
             
-            // Odošli správu
-            var result = sendTelegramMessage(
-                group.field(config.fields.telegramGroups.chatId),
-                message,
-                sendOptions
-            );
+    //         // Odošli správu
+    //         var result = sendTelegramMessage(
+    //             group.field(config.fields.telegramGroups.chatId),
+    //             message,
+    //             sendOptions
+    //         );
             
-            // Vytvor notifikačný záznam
-            if (result.success && options.createNotification !== false) {
-                createNotificationEntry("group_summary", {
-                    chatId: group.field(config.fields.telegramGroups.chatId),
-                    messageId: result.messageId,
-                    groupName: group.field(config.fields.telegramGroups.groupName),
-                    summaryType: template,
-                    summaryData: JSON.stringify(summaryData)
-                });
-            }
+    //         // Vytvor notifikačný záznam
+    //         if (result.success && options.createNotification !== false) {
+    //             createNotificationEntry("group_summary", {
+    //                 chatId: group.field(config.fields.telegramGroups.chatId),
+    //                 messageId: result.messageId,
+    //                 groupName: group.field(config.fields.telegramGroups.groupName),
+    //                 summaryType: template,
+    //                 summaryData: JSON.stringify(summaryData)
+    //             });
+    //         }
             
-            // Aktualizuj štatistiky skupiny
-            if (result.success) {
-                updateGroupStats(group);
-            }
+    //         // Aktualizuj štatistiky skupiny
+    //         if (result.success) {
+    //             updateGroupStats(group);
+    //         }
             
-            return result;
+    //         return result;
             
-        } catch (error) {
-            if (core) {
-                core.addError(entry(), "Odoslanie group summary zlyhalo: " + error.toString(), "sendGroupSummary", error);
-            }
-            return { 
-                success: false, 
-                error: error.toString() 
-            };
-        }
-    }
+    //     } catch (error) {
+    //         if (core) {
+    //             core.addError(entry(), "Odoslanie group summary zlyhalo: " + error.toString(), "sendGroupSummary", error);
+    //         }
+    //         return { 
+    //             success: false, 
+    //             error: error.toString() 
+    //         };
+    //     }
+    // }
     
-    /**
-     * Odošle denný súhrn do skupín
-     */
-    function sendDailySummary(date, targetGroups) {
-        try {
-            var config = getConfig();
-            var core = getCore();
+    // /**
+    //  * Odošle denný súhrn do skupín
+    //  */
+    // function sendDailySummary(date, targetGroups) {
+    //     try {
+    //         var config = getConfig();
+    //         var core = getCore();
             
-            // Získaj dáta pre súhrn
-            var attendanceData = getDailyAttendanceData(date);
-            var workRecordData = getDailyWorkRecordData(date);
+    //         // Získaj dáta pre súhrn
+    //         var attendanceData = getDailyAttendanceData(date);
+    //         var workRecordData = getDailyWorkRecordData(date);
             
-            // Agreguj dáta
-            var allEntries = attendanceData.concat(workRecordData);
-            var aggregated = aggregateDataForGroup(allEntries);
+    //         // Agreguj dáta
+    //         var allEntries = attendanceData.concat(workRecordData);
+    //         var aggregated = aggregateDataForGroup(allEntries);
             
-            // Vytvor súhrn
-            var summaryData = {
-                title: "Denný súhrn",
-                date: date,
-                attendance: {
-                    employeeCount: attendanceData.length > 0 ? attendanceData[0].field(config.fields.attendance.employeeCount) : 0,
-                    totalHours: aggregated.totalHours,
-                    totalCosts: aggregated.totalCosts
-                },
-                workRecords: {
-                    count: workRecordData.length,
-                    totalHours: workRecordData.reduce(function(sum, wr) {
-                        return sum + (wr.field(config.fields.workRecord.workedHours) || 0);
-                    }, 0),
-                    totalHZS: workRecordData.reduce(function(sum, wr) {
-                        return sum + (wr.field(config.fields.workRecord.hzsSum) || 0);
-                    }, 0)
-                },
-                topEmployees: getTopEmployees(aggregated.employeeStats, 3)
-            };
+    //         // Vytvor súhrn
+    //         var summaryData = {
+    //             title: "Denný súhrn",
+    //             date: date,
+    //             attendance: {
+    //                 employeeCount: attendanceData.length > 0 ? attendanceData[0].field(config.fields.attendance.employeeCount) : 0,
+    //                 totalHours: aggregated.totalHours,
+    //                 totalCosts: aggregated.totalCosts
+    //             },
+    //             workRecords: {
+    //                 count: workRecordData.length,
+    //                 totalHours: workRecordData.reduce(function(sum, wr) {
+    //                     return sum + (wr.field(config.fields.workRecord.workedHours) || 0);
+    //                 }, 0),
+    //                 totalHZS: workRecordData.reduce(function(sum, wr) {
+    //                     return sum + (wr.field(config.fields.workRecord.hzsSum) || 0);
+    //                 }, 0)
+    //             },
+    //             topEmployees: getTopEmployees(aggregated.employeeStats, 3)
+    //         };
             
-            // Odošli do skupín
-            var results = [];
-            targetGroups.forEach(function(group) {
-                var result = sendGroupSummary(group.field("ID"), summaryData, {
-                    template: 'daily'
-                });
-                results.push(result);
-            });
+    //         // Odošli do skupín
+    //         var results = [];
+    //         targetGroups.forEach(function(group) {
+    //             var result = sendGroupSummary(group.field("ID"), summaryData, {
+    //                 template: 'daily'
+    //             });
+    //             results.push(result);
+    //         });
             
-            return results;
+    //         return results;
             
-        } catch (error) {
-            if (core) {
-                core.addError(entry(), "Denný súhrn zlyhal: " + error.toString(), "sendDailySummary", error);
-            }
-            return [];
-        }
-    }
+    //     } catch (error) {
+    //         if (core) {
+    //             core.addError(entry(), "Denný súhrn zlyhal: " + error.toString(), "sendDailySummary", error);
+    //         }
+    //         return [];
+    //     }
+    // }
     
     // ==============================================
     // NOTIFIKÁCIE
@@ -1186,212 +775,6 @@ var MementoTelegram = (function() {
         return keyboard;
     }
     
-    /**
-     * Formátuje dátum
-     * @param {Date} date - Dátum
-     * @param {string} format - Formát (optional)
-     * @returns {string} Formátovaný dátum
-     */
-    function formatDate(date, format) {
-        if (!date) return "";
-        return moment(date).format(format || "DD.MM.YYYY");
-    }
-    
-    /**
-     * Formátuje čas
-     * @param {Date|string} time - Čas
-     * @returns {string} Formátovaný čas
-     */
-    function formatTime(time) {
-        if (!time) return "";
-        
-        if (moment.isMoment(time)) {
-            return time.format("HH:mm");
-        }
-        
-        return moment(time).format("HH:mm");
-    }
-    
-    /**
-     * Formátuje hodiny
-     * @param {number} hours - Počet hodín
-     * @returns {string} Formátované hodiny
-     */
-    function formatHours(hours) {
-        if (!hours && hours !== 0) return "0h";
-        
-        var h = Math.floor(hours);
-        var m = Math.round((hours - h) * 60);
-        
-        if (m === 0) return h + "h";
-        return h + "h " + m + "m";
-    }
-    
-    /**
-     * Formátuje peniaze
-     * @param {number} amount - Suma
-     * @returns {string} Formátovaná suma
-     */
-    function formatMoney(amount) {
-        if (!amount && amount !== 0) return "0.00 €";
-        return amount.toFixed(2).replace(".", ",") + " €";
-    }
-    
-    /**
-     * Formátuje trvanie v minútach
-     * @param {number} minutes - Počet minút
-     * @returns {string} Formátované trvanie
-     */
-    function formatDuration(minutes) {
-        if (!minutes && minutes !== 0) return "0m";
-        
-        var hours = Math.floor(minutes / 60);
-        var mins = minutes % 60;
-        
-        if (hours === 0) return mins + "m";
-        if (mins === 0) return hours + "h";
-        return hours + "h " + mins + "m";
-    }
-    
-    /**
-     * Získa názov dňa
-     * @param {Date} date - Dátum
-     * @returns {string} Názov dňa
-     */
-    function getDayName(date) {
-        var days = ["Nedeľa", "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota"];
-        return days[moment(date).day()];
-    }
-    
-    /**
-     * Formátuje meno zamestnanca
-     * @param {Entry} employee - Zamestnanec
-     * @returns {string} Formátované meno
-     */
-    function formatEmployeeName(employee) {
-        if (!employee) return "Neznámy";
-        
-        var config = getConfig();
-        var core = getCore();
-        
-        var nick = core.safeGet(employee, config.fields.employee.nick, "");
-        var firstName = core.safeGet(employee, config.fields.employee.firstName, "");
-        var lastName = core.safeGet(employee, config.fields.employee.lastName, "");
-        
-        if (nick) {
-            return lastName ? nick + " (" + lastName + ")" : nick;
-        }
-        
-        if (firstName || lastName) {
-            return (firstName + " " + lastName).trim();
-        }
-        
-        return "Zamestnanec #" + (employee.field("ID") || "?");
-    }
-    
-    /**
-     * Získa hodnotu atribútu z Link to Entry poľa
-     */
-    function getAttributeValue(entry, fieldName, attrName, index) {
-        try {
-            var field = entry.field(fieldName);
-            if (!field) return null;
-            
-            if (Array.isArray(field) && index !== undefined && field[index]) {
-                return field[index].attr(attrName);
-            }
-            
-            return null;
-        } catch (error) {
-            return null;
-        }
-    }
-    
-    /**
-     * Konvertuje objekt na zoradený array
-     */
-    function objectToSortedArray(obj, sortBy, descending) {
-        var arr = Object.keys(obj).map(function(key) {
-            return obj[key];
-        });
-        
-        if (sortBy) {
-            arr.sort(function(a, b) {
-                var aVal = a[sortBy];
-                var bVal = b[sortBy];
-                
-                if (typeof aVal === 'string') {
-                    return descending ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
-                }
-                
-                return descending ? bVal - aVal : aVal - bVal;
-            });
-        }
-        
-        return arr;
-    }
-    
-    /**
-     * Aktualizuje štatistiky skupiny
-     */
-    function updateGroupStats(group) {
-        try {
-            var config = getConfig();
-            var currentCount = group.field(config.fields.telegramGroups.messageCount) || 0;
-            var totalCount = group.field(config.fields.telegramGroups.totalMessageCount) || 0;
-            
-            group.set(config.fields.telegramGroups.messageCount, currentCount + 1);
-            group.set(config.fields.telegramGroups.totalMessageCount, totalCount + 1);
-            group.set(config.fields.telegramGroups.lastMessage, new Date());
-            
-        } catch (error) {
-            // Ignoruj chyby štatistík
-        }
-    }
-    
-    /**
-     * Získa denné dáta dochádzky
-     */
-    function getDailyAttendanceData(date) {
-        try {
-            var config = getConfig();
-            var lib = libByName(config.libraries.attendance);
-            if (!lib) return [];
-            
-            var startOfDay = moment(date).startOf('day');
-            var endOfDay = moment(date).endOf('day');
-            
-            return lib.entries().filter(function(e) {
-                var entryDate = e.field(config.fields.attendance.date);
-                return entryDate && moment(entryDate).isBetween(startOfDay, endOfDay, null, '[]');
-            });
-            
-        } catch (error) {
-            return [];
-        }
-    }
-    
-    /**
-     * Získa denné dáta záznamov práce
-     */
-    function getDailyWorkRecordData(date) {
-        try {
-            var config = getConfig();
-            var lib = libByName(config.libraries.workRecords);
-            if (!lib) return [];
-            
-            var startOfDay = moment(date).startOf('day');
-            var endOfDay = moment(date).endOf('day');
-            
-            return lib.entries().filter(function(e) {
-                var entryDate = e.field(config.fields.workRecord.date);
-                return entryDate && moment(entryDate).isBetween(startOfDay, endOfDay, null, '[]');
-            });
-            
-        } catch (error) {
-            return [];
-        }
-    }
     
     // ==============================================
     // PUBLIC API
@@ -1410,27 +793,19 @@ var MementoTelegram = (function() {
         getTelegramGroup: getTelegramGroup,
         sendToTelegramThread: sendToTelegramThread,
         
-        // Message formatting
-        formatTelegramMessage: formatTelegramMessage,
+        checkPermissions: checkPermissions,
+        cleanupOldNotifications: cleanupOldNotifications,
+        createNotification: createNotification,
+        linkNotification: linkNotification,
+
+        //
         escapeMarkdown: escapeMarkdown,
         createInlineKeyboard: createInlineKeyboard,
-        
-        // Group Summary funkcie
-        aggregateDataForGroup: aggregateDataForGroup,
-        createSummaryStatistics: createSummaryStatistics,
-        sendGroupSummary: sendGroupSummary,
-        sendDailySummary: sendDailySummary,
-        
+
+
         // Notifikácie
         createNotificationEntry: createNotificationEntry,
         
-        // Formátovacie helper funkcie
-        formatDate: formatDate,
-        formatTime: formatTime,
-        formatHours: formatHours,
-        formatMoney: formatMoney,
-        formatDuration: formatDuration,
-        getDayName: getDayName,
-        formatEmployeeName: formatEmployeeName
+     
     };
 })();
