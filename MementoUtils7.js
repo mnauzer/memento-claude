@@ -146,6 +146,10 @@ var MementoUtils = (function() {
         addError: lazyCall('core', 'addError'),
         addInfo: lazyCall('core', 'addInfo'),
         clearLogs: lazyCall('core', 'clearLogs'),
+        setEdit: lazyCall('core', 'setEdit'),
+        setPrint: lazyCall('core', 'setPrint'),
+        setDebug: lazyCall('core', 'setDebug'),
+        setView: lazyCall('core', 'setView'),
         
         // Safe field access
         safeGet: lazyCall('core', 'safeGet'),
@@ -186,6 +190,12 @@ var MementoUtils = (function() {
         getLinkedNotifications: lazyCall('core', 'getLinkedNotifications'),
         linkNotificationToSource: lazyCall('core', 'linkNotificationToSource'),
         deleteNotificationAndTelegram: lazyCall('core', 'deleteNotificationAndTelegram'),
+        checkPermissions: lazyCall('telegram', 'checkPermissions'),
+        cleanupOldNotifications: lazyCall('telegram', 'cleanupOldNotifications'),
+        createNotification: lazyCall('telegram', 'createNotification'),
+        linkNotification: lazyCall('telegram', 'linkNotification'),
+
+
         
         // Obligations
         createObligation: lazyCall('business', 'createObligation'),

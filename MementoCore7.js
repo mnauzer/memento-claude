@@ -574,6 +574,7 @@ var MementoCore = (function() {
             return null;
         }
     }
+
     function validateRequiredFields(entry, requiredFields) {
         try {
             if (!entry || !requiredFields || !Array.isArray(requiredFields)) {
@@ -723,8 +724,41 @@ var MementoCore = (function() {
         } catch (error) {
             return false;
         }
-}
+    }
 
+    function setEdit(entry) {
+        try {
+            safeSet(entry, CONFIG.fields.common.view, CONFIG.constants.viewTypes.edit);
+        } catch (e){
+            return false;
+        }
+   
+    function setPrint(entry) {
+        try {
+            safeSet(entry, CONFIG.fields.common.view, CONFIG.constants.viewTypes.print);
+        } catch (e){
+            return false;
+        }
+    }
+
+    function setDebug(entry) {
+        try {
+            safeSet(entry, CONFIG.fields.common.view, CONFIG.constants.viewTypes.debug);
+        } catch (e){
+            return false;
+        }
+    }
+
+    function setView(entry, status) {
+        try {
+            if (!entry || !status) {
+                return false;
+            }
+            safeSet(entry, CONFIG.fields.common.view, CONFIG.constants.viewTypes[status]);
+        } catch (e){
+            return false;
+        }
+    }
 
      // ==============================================
     // PUBLIC API
@@ -739,6 +773,13 @@ var MementoCore = (function() {
         addInfo: addInfo,
         clearLogs: clearLogs,
         getSettings: getSettings,
+
+        // 
+        setEdit: setEdit,
+        setPrint: setPrint,
+        setDebug: setDebug,
+        setView: setView,
+
         
         // Safe field access
         safeGet: safeGet,
