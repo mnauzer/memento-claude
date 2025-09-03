@@ -686,7 +686,7 @@ var MementoBusiness = (function() {
                 return null;
             }     
             var newObligation = lib.create({});
-          
+            newObligation = lib.lastEntry();
             
             if (newObligation) {
 
@@ -718,6 +718,8 @@ var MementoBusiness = (function() {
                 newObligation.set(CONFIG.fields.common.info || "info", infoText);
                 
                 return true;
+            } else {
+                core.addDebug(currentEntry, "  ✅ Záväzok nebol vytvorený")
             }
             
             return false;

@@ -291,7 +291,6 @@ var MementoConfig = (function() {
             
             // Záväzky polia
             obligations: {
-                number: "Číslo", // TODO: automatické generovanie
                 date: "Dátum",
                 type: "Typ", // SingleChoice: Nákup materiálu, Mzda, Podiely, Pôžička, Poistné, Faktúra
                 state: "Stav", // SingleChoice: Neuhradené, Čiastočne uhradené, Uhradené
