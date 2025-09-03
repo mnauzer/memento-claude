@@ -415,7 +415,7 @@ var MementoBusiness = (function() {
         
         try {
             var employeeName = formatEmployeeName(employee);
-            core.addDebug(entry, config.icon.search + " Hľadám platnú sadzbu");
+            core.addDebug(entry, config.getIcon("search") + " Hľadám platnú sadzbu");
             
             var hodinovka = findValidHourlyRate(employee, date);
             
@@ -697,7 +697,7 @@ var MementoBusiness = (function() {
         var config = getConfig();
         
         try {
-            core.addDebug(currentEntry, config.icons.create+  "  Vytváranie nového záväzku...");
+            core.addDebug(currentEntry, config.icons.create +  "  Vytváranie nového záväzku...");
             
             var lib = libByName(config.libraries.obligations);
             if (!lib) {
