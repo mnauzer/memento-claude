@@ -680,7 +680,7 @@ var MementoBusiness = (function() {
 // Verzia: 7.1 | Oprava: Vytváraní záväzkov
 // ==============================================
 
-function createObligation(data, creditor) {
+function createObligation(date, data, creditor) {
     var core = getCore();
     var config = getConfig();
     
@@ -705,7 +705,7 @@ function createObligation(data, creditor) {
         try {
             // Základné polia záväzku
             newObligation.set(config.fields.obligations.state, config.constants.obligationStates.unpaid || "Neuhradené");
-            newObligation.set(config.fields.obligations.date, data.date);
+            newObligation.set(config.fields.obligations.date, date);
             newObligation.set(config.fields.obligations.type, config.constants.obligationTypes.wages || "Mzda");
             
             // Prepojenia
@@ -753,7 +753,7 @@ function createObligation(data, creditor) {
     }
 }
 
-    function updateObligation(obligation, amount) {
+    function updateObligation(date, obligation, amount) {
         try {
             utils.addDebug(currentEntry, "  🔄 Aktualizácia existujúceho záväzku...");
             
@@ -762,7 +762,7 @@ function createObligation(data, creditor) {
             var newStatus = newBalance <= 0 ? CONFIG.constants.stavy.uhradene : 
                         paidAmount > 0 ? CONFIG.constants.stavy.ciastocneUhradene : 
                         CONFIG.constants.stavy.neuhradene;
-            
+            obligation.set(CONFIG.fields.date, date);
             obligation.set(CONFIG.fields.obligations.amount, amount);
             obligation.set(CONFIG.fields.obligations.balance, newBalance);
             obligation.set(CONFIG.fields.obligations.state, newStatus);
