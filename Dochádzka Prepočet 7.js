@@ -46,8 +46,12 @@ var CONFIG = {
     // Referencie na centrálny config
     fields: {
         attendance: centralConfig.fields.attendance,
+        obligations: centralConfig.fields.obligations,
         common: centralConfig.fields.common,
         // Pridané mapovanie pre arrival/departure polia
+        date: centralConfig.fields.attendance.date,
+        employees: centralConfig.fields.attendance.employees,
+        obligations: centralConfig.fields.attendance.obligations,
         arrival: centralConfig.fields.attendance.arrival,      // "Príchod"
         departure: centralConfig.fields.attendance.departure,  // "Odchod"
         pracovnaDoba: centralConfig.fields.attendance.workTime, // "Pracovná doba"
@@ -66,6 +70,16 @@ var CONFIG = {
         includeBreaks: true,
         breakThreshold: 6, // hodín
         breakDuration: 30  // minút
+    },
+    
+     // Konštanty pre záväzky
+    obligationTypes: {
+        wages: centralConfig.constants.obligationTypes.wages
+    },
+    obligationStates: {
+        paid: centralConfig.constants.obligationStates.paid,
+        unpaid: centralConfig.constants.obligationStates.unpaid,
+        partiallyPaid: centralConfig.constants.obligationStates.partiallyPaid
     },
     
     // Správne mapovanie pre sadzby
