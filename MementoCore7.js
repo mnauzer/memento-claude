@@ -732,7 +732,8 @@ var MementoCore = (function() {
         } catch (e){
             return false;
         }
-   
+    }
+    
     function setPrint(entry) {
         try {
             safeSet(entry, CONFIG.fields.common.view, CONFIG.constants.viewTypes.print);
