@@ -693,8 +693,6 @@ var MementoBusiness = (function() {
     // ==============================================
 
     function createObligation(date, data, creditor) {
-        message("createObligation: " + date);
-
         var core = getCore();
         var config = getConfig();
         
