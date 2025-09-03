@@ -680,21 +680,25 @@ var MementoBusiness = (function() {
         var core = getCore();
         try { // TODO: vytvoriť univerzálnu funkciu
             core.addDebug(currentEntry, "  + Vytváranie nového záväzku...");
-            var lib = libByName(CONFIG.libraries.obligations)            
+            var lib = libByName(CONFIG.libraries.obligations)       
+            if (!lib) {
+                core.addError(currentEntry, "Knižnica " + CONFIG.libraries.obligations + " nenájdená", "createNotification");
+            return null;
+        }     
             var newObligation = lib.create({});
             //obligationData[CONFIG.fields.obligations.state] = CONFIG.constants.obligationStates.unpaid;
-            core.safeSet(newObligation, CONFIG.fields.obligations.state, "Neuhradené")
-            core.safeSet(newObligation, CONFIG.fields.obligations.date, data.date)
-            core.safeSet(newObligation, CONFIG.fields.obligations.type, "Mzda")
-            //core.safeSet(newObligation, CONFIG.fields.obligations.type] = CONFIG.constants.obligationTypes.wages)
-            core.safeSet(newObligation, CONFIG.fields.obligations.employee, [data.entry])
-            core.safeSet(newObligation, CONFIG.fields.obligations.creditor,"Zamestnanec")
-            core.safeSet(newObligation, CONFIG.fields.obligations[creditor], [currentEntry])
-            core.safeSet(newObligation, CONFIG.fields.obligations.description,
+            newObligation.set(CONFIG.fields.obligations.state, "Neuhradené")
+            newObligation.set(CONFIG.fields.obligations.date, data.date)
+            newObligation.set(CONFIG.fields.obligations.type, "Mzda")
+            //newObligation.set(CONFIG.fields.obligations.type] = CONFIG.constants.obligationTypes.wages)
+            newObligation.set(CONFIG.fields.obligations.employee, [data.entry])
+            newObligation.set(CONFIG.fields.obligations.creditor,"Zamestnanec")
+            newObligation.set(CONFIG.fields.obligations[creditor], [currentEntry])
+            newObligation.set(CONFIG.fields.obligations.description,
                 "Mzda zamestnanca " + data.name + " za deň " + core.formatDate(data.date))
-            core.safeSet(newObligation, CONFIG.fields.obligations.amount, data.dailyWage)
-            core.safeSet(newObligation, CONFIG.fields.obligations.paid, 0)
-            core.safeSet(newObligation, CONFIG.fields.obligations.balance, data.dailyWage)
+            newObligation.set(CONFIG.fields.obligations.amount, data.dailyWage)
+            newObligation.set(CONFIG.fields.obligations.paid, 0)
+            newObligation.set(CONFIG.fields.obligations.balance, data.dailyWage)
             
             if (newObligation) {
                 core.addDebug(currentEntry, "  ✅ Záväzok vytvorený");
