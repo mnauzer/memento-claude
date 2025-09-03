@@ -686,23 +686,23 @@ var MementoBusiness = (function() {
                 return null;
             }     
             var newObligation = lib.create({});
-            newObligation = lib.lastEntry();
+            var createdObligation = lib.lastEntry();
             
-            if (newObligation) {
+            if (createdObligation) {
 
                     //obligationData[CONFIG.fields.obligations.state] = CONFIG.constants.obligationStates.unpaid;
-                newObligation.set(CONFIG.fields.obligations.state, "Neuhradené")
-                newObligation.set(CONFIG.fields.obligations.date, data.date)
-                newObligation.set(CONFIG.fields.obligations.type, "Mzda")
-                //newObligation.set(CONFIG.fields.obligations.type] = CONFIG.constants.obligationTypes.wages)
-                newObligation.set(CONFIG.fields.obligations.employee, [data.entry])
-                newObligation.set(CONFIG.fields.obligations.creditor,"Zamestnanec")
-                newObligation.set(CONFIG.fields.obligations.attendance, [currentEntry])
-                newObligation.set(CONFIG.fields.obligations.description,
+                createdObligation.set(CONFIG.fields.obligations.state, "Neuhradené")
+                createdObligation.set(CONFIG.fields.obligations.date, data.date)
+                createdObligation.set(CONFIG.fields.obligations.type, "Mzda")
+                //createdObligation.set(CONFIG.fields.obligations.type] = CONFIG.constants.obligationTypes.wages)
+                createdObligation.set(CONFIG.fields.obligations.employee, [data.entry])
+                createdObligation.set(CONFIG.fields.obligations.creditor,"Zamestnanec")
+                createdObligation.set(CONFIG.fields.obligations.attendance, [currentEntry])
+                createdObligation.set(CONFIG.fields.obligations.description,
                     "Mzda zamestnanca " + data.name + " za deň " + core.formatDate(data.date))
-                newObligation.set(CONFIG.fields.obligations.amount, data.dailyWage)
-                newObligation.set(CONFIG.fields.obligations.paid, 0)
-                newObligation.set(CONFIG.fields.obligations.balance, data.dailyWage)
+                createdObligation.set(CONFIG.fields.obligations.amount, data.dailyWage)
+                createdObligation.set(CONFIG.fields.obligations.paid, 0)
+                createdObligation.set(CONFIG.fields.obligations.balance, data.dailyWage)
                 core.addDebug(currentEntry, "  ✅ Záväzok vytvorený");
                 
                 // Pridaj info do záväzku
@@ -715,7 +715,7 @@ var MementoBusiness = (function() {
                 infoText += "🔧 Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
                 infoText += "📂 Zdroj: Knižnica Dochádzka";
                 
-                newObligation.set(CONFIG.fields.common.info || "info", infoText);
+                createdObligation.set(CONFIG.fields.common.info || "info", infoText);
                 
                 return true;
             } else {
