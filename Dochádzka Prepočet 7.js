@@ -375,7 +375,7 @@ function processObligation(date, empData, obligations) {
         totalAmount: 0,
         success: false
     };
-    message(employee.field("ID"))
+    message("Employee ID: " + employee.field("ID"))
     try {
         utils.addDebug(currentEntry, utils.getIcon("search") +
         " Hľadám záväzok " + utils.formatEmployeeName(employee));
@@ -385,7 +385,7 @@ function processObligation(date, empData, obligations) {
             for (var j = 0; j < obligations.length; j++) {
                 var obligation = obligations[j];
                 var linkedEmployee = utils.safeGetLinks(obligation, CONFIG.fields.obligations.employee);
-                message(linkedEmployee[0].field("ID"))
+                message("LinkedEmployee ID: " + linkedEmployee[0].field("ID"))
                 if (linkedEmployee && linkedEmployee.length > 0 && 
                     linkedEmployee[0].field("ID") === employee.field("ID")) {
                         utils.addDebug(currentEntry, utils.getIcon("exclamation") + "nájdený záväzok" )
