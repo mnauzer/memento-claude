@@ -1,1150 +1,123 @@
 // ==============================================
-// MEMENTO DATABASE - POKLADŇA ÚHRADA ZÁVÄZKOV  
-// Verzia: 15.2 | Dátum: 9.8.25 | Autor: JavaScript Expert  
-// Trigger: Before Save | Knižnica: Pokladňa
+// MEMENTO DATABASE - POKLADŇA ÚHRADA ZÁVÄZKOV
+// Verzia: 8.0 | Dátum: September 2025 | Autor: ASISTANTO
+// Knižnica: Pokladňa | Trigger: After Save + Action Script
 // ==============================================
-// ✅ PRIDANÉ v15.2: Pri vytvorení pohľadávky z preplatku sa vytvorí aj pokladničný záznam pre zálohu
-//    - Nový pokladničný záznam typu "Výdavok" s účelom "Mzda záloha"
-//    - Automatické linkovanie s pohľadávkou
-//    - Synchronizácia všetkých potrebných polí
+// 📋 FUNKCIA:
+//    - Automatická úhrada záväzkov zo zadanej sumy
+//    - Možnosť započítania pohľadávok
+//    - Vytvorenie preplatkov (záloha/prémia/pohľadávka)
+//    - Synchronizácia s knižnicami Záväzky a Pohľadávky
 //    - Info záznamy pre audit trail
-// ✅ REFAKTOROVANÉ v15.1: Kompletný refaktoring a optimalizácia kódu
-// ✅ Odstránené duplicity a testovacie funkcie
-// ✅ Správne poradie funkcií - všetky definované pred použitím
-// ✅ Kompletná úhrada záväzkov pomocou pohľadávok
-// ✅ Validácia vlastníkov, chronologické uhradzovanie
-// ✅ Spracovanie preplatkov (Pohľadávka/Prémia)
-// ✅ Info záznamy pre audit trail
-// ✅ Kompatibilné s Rhino JS engine Mementa
+// ==============================================
+// 🔧 POUŽÍVA:
+//    - MementoUtils v7.0 (agregátor)
+//    - MementoConfig (centrálna konfigurácia)
+//    - MementoCore (základné funkcie)
+//    - MementoBusiness (business logika)
+// ==============================================
+// ✅ OPTIMALIZOVANÉ v8.0:
+//    - Využitie centrálneho CONFIG z MementoConfig
+//    - Štandardné logging funkcie z MementoCore
+//    - Business logika pomocou MementoBusiness
+//    - Čistá štruktúra bez duplicít
+//    - Kompatibilita s MementoUtils ekosystémom
 // ==============================================
 
+// ==============================================
+// INICIALIZÁCIA
+// ==============================================
+
+var utils = MementoUtils;
+var config = utils.getConfig();
+var centralConfig = utils.config;
+var currentEntry = entry();
+
 var CONFIG = {
-    debug: true,
-    version: "15.2",
-    scriptName: "Pokladňa úhrada záväzkov",
+    scriptName: "Pokladňa Úhrada Záväzkov",
+    version: "8.0.1",
     
-    // Názvy knižníc
-    libraries: {
-        pokladna: "Pokladňa",
-        zavazky: "Záväzky", 
-        pohladavky: "Pohľadávky",
-        zamestnanci: "Zamestnanci"
-    },
-    
-    // Emoji pre info polia
-    icons: {
-        uplnaUhrada: "✅",
-        ciastocnaUhrada: "🔄", 
-        uhradaDokoncena: "🏆",
-        pohladavkaVytvorena: "🎁",
-        premiaVytvorena: "💎",
-        systemAction: "ℹ️",
-        error: "💥",
-        warning: "⚠️",
-        start: "🚀",
-        step: "📋",
-        money: "💰"
-    },
-    
-    // Stavy
-    stavy: {
-        neuhradene: "Neuhradené",
-        ciastocneUhradene: "Čiastočne uhradené", 
-        uhradene: "Uhradené"
-    },
-    
-    // Typy preplatkov
-    typyPreplatku: {
-        pohladavka: "Pohľadávku",
-        premia: "Prémiu"
-    },
-    
-    // Účel výdaja
-    ucelVydajaOptions: {
-        mzda: "Mzda",
-        mzdaPremia: "Mzda prémia",
-        mzdaZaloha: "Mzda záloha",
-        fakturyDodavatelov: "Faktúry dodávateľov",
-        ostatneVydavky: "Ostatné výdavky"
-    },
-    
-    // Polia Pokladňa
-    pokladnaFields: {
+    // Referencie na centrálny config
+    fields: {
+        // Pokladňa polia
+        cashBook: centralConfig.fields.cashBook,
+        
+        // Záväzky polia
+        obligations: centralConfig.fields.obligations,
+        
+        // Pohľadávky polia (musíme definovať, nie sú v centrálnom)
+        receivables: {
+            date: "Dátum",
+            type: "Typ",
+            state: "Stav",
+            creditor: "Veriteľ",
+            employee: "Zamestnanec",
+            supplier: "Dodávateľ",
+            partner: "Partner",
+            client: "Klient",
+            amount: "Suma",
+            paid: "Zaplatené",
+            balance: "Zostatok",
+            description: "Popis",
+            info: "info"
+        },
+        
+        // Spoločné polia
+        common: centralConfig.fields.common,
+        
+        // Mapovanie pre rýchly prístup
         uhradaZavazku: "Úhrada záväzku",
         zapocitatPohladavku: "Započítať pohľadávku",
         zavazky: "Záväzky",
         pohladavky: "Pohľadávky",
-        zamestnanec: "Zamestnanec",
-        dodavatel: "Dodávateľ",
-        partner: "Partner",
-        klient: "Klient",
-        zPokladne: "Z pokladne",
         suma: "Suma",
-        opisPlatby: "Popis platby",
-        info: "info",
-        debugLog: "Debug_Log",
-        errorLog: "Error_Log",
         zPreplatkulytvoriť: "Z preplatku vytvoriť",
-        ucelVydaja: "Účel výdaja",
-        pohyb: "Pohyb",
-        datum: "Dátum"
+        info: centralConfig.fields.common.info
     },
     
-    // Polia Záväzky
-    zavazkyFields: {
-        zamestnanec: "Zamestnanec",
-        dodavatel: "Dodávateľ",
-        partner: "Partner",
-        klient: "Klient",
-        suma: "Suma",
-        zostatok: "Zostatok",
-        zaplatene: "Zaplatené",
-        stav: "Stav",
-        datum: "Dátum",
-        info: "info",
-        infoUhrada: "info úhrada"
+    // Knižnice
+    libraries: {
+        cashBook: centralConfig.libraries.business.cashBook || "Pokladňa",
+        obligations: centralConfig.libraries.business.obligations || "Záväzky",
+        receivables: centralConfig.libraries.business.receivables || "Pohľadávky",
+        employees: centralConfig.libraries.business.employees || "Zamestnanci"
     },
     
-    // Polia Pohľadávky
-    pohladavkyFields: {
-        zamestnanec: "Zamestnanec",
-        dodavatel: "Dodávateľ",
-        partner: "Partner",
-        klient: "Klient",
-        suma: "Suma",
-        zostatok: "Zostatok",
-        zaplatene: "Zaplatené",
-        stav: "Stav",
-        typ: "Typ",
-        dlznik: "Dlžník",
-        datum: "Dátum",
-        info: "info"
-    },
-    
-    // Polia Zamestnanci
-    zamestnanciFields: {
-        nick: "Nick",
-        meno: "Meno",
-        priezvisko: "Priezvisko"
-    },
+    // Ikony
+    icons: centralConfig.icons,
     
     // Konštanty
-    typyPohladavok: {
-        preplatok: "Prepĺatok"
-    },
-    
-    pohybTypy: {
-        vydavok: "Výdavok"
+    constants: {
+        // Stavy
+        stavy: centralConfig.constants.obligationStates || {
+            neuhradene: "Neuhradené",
+            ciastocneUhradene: "Čiastočne uhradené",
+            uhradene: "Uhradené"
+        },
+        
+        // Typy preplatkov
+        typyPreplatku: {
+            pohladavka: "Pohľadávku",
+            premia: "Prémiu",
+            zaloha: "Zálohu"
+        },
+        
+        // Účel výdaja
+        ucelVydaja: centralConfig.constants.expensePurposes || {
+            mzda: "Mzda",
+            mzdaPremia: "Mzda prémia",
+            mzdaZaloha: "Mzda záloha",
+            fakturyDodavatelov: "Faktúry dodávateľov",
+            ostatneVydavky: "Ostatné výdavky"
+        },
+        
+        // Pohyb
+        pohyb: centralConfig.constants.transactionTypes || {
+            prijem: "Príjem",
+            vydavok: "Výdavok"
+        }
     }
 };
-
-// ==============================================
-// UTILITY FUNKCIE
-// ==============================================
-
-function getCurrentLine() {
-    try {
-        throw new Error();
-    } catch (e) {
-        var stack = e.stack || "";
-        var lines = stack.split("\n");
-        if (lines.length > 2) {
-            var match = lines[2].match(/:(\d+)/);
-            return match ? match[1] : "unknown";
-        }
-    }
-    return "unknown";
-}
-
-function parseAmount(value) {
-    if (value === null || value === undefined || value === "") {
-        return 0;
-    }
-    
-    if (typeof value === "number" && !isNaN(value)) {
-        return value;
-    }
-    
-    if (typeof value === "string") {
-        var cleanValue = value.toString().trim().replace(/[€\s]/g, "").replace(",", ".");
-        var parsed = parseFloat(cleanValue);
-        return isNaN(parsed) ? 0 : parsed;
-    }
-    
-    var converted = parseFloat(value);
-    return isNaN(converted) ? 0 : converted;
-}
-
-function formatAmount(value) {
-    var parsed = parseAmount(value);
-    return Number(parsed.toFixed(2));
-}
-
-// ==============================================
-// LOGGING FUNKCIE
-// ==============================================
-
-function addDebug(message) {
-    if (CONFIG.debug) {
-        var timestamp = moment().format("DD.MM.YY HH:mm");
-        var debugMessage = "[" + timestamp + "] v" + CONFIG.version + " - " + message;
-        
-        var existingDebug = entry().field(CONFIG.pokladnaFields.debugLog) || "";
-        entry().set(CONFIG.pokladnaFields.debugLog, existingDebug + debugMessage + "\n");
-    }
-}
-
-function addError(errorMessage, solution) {
-    var timestamp = moment().format("DD.MM.YY HH:mm:ss");
-    var errorLog = "[" + timestamp + "] " + CONFIG.icons.error + " CHYBA v" + CONFIG.version + " - " + errorMessage;
-    errorLog += " | Line: " + getCurrentLine();
-    
-    if (solution) {
-        errorLog += " | Riešenie: " + solution;
-    }
-    
-    var existingError = entry().field(CONFIG.pokladnaFields.errorLog) || "";
-    entry().set(CONFIG.pokladnaFields.errorLog, existingError + errorLog + "\n");
-}
-
-function addInfoRecord(targetEntry, iconType, actionDescription, details) {
-    try {
-        var timestamp = moment().format("DD.MM.YY HH:mm:ss");
-        var icon = CONFIG.icons[iconType] || CONFIG.icons.systemAction;
-        
-        var infoText = "[" + timestamp + "] " + icon + " " + actionDescription;
-        
-        if (details.suma !== undefined) {
-            infoText += " | Suma: " + formatAmount(details.suma) + "€";
-        }
-        if (details.zostatok !== undefined) {
-            infoText += " | Zostatok: " + formatAmount(details.zostatok) + "€";
-        }
-        if (details.vlastnik) {
-            infoText += " | Vlastník: " + details.vlastnik;
-        }
-        
-        if (details.autoGenerated) {
-            infoText += "\n" + CONFIG.icons.systemAction + " Automaticky generované:";
-            infoText += "\n  Kedy: " + timestamp;
-            infoText += "\n  Prečo: " + (details.dovod || "Spracovanie preplatku");
-            infoText += "\n  Ako: Script v" + CONFIG.version;
-            infoText += "\n  Z čoho: " + (details.zdrojZaznam || "Pokladňa #" + entry().field("ID"));
-            infoText += "\n  Knižnica: " + (details.zdrojKniznica || CONFIG.libraries.pokladna);
-        }
-        
-        infoText += " | Script: v" + CONFIG.version;
-        
-        var targetField = details.fieldType === "uhrada" ? CONFIG.zavazkyFields.infoUhrada : "info";
-        var existingInfo = targetEntry.field(targetField) || "";
-        targetEntry.set(targetField, existingInfo + infoText + "\n");
-        
-        addDebug("Info záznam pridaný do '" + targetField + "': " + actionDescription);
-        
-    } catch (error) {
-        addError("Zlyhalo pridanie info záznamu: " + error.toString(), "Skontrolujte existenciu info polí");
-    }
-}
-
-// ==============================================
-// DETEKCIA VLASTNÍKOV
-// ==============================================
-
-function detectOwnerFromZavazok(zavazok) {
-    var ownerFields = [
-        {field: CONFIG.zavazkyFields.zamestnanec, type: "employee"},
-        {field: CONFIG.zavazkyFields.dodavatel, type: "supplier"}, 
-        {field: CONFIG.zavazkyFields.partner, type: "partner"},
-        {field: CONFIG.zavazkyFields.klient, type: "client"}
-    ];
-    
-    for (var i = 0; i < ownerFields.length; i++) {
-        var fieldInfo = ownerFields[i];
-        
-        try {
-            var ownerField = zavazok.field(fieldInfo.field);
-            
-            if (ownerField && ownerField !== null && ownerField.length > 0) {
-                var owner = ownerField[0];
-                var displayName = "Neznámy vlastník";
-                
-                try {
-                    if (fieldInfo.type === "employee") {
-                        var nick = owner.field(CONFIG.zamestnanciFields.nick);
-                        var meno = owner.field(CONFIG.zamestnanciFields.meno) || "";
-                        var priezvisko = owner.field(CONFIG.zamestnanciFields.priezvisko) || "";
-                        
-                        if (nick) {
-                            displayName = priezvisko ? nick + " (" + priezvisko + ")" : nick;
-                        } else {
-                            displayName = (meno + " " + priezvisko).trim() || "Zamestnanec bez Nick";
-                        }
-                        
-                        addDebug("  📋 Zamestnanec - Nick: " + (nick || "N/A") + ", Meno: " + meno + ", Priezvisko: " + priezvisko);
-                        
-                    } else {
-                        displayName = owner.field("Názov") || owner.field("Meno") || "Neznámy " + fieldInfo.type;
-                    }
-                } catch (nameError) {
-                    addDebug("⚠️ Chyba pri získavaní mena vlastníka: " + nameError.toString());
-                    displayName = "Chyba mena (" + fieldInfo.type + ")";
-                }
-                
-                addDebug("✅ Vlastník identifikovaný: " + displayName + " (typ: " + fieldInfo.type + ")");
-                
-                return {
-                    owner: owner,
-                    ownerArray: ownerField,
-                    displayName: displayName,
-                    type: fieldInfo.type,
-                    fieldName: fieldInfo.field
-                };
-            }
-        } catch (fieldError) {
-            addDebug("  ⚠️ Pole '" + fieldInfo.field + "' nie je dostupné");
-            continue;
-        }
-    }
-    
-    addDebug("❌ Žiadny vlastník nenájdený v žiadnom poli");
-    return null;
-}
-
-function detectOwnerFromPohladavka(pohladavka) {
-    var ownerFields = [
-        {field: CONFIG.pohladavkyFields.zamestnanec, type: "employee"},
-        {field: CONFIG.pohladavkyFields.dodavatel, type: "supplier"}, 
-        {field: CONFIG.pohladavkyFields.partner, type: "partner"},
-        {field: CONFIG.pohladavkyFields.klient, type: "client"}
-    ];
-    
-    for (var i = 0; i < ownerFields.length; i++) {
-        var fieldInfo = ownerFields[i];
-        
-        try {
-            var ownerField = pohladavka.field(fieldInfo.field);
-            
-            if (ownerField && ownerField !== null && ownerField.length > 0) {
-                var owner = ownerField[0];
-                var displayName = "Neznámy vlastník";
-                
-                try {
-                    if (fieldInfo.type === "employee") {
-                        var nick = owner.field(CONFIG.zamestnanciFields.nick);
-                        var meno = owner.field(CONFIG.zamestnanciFields.meno) || "";
-                        var priezvisko = owner.field(CONFIG.zamestnanciFields.priezvisko) || "";
-                        
-                        if (nick) {
-                            displayName = priezvisko ? nick + " (" + priezvisko + ")" : nick;
-                        } else {
-                            displayName = (meno + " " + priezvisko).trim() || "Zamestnanec bez Nick";
-                        }
-                    } else {
-                        displayName = owner.field("Názov") || owner.field("Meno") || "Neznámy " + fieldInfo.type;
-                    }
-                } catch (nameError) {
-                    displayName = "Chyba mena (" + fieldInfo.type + ")";
-                }
-                
-                return {
-                    owner: owner,
-                    ownerArray: ownerField,
-                    displayName: displayName,
-                    type: fieldInfo.type,
-                    fieldName: fieldInfo.field
-                };
-            }
-        } catch (fieldError) {
-            continue;
-        }
-    }
-    
-    return null;
-}
-
-// ==============================================
-// VALIDÁCIA
-// ==============================================
-
-function validateOwnership(zavazkyArray) {
-    addDebug("Validujem vlastníkov " + zavazkyArray.length + " záväzkov...");
-    
-    if (zavazkyArray.length === 0) {
-        return { isValid: true };
-    }
-    
-    var firstOwnerInfo = detectOwnerFromZavazok(zavazkyArray[0]);
-    if (!firstOwnerInfo) {
-        return { 
-            isValid: false, 
-            error: "Prvý záväzok nemá nastaveného vlastníka" 
-        };
-    }
-    
-    addDebug("Prvý vlastník: " + firstOwnerInfo.displayName + " (" + firstOwnerInfo.type + ")");
-    
-    for (var i = 1; i < zavazkyArray.length; i++) {
-        var currentOwnerInfo = detectOwnerFromZavazok(zavazkyArray[i]);
-        
-        if (!currentOwnerInfo) {
-            return { 
-                isValid: false, 
-                error: "Záväzok " + (i+1) + " nemá nastaveného vlastníka" 
-            };
-        }
-        
-        var firstOwnerId = firstOwnerInfo.owner.field("ID") || firstOwnerInfo.owner.field("id");
-        var currentOwnerId = currentOwnerInfo.owner.field("ID") || currentOwnerInfo.owner.field("id");
-        
-        if (firstOwnerId !== currentOwnerId || firstOwnerInfo.type !== currentOwnerInfo.type) {
-            return { 
-                isValid: false, 
-                error: "Rôzni vlastníci záväzkov: '" + firstOwnerInfo.displayName + "' vs '" + currentOwnerInfo.displayName + "'" 
-            };
-        }
-    }
-    
-    addDebug("Validácia vlastníkov úspešná - všetky záväzky patria: " + firstOwnerInfo.displayName);
-    
-    return {
-        isValid: true,
-        ownerInfo: firstOwnerInfo
-    };
-}
-
-function filterValidZavazky(zavazkyArray) {
-    addDebug("Filtruje platné záväzky z " + zavazkyArray.length + " záznamov...");
-    
-    var validZavazky = [];
-    var validStates = [CONFIG.stavy.neuhradene, CONFIG.stavy.ciastocneUhradene];
-    
-    for (var i = 0; i < zavazkyArray.length; i++) {
-        var zavazok = zavazkyArray[i];
-        
-        if (!zavazok) {
-            addError("Záväzok na pozícii " + (i+1) + " je null", "Odstráňte prázdne záväzky zo zoznamu");
-            continue;
-        }
-        
-        try {
-            var zostatkField = zavazok.field(CONFIG.zavazkyFields.zostatok);
-            var zostatok = formatAmount(zostatkField);
-            var stav = zavazok.field(CONFIG.zavazkyFields.stav) || "";
-            
-            addDebug("Záväzok " + (i+1) + ": zostatok=" + zostatok + "€ (raw: '" + zostatkField + "'), stav='" + stav + "'");
-            
-            if (validStates.indexOf(stav) !== -1 && zostatok > 0) {
-                validZavazky.push(zavazok);
-                addDebug("  ✅ Záväzok zaradený do úhrady");
-            } else {
-                addDebug("  ⚠️ Záväzok preskočený (stav: '" + stav + "', zostatok: " + zostatok + "€)");
-            }
-        } catch (error) {
-            addError("Chyba pri čítaní záväzku " + (i+1) + ": " + error.toString(), "Skontrolujte štruktúru záväzku");
-        }
-    }
-    
-    addDebug("Filtrovanie dokončené: " + validZavazky.length + " platných záväzkov");
-    return validZavazky;
-}
-
-function validatePohladavky(pohladavkyArray, ownerInfo) {
-    addDebug("Validujem pohľadávky pre započítanie...");
-    
-    var validPohladavky = [];
-    var validStates = [CONFIG.stavy.neuhradene, CONFIG.stavy.ciastocneUhradene];
-    
-    for (var i = 0; i < pohladavkyArray.length; i++) {
-        var pohladavka = pohladavkyArray[i];
-        
-        if (!pohladavka) {
-            addError("Pohľadávka na pozícii " + (i+1) + " je null", "Odstráňte prázdne pohľadávky");
-            continue;
-        }
-        
-        try {
-            var zostatkField = pohladavka.field(CONFIG.pohladavkyFields.zostatok);
-            var zostatok = formatAmount(zostatkField);
-            var stav = pohladavka.field(CONFIG.pohladavkyFields.stav) || "";
-            
-            if (validStates.indexOf(stav) === -1 || zostatok <= 0) {
-                addDebug("  ⚠️ Pohľadávka " + (i+1) + " preskočená (stav: '" + stav + "', zostatok: " + zostatok + "€)");
-                continue;
-            }
-            
-            var pohladavkaOwnerInfo = detectOwnerFromPohladavka(pohladavka);
-            
-            if (!pohladavkaOwnerInfo) {
-                addError("Pohľadávka " + (i+1) + " nemá vlastníka", "Nastavte vlastníka pohľadávky");
-                continue;
-            }
-            
-            var zavazokOwnerId = ownerInfo.owner.field("ID") || ownerInfo.owner.field("id");
-            var pohladavkaOwnerId = pohladavkaOwnerInfo.owner.field("ID") || pohladavkaOwnerInfo.owner.field("id");
-            
-            if (zavazokOwnerId !== pohladavkaOwnerId || ownerInfo.type !== pohladavkaOwnerInfo.type) {
-                addError("Pohľadávka " + (i+1) + " má iného vlastníka: " + pohladavkaOwnerInfo.displayName + 
-                        " (očakávaný: " + ownerInfo.displayName + ")", 
-                        "Použite len pohľadávky rovnakého vlastníka");
-                continue;
-            }
-            
-            validPohladavky.push({
-                entry: pohladavka,
-                zostatok: zostatok,
-                ownerInfo: pohladavkaOwnerInfo
-            });
-            
-            addDebug("  ✅ Pohľadávka " + (i+1) + " validná: " + zostatok + "€");
-            
-        } catch (error) {
-            addError("Chyba pri validácii pohľadávky " + (i+1) + ": " + error.toString());
-        }
-    }
-    
-    addDebug("Validácia pohľadávok dokončená: " + validPohladavky.length + " platných");
-    return validPohladavky;
-}
-
-// ==============================================
-// VÝPOČET SUMY
-// ==============================================
-
-function calculateAvailableAmount(ownerInfo) {
-    addDebug("Počítam dostupnú sumu na úhrady...");
-    
-    var sumaField = entry().field(CONFIG.pokladnaFields.suma);
-    addDebug("🔍 Surová hodnota z poľa 'Suma': '" + sumaField + "' (typ: " + typeof sumaField + ")");
-    
-    var sumaPole = formatAmount(sumaField);
-    addDebug("Základná suma z poľa 'Suma': " + sumaPole + "€");
-    
-    var dostupnaSuma = sumaPole;
-    var pohladavkyInfo = {
-        pouzite: [],
-        celkovaSuma: 0
-    };
-    
-    var zapocitatPohladavku = entry().field(CONFIG.pokladnaFields.zapocitatPohladavku) || false;
-    addDebug("Započítať pohľadávky: " + zapocitatPohladavku);
-    
-    if (zapocitatPohladavku) {
-        var pohladavkyArray = entry().field(CONFIG.pokladnaFields.pohladavky) || [];
-        
-        if (pohladavkyArray.length > 0) {
-            addDebug("Validujem " + pohladavkyArray.length + " pohľadávok...");
-            
-            var validPohladavky = validatePohladavky(pohladavkyArray, ownerInfo);
-            
-            if (validPohladavky.length > 0) {
-                var pohladavkySuma = 0;
-                for (var i = 0; i < validPohladavky.length; i++) {
-                    pohladavkySuma = formatAmount(pohladavkySuma + validPohladavky[i].zostatok);
-                    addDebug("  Pohľadávka " + (i+1) + ": " + validPohladavky[i].zostatok + "€");
-                }
-                
-                dostupnaSuma = formatAmount(dostupnaSuma + pohladavkySuma);
-                addDebug("Celková suma z pohľadávok: " + pohladavkySuma + "€");
-                
-                pohladavkyInfo = {
-                    pouzite: validPohladavky,
-                    celkovaSuma: pohladavkySuma
-                };
-            } else {
-                addError("Žiadne platné pohľadávky na započítanie", "Skontrolujte vlastníkov a stavy pohľadávok");
-            }
-        } else {
-            addDebug("Žiadne pohľadávky na započítanie");
-        }
-    }
-    
-    if (dostupnaSuma === 0) {
-        addDebug("Suma nie je zadaná - počítam zo zostatkov záväzkov...");
-        var zavazkyArray = entry().field(CONFIG.pokladnaFields.zavazky) || [];
-        var celkovyZostatok = 0;
-        
-        for (var i = 0; i < zavazkyArray.length; i++) {
-            var zavazok = zavazkyArray[i];
-            
-            if (zavazok) {
-                try {
-                    var zostatkField = zavazok.field(CONFIG.zavazkyFields.zostatok);
-                    var zostatok = formatAmount(zostatkField);
-                    celkovyZostatok = formatAmount(celkovyZostatok + zostatok);
-                    addDebug("  Záväzok " + (i+1) + ": " + zostatok + "€ (raw: '" + zostatkField + "')");
-                } catch (error) {
-                    addError("Chyba pri čítaní záväzku pri výpočte sumy: " + error.toString());
-                }
-            }
-        }
-        
-        dostupnaSuma = celkovyZostatok;
-        addDebug("Automaticky vypočítaná suma: " + dostupnaSuma + "€");
-    }
-    
-    addDebug("🎯 FINÁLNA dostupná suma: " + dostupnaSuma + "€");
-    
-    return {
-        dostupnaSuma: dostupnaSuma,
-        pohladavkyInfo: pohladavkyInfo,
-        zakladnaSuma: sumaPole
-    };
-}
-
-// ==============================================
-// SPRACOVANIE PLATIEB
-// ==============================================
-
-function processPayments(validZavazky, dostupnaSuma, ownerInfo) {
-    addDebug("Spúšťam proces úhrad záväzkov...");
-    addDebug("Dostupná suma: " + dostupnaSuma + "€, Záväzky: " + validZavazky.length);
-    
-    var uhradeneZavazky = [];
-    var datumyZavazkov = [];
-    var zbyvajucaSuma = dostupnaSuma;
-    
-    validZavazky.sort(function(a, b) {
-        var dateA = a.field(CONFIG.zavazkyFields.datum) || new Date(0);
-        var dateB = b.field(CONFIG.zavazkyFields.datum) || new Date(0);
-        return new Date(dateA) - new Date(dateB);
-    });
-    
-    addDebug("Záväzky zoradené chronologicky");
-    
-    for (var i = 0; i < validZavazky.length && zbyvajucaSuma > 0; i++) {
-        var zavazok = validZavazky[i];
-        var zostatkField = zavazok.field(CONFIG.zavazkyFields.zostatok);
-        var zostatok = formatAmount(zostatkField);
-        var datum = zavazok.field(CONFIG.zavazkyFields.datum);
-        
-        addDebug("KROK " + (i+1) + ": Záväzok " + zostatok + "€ (raw: '" + zostatkField + "'), dostupné: " + zbyvajucaSuma + "€");
-        
-        if (zbyvajucaSuma >= zostatok) {
-            var pvodneZaplateneField = zavazok.field(CONFIG.zavazkyFields.zaplatene);
-            var pvodneZaplatene = formatAmount(pvodneZaplateneField);
-            var noveZaplatene = formatAmount(pvodneZaplatene + zostatok);
-            
-            addDebug("  📊 Úplná úhrada: pôvodne zaplatené=" + pvodneZaplatene + "€, nové=" + noveZaplatene + "€");
-            
-            zavazok.set(CONFIG.zavazkyFields.zaplatene, noveZaplatene);
-            zavazok.set(CONFIG.zavazkyFields.zostatok, 0);
-            zavazok.set(CONFIG.zavazkyFields.stav, CONFIG.stavy.uhradene);
-            
-            addInfoRecord(zavazok, "uplnaUhrada", "ÚPLNÁ ÚHRADA ZÁVÄZKU", {
-                suma: zostatok,
-                zostatok: 0,
-                vlastnik: ownerInfo.displayName,
-                fieldType: "uhrada"
-            });
-            
-            uhradeneZavazky.push({amount: zostatok, type: "úplná"});
-            zbyvajucaSuma = formatAmount(zbyvajucaSuma - zostatok);
-            
-            addDebug("  ✅ Úplná úhrada: " + zostatok + "€, zostáva: " + zbyvajucaSuma + "€");
-            
-        } else if (zbyvajucaSuma > 0) {
-            var pvodneZaplateneField = zavazok.field(CONFIG.zavazkyFields.zaplatene);
-            var pvodneZaplatene = formatAmount(pvodneZaplateneField);
-            var noveZaplatene = formatAmount(pvodneZaplatene + zbyvajucaSuma);
-            var novyZostatok = formatAmount(zostatok - zbyvajucaSuma);
-            
-            addDebug("  📊 Čiastočná úhrada: pôvodne zaplatené=" + pvodneZaplatene + "€, nové=" + noveZaplatene + "€, nový zostatok=" + novyZostatok + "€");
-            
-            zavazok.set(CONFIG.zavazkyFields.zaplatene, noveZaplatene);
-            zavazok.set(CONFIG.zavazkyFields.zostatok, novyZostatok);
-            zavazok.set(CONFIG.zavazkyFields.stav, CONFIG.stavy.ciastocneUhradene);
-            
-            addInfoRecord(zavazok, "ciastocnaUhrada", "ČIASTOČNÁ ÚHRADA ZÁVÄZKU", {
-                suma: zbyvajucaSuma,
-                zostatok: novyZostatok,
-                vlastnik: ownerInfo.displayName,
-                fieldType: "uhrada"
-            });
-            
-            uhradeneZavazky.push({amount: zbyvajucaSuma, type: "čiastočná"});
-            
-            addDebug("  🔄 Čiastočná úhrada: " + zbyvajucaSuma + "€, zostáva na záväzku: " + novyZostatok + "€");
-            zbyvajucaSuma = 0;
-        }
-        
-        if (datum) {
-            try {
-                datumyZavazkov.push(moment(datum).format("DD.MM.YY"));
-            } catch (dateError) {
-                datumyZavazkov.push("N/A");
-            }
-        }
-    }
-    
-    addDebug("Proces úhrad dokončený:");
-    addDebug("  Uhradené záväzky: " + uhradeneZavazky.length);
-    addDebug("  Preplatok: " + zbyvajucaSuma + "€");
-    
-    return {
-        uhradeneZavazky: uhradeneZavazky,
-        datumyZavazkov: datumyZavazkov,
-        preplatokSuma: zbyvajucaSuma
-    };
-}
-
-function processPohladavkyPayments(validPohladavky, potrebnaSuma) {
-    addDebug("Spracovávam úhradu pohľadávkami...");
-    addDebug("  Potrebná suma: " + potrebnaSuma + "€");
-    addDebug("  Dostupné pohľadávky: " + validPohladavky.length);
-    
-    var pouzitePohladavky = [];
-    var zostavajtePouzit = potrebnaSuma;
-    var celkovoPouzite = 0;
-    
-    validPohladavky.sort(function(a, b) {
-        var dateA = a.entry.field(CONFIG.pohladavkyFields.datum) || new Date(0);
-        var dateB = b.entry.field(CONFIG.pohladavkyFields.datum) || new Date(0);
-        return new Date(dateA) - new Date(dateB);
-    });
-    
-    for (var i = 0; i < validPohladavky.length && zostavajtePouzit > 0; i++) {
-        var pohladavkaData = validPohladavky[i];
-        var pohladavka = pohladavkaData.entry;
-        var zostatok = pohladavkaData.zostatok;
-        
-        var suma = formatAmount(pohladavka.field(CONFIG.pohladavkyFields.suma));
-        var pvodneZaplatene = formatAmount(pohladavka.field(CONFIG.pohladavkyFields.zaplatene) || 0);
-        
-        addDebug("  Pohľadávka " + (i+1) + ": suma=" + suma + "€, zaplatené=" + pvodneZaplatene + "€, zostatok=" + zostatok + "€");
-        
-        if (zostavajtePouzit >= zostatok) {
-            var pouzitieSuma = zostatok;
-            var noveZaplatene = formatAmount(pvodneZaplatene + pouzitieSuma);
-            var novyZostatok = formatAmount(suma - noveZaplatene);
-            
-            pohladavka.set(CONFIG.pohladavkyFields.zaplatene, noveZaplatene);
-            pohladavka.set(CONFIG.pohladavkyFields.zostatok, novyZostatok);
-            pohladavka.set(CONFIG.pohladavkyFields.stav, CONFIG.stavy.uhradene);
-            
-            addDebug("    ✅ Úplne použitá: zaplatené " + pvodneZaplatene + "€ → " + noveZaplatene + "€, zostatok " + zostatok + "€ → " + novyZostatok + "€");
-            
-            addInfoRecord(pohladavka, "uplnaUhrada", "POHĽADÁVKA POUŽITÁ NA ÚHRADU ZÁVÄZKOV", {
-                suma: pouzitieSuma,
-                zostatok: novyZostatok,
-                vlastnik: pohladavkaData.ownerInfo.displayName,
-                fieldType: "info"
-            });
-            
-            pouzitePohladavky.push({
-                entry: pohladavka,
-                suma: pouzitieSuma,
-                typ: "úplná"
-            });
-            
-            celkovoPouzite = formatAmount(celkovoPouzite + pouzitieSuma);
-            zostavajtePouzit = formatAmount(zostavajtePouzit - pouzitieSuma);
-            
-        } else if (zostavajtePouzit > 0) {
-            var pouzitieSuma = zostavajtePouzit;
-            var noveZaplatene = formatAmount(pvodneZaplatene + pouzitieSuma);
-            var novyZostatok = formatAmount(suma - noveZaplatene);
-            
-            pohladavka.set(CONFIG.pohladavkyFields.zaplatene, noveZaplatene);
-            pohladavka.set(CONFIG.pohladavkyFields.zostatok, novyZostatok);
-            pohladavka.set(CONFIG.pohladavkyFields.stav, CONFIG.stavy.ciastocneUhradene);
-            
-            addDebug("    🔄 Čiastočne použitá: zaplatené " + pvodneZaplatene + "€ → " + noveZaplatene + "€, zostatok " + zostatok + "€ → " + novyZostatok + "€");
-            
-            addInfoRecord(pohladavka, "ciastocnaUhrada", "POHĽADÁVKA ČIASTOČNE POUŽITÁ NA ÚHRADU ZÁVÄZKOV", {
-                suma: pouzitieSuma,
-                zostatok: novyZostatok,
-                vlastnik: pohladavkaData.ownerInfo.displayName,
-                fieldType: "info"
-            });
-            
-            pouzitePohladavky.push({
-                entry: pohladavka,
-                suma: pouzitieSuma,
-                typ: "čiastočná"
-            });
-            
-            celkovoPouzite = formatAmount(celkovoPouzite + pouzitieSuma);
-            zostavajtePouzit = 0;
-        }
-    }
-    
-    addDebug("Spracovanie pohľadávok dokončené:");
-    addDebug("  Použité pohľadávky: " + pouzitePohladavky.length);
-    addDebug("  Celkovo použité: " + celkovoPouzite + "€");
-    
-    return {
-        pouzitePohladavky: pouzitePohladavky,
-        celkovoPouzite: celkovoPouzite
-    };
-}
-
-// ==============================================
-// SPRACOVANIE PREPLATKU
-// ==============================================
-
-function processPreplatok(preplatokSuma, ownerInfo) {
-    if (preplatokSuma <= 0) {
-        addDebug("Žiadny preplatok na spracovanie");
-        return;
-    }
-    
-    addDebug("Spracovávam preplatok: " + preplatokSuma + "€");
-    
-    var typPreplatku = entry().field(CONFIG.pokladnaFields.zPreplatkulytvoriť);
-    
-    if (!typPreplatku) {
-        addError("Typ preplatku nie je vybraný", "Vyberte 'Pohľadávku' alebo 'Prémiu' v poli 'Z preplatku vytvoriť'");
-        return;
-    }
-    
-    try {
-        if (typPreplatku === CONFIG.typyPreplatku.pohladavka) {
-            createPohladavka(preplatokSuma, ownerInfo);
-        } else if (typPreplatku === CONFIG.typyPreplatku.premia) {
-            createPremiovaPokladna(preplatokSuma, ownerInfo);
-        } else {
-            addError("Neznámy typ preplatku: '" + typPreplatku + "'", "Podporované typy: 'Pohľadávku', 'Prémiu'");
-        }
-    } catch (error) {
-        addError("Kritická chyba pri spracovaní preplatku: " + error.toString(), "Skontrolujte dostupnosť cieľových knižníc");
-        throw error;
-    }
-}
-
-function createPohladavka(suma, ownerInfo) {
-    addDebug("Vytváram pohľadávku zo sumy: " + suma + "€");
-    
-    try {
-        var pohladavkyLib = libByName(CONFIG.libraries.pohladavky);
-        
-        if (!pohladavkyLib) {
-            throw new Error("Knižnica '" + CONFIG.libraries.pohladavky + "' nenájdená");
-        }
-        
-        // 1. VYTVOR POHĽADÁVKU
-        var initData = {};
-        initData[ownerInfo.fieldName] = [ownerInfo.owner];
-        initData[CONFIG.pohladavkyFields.suma] = formatAmount(suma);
-        initData[CONFIG.pohladavkyFields.zostatok] = formatAmount(suma);
-        initData[CONFIG.pohladavkyFields.zaplatene] = 0;
-        initData[CONFIG.pohladavkyFields.stav] = CONFIG.stavy.neuhradene;
-        initData[CONFIG.pohladavkyFields.datum] = moment().toDate();
-        initData[CONFIG.pohladavkyFields.typ] = CONFIG.typyPohladavok.preplatok;
-        
-        var dlznikTyp = "";
-        if (ownerInfo.type === "employee") dlznikTyp = "Zamestnanec";
-        else if (ownerInfo.type === "supplier") dlznikTyp = "Dodávateľ";
-        else if (ownerInfo.type === "partner") dlznikTyp = "Partner";
-        else if (ownerInfo.type === "client") dlznikTyp = "Klient";
-        
-        if (dlznikTyp) {
-            initData[CONFIG.pohladavkyFields.dlznik] = dlznikTyp;
-        }
-        
-        var novaPohladavka = pohladavkyLib.create(initData);
-        
-        if (!novaPohladavka) {
-            throw new Error("create() vrátilo null pre pohľadávku");
-        }
-        
-        addInfoRecord(novaPohladavka, "pohladavkaVytvorena", "POHĽADÁVKA VYTVORENÁ Z PREPLATKU", {
-            suma: suma,
-            zostatok: suma,
-            vlastnik: ownerInfo.displayName,
-            autoGenerated: true,
-            dovod: "Preplatok pri úhrade záväzkov",
-            zdrojZaznam: "Pokladňa #" + entry().field("ID"),
-            zdrojKniznica: CONFIG.libraries.pokladna
-        });
-        
-        addDebug("✅ Pohľadávka úspešne vytvorená pre " + ownerInfo.displayName);
-        
-        // 2. VYTVOR POKLADNIČNÝ ZÁZNAM PRE ZÁLOHU
-        addDebug("Vytváram pokladničný záznam pre zálohu na mzdu...");
-        
-        var pokladnaLib = libByName(CONFIG.libraries.pokladna);
-        
-        if (!pokladnaLib) {
-            throw new Error("Knižnica '" + CONFIG.libraries.pokladna + "' nenájdená");
-        }
-        
-        // Priprav popis s Nick pre zamestnancov
-        var popisZalohy = "";
-        if (ownerInfo.type === "employee") {
-            try {
-                var nick = ownerInfo.owner.field(CONFIG.zamestnanciFields.nick);
-                if (nick) {
-                    popisZalohy = "Záloha na mzdu pre " + nick + " z preplatku";
-                } else {
-                    popisZalohy = "Záloha na mzdu pre " + ownerInfo.displayName + " z preplatku";
-                }
-            } catch (nickError) {
-                popisZalohy = "Záloha na mzdu pre " + ownerInfo.displayName + " z preplatku";
-            }
-        } else {
-            popisZalohy = "Záloha pre " + ownerInfo.displayName + " z preplatku";
-        }
-        
-        // Priprav dáta pre nový pokladničný záznam
-        var pokladnaData = {};
-        pokladnaData[CONFIG.pokladnaFields.suma] = formatAmount(suma);
-        pokladnaData[CONFIG.pokladnaFields.pohyb] = CONFIG.pohybTypy.vydavok;
-        pokladnaData[CONFIG.pokladnaFields.opisPlatby] = popisZalohy;
-        pokladnaData[CONFIG.pokladnaFields.datum] = moment().toDate();
-        
-        // Nastav účel výdaja podľa typu vlastníka
-        if (ownerInfo.type === "employee") {
-            pokladnaData[CONFIG.pokladnaFields.ucelVydaja] = CONFIG.ucelVydajaOptions.mzdaZaloha;
-        } else {
-            pokladnaData[CONFIG.pokladnaFields.ucelVydaja] = CONFIG.ucelVydajaOptions.ostatneVydavky;
-        }
-        
-        // Skopíruj pokladňu z pôvodného záznamu
-        var povodnaPokladna = entry().field(CONFIG.pokladnaFields.zPokladne);
-        if (povodnaPokladna) {
-            pokladnaData[CONFIG.pokladnaFields.zPokladne] = povodnaPokladna;
-        }
-        
-        // Nastav vlastníka
-        if (ownerInfo.fieldName) {
-            pokladnaData[ownerInfo.fieldName] = [ownerInfo.owner];
-        }
-        
-        // Linkuj na pohľadávku
-        pokladnaData[CONFIG.pokladnaFields.pohladavky] = [novaPohladavka];
-        
-        var novyPokladnicnyZaznam = pokladnaLib.create(pokladnaData);
-        
-        if (!novyPokladnicnyZaznam) {
-            throw new Error("create() vrátilo null pre pokladničný záznam zálohy");
-        }
-        
-        // Info záznam do nového pokladničného záznamu
-        addInfoRecord(novyPokladnicnyZaznam, "systemAction", "ZÁLOHA NA MZDU VYTVORENÁ Z PREPLATKU", {
-            suma: suma,
-            vlastnik: ownerInfo.displayName,
-            autoGenerated: true,
-            dovod: "Preplatok pri úhrade záväzkov - vytvorená záloha",
-            zdrojZaznam: "Pokladňa #" + entry().field("ID"),
-            zdrojKniznica: CONFIG.libraries.pokladna
-        });
-        
-        // Pridaj info o linknutej pohľadávke
-        var pohladavkaId = novaPohladavka.field("ID") || novaPohladavka.field("id");
-        if (pohladavkaId) {
-            var existingInfo = novyPokladnicnyZaznam.field(CONFIG.pokladnaFields.info) || "";
-            var additionalInfo = "📎 Linknutá pohľadávka #" + pohladavkaId;
-            novyPokladnicnyZaznam.set(CONFIG.pokladnaFields.info, existingInfo + additionalInfo + "\n");
-        }
-        
-        // Pridaj info do pohľadávky o vytvorení pokladničného záznamu
-        var pokladnaId = novyPokladnicnyZaznam.field("ID") || novyPokladnicnyZaznam.field("id");
-        if (pokladnaId) {
-            var existingPohladavkaInfo = novaPohladavka.field(CONFIG.pohladavkyFields.info) || "";
-            var additionalPohladavkaInfo = "💰 Vytvorený pokladničný záznam pre zálohu #" + pokladnaId;
-            novaPohladavka.set(CONFIG.pohladavkyFields.info, existingPohladavkaInfo + additionalPohladavkaInfo + "\n");
-        }
-        
-        addDebug("✅ Pokladničný záznam pre zálohu úspešne vytvorený");
-        addDebug("  💰 Suma zálohy: " + suma + "€");
-        addDebug("  📝 Popis: " + popisZalohy);
-        addDebug("  🎯 Účel výdaja: " + (ownerInfo.type === "employee" ? CONFIG.ucelVydajaOptions.mzdaZaloha : CONFIG.ucelVydajaOptions.ostatneVydavky));
-        addDebug("  📎 Linknutá pohľadávka ID: " + (pohladavkaId || "N/A"));
-        addDebug("  📋 Pokladničný záznam ID: " + (pokladnaId || "N/A"));
-        
-    } catch (error) {
-        addError("Vytvorenie pohľadávky/zálohy zlyhalo: " + error.toString(), "Skontrolujte dostupnosť knižníc a ich polia");
-        throw error;
-    }
-}
-
-function createPremiovaPokladna(suma, ownerInfo) {
-    addDebug("Vytváram prémiový pokladničný záznam so sumou: " + suma + "€");
-    
-    try {
-        var pokladnaLib = libByName(CONFIG.libraries.pokladna);
-        
-        if (!pokladnaLib) {
-            throw new Error("Knižnica '" + CONFIG.libraries.pokladna + "' nenájdená");
-        }
-        
-        var popis = "";
-        if (ownerInfo.type === "employee") {
-            try {
-                var nick = ownerInfo.owner.field(CONFIG.zamestnanciFields.nick);
-                if (nick) {
-                    popis = "Prémia pre " + nick + " (z preplatku pri úhrade záväzkov)";
-                } else {
-                    popis = "Prémia pre " + ownerInfo.displayName + " (z preplatku pri úhrade záväzkov)";
-                }
-            } catch (nickError) {
-                popis = "Prémia pre " + ownerInfo.displayName + " (z preplatku pri úhrade záväzkov)";
-            }
-        } else {
-            popis = "Prémia pre " + ownerInfo.displayName + " (z preplatku pri úhrade záväzkov)";
-        }
-        
-        var initData = {};
-        initData[CONFIG.pokladnaFields.suma] = formatAmount(suma);
-        initData[CONFIG.pokladnaFields.pohyb] = CONFIG.pohybTypy.vydavok;
-        initData[CONFIG.pokladnaFields.ucelVydaja] = CONFIG.ucelVydajaOptions.mzdaPremia;
-        initData[CONFIG.pokladnaFields.opisPlatby] = popis;
-        initData[CONFIG.pokladnaFields.datum] = moment().toDate();
-        initData[CONFIG.pokladnaFields.zPokladne] = entry().field(CONFIG.pokladnaFields.zPokladne);
-        
-        if (ownerInfo.fieldName) {
-            initData[ownerInfo.fieldName] = [ownerInfo.owner];
-        }
-        
-        var novaPlatba = pokladnaLib.create(initData);
-        
-        if (!novaPlatba) {
-            throw new Error("create() vrátilo null pre prémiový záznam");
-        }
-        
-        addInfoRecord(novaPlatba, "premiaVytvorena", "PRÉMIOVÁ PLATBA VYTVORENÁ", {
-            suma: suma,
-            vlastnik: ownerInfo.displayName,
-            autoGenerated: true,
-            dovod: "Preplatok pri úhrade záväzkov",
-            zdrojZaznam: "Pokladňa #" + entry().field("ID"),
-            zdrojKniznica: CONFIG.libraries.pokladna
-        });
-        
-        addDebug("✅ Prémiová platba úspešne vytvorená pre " + ownerInfo.displayName);
-        
-    } catch (error) {
-        addError("Vytvorenie prémiového záznamu zlyhalo: " + error.toString(), "Skontrolujte dostupnosť knižnice 'Pokladňa' a jej polia");
-        throw error;
-    }
-}
-
-// ==============================================
-// FINALIZÁCIA
-// ==============================================
-
-function finalizeTransaction(originalAmount, preplatokSuma, paymentResult, ownerInfo) {
-    addDebug("Finalizujem transakciu...");
-    addDebug("  🔍 Pôvodná suma: " + originalAmount + "€, preplatok: " + preplatokSuma + "€");
-    
-    var finalAmount = formatAmount(originalAmount - preplatokSuma);
-    addDebug("  " + CONFIG.icons.money + " Finálna suma na zápis: " + finalAmount + "€");
-    
-    entry().set(CONFIG.pokladnaFields.suma, finalAmount);
-    
-    try {
-        entry().set(CONFIG.pokladnaFields.zamestnanec, []);
-        entry().set(CONFIG.pokladnaFields.dodavatel, []);
-        entry().set(CONFIG.pokladnaFields.partner, []);
-        entry().set(CONFIG.pokladnaFields.klient, []);
-        addDebug("  🧹 Vymazané predchádzajúce vlastníctvo");
-    } catch (clearError) {
-        addDebug("  ⚠️ Niektoré polia vlastníkov sa nepodarilo vymazať: " + clearError.toString());
-    }
-    
-    if (ownerInfo.type === "employee" && CONFIG.pokladnaFields.zamestnanec) {
-        entry().set(CONFIG.pokladnaFields.zamestnanec, [ownerInfo.owner]);
-        addDebug("  👤 Nastavený zamestnanec: " + ownerInfo.displayName);
-    } else if (ownerInfo.type === "supplier" && CONFIG.pokladnaFields.dodavatel) {
-        entry().set(CONFIG.pokladnaFields.dodavatel, [ownerInfo.owner]);
-        addDebug("  🏭 Nastavený dodávateľ: " + ownerInfo.displayName);
-    } else if (ownerInfo.type === "partner" && CONFIG.pokladnaFields.partner) {
-        entry().set(CONFIG.pokladnaFields.partner, [ownerInfo.owner]);
-        addDebug("  🤝 Nastavený partner: " + ownerInfo.displayName);
-    } else if (ownerInfo.type === "client" && CONFIG.pokladnaFields.klient) {
-        entry().set(CONFIG.pokladnaFields.klient, [ownerInfo.owner]);
-        addDebug("  👥 Nastavený klient: " + ownerInfo.displayName);
-    }
-    
-    var datumyStr = "";
-    if (paymentResult.datumyZavazkov && paymentResult.datumyZavazkov.length > 0) {
-        var uniqueDates = [];
-        for (var i = 0; i < paymentResult.datumyZavazkov.length; i++) {
-            if (uniqueDates.indexOf(paymentResult.datumyZavazkov[i]) === -1) {
-                uniqueDates.push(paymentResult.datumyZavazkov[i]);
-            }
-        }
-        uniqueDates.sort();
-        datumyStr = uniqueDates.join(", ");
-    }
-    
-    var popis;
-    if (ownerInfo.type === "employee") {
-        try {
-            var nick = ownerInfo.owner.field(CONFIG.zamestnanciFields.nick);
-            if (nick) {
-                popis = "Mzda " + nick + ", úhrada záväzkov" + (datumyStr ? " zo " + datumyStr : "");
-            } else {
-                popis = ownerInfo.displayName + ", úhrada záväzkov" + (datumyStr ? " zo " + datumyStr : "");
-            }
-        } catch (error) {
-            popis = ownerInfo.displayName + ", úhrada záväzkov" + (datumyStr ? " zo " + datumyStr : "");
-        }
-    } else {
-        popis = ownerInfo.displayName + ", úhrada záväzkov" + (datumyStr ? " zo " + datumyStr : "");
-    }
-    
-    entry().set(CONFIG.pokladnaFields.opisPlatby, popis);
-    addDebug("  📝 Popis platby: " + popis);
-    
-    var ucelVydaja = CONFIG.ucelVydajaOptions.ostatneVydavky;
-    if (ownerInfo.type === "employee") {
-        ucelVydaja = CONFIG.ucelVydajaOptions.mzda;
-    } else if (ownerInfo.type === "supplier") {
-        ucelVydaja = CONFIG.ucelVydajaOptions.fakturyDodavatelov;
-    }
-    
-    entry().set(CONFIG.pokladnaFields.ucelVydaja, ucelVydaja);
-    addDebug("  🎯 Účel výdaja: " + ucelVydaja);
-    
-    addInfoRecord(entry(), "uhradaDokoncena", "ÚHRADA ZÁVÄZKOV DOKONČENÁ", {
-        suma: finalAmount,
-        vlastnik: ownerInfo.displayName
-    });
-    
-    addDebug("✅ Transakcia finalizovaná - finálna suma: " + finalAmount + "€");
-}
-
-function generateFinalReport(originalAmount, preplatokSuma, paymentResult, ownerInfo, typPreplatku, pohladavkyUse) {
-    addDebug("Generujem finálny report...");
-    
-    var finalUsedAmount = formatAmount(originalAmount - preplatokSuma);
-    
-    var report = CONFIG.icons.uhradaDokoncena + " ÚHRADA ZÁVÄZKOV DOKONČENÁ (v" + CONFIG.version + ")\n\n";
-    report += "👤 Vlastník: " + ownerInfo.displayName + "\n";
-    
-    if (pohladavkyUse && pohladavkyUse > 0) {
-        report += CONFIG.icons.money + " Použité pohľadávky: " + pohladavkyUse + "€\n";
-        report += CONFIG.icons.money + " Zadaná suma: " + (originalAmount - pohladavkyUse) + "€\n";
-        report += CONFIG.icons.money + " Celková suma na úhrady: " + originalAmount + "€\n";
-    } else {
-        report += CONFIG.icons.money + " Pôvodná suma: " + originalAmount + "€\n";
-    }
-    
-    report += "📋 Uhradené záväzky: " + paymentResult.uhradeneZavazky.length + "\n";
-    report += "💵 Použitá suma na úhrady: " + finalUsedAmount + "€\n";
-    
-    if (preplatokSuma > 0) {
-        report += "\n" + CONFIG.icons.pohladavkaVytvorena + " Preplatok: " + preplatokSuma + "€\n";
-        if (typPreplatku === CONFIG.typyPreplatku.pohladavka) {
-            report += "📝 Vytvorené:\n";
-            report += "  • Pohľadávka: " + preplatokSuma + "€\n";
-            report += "  • Pokladňa - záloha na mzdu: " + preplatokSuma + "€\n";
-        } else if (typPreplatku === CONFIG.typyPreplatku.premia) {
-            report += "📝 Vytvorené: Pokladňa - prémia " + preplatokSuma + "€\n";
-        } else if (typPreplatku) {
-            report += "📝 Vytvorené: " + typPreplatku + "\n";
-        }
-    } else {
-        report += "\n✅ Bez preplatku - presná suma\n";
-    }
-    
-    report += "\n📊 Detaily v Debug_Log a info poliach";
-    
-    addDebug("📋 Report vygenerovaný - použitá suma: " + finalUsedAmount + "€, preplatok: " + preplatokSuma + "€");
-    
-    return report;
-}
 
 // ==============================================
 // HLAVNÁ FUNKCIA
@@ -1152,147 +125,962 @@ function generateFinalReport(originalAmount, preplatokSuma, paymentResult, owner
 
 function main() {
     try {
-        addDebug(CONFIG.icons.start + " " + CONFIG.scriptName + " SPUSTENÝ - v" + CONFIG.version);
+        utils.addDebug(currentEntry, utils.getIcon("start") + " === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
+        utils.addDebug(currentEntry, "Čas spustenia: " + utils.formatDate(moment()));
+        
+        // Kroky spracovania
+        var steps = {
+            step1: { success: false, name: "Kontrola spúšťacích podmienok" },
+            step2: { success: false, name: "Validácia a filtrovanie záväzkov" },
+            step3: { success: false, name: "Kontrola a spracovanie pohľadávok" },
+            step4: { success: false, name: "Proces úhrad záväzkov" },
+            step5: { success: false, name: "Spracovanie preplatku" },
+            step6: { success: false, name: "Finalizácia transakcie" }
+        };
         
         // KROK 1: Kontrola spúšťacích podmienok
-        addDebug(CONFIG.icons.step + " KROK 1: Kontrola spúšťacích podmienok...");
+        utils.addDebug(currentEntry, utils.getIcon("validation") + " KROK 1: Kontrola spúšťacích podmienok");
         
-        var uhradaZavazku = entry().field(CONFIG.pokladnaFields.uhradaZavazku) || false;
+        var uhradaZavazku = utils.safeGet(currentEntry, CONFIG.fields.uhradaZavazku, false);
         
         if (!uhradaZavazku) {
-            addDebug("❌ Script ukončený - 'Úhrada záväzku' nie je zaškrtnutá");
-            return;
+            utils.addDebug(currentEntry, "❌ Script ukončený - 'Úhrada záväzku' nie je zaškrtnutá");
+            return true; // Nekončíme chybou, len preskakujeme
         }
         
-        var infoContent = entry().field(CONFIG.pokladnaFields.info) || "";
+        // Kontrola či už nebola úhrada spracovaná
+        var infoContent = utils.safeGet(currentEntry, CONFIG.fields.info, "");
         if (infoContent.indexOf("ÚHRADA ZÁVÄZKOV DOKONČENÁ") !== -1) {
-            addDebug("✅ Úhrada už bola spracovaná - preskakujem");
-            return;
+            utils.addDebug(currentEntry, "✅ Úhrada už bola spracovaná - preskakujem");
+            return true;
         }
         
-        addDebug("✅ Spúšťacie podmienky splnené");
+        steps.step1.success = true;
         
         // KROK 2: Validácia a filtrovanie záväzkov
-        addDebug(CONFIG.icons.step + " KROK 2: Validácia záväzkov...");
+        utils.addDebug(currentEntry, utils.getIcon("validation") + " KROK 2: Validácia záväzkov");
         
-        var zavazkyArray = entry().field(CONFIG.pokladnaFields.zavazky) || [];
-        
-        if (zavazkyArray.length === 0) {
-            throw new Error("Žiadne záväzky na spracovanie");
+        var validationResult = validateObligations();
+        if (!validationResult.success) {
+            utils.addError(currentEntry, validationResult.error, "main");
+            message("❌ " + validationResult.error);
+            return false;
         }
+        steps.step2.success = true;
         
-        var validZavazky = filterValidZavazky(zavazkyArray);
+        // KROK 3: Kontrola a spracovanie pohľadávok
+        utils.addDebug(currentEntry, utils.getIcon("search") + " KROK 3: Kontrola pohľadávok");
         
-        if (validZavazky.length === 0) {
-            throw new Error("Žiadne platné záväzky na úhradu (skontrolujte stavy a zostatky)");
-        }
+        var pohladavkyResult = checkAndProcessReceivables(validationResult.ownerInfo, validationResult.dostupnaSuma);
+        var finalAmount = pohladavkyResult.finalAmount;
+        var usedReceivables = pohladavkyResult.usedAmount;
         
-        var ownershipValidation = validateOwnership(validZavazky);
-        if (!ownershipValidation.isValid) {
-            throw new Error("Validácia vlastníctva zlyhala: " + ownershipValidation.error);
-        }
-        
-        var ownerInfo = ownershipValidation.ownerInfo;
-        addDebug("✅ Vlastník validovaný: " + ownerInfo.displayName + " (" + ownerInfo.type + ")");
-        
-        var skutocnePouzitePohladavky = 0;
-        
-        // KROK 3: Výpočet dostupnej sumy
-        addDebug(CONFIG.icons.step + " KROK 3: Výpočet dostupnej sumy...");
-        
-        var amountResult = calculateAvailableAmount(ownerInfo);
-        var dostupnaSuma = amountResult.dostupnaSuma;
-        var pohladavkyInfo = amountResult.pohladavkyInfo;
-        var zakladnaSuma = amountResult.zakladnaSuma;
-        
-        if (dostupnaSuma <= 0) {
-            throw new Error("Dostupná suma musí byť väčšia ako 0€ (aktuálne: " + dostupnaSuma + "€)");
-        }
-        
-        addDebug("✅ Dostupná suma: " + dostupnaSuma + "€ (základ: " + zakladnaSuma + "€, pohľadávky: " + pohladavkyInfo.celkovaSuma + "€)");
-        
-        // KROK 3.5: Spracuj pohľadávky ak sú použité
-        if (pohladavkyInfo.pouzite.length > 0 && pohladavkyInfo.celkovaSuma > 0) {
-            addDebug(CONFIG.icons.step + " KROK 3.5: Spracovanie pohľadávok na úhradu...");
-            
-            var sumaZavazkov = 0;
-            for (var i = 0; i < validZavazky.length; i++) {
-                sumaZavazkov = formatAmount(sumaZavazkov + formatAmount(validZavazky[i].field(CONFIG.zavazkyFields.zostatok)));
-            }
-            addDebug("  Celková suma záväzkov: " + sumaZavazkov + "€");
-            
-            var potrebnaSumaZPohladavok = 0;
-            if (zakladnaSuma < sumaZavazkov) {
-                potrebnaSumaZPohladavok = formatAmount(Math.min(pohladavkyInfo.celkovaSuma, sumaZavazkov - zakladnaSuma));
-            }
-            
-            if (potrebnaSumaZPohladavok > 0) {
-                var pohladavkyResult = processPohladavkyPayments(pohladavkyInfo.pouzite, potrebnaSumaZPohladavok);
-                skutocnePouzitePohladavky = pohladavkyResult.celkovoPouzite;
-                addDebug("✅ Pohľadávky spracované - použité: " + skutocnePouzitePohladavky + "€ z " + pohladavkyInfo.celkovaSuma + "€");
-                
-                dostupnaSuma = formatAmount(zakladnaSuma + skutocnePouzitePohladavky);
-                addDebug("  📊 Upravená dostupná suma: " + dostupnaSuma + "€");
-            } else {
-                addDebug("ℹ️ Pohľadávky neboli potrebné - záväzky pokryté základnou sumou");
-                dostupnaSuma = zakladnaSuma;
-            }
-        } else if (entry().field(CONFIG.pokladnaFields.zapocitatPohladavku)) {
-            addDebug("⚠️ Započítanie pohľadávok požadované, ale žiadne platné pohľadávky nenájdené");
-            dostupnaSuma = zakladnaSuma;
-        }
+        steps.step3.success = true;
         
         // KROK 4: Proces úhrad záväzkov
-        addDebug(CONFIG.icons.step + " KROK 4: Proces úhrady záväzkov...");
+        utils.addDebug(currentEntry, utils.getIcon("money") + " KROK 4: Proces úhrady záväzkov");
         
-        var paymentResult = processPayments(validZavazky, dostupnaSuma, ownerInfo);
-        var preplatokSuma = paymentResult.preplatokSuma;
-        
-        addDebug("✅ Úhrady spracované - preplatok: " + preplatokSuma + "€");
+        var paymentResult = processPayments(validationResult.validZavazky, finalAmount, validationResult.ownerInfo);
+        steps.step4.success = paymentResult.success;
         
         // KROK 5: Spracovanie preplatku
-        addDebug(CONFIG.icons.step + " KROK 5: Spracovanie preplatku...");
-        
-        var typPreplatku = null;
-        if (preplatokSuma > 0) {
-            typPreplatku = entry().field(CONFIG.pokladnaFields.zPreplatkulytvoriť);
-            processPreplatok(preplatokSuma, ownerInfo);
-            addDebug("✅ Preplatok spracovaný ako: " + (typPreplatku || "neurčený typ"));
+        if (paymentResult.preplatokSuma > 0) {
+            utils.addDebug(currentEntry, utils.getIcon("create") + " KROK 5: Spracovanie preplatku");
+            
+            var typPreplatku = utils.safeGet(currentEntry, CONFIG.fields.zPreplatkulytvoriť);
+            var preplatokResult = processOverpayment(paymentResult.preplatokSuma, typPreplatku, validationResult.ownerInfo);
+            steps.step5.success = preplatokResult.success;
         } else {
-            addDebug("✅ Žiadny preplatok na spracovanie");
+            steps.step5.success = true;
         }
         
         // KROK 6: Finalizácia transakcie
-        addDebug(CONFIG.icons.step + " KROK 6: Finalizácia transakcie...");
+        utils.addDebug(currentEntry, utils.getIcon("save") + " KROK 6: Finalizácia transakcie");
+        finalizeTransaction(validationResult.dostupnaSuma, paymentResult, validationResult.ownerInfo, usedReceivables);
+        steps.step6.success = true;
         
-        finalizeTransaction(dostupnaSuma, preplatokSuma, paymentResult, ownerInfo);
+        // Záverečné zhrnutie
+        logFinalSummary(steps);
         
-        addDebug("✅ Transakcia finalizovaná");
-        
-        // KROK 7: Záverečný report
-        addDebug(CONFIG.icons.step + " KROK 7: Generovanie záverečného reportu...");
-        
-        var finalReport = generateFinalReport(dostupnaSuma, preplatokSuma, paymentResult, ownerInfo, typPreplatku, skutocnePouzitePohladavky);
-        
-        addDebug(CONFIG.icons.uhradaDokoncena + " " + CONFIG.scriptName + " ÚSPEŠNE DOKONČENÝ");
+        // Zobraz report užívateľovi
+        var finalReport = generateFinalReport(
+            validationResult.dostupnaSuma, 
+            paymentResult.preplatokSuma, 
+            paymentResult, 
+            validationResult.ownerInfo,
+            typPreplatku,
+            usedReceivables
+        );
         
         message(finalReport);
         
+        return true;
+        
     } catch (error) {
-        addError(CONFIG.icons.error + " KRITICKÁ CHYBA: " + error.toString(), "Skontrolujte štruktúru dát a opakujte operáciu");
-        addDebug("❌ Script ukončený s chybou: " + error.toString());
+        utils.addError(currentEntry, "Kritická chyba v hlavnej funkcii", "main", error);
+        message("❌ Kritická chyba!\n\n" + error.toString());
+        return false;
+    }
+}
+
+// ==============================================
+// KROK 2: VALIDÁCIA ZÁVÄZKOV
+// ==============================================
+
+function validateObligations() {
+    try {
+        var zavazkyArray = utils.safeGetLinks(currentEntry, CONFIG.fields.zavazky);
         
-        var errorReport = "❌ CHYBA PRI ÚHRADE ZÁVÄZKOV (v" + CONFIG.version + ")\n\n";
-        errorReport += CONFIG.icons.error + " " + error.toString() + "\n\n";
-        errorReport += "🔍 Odporúčané kontroly:\n";
-        errorReport += "• Je zaškrtnutá 'Úhrada záväzku'?\n";
-        errorReport += "• Majú všetky záväzky rovnakého vlastníka?\n";
-        errorReport += "• Sú záväzky v stave 'Neuhradené' alebo 'Čiastočne uhradené'?\n";
-        errorReport += "• Je zadaná suma > 0€?\n";
-        errorReport += "• Existujú potrebné knižnice (Záväzky, Pohľadávky)?\n\n";
-        errorReport += "📋 Detaily chyby v Debug_Log a Error_Log";
+        if (!zavazkyArray || zavazkyArray.length === 0) {
+            return { success: false, error: "Nie sú vybrané žiadne záväzky!" };
+        }
         
-        message(errorReport);
+        utils.addDebug(currentEntry, "  📋 Počet vybraných záväzkov: " + zavazkyArray.length);
+        
+        // Získanie sumy
+        var suma = utils.safeGet(currentEntry, CONFIG.fields.suma, 0);
+        suma = parseFloat(suma);
+        
+        if (isNaN(suma) || suma <= 0) {
+            return { success: false, error: "Suma musí byť väčšia ako 0€!" };
+        }
+        
+        // Filtrovanie platných záväzkov
+        var validZavazky = [];
+        var ownerInfo = null;
+        var totalZostatok = 0;
+        
+        for (var i = 0; i < zavazkyArray.length; i++) {
+            var zavazok = zavazkyArray[i];
+            var stav = utils.safeGet(zavazok, CONFIG.fields.obligations.state);
+            
+            // Kontrola stavu
+            if (stav !== CONFIG.constants.stavy.neuhradene && 
+                stav !== CONFIG.constants.stavy.ciastocneUhradene) {
+                utils.addDebug(currentEntry, "  ⚠️ Záväzok #" + zavazok.field("ID") + 
+                             " preskočený - stav: " + stav, "warning");
+                continue;
+            }
+            
+            // Získanie vlastníka
+            var currentOwner = getObligationOwner(zavazok);
+            if (!currentOwner) {
+                utils.addDebug(currentEntry, "  ⚠️ Záväzok #" + zavazok.field("ID") + 
+                             " nemá vlastníka", "warning");
+                continue;
+            }
+            
+            // Kontrola konzistentnosti vlastníka
+            if (!ownerInfo) {
+                ownerInfo = currentOwner;
+            } else if (ownerInfo.id !== currentOwner.id) {
+                return { 
+                    success: false, 
+                    error: "Všetky záväzky musia mať rovnakého vlastníka!\n" +
+                          "Prvý vlastník: " + ownerInfo.displayName + "\n" +
+                          "Konfliktný vlastník: " + currentOwner.displayName 
+                };
+            }
+            
+            var zostatok = utils.safeGet(zavazok, CONFIG.fields.obligations.balance, 0);
+            totalZostatok += zostatok;
+            validZavazky.push(zavazok);
+        }
+        
+        if (validZavazky.length === 0) {
+            return { success: false, error: "Žiadne platné záväzky na uhradenie!" };
+        }
+        
+        utils.addDebug(currentEntry, "✅ Validácia úspešná:");
+        utils.addDebug(currentEntry, "  • Platné záväzky: " + validZavazky.length);
+        utils.addDebug(currentEntry, "  • Vlastník: " + ownerInfo.displayName);
+        utils.addDebug(currentEntry, "  • Celkový zostatok: " + utils.formatMoney(totalZostatok));
+        utils.addDebug(currentEntry, "  • Dostupná suma: " + utils.formatMoney(suma));
+        
+        return {
+            success: true,
+            validZavazky: validZavazky,
+            ownerInfo: ownerInfo,
+            totalZostatok: totalZostatok,
+            dostupnaSuma: suma
+        };
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "validateObligations", error);
+        return { success: false, error: "Chyba validácie: " + error.toString() };
+    }
+}
+
+// ==============================================
+// POMOCNÁ FUNKCIA: ZÍSKANIE VLASTNÍKA ZÁVÄZKU
+// ==============================================
+
+function getObligationOwner(zavazok) {
+    try {
+        // Kontrola typu veriteľa a získanie vlastníka
+        var creditorType = utils.safeGet(zavazok, CONFIG.fields.obligations.creditor);
+        
+        var owner = null;
+        var type = null;
+        var displayName = "Neznámy";
+        
+        // Zamestnanec
+        var employees = utils.safeGetLinks(zavazok, CONFIG.fields.obligations.employee);
+        if (employees && employees.length > 0) {
+            owner = employees[0];
+            type = "employee";
+            displayName = utils.formatEmployeeName(owner);
+        }
+        
+        // Dodávateľ
+        if (!owner) {
+            var suppliers = utils.safeGetLinks(zavazok, CONFIG.fields.obligations.supplier);
+            if (suppliers && suppliers.length > 0) {
+                owner = suppliers[0];
+                type = "supplier";
+                displayName = utils.safeGet(owner, "Názov") || "Dodávateľ";
+            }
+        }
+        
+        // Partner
+        if (!owner) {
+            var partners = utils.safeGetLinks(zavazok, CONFIG.fields.obligations.partner);
+            if (partners && partners.length > 0) {
+                owner = partners[0];
+                type = "partner";
+                displayName = utils.safeGet(owner, "Názov") || "Partner";
+            }
+        }
+        
+        // Klient
+        if (!owner) {
+            var clients = utils.safeGetLinks(zavazok, CONFIG.fields.obligations.client);
+            if (clients && clients.length > 0) {
+                owner = clients[0];
+                type = "client";
+                displayName = utils.safeGet(owner, "Názov") || "Klient";
+            }
+        }
+        
+        if (!owner) {
+            return null;
+        }
+        
+        return {
+            owner: owner,
+            type: type,
+            displayName: displayName,
+            id: owner.field("ID") || owner.field("id"),
+            creditorType: creditorType
+        };
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri získavaní vlastníka", "getObligationOwner", error);
+        return null;
+    }
+}
+
+// ==============================================
+// KROK 3: KONTROLA A SPRACOVANIE POHĽADÁVOK
+// ==============================================
+
+function checkAndProcessReceivables(ownerInfo, zakladnaSuma) {
+    try {
+        var zapocitat = utils.safeGet(currentEntry, CONFIG.fields.zapocitatPohladavku, false);
+        
+        if (!zapocitat) {
+            utils.addDebug(currentEntry, "  ℹ️ Započítanie pohľadávok nie je požadované");
+            return { finalAmount: zakladnaSuma, usedAmount: 0 };
+        }
+        
+        // Získanie pohľadávok
+        var pohladavkyArray = utils.safeGetLinks(currentEntry, CONFIG.fields.pohladavky);
+        
+        if (!pohladavkyArray || pohladavkyArray.length === 0) {
+            utils.addDebug(currentEntry, "  ⚠️ Žiadne pohľadávky na započítanie", "warning");
+            return { finalAmount: zakladnaSuma, usedAmount: 0 };
+        }
+        
+        // Filtrovanie platných pohľadávok
+        var validPohladavky = [];
+        var totalPohladavky = 0;
+        
+        for (var i = 0; i < pohladavkyArray.length; i++) {
+            var pohladavka = pohladavkyArray[i];
+            var pohladavkaOwner = getReceivableOwner(pohladavka);
+            
+            // Kontrola vlastníka
+            if (!pohladavkaOwner || pohladavkaOwner.id !== ownerInfo.id) {
+                utils.addDebug(currentEntry, "  ⚠️ Pohľadávka #" + pohladavka.field("ID") + 
+                             " má iného vlastníka", "warning");
+                continue;
+            }
+            
+            var zostatok = utils.safeGet(pohladavka, CONFIG.fields.receivables.balance, 0);
+            if (zostatok > 0) {
+                validPohladavky.push({
+                    entry: pohladavka,
+                    zostatok: zostatok
+                });
+                totalPohladavky += zostatok;
+            }
+        }
+        
+        if (validPohladavky.length === 0) {
+            utils.addDebug(currentEntry, "  ⚠️ Žiadne platné pohľadávky rovnakého vlastníka", "warning");
+            return { finalAmount: zakladnaSuma, usedAmount: 0 };
+        }
+        
+        // Spracovanie pohľadávok
+        var usedAmount = 0;
+        var potrebnaSuma = Math.min(totalPohladavky, zakladnaSuma);
+        
+        for (var j = 0; j < validPohladavky.length && potrebnaSuma > 0; j++) {
+            var pohladavkaInfo = validPohladavky[j];
+            var pouzit = Math.min(pohladavkaInfo.zostatok, potrebnaSuma);
+            
+            // Aktualizácia pohľadávky
+            var novyZostatok = pohladavkaInfo.zostatok - pouzit;
+            var noveZaplatene = utils.safeGet(pohladavkaInfo.entry, CONFIG.fields.receivables.paid, 0) + pouzit;
+            
+            utils.safeSet(pohladavkaInfo.entry, CONFIG.fields.receivables.paid, noveZaplatene);
+            utils.safeSet(pohladavkaInfo.entry, CONFIG.fields.receivables.balance, novyZostatok);
+            utils.safeSet(pohladavkaInfo.entry, CONFIG.fields.receivables.state, 
+                         novyZostatok > 0 ? CONFIG.constants.stavy.ciastocneUhradene : CONFIG.constants.stavy.uhradene);
+            
+            // Info záznam
+            utils.addInfo(pohladavkaInfo.entry, "ZAPOČÍTANIE POHĽADÁVKY", {
+                suma: pouzit,
+                zostatok: novyZostatok,
+                zdrojZaznam: "Pokladňa #" + currentEntry.field("ID")
+            });
+            
+            usedAmount += pouzit;
+            potrebnaSuma -= pouzit;
+            
+            utils.addDebug(currentEntry, "  ✅ Použitá pohľadávka #" + pohladavkaInfo.entry.field("ID") + 
+                         ": " + utils.formatMoney(pouzit));
+        }
+        
+        var finalAmount = zakladnaSuma + usedAmount;
+        
+        utils.addDebug(currentEntry, "✅ Pohľadávky spracované:");
+        utils.addDebug(currentEntry, "  • Použitá suma: " + utils.formatMoney(usedAmount));
+        utils.addDebug(currentEntry, "  • Finálna suma: " + utils.formatMoney(finalAmount));
+        
+        return { finalAmount: finalAmount, usedAmount: usedAmount };
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "checkAndProcessReceivables", error);
+        return { finalAmount: zakladnaSuma, usedAmount: 0 };
+    }
+}
+
+// ==============================================
+// POMOCNÁ FUNKCIA: ZÍSKANIE VLASTNÍKA POHĽADÁVKY
+// ==============================================
+
+function getReceivableOwner(pohladavka) {
+    try {
+        var owner = null;
+        var type = null;
+        var displayName = "Neznámy";
+        
+        // Podobná logika ako pri záväzkoch
+        var employees = utils.safeGetLinks(pohladavka, CONFIG.fields.receivables.employee);
+        if (employees && employees.length > 0) {
+            owner = employees[0];
+            type = "employee";
+            displayName = utils.formatEmployeeName(owner);
+        }
+        
+        if (!owner) {
+            var suppliers = utils.safeGetLinks(pohladavka, CONFIG.fields.receivables.supplier);
+            if (suppliers && suppliers.length > 0) {
+                owner = suppliers[0];
+                type = "supplier";
+                displayName = utils.safeGet(owner, "Názov") || "Dodávateľ";
+            }
+        }
+        
+        if (!owner) {
+            var partners = utils.safeGetLinks(pohladavka, CONFIG.fields.receivables.partner);
+            if (partners && partners.length > 0) {
+                owner = partners[0];
+                type = "partner";
+                displayName = utils.safeGet(owner, "Názov") || "Partner";
+            }
+        }
+        
+        if (!owner) {
+            var clients = utils.safeGetLinks(pohladavka, CONFIG.fields.receivables.client);
+            if (clients && clients.length > 0) {
+                owner = clients[0];
+                type = "client";
+                displayName = utils.safeGet(owner, "Názov") || "Klient";
+            }
+        }
+        
+        if (!owner) {
+            return null;
+        }
+        
+        return {
+            owner: owner,
+            type: type,
+            displayName: displayName,
+            id: owner.field("ID") || owner.field("id")
+        };
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri získavaní vlastníka pohľadávky", "getReceivableOwner", error);
+        return null;
+    }
+}
+
+// ==============================================
+// KROK 4: PROCES ÚHRAD ZÁVÄZKOV
+// ==============================================
+
+function processPayments(validZavazky, dostupnaSuma, ownerInfo) {
+    try {
+        utils.addDebug(currentEntry, "Spúšťam proces úhrad...");
+        utils.addDebug(currentEntry, "  • Dostupná suma: " + utils.formatMoney(dostupnaSuma));
+        utils.addDebug(currentEntry, "  • Počet záväzkov: " + validZavazky.length);
+        
+        var uhradeneZavazky = [];
+        var datumyZavazkov = [];
+        var zbyvajucaSuma = dostupnaSuma;
+        
+        // Zoradenie záväzkov chronologicky
+        validZavazky.sort(function(a, b) {
+            var dateA = utils.safeGet(a, CONFIG.fields.obligations.date, new Date(0));
+            var dateB = utils.safeGet(b, CONFIG.fields.obligations.date, new Date(0));
+            return new Date(dateA) - new Date(dateB);
+        });
+        
+        // Spracovanie každého záväzku
+        for (var i = 0; i < validZavazky.length && zbyvajucaSuma > 0.01; i++) {
+            var zavazok = validZavazky[i];
+            var zostatok = utils.safeGet(zavazok, CONFIG.fields.obligations.balance, 0);
+            var datum = utils.safeGet(zavazok, CONFIG.fields.obligations.date);
+            
+            utils.addDebug(currentEntry, "  📋 Záväzok " + (i + 1) + "/" + validZavazky.length + 
+                         ": " + utils.formatMoney(zostatok));
+            
+            if (zbyvajucaSuma >= zostatok) {
+                // Úplná úhrada
+                processFullPayment(zavazok, zostatok, ownerInfo);
+                
+                uhradeneZavazky.push({
+                    zavazok: zavazok,
+                    amount: zostatok,
+                    type: "úplná"
+                });
+                
+                zbyvajucaSuma = Math.round((zbyvajucaSuma - zostatok) * 100) / 100;
+                
+            } else if (zbyvajucaSuma > 0) {
+                // Čiastočná úhrada
+                processPartialPayment(zavazok, zbyvajucaSuma, ownerInfo);
+                
+                uhradeneZavazky.push({
+                    zavazok: zavazok,
+                    amount: zbyvajucaSuma,
+                    type: "čiastočná"
+                });
+                
+                zbyvajucaSuma = 0;
+            }
+            
+            // Zaznamenanie dátumu
+            if (datum) {
+                datumyZavazkov.push(utils.formatDate(datum));
+            }
+        }
+        
+        utils.addDebug(currentEntry, "✅ Proces úhrad dokončený:");
+        utils.addDebug(currentEntry, "  • Uhradené záväzky: " + uhradeneZavazky.length);
+        utils.addDebug(currentEntry, "  • Preplatok: " + utils.formatMoney(zbyvajucaSuma));
+        
+        return {
+            success: true,
+            uhradeneZavazky: uhradeneZavazky,
+            datumyZavazkov: datumyZavazkov,
+            preplatokSuma: zbyvajucaSuma
+        };
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "processPayments", error);
+        return {
+            success: false,
+            uhradeneZavazky: [],
+            datumyZavazkov: [],
+            preplatokSuma: 0
+        };
+    }
+}
+
+// ==============================================
+// POMOCNÉ FUNKCIE PRE PLATBY
+// ==============================================
+
+function processFullPayment(zavazok, suma, ownerInfo) {
+    try {
+        var pvodneZaplatene = utils.safeGet(zavazok, CONFIG.fields.obligations.paid, 0);
+        var noveZaplatene = pvodneZaplatene + suma;
+        
+        // Aktualizácia záväzku
+        utils.safeSet(zavazok, CONFIG.fields.obligations.paid, noveZaplatene);
+        utils.safeSet(zavazok, CONFIG.fields.obligations.balance, 0);
+        utils.safeSet(zavazok, CONFIG.fields.obligations.state, CONFIG.constants.stavy.uhradene);
+        
+        // Info záznam
+        utils.addInfo(zavazok, "ÚPLNÁ ÚHRADA ZÁVÄZKU", {
+            suma: suma,
+            zostatok: 0,
+            vlastnik: ownerInfo.displayName,
+            zdrojZaznam: "Pokladňa #" + currentEntry.field("ID")
+        });
+        
+        utils.addDebug(currentEntry, "    ✅ Úplná úhrada: " + utils.formatMoney(suma));
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "processFullPayment", error);
+    }
+}
+
+function processPartialPayment(zavazok, suma, ownerInfo) {
+    try {
+        var zostatok = utils.safeGet(zavazok, CONFIG.fields.obligations.balance, 0);
+        var pvodneZaplatene = utils.safeGet(zavazok, CONFIG.fields.obligations.paid, 0);
+        var noveZaplatene = pvodneZaplatene + suma;
+        var novyZostatok = zostatok - suma;
+        
+        // Aktualizácia záväzku
+        utils.safeSet(zavazok, CONFIG.fields.obligations.paid, noveZaplatene);
+        utils.safeSet(zavazok, CONFIG.fields.obligations.balance, novyZostatok);
+        utils.safeSet(zavazok, CONFIG.fields.obligations.state, CONFIG.constants.stavy.ciastocneUhradene);
+        
+        // Info záznam
+        utils.addInfo(zavazok, "ČIASTOČNÁ ÚHRADA ZÁVÄZKU", {
+            suma: suma,
+            zostatok: novyZostatok,
+            vlastnik: ownerInfo.displayName,
+            zdrojZaznam: "Pokladňa #" + currentEntry.field("ID")
+        });
+        
+        utils.addDebug(currentEntry, "    🔄 Čiastočná úhrada: " + utils.formatMoney(suma) + 
+                     ", zostáva: " + utils.formatMoney(novyZostatok));
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "processPartialPayment", error);
+    }
+}
+
+// ==============================================
+// KROK 5: SPRACOVANIE PREPLATKU
+// ==============================================
+
+function processOverpayment(preplatokSuma, typPreplatku, ownerInfo) {
+    try {
+        utils.addDebug(currentEntry, "Spracovávam preplatok: " + utils.formatMoney(preplatokSuma));
+        
+        if (!typPreplatku) {
+            utils.addDebug(currentEntry, "  ⚠️ Typ preplatku nie je nastavený", "warning");
+            return { success: false };
+        }
+        
+        var result = { success: false };
+        
+        switch (typPreplatku) {
+            case CONFIG.constants.typyPreplatku.pohladavka:
+                result = createReceivableFromOverpayment(preplatokSuma, ownerInfo);
+                break;
+                
+            case CONFIG.constants.typyPreplatku.zaloha:
+                result = createAdvancePayment(preplatokSuma, ownerInfo);
+                break;
+                
+            case CONFIG.constants.typyPreplatku.premia:
+                result = createBonusPayment(preplatokSuma, ownerInfo);
+                break;
+                
+            default:
+                utils.addError(currentEntry, "Neznámy typ preplatku: " + typPreplatku, "processOverpayment");
+        }
+        
+        if (result.success) {
+            utils.addDebug(currentEntry, "✅ Preplatok spracovaný ako: " + typPreplatku);
+        }
+        
+        return result;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "processOverpayment", error);
+        return { success: false };
+    }
+}
+
+// ==============================================
+// FUNKCIE PRE VYTVORENIE PREPLATKOV
+// ==============================================
+
+function createReceivableFromOverpayment(suma, ownerInfo) {
+    try {
+        var pohladavkyLib = libByName(CONFIG.libraries.receivables);
+        if (!pohladavkyLib) {
+            utils.addError(currentEntry, "Knižnica Pohľadávky nenájdená", "createReceivableFromOverpayment");
+            return { success: false };
+        }
+        
+        var novaPohladavka = pohladavkyLib.create({});
+        
+        // Nastavenie základných údajov
+        utils.safeSet(novaPohladavka, CONFIG.fields.receivables.date, moment().toDate());
+        utils.safeSet(novaPohladavka, CONFIG.fields.receivables.type, "Preplatok z úhrady záväzkov");
+        utils.safeSet(novaPohladavka, CONFIG.fields.receivables.state, CONFIG.constants.stavy.neuhradene);
+        utils.safeSet(novaPohladavka, CONFIG.fields.receivables.amount, suma);
+        utils.safeSet(novaPohladavka, CONFIG.fields.receivables.paid, 0);
+        utils.safeSet(novaPohladavka, CONFIG.fields.receivables.balance, suma);
+        
+        // Nastavenie vlastníka
+        if (ownerInfo.type === "employee") {
+            utils.safeSet(novaPohladavka, CONFIG.fields.receivables.employee, [ownerInfo.owner]);
+        } else if (ownerInfo.type === "supplier") {
+            utils.safeSet(novaPohladavka, CONFIG.fields.receivables.supplier, [ownerInfo.owner]);
+        } else if (ownerInfo.type === "partner") {
+            utils.safeSet(novaPohladavka, CONFIG.fields.receivables.partner, [ownerInfo.owner]);
+        } else if (ownerInfo.type === "client") {
+            utils.safeSet(novaPohladavka, CONFIG.fields.receivables.client, [ownerInfo.owner]);
+        }
+        
+        // Popis
+        var popis = "Preplatok z úhrady záväzkov - " + ownerInfo.displayName;
+        utils.safeSet(novaPohladavka, CONFIG.fields.receivables.description, popis);
+        
+        // Info záznam
+        utils.addInfo(novaPohladavka, "AUTOMATICKY VYTVORENÁ POHĽADÁVKA", {
+            dovod: "Preplatok z úhrady záväzkov",
+            suma: suma,
+            vlastnik: ownerInfo.displayName,
+            zdrojZaznam: "Pokladňa #" + currentEntry.field("ID"),
+            zdrojKniznica: CONFIG.libraries.cashBook
+        });
+        
+        // Linknutie pohľadávky na pokladňu
+        var existingPohladavky = utils.safeGetLinks(currentEntry, CONFIG.fields.pohladavky) || [];
+        existingPohladavky.push(novaPohladavka);
+        utils.safeSet(currentEntry, CONFIG.fields.pohladavky, existingPohladavky);
+        
+        utils.addDebug(currentEntry, "  ✅ Vytvorená pohľadávka #" + novaPohladavka.field("ID"));
+        
+        return { success: true, pohladavka: novaPohladavka };
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "createReceivableFromOverpayment", error);
+        return { success: false };
+    }
+}
+
+function createAdvancePayment(suma, ownerInfo) {
+    try {
+        // Pre zálohu vytvárame aj pohľadávku a nový pokladničný záznam
+        var pohladavkaResult = createReceivableFromOverpayment(suma, ownerInfo);
+        if (!pohladavkaResult.success) {
+            return { success: false };
+        }
+        
+        // Vytvorenie nového pokladničného záznamu pre zálohu
+        var pokladnaLib = libByName(CONFIG.libraries.cashBook);
+        if (!pokladnaLib) {
+            utils.addError(currentEntry, "Knižnica Pokladňa nenájdená", "createAdvancePayment");
+            return { success: false };
+        }
+        
+        var novyZaznam = pokladnaLib.create({});
+        
+        // Nastavenie údajov
+        utils.safeSet(novyZaznam, CONFIG.fields.cashBook.date, moment().toDate());
+        utils.safeSet(novyZaznam, CONFIG.fields.cashBook.transactionType, CONFIG.constants.pohyb.vydavok);
+        utils.safeSet(novyZaznam, CONFIG.fields.cashBook.sum, suma);
+        
+        // Účel výdaja
+        var ucelVydaja = CONFIG.constants.ucelVydaja.ostatneVydavky;
+        if (ownerInfo.type === "employee") {
+            ucelVydaja = CONFIG.constants.ucelVydaja.mzdaZaloha;
+        }
+        utils.safeSet(novyZaznam, "Účel výdaja", ucelVydaja);
+        
+        // Popis platby
+        var popisZalohy = ownerInfo.displayName + ", záloha na mzdu";
+        utils.safeSet(novyZaznam, "Popis platby", popisZalohy);
+        
+        // Vlastník
+        if (ownerInfo.type === "employee") {
+            utils.safeSet(novyZaznam, CONFIG.fields.cashBook.employee, [ownerInfo.owner]);
+        } else if (ownerInfo.type === "supplier") {
+            utils.safeSet(novyZaznam, CONFIG.fields.cashBook.supplier, [ownerInfo.owner]);
+        }
+        
+        // Prepojenie s pohľadávkou
+        utils.safeSet(novyZaznam, CONFIG.fields.pohladavky, [pohladavkaResult.pohladavka]);
+        
+        // Z pokladne
+        var zPokladne = utils.safeGetLinks(currentEntry, "Z pokladne");
+        if (zPokladne && zPokladne.length > 0) {
+            utils.safeSet(novyZaznam, "Z pokladne", zPokladne);
+        }
+        
+        // Info záznam
+        utils.addInfo(novyZaznam, "AUTOMATICKY VYTVORENÁ ZÁLOHA", {
+            dovod: "Preplatok z úhrady záväzkov",
+            suma: suma,
+            vlastnik: ownerInfo.displayName,
+            zdrojZaznam: "Pokladňa #" + currentEntry.field("ID")
+        });
+        
+        utils.addDebug(currentEntry, "  ✅ Vytvorený pokladničný záznam pre zálohu #" + novyZaznam.field("ID"));
+        
+        return { success: true, pohladavka: pohladavkaResult.pohladavka, pokladna: novyZaznam };
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "createAdvancePayment", error);
+        return { success: false };
+    }
+}
+
+function createBonusPayment(suma, ownerInfo) {
+    try {
+        // Pre prémiu vytvárame nový pokladničný záznam
+        var pokladnaLib = libByName(CONFIG.libraries.cashBook);
+        if (!pokladnaLib) {
+            utils.addError(currentEntry, "Knižnica Pokladňa nenájdená", "createBonusPayment");
+            return { success: false };
+        }
+        
+        var novyZaznam = pokladnaLib.create({});
+        
+        // Nastavenie údajov
+        utils.safeSet(novyZaznam, CONFIG.fields.cashBook.date, moment().toDate());
+        utils.safeSet(novyZaznam, CONFIG.fields.cashBook.transactionType, CONFIG.constants.pohyb.vydavok);
+        utils.safeSet(novyZaznam, CONFIG.fields.cashBook.sum, suma);
+        utils.safeSet(novyZaznam, "Účel výdaja", CONFIG.constants.ucelVydaja.mzdaPremia);
+        
+        // Popis platby
+        var popis = ownerInfo.displayName + ", prémia z preplatku";
+        utils.safeSet(novyZaznam, "Popis platby", popis);
+        
+        // Vlastník
+        if (ownerInfo.type === "employee") {
+            utils.safeSet(novyZaznam, CONFIG.fields.cashBook.employee, [ownerInfo.owner]);
+        }
+        
+        // Z pokladne
+        var zPokladne = utils.safeGetLinks(currentEntry, "Z pokladne");
+        if (zPokladne && zPokladne.length > 0) {
+            utils.safeSet(novyZaznam, "Z pokladne", zPokladne);
+        }
+        
+        // Info záznam
+        utils.addInfo(novyZaznam, "AUTOMATICKY VYTVORENÁ PRÉMIA", {
+            dovod: "Preplatok z úhrady záväzkov",
+            suma: suma,
+            vlastnik: ownerInfo.displayName,
+            zdrojZaznam: "Pokladňa #" + currentEntry.field("ID")
+        });
+        
+        utils.addDebug(currentEntry, "  ✅ Vytvorený pokladničný záznam pre prémiu #" + novyZaznam.field("ID"));
+        
+        return { success: true, pokladna: novyZaznam };
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "createBonusPayment", error);
+        return { success: false };
+    }
+}
+
+// ==============================================
+// KROK 6: FINALIZÁCIA TRANSAKCIE
+// ==============================================
+
+function finalizeTransaction(dostupnaSuma, paymentResult, ownerInfo, usedReceivables) {
+    try {
+        utils.addDebug(currentEntry, "Finalizujem transakciu...");
+        
+        // Nastavenie vlastníka v pokladni
+        clearOwnerFields();
+        setOwnerField(ownerInfo);
+        
+        // Vytvorenie popisu platby
+        var datumyStr = "";
+        if (paymentResult.datumyZavazkov && paymentResult.datumyZavazkov.length > 0) {
+            var uniqueDates = [];
+            for (var i = 0; i < paymentResult.datumyZavazkov.length; i++) {
+                if (uniqueDates.indexOf(paymentResult.datumyZavazkov[i]) === -1) {
+                    uniqueDates.push(paymentResult.datumyZavazkov[i]);
+                }
+            }
+            datumyStr = uniqueDates.join(", ");
+        }
+        
+        var popis = generatePaymentDescription(ownerInfo, datumyStr);
+        utils.safeSet(currentEntry, "Popis platby", popis);
+        
+        // Nastavenie účelu výdaja
+        var ucelVydaja = CONFIG.constants.ucelVydaja.ostatneVydavky;
+        if (ownerInfo.type === "employee") {
+            ucelVydaja = CONFIG.constants.ucelVydaja.mzda;
+        } else if (ownerInfo.type === "supplier") {
+            ucelVydaja = CONFIG.constants.ucelVydaja.fakturyDodavatelov;
+        }
+        utils.safeSet(currentEntry, "Účel výdaja", ucelVydaja);
+        
+        // Info záznam
+        var infoData = {
+            suma: dostupnaSuma,
+            vlastnik: ownerInfo.displayName,
+            uhradenychZavazkov: paymentResult.uhradeneZavazky.length,
+            preplatok: paymentResult.preplatokSuma
+        };
+        
+        if (usedReceivables > 0) {
+            infoData.pouzitePohladavky = usedReceivables;
+        }
+        
+        utils.addInfo(currentEntry, "ÚHRADA ZÁVÄZKOV DOKONČENÁ", infoData);
+        
+        utils.addDebug(currentEntry, "✅ Transakcia finalizovaná");
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "finalizeTransaction", error);
+    }
+}
+
+// ==============================================
+// POMOCNÉ FUNKCIE PRE FINALIZÁCIU
+// ==============================================
+
+function clearOwnerFields() {
+    try {
+        utils.safeSet(currentEntry, CONFIG.fields.cashBook.employee, []);
+        utils.safeSet(currentEntry, CONFIG.fields.cashBook.supplier, []);
+        utils.safeSet(currentEntry, CONFIG.fields.cashBook.partner, []);
+        utils.safeSet(currentEntry, CONFIG.fields.cashBook.client || "Klient", []);
+    } catch (error) {
+        utils.addDebug(currentEntry, "  ⚠️ Niektoré polia vlastníkov sa nepodarilo vymazať", "warning");
+    }
+}
+
+function setOwnerField(ownerInfo) {
+    try {
+        if (ownerInfo.type === "employee") {
+            utils.safeSet(currentEntry, CONFIG.fields.cashBook.employee, [ownerInfo.owner]);
+        } else if (ownerInfo.type === "supplier") {
+            utils.safeSet(currentEntry, CONFIG.fields.cashBook.supplier, [ownerInfo.owner]);
+        } else if (ownerInfo.type === "partner") {
+            utils.safeSet(currentEntry, CONFIG.fields.cashBook.partner, [ownerInfo.owner]);
+        } else if (ownerInfo.type === "client") {
+            utils.safeSet(currentEntry, CONFIG.fields.cashBook.client || "Klient", [ownerInfo.owner]);
+        }
+        
+        utils.addDebug(currentEntry, "  ✅ Nastavený " + ownerInfo.type + ": " + ownerInfo.displayName);
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri nastavení vlastníka", "setOwnerField", error);
+    }
+}
+
+function generatePaymentDescription(ownerInfo, datumyStr) {
+    var popis = ownerInfo.displayName;
+    
+    if (ownerInfo.type === "employee") {
+        // Pokús sa získať Nick
+        var nick = utils.safeGet(ownerInfo.owner, "Nick");
+        if (nick) {
+            popis = "Mzda " + nick;
+        }
+    }
+    
+    popis += ", úhrada záväzkov";
+    
+    if (datumyStr) {
+        popis += " zo " + datumyStr;
+    }
+    
+    return popis;
+}
+
+// ==============================================
+// ZÁVEREČNÉ FUNKCIE
+// ==============================================
+
+function generateFinalReport(originalAmount, preplatokSuma, paymentResult, ownerInfo, typPreplatku, usedReceivables) {
+    try {
+        var finalUsedAmount = originalAmount - preplatokSuma;
+        
+        var report = utils.getIcon("success") + " ÚHRADA ZÁVÄZKOV DOKONČENÁ (v" + CONFIG.version + ")\n\n";
+        report += "👤 Vlastník: " + ownerInfo.displayName + "\n";
+        
+        if (usedReceivables > 0) {
+            report += utils.getIcon("money") + " Použité pohľadávky: " + utils.formatMoney(usedReceivables) + "\n";
+            report += utils.getIcon("money") + " Zadaná suma: " + utils.formatMoney(originalAmount - usedReceivables) + "\n";
+            report += utils.getIcon("money") + " Celková suma na úhrady: " + utils.formatMoney(originalAmount) + "\n";
+        } else {
+            report += utils.getIcon("money") + " Pôvodná suma: " + utils.formatMoney(originalAmount) + "\n";
+        }
+        
+        report += "📋 Uhradené záväzky: " + paymentResult.uhradeneZavazky.length + "\n";
+        report += "💵 Použitá suma na úhrady: " + utils.formatMoney(finalUsedAmount) + "\n";
+        
+        if (preplatokSuma > 0) {
+            report += "\n" + utils.getIcon("create") + " Preplatok: " + utils.formatMoney(preplatokSuma) + "\n";
+            
+            if (typPreplatku === CONFIG.constants.typyPreplatku.pohladavka) {
+                report += "📝 Vytvorená pohľadávka\n";
+            } else if (typPreplatku === CONFIG.constants.typyPreplatku.zaloha) {
+                report += "📝 Vytvorené:\n";
+                report += "  • Pohľadávka\n";
+                report += "  • Pokladňa - záloha na mzdu\n";
+            } else if (typPreplatku === CONFIG.constants.typyPreplatku.premia) {
+                report += "📝 Vytvorený pokladničný záznam - prémia\n";
+            }
+        } else {
+            report += "\n✅ Bez preplatku - presná suma\n";
+        }
+        
+        report += "\n📊 Detaily v Debug_Log a info poliach";
+        
+        return report;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "generateFinalReport", error);
+        return "❌ Chyba pri generovaní reportu";
+    }
+}
+
+function logFinalSummary(steps) {
+    try {
+        utils.addDebug(currentEntry, "\n🎯 === SÚHRN SPRACOVANIA ===");
+        
+        var allSuccess = true;
+        for (var step in steps) {
+            var status = steps[step].success ? "✅" : "❌";
+            utils.addDebug(currentEntry, status + " " + steps[step].name);
+            if (!steps[step].success) allSuccess = false;
+        }
+        
+        if (allSuccess) {
+            utils.addDebug(currentEntry, "\n🎉 === VŠETKY KROKY ÚSPEŠNÉ ===");
+        } else {
+            utils.addDebug(currentEntry, "\n⚠️ === NIEKTORÉ KROKY ZLYHALI ===");
+        }
+        
+        utils.addDebug(currentEntry, "⏱️ Čas ukončenia: " + moment().format("HH:mm:ss"));
+        utils.addDebug(currentEntry, "📋 === KONIEC " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "logFinalSummary", error);
     }
 }
 
@@ -1300,4 +1088,18 @@ function main() {
 // SPUSTENIE SCRIPTU
 // ==============================================
 
-main();
+// Kontrola závislostí
+var dependencyCheck = utils.checkDependencies(['config', 'core', 'business']);
+if (!dependencyCheck.success) {
+    message("❌ Chýbajú potrebné moduly: " + dependencyCheck.missing.join(", "));
+    cancel();
+}
+
+// Spustenie hlavnej funkcie
+var result = main();
+
+// Ak hlavná funkcia zlyhala, zruš uloženie
+if (!result) {
+    utils.addError(currentEntry, "Script zlyhal - zrušené uloženie", "main");
+    cancel();
+}
