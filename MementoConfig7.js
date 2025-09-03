@@ -347,24 +347,34 @@ var MementoConfig = (function() {
             },
             
             // Pokladňa polia
-            cashRegister: {
+            cashBook: {
                 date: "Dátum",
-                movement: "Pohyb",
-                fromCashRegister: "Z pokladne",
-                toCashRegister: "Do pokladne",
-                obligationPayment: "Úhrada záväzku",
-                obligationType: "Typ záväzku",
-                offsetClaim: "Započítať pohľadávku",
-                fromOverpaymentCreate: "Z preplatku vytvoriť",
-                obligations: "Záväzky",
-                claims: "Pohľadávky",
-                transferPurpose: "Účel prevodu/výdaja",
-                recordToCustomer: "Evidovať na zákazku",
-                customer: "Zákazka",
-                financialFees: "Finančné poplatky",
-                employee: "Zamestnanec",
-                supplier: "Dodávateľ",
-                machineOrVehicle: "Stroj/Vozidlo"
+                transactionType: "Pohyb", //singleChoice: Príjem, Výdaj, PP (Priebežná položka)
+                fromAccount: "Z pokladne", //linkToEntry: Účty (Accounts)
+                toAccount: "Do pokladne", //linkToEntry: Účty (Accounts)
+                obligationPayment: "Úhrada záväzku", //Checkbox - či sa platbou uhrádzajú záväzky
+                obligationType: "Typ záväzku", //singleChoice: Mzdy, Faktúry, Nájomné, Leasing (pribudnú ďalšie)
+                offsetClaim: "Započítať pohľadávku", //Checkbox - pri úhrade záväzku sa môže započítať pohľadávka ak je rovnaký subjekt (creditor)
+                fromOverpaymentCreate: "Z preplatku vytvoriť", //Options: Zálohu, Prémiu, Pohľadávku (ak pri platbe vznikne preplatok, uplatní sa jedna z možností)
+                obligations: "Záväzky", //linkToEntry: Záväzky (prepojené úhrádzané záväzky)
+                claims: "Pohľadávky", //linkToEntry: Pohľadávky (prepojené pohľadávky ktoré uhrádzajú záväzky alebo vznikli platbou)
+                transferPurpose: "Účel prevodu", // singleChoice: Dotácia pokladne, Vklad na účet, Presun hotovosti, (použíje sa pri Priebežná položka)
+                // tieto polia pravdepodobne prerobím na linksFrom
+                recordToCustomer: "Evidovať na zákazku", // Checkbox: platba sa bude evidovať na konkrétnu zákazku
+                customer: "Zákazka", // linkToEntry: Zákazky, prepojenie so zákazkou s ktorou súvisí platba
+                rezia: "Prevádzková réžia", // singleChoice: PHM Vozidlá, PHM Stroje, ND a servis vozidlá, ND a servis stroje, PR Pitný režim, Stravné, Potraviny, Réžia rôzne, DHIM, Výdavky na zákazku, Pracovné odevy, Externá doprava, Kancelárske potreby
+                tool: "Stroj", // linkToEntry: Stroje
+                vehicle: "Vozidlo", // linkToEntry: Stroje
+                financialFees: "Finančné poplatky", //singleChoice: Odvody ZP a SP, Poistenie MV, Diaľničná známka, DPH, Pokuty a penále, Poplatky banka (ďalšie položky sa môžu vytvárať postupne)
+                employee: "Zamestnanec", // linkToEntry: Zamestnanci
+                supplier: "Dodávateľ", // linkToEntry: Dodávatelia
+                partner: "Partner", // linkToEntry: Partneri
+                sum: "Suma", // suma záznamu bez dph
+                sumTotal: "Suma s DPH", // suma záznamu s dph
+                vat: "DPH", // suma DPH
+                decription: "Popis platby",
+                note: "Poznámka",
+                image: "Doklad" // screenshot alebo foto reálneho dokladu
             }
         },
         
