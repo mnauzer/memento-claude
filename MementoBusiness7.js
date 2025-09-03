@@ -705,7 +705,7 @@ function createObligation(date, data, creditor) {
         try {
             // Základné polia záväzku
             newObligation.set(config.fields.obligations.state, config.constants.obligationStates.unpaid || "Neuhradené");
-            newObligation.set(config.fields.obligations.date, date);
+            newObligation.set(config.fields.obligations.date, core.formatDate(date));
             newObligation.set(config.fields.obligations.type, config.constants.obligationTypes.wages || "Mzda");
             
             // Prepojenia
@@ -754,18 +754,20 @@ function createObligation(date, data, creditor) {
 }
 
     function updateObligation(date, obligation, amount) {
+          var core = getCore();
+    var config = getConfig();
         try {
             utils.addDebug(currentEntry, "  🔄 Aktualizácia existujúceho záväzku...");
             
-            var paidAmount = utils.safeGet(obligation, CONFIG.fields.obligations.paid || 0);
+            var paidAmount = utils.safeGet(obligation, config.fields.obligations.paid || 0);
             var newBalance = amount - paidAmount;
-            var newStatus = newBalance <= 0 ? CONFIG.constants.stavy.uhradene : 
-                        paidAmount > 0 ? CONFIG.constants.stavy.ciastocneUhradene : 
-                        CONFIG.constants.stavy.neuhradene;
-            obligation.set(CONFIG.fields.date, date);
-            obligation.set(CONFIG.fields.obligations.amount, amount);
-            obligation.set(CONFIG.fields.obligations.balance, newBalance);
-            obligation.set(CONFIG.fields.obligations.state, newStatus);
+            var newStatus = newBalance <= 0 ? config.constants.stavy.uhradene : 
+                        paidAmount > 0 ? config.constants.stavy.ciastocneUhradene : 
+                        config.constants.stavy.neuhradene;
+            obligation.set(config.fields.date, core.formatDate(date));
+            obligation.set(config.fields.obligations.amount, amount);
+            obligation.set(config.fields.obligations.balance, newBalance);
+            obligation.set(config.fields.obligations.state, newStatus);
             
             utils.addDebug(currentEntry, "  ✅ Záväzok aktualizovaný");
             utils.addDebug(currentEntry, "    Suma: " + utils.formatMoney(amount) + 
