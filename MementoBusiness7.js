@@ -705,7 +705,7 @@ function createObligation(data, creditor) {
         try {
             // Základné polia záväzku
             newObligation.set(config.fields.obligations.state, config.constants.obligationStates.unpaid || "Neuhradené");
-            newObligation.set(config.fields.obligations.date, data.date);
+            newObligation.set(config.fields.obligations.date, formatDate(data.date);
             newObligation.set(config.fields.obligations.type, config.constants.obligationTypes.wages || "Mzda");
             
             // Prepojenia

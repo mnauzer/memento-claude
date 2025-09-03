@@ -173,6 +173,7 @@ function validateInputData() {
             
             if (dailyWage > 0) {
                 validEmployees.push({
+                    date: date,
                     entry: employee,
                     index: i,
                     dailyWage: dailyWage,
