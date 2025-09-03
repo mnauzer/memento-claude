@@ -664,96 +664,108 @@ var MementoBusiness = (function() {
     // POMOCNÉ FUNKCIE PRE ZÁVÄZKY
     // ==============================================
 
-    function findExistingObligations() {
+    function findExistingObligations(creditor) {
         var core = getCore();
+        var config = getConfig();
         try {
-            var creditorField = CONFIG.fields.obligations.attendance;
-            return core.safeGetLinksFrom(currentEntry, CONFIG.libraries.obligations, creditorField )
+            var creditorField = config.fields.obligations[creditor];
+            return core.safeGetLinksFrom(currentEntry, config.libraries.obligations, creditorField )
+        } catch (error) {
+            core.addError(currentEntry, "Chyba pri hľadaní záväzkov: " + error.toString(), "findExistingObligations");
+            return [];
+        }
+    }
+    function findLinkedObligations() {
+        var core = getCore();
+        var config = getConfig();
+        try {
+            var creditorField = config.fields.obligations[creditor];
+            return core.safeGetLinksFrom(currentEntry, config.libraries.obligations, creditorField )
         } catch (error) {
             core.addError(currentEntry, "Chyba pri hľadaní záväzkov: " + error.toString(), "findExistingObligations");
             return [];
         }
     }
 
-// ==============================================
-// OPRAVENÁ FUNKCIA createObligation v MementoBusiness7.js
-// Verzia: 7.1 | Oprava: Vytváraní záväzkov
-// ==============================================
+    // ==============================================
+    // OPRAVENÁ FUNKCIA createObligation v MementoBusiness7.js
+    // Verzia: 7.1 | Oprava: Vytváraní záväzkov
+    // ==============================================
 
-function createObligation(date, data, creditor) {
-    message("createObligation: " + date);
+    function createObligation(date, data, creditor) {
+        message("createObligation: " + date);
 
-    var core = getCore();
-    var config = getConfig();
-    
-    try {
-        core.addDebug(currentEntry, "  + Vytváranie nového záväzku...");
+        var core = getCore();
+        var config = getConfig();
         
-        var lib = libByName(config.libraries.obligations);
-        if (!lib) {
-            core.addError(currentEntry, "Knižnica " + config.libraries.obligations + " nenájdená", "createObligation");
-            return false;
-        }
-        
-        // ✅ OPRAVENÉ: Pracuj priamo s newObligation objektom
-        var newObligation = lib.create({});
-        
-        if (!newObligation) {
-            core.addError(currentEntry, "Nepodarilo sa vytvoriť nový záznam záväzku", "createObligation");
-            return false;
-        }
-        
-        // ✅ OPRAVENÉ: Nastav údaje priamo na newObligation
         try {
-            // Základné polia záväzku
-            newObligation.set(config.fields.obligations.state, config.constants.obligationStates.unpaid);
-            newObligation.set(config.fields.obligations.date, date);
-            newObligation.set(config.fields.obligations.type, config.constants.obligationTypes.wages);
+            core.addDebug(currentEntry, "  + Vytváranie nového záväzku...");
             
-            // Prepojenia
-            newObligation.set(config.fields.obligations.employee, [data.entry]);
-            newObligation.set(config.fields.obligations.creditor, "Zamestnanec");
-            newObligation.set(config.fields.obligations.attendance, [currentEntry]);
+            var lib = libByName(config.libraries.obligations);
+            if (!lib) {
+                core.addError(currentEntry, "Knižnica " + config.libraries.obligations + " nenájdená", "createObligation");
+                return false;
+            }
             
-            // Finančné údaje
-            newObligation.set(config.fields.obligations.amount, data.dailyWage);
-            newObligation.set(config.fields.obligations.paid, 0);
-            newObligation.set(config.fields.obligations.balance, data.dailyWage);
+            // ✅ OPRAVENÉ: Pracuj priamo s newObligation objektom
+            var newObligation = lib.create({});
             
-            // Popis
-            var description = "Mzda zamestnanca " + data.name + " za deň " + core.formatDate(date);
-            newObligation.set(config.fields.obligations.description, description);
+            if (!newObligation) {
+                core.addError(currentEntry, "Nepodarilo sa vytvoriť nový záznam záväzku", "createObligation");
+                return false;
+            }
             
-            // Info záznam
-            var infoText = "📋 AUTOMATICKY VYTVORENÝ ZÁVÄZOK\n";
-            infoText += "=====================================\n\n";
-            infoText += "📅 Dátum: " + core.formatDate(date) + "\n";
-            infoText += "👤 Zamestnanec: " + data.name + "\n";
-            infoText += "💰 Suma: " + core.formatMoney(data.dailyWage) + "\n\n";
-            infoText += "⏰ Vytvorené: " + core.formatDate(moment()) + "\n";
-            infoText += "🔧 Script: Dochádzka Sync Záväzkov v7.1\n";
-            infoText += "📂 Zdroj: Knižnica Dochádzka\n";
-            infoText += "📝 Zdrojový záznam ID: " + currentEntry.field("ID");
+            // ✅ OPRAVENÉ: Nastav údaje priamo na newObligation
+            try {
+                // Základné polia záväzku
+                newObligation.set(config.fields.obligations.state, config.constants.obligationStates.unpaid);
+                newObligation.set(config.fields.obligations.date, date);
+                newObligation.set(config.fields.obligations.type, config.constants.obligationTypes.wages);
+                
+                // Prepojenia
+                newObligation.set(config.fields.obligations.employee, [data.entry]);
+                newObligation.set(config.fields.obligations.creditor, "Zamestnanec");
+                newObligation.set(config.fields.obligations.attendance, [currentEntry]);
+                
+                // Finančné údaje
+                newObligation.set(config.fields.obligations.amount, data.dailyWage);
+                newObligation.set(config.fields.obligations.paid, 0);
+                newObligation.set(config.fields.obligations.balance, data.dailyWage);
+                
+                // Popis
+                var description = "Mzda zamestnanca " + data.name + " za deň " + core.formatDate(date);
+                newObligation.set(config.fields.obligations.description, description);
+                
+                // Info záznam
+                var infoText = "📋 AUTOMATICKY VYTVORENÝ ZÁVÄZOK\n";
+                infoText += "=====================================\n\n";
+                infoText += "📅 Dátum: " + core.formatDate(date) + "\n";
+                infoText += "👤 Zamestnanec: " + data.name + "\n";
+                infoText += "💰 Suma: " + core.formatMoney(data.dailyWage) + "\n\n";
+                infoText += "⏰ Vytvorené: " + core.formatDate(moment()) + "\n";
+                infoText += "🔧 Script: Dochádzka Sync Záväzkov v7.1\n";
+                infoText += "📂 Zdroj: Knižnica Dochádzka\n";
+                infoText += "📝 Zdrojový záznam ID: " + currentEntry.field("ID");
+                
+                newObligation.set(config.fields.common.info || "info", infoText);
+                
+                core.addDebug(currentEntry, "  ✅ Záväzok úspešne vytvorený a vyplnený");
+                core.addDebug(currentEntry, "    ID: " + newObligation.field("ID"));
+                core.addDebug(currentEntry, "    Suma: " + core.formatMoney(data.dailyWage));
+                core.addDebug(currentEntry, "    Popis: " + description);
+                
+                return true;
+                
+            } catch (setError) {
+                core.addError(currentEntry, "Chyba pri nastavovaní údajov záväzku: " + setError.toString(), "createObligation");
+                return false;
+            }
             
-            newObligation.set(config.fields.common.info || "info", infoText);
-            
-            core.addDebug(currentEntry, "  ✅ Záväzok úspešne vytvorený a vyplnený");
-            core.addDebug(currentEntry, "    ID: " + newObligation.field("ID"));
-            core.addDebug(currentEntry, "    Suma: " + core.formatMoney(data.dailyWage));
-            core.addDebug(currentEntry, "    Popis: " + description);
-            
-            return true;
-            
-        } catch (setError) {
-            core.addError(currentEntry, "Chyba pri nastavovaní údajov záväzku: " + setError.toString(), "createObligation");
+        } catch (error) {
+            core.addError(currentEntry, "Chyba pri vytváraní záväzku: " + error.toString(), "createObligation", error);
             return false;
         }
-        
-    } catch (error) {
-        core.addError(currentEntry, "Chyba pri vytváraní záväzku: " + error.toString(), "createObligation", error);
-        return false;
     }
-}
 
     function updateObligation(date, obligation, amount) {
           var core = getCore();
@@ -824,7 +836,8 @@ function createObligation(date, data, creditor) {
         // Obligations
         createObligation: createObligation,
         updateObligation: updateObligation,
-        findExistingObligations: findExistingObligations
+        findExistingObligations: findExistingObligations,
+        findLinkedObligations: findLinkedObligations
     };
 })();
 

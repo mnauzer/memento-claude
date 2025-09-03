@@ -367,7 +367,7 @@ function processObligation(date, empData) {
         utils.addDebug(currentEntry, "📋 Hľadám záväzok: " + utils.formatEmployeeName(employee));
         
         // Nájdi existujúce záväzky pre túto dochádzku
-        var existingObligations = utils.findExistingObligations();
+        var existingObligations = utils.findLinkedObligations();
         utils.addDebug(currentEntry, "📊 Nájdené existujúce záväzky: " + existingObligations.length);
         
              
