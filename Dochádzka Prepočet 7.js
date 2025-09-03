@@ -320,15 +320,15 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
             zamArray[index].setAttr(CONFIG.attributes.dailyWage, dennaMzda);
             
             utils.addDebug(currentEntry, "  • Denná mzda: " + dennaMzda + " €");
-            utils.addDebug(currentEntry, "Spracované úspešne", "success");
-           
+            
             // Spracuj záväzky
             var obligationResult = processObligation(datum, {
-                    entry: zamestnanec,
-                    index: index,
-                    dailyWage: dennaMzda,
-                    name: utils.formatEmployeeName(zamestnanec)});
-
+                entry: zamestnanec,
+                index: index,
+                dailyWage: dennaMzda,
+                name: utils.formatEmployeeName(zamestnanec)});
+                
+            utils.addDebug(currentEntry, "Spracované úspešne", "success");
             return {
                 success: true,
                 hodinovka: hodinovka,
@@ -364,7 +364,8 @@ function processObligation(date, empData) {
     };
     
     try {
-        utils.addDebug(currentEntry, "📋 Hľadám záväzok: " + utils.formatEmployeeName(employee));
+        utils.addDebug(currentEntry, utils.getIcon("search") +
+        " Hľadám záväzok " + utils.formatEmployeeName(employee));
         
         // Nájdi existujúce záväzky pre túto dochádzku
         var existingObligations = utils.findLinkedObligations();
@@ -388,6 +389,8 @@ function processObligation(date, empData) {
             }
             
             if (existingObligation) {
+                utils.addDebug(currentEntry, utils.getIcon("search") +
+        "  * Updatujem záväzok pre " + utils.formatEmployeeName(employee));
                 // Aktualizuj existujúci
                 if (utils.updateObligation(date, existingObligation, empData.dailyWage)) {
                     result.updated++;
@@ -397,6 +400,8 @@ function processObligation(date, empData) {
                 }
             } else {
                 // Vytvor nový
+                utils.addDebug(currentEntry, utils.getIcon("search") +
+        "  + Vytváram záväzok pre " + utils.formatEmployeeName(employee));
                 if (utils.createObligation(date, empData, "attendance")) {
                     result.created++;
                     result.totalAmount += empData.dailyWage;

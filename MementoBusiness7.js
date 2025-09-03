@@ -105,9 +105,9 @@ var MementoBusiness = (function() {
         
         try {
             // Používaj konzistentné názvy polí
-            var nick = core.safeGet(employeeEntry, config.fields.employee.nick, "");
-            var meno = core.safeGet(employeeEntry, config.fields.employee.firstName, "");
-            var priezvisko = core.safeGet(employeeEntry, config.fields.employee.lastName, "");
+            var nick = core.safeGet(employeeEntry, config.fields.employee.nick, "").trim();
+            var meno = core.safeGet(employeeEntry, config.fields.employee.firstName, "").trim();
+            var priezvisko = core.safeGet(employeeEntry, config.fields.employee.lastName, "").trim();
             
             if (nick) {
                 return priezvisko ? nick + " (" + priezvisko + ")" : nick;
