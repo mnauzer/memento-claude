@@ -250,9 +250,11 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
             celkoveMzdy: 0,
             detaily: []
         };
-        
+              // Nájdi existujúce záväzky pre túto dochádzku
+        var existingObligations = utils.findLinkedObligations(creditor);
+        utils.addDebug(currentEntry, "📊 Nájdené existujúce záväzky: " + existingObligations.length);  
         // Ulož počet pracovníkov
-     utils.safeSet(currentEntry, CONFIG.fields.pocetPracovnikov, result.pocetPracovnikov);
+        utils.safeSet(currentEntry, CONFIG.fields.pocetPracovnikov, result.pocetPracovnikov);
         
         // Spracuj každého zamestnanca
         for (var i = 0; i < zamestnanci.length; i++) {
@@ -267,7 +269,7 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
             utils.addDebug(currentEntry, " [" + (i+1) + "/" + result.pocetPracovnikov + "] " + employeeName, "person");
             
             // Spracuj zamestnanca
-            var empResult = processEmployee(zamestnanec, pracovnaDobaHodiny, datum, i);
+            var empResult = processEmployee(zamestnanec, pracovnaDobaHodiny, datum, i, existingObligations, );
             
             if (empResult.success) {
                 result.odpracovaneTotal += pracovnaDobaHodiny;
@@ -295,7 +297,7 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
     }
 }
 
-function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
+function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index, obligations) {
      message("processEmployee: " + datum);
 
     try {
@@ -333,7 +335,9 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
                 entry: zamestnanec,
                 index: index,
                 dailyWage: dennaMzda,
-                name: utils.formatEmployeeName(zamestnanec)});
+                name: utils.formatEmployeeName(zamestnanec),
+                obligations: obligations
+            });
                 
             utils.addDebug(currentEntry, "Spracované úspešne", "success");
             return {
@@ -380,9 +384,7 @@ function processObligation(date, empData) {
         utils.addDebug(currentEntry, utils.getIcon("search") +
         " Hľadám záväzok " + utils.formatEmployeeName(employee));
         
-        // Nájdi existujúce záväzky pre túto dochádzku
-        var existingObligations = utils.findLinkedObligations();
-        utils.addDebug(currentEntry, "📊 Nájdené existujúce záväzky: " + existingObligations.length);
+
         
              
         utils.addDebug(currentEntry, "  • " + empData.name);
@@ -390,8 +392,8 @@ function processObligation(date, empData) {
         try {
             // Nájdi existujúci záväzok pre tohto zamestnanca
             var existingObligation = null;
-            for (var j = 0; j < existingObligations.length; j++) {
-                var obligation = existingObligations[j];
+            for (var j = 0; j < empData.obligations.length; j++) {
+                var obligation = empData.obligations[j];
                 var linkedEmployee = utils.safeGetLinks(obligation, CONFIG.fields.obligations.employee);
                 
                 if (linkedEmployee && linkedEmployee.length > 0 && 
