@@ -415,7 +415,7 @@ var MementoBusiness = (function() {
         
         try {
             var employeeName = formatEmployeeName(employee);
-            core.addDebug(entry, getIcon("search") + " Hľadám platnú sadzbu");
+            core.addDebug(entry, config.icon.search + " Hľadám platnú sadzbu");
             
             var hodinovka = findValidHourlyRate(employee, date);
             
@@ -697,7 +697,7 @@ var MementoBusiness = (function() {
         var config = getConfig();
         
         try {
-            core.addDebug(currentEntry, core.getIcon("create") + "  Vytváranie nového záväzku...");
+            core.addDebug(currentEntry, config.icons.create+  "  Vytváranie nového záväzku...");
             
             var lib = libByName(config.libraries.obligations);
             if (!lib) {
@@ -769,7 +769,7 @@ var MementoBusiness = (function() {
         var core = getCore();
         var config = getConfig();
         try {
-            utils.addDebug(currentEntry,   core.getIcon("update") + " Aktualizácia existujúceho záväzku...");
+            utils.addDebug(currentEntry, config.icons.update + " Aktualizácia existujúceho záväzku...");
             
             var paidAmount = utils.safeGet(obligation, config.fields.obligations.paid || 0);
             var newBalance = amount - paidAmount;
