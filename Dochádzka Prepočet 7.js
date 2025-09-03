@@ -636,6 +636,14 @@ function escapeMarkdown(text) {
 // ==============================================
 // FINÁLNY SÚHRN
 // ==============================================
+function markCheckbox() {
+    try {
+        currentEntry.set(CONFIG.fields.obligations, true);
+        utils.addDebug(currentEntry, "☑️ Checkbox Záväzky označený");
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri označovaní checkboxu: " + error.toString(), "markCheckbox");
+    }
+}
 
 function logFinalSummary(steps) {
    
@@ -720,6 +728,9 @@ function main() {
         // KROK 3: Spracovanie zamestnancov
         utils.addDebug(currentEntry, " KROK 3: Spracovanie zamestnancov", "group");
         var employeeResult = processEmployees(validationResult.employees, workTimeResult.pracovnaDobaHodiny, validationResult.date);
+        if(employeeResult.success) {
+            markCheckbox();
+        }
         steps.step3.success = employeeResult.success;
         
         // KROK 4: Celkové výpočty
@@ -727,6 +738,7 @@ function main() {
         if (employeeResult.success) {
             steps.step4.success = calculateTotals(employeeResult);
         }
+        
         
         // KROK 5: Info záznam
         utils.addDebug(currentEntry, " KROK 5: Vytvorenie info záznamu", "note");
