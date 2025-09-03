@@ -274,12 +274,19 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
                 result.celkoveMzdy += empResult.dennaMzda;
                 result.detaily.push(empResult);
                 result.success = true;
+                result.created += empResult.created;
+                result.updated += empResult.updated;
+                result.totalAmount += empResult.totalAmount;
+                result.obligationSuccess = empResult.obligationSuccess;
             } else {
                 result.success = false;
             }
             
         }
-        
+        utils.addDebug(currentEntry, "📊 Výsledky:");
+        utils.addDebug(currentEntry, "  ✅ Vytvorené: " + result.created);
+        utils.addDebug(currentEntry, "  🔄 Aktualizované: " + result.updated);
+        utils.addDebug(currentEntry, "  💰 Celková suma: " + utils.formatMoney(result.totalAmount));
         return result;
         
     } catch (error) {
@@ -336,7 +343,13 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
                 priplatok: priplatok,
                 premia: premia,
                 pokuta: pokuta,
-                zamestnanec: zamestnanec  // Pridané pre info záznam
+                zamestnanec: zamestnanec,  // Pridané pre info záznam
+                created: obligationResult.created,
+                updated: obligationResult.updated,
+                totalAmount: obligationResult.totalAmount,
+                errors: obligationResult.errors,
+                total: obligationResult.total,
+                obligationSuccess: obligationResult.success
                 
             };
         } else {
@@ -419,10 +432,7 @@ function processObligation(date, empData) {
         
         result.success = result.errors === 0 && result.total > 0;
         
-        utils.addDebug(currentEntry, "📊 Výsledky:");
-        utils.addDebug(currentEntry, "  ✅ Vytvorené: " + result.created);
-        utils.addDebug(currentEntry, "  🔄 Aktualizované: " + result.updated);
-        utils.addDebug(currentEntry, "  💰 Celková suma: " + utils.formatMoney(result.totalAmount));
+        
         
         return result;
         
