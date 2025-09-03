@@ -368,7 +368,6 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index, obligati
 }
 
 function processObligation(date, empData) {
-    message("processObligation: " + date);
     var employee = empData.entry;
 
     var result = {
@@ -383,12 +382,6 @@ function processObligation(date, empData) {
     try {
         utils.addDebug(currentEntry, utils.getIcon("search") +
         " Hľadám záväzok " + utils.formatEmployeeName(employee));
-        
-
-        
-             
-        utils.addDebug(currentEntry, "  • " + empData.name);
-        
         try {
             // Nájdi existujúci záväzok pre tohto zamestnanca
             var existingObligation = null;
@@ -403,9 +396,7 @@ function processObligation(date, empData) {
                 }
             }
             
-            if (existingObligation) {
-                utils.addDebug(currentEntry, utils.getIcon("search") +
-        "  * Updatujem záväzok pre " + utils.formatEmployeeName(employee));
+            if (empData.obligations > 0) {
                 // Aktualizuj existujúci
                 if (utils.updateObligation(date, existingObligation, empData.dailyWage)) {
                     result.updated++;
@@ -415,8 +406,6 @@ function processObligation(date, empData) {
                 }
             } else {
                 // Vytvor nový
-                utils.addDebug(currentEntry, utils.getIcon("search") +
-        "  + Vytváram záväzok pre " + utils.formatEmployeeName(employee));
                 if (utils.createObligation(date, empData, "attendance")) {
                     result.created++;
                     result.totalAmount += empData.dailyWage;
