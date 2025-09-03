@@ -367,7 +367,6 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index, obligati
 
 function processObligation(date, empData, obligations) {
     var employee = empData.entry;
-    message(obligations.length)
     var result = {
         created: 0,
         updated: 0,
