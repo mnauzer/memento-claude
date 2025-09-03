@@ -240,7 +240,7 @@ function calculateWorkTime(arrival, departure) {
 // ==============================================
 
 function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
- message("processEmployees: " + datum);
+
     try {
         var result = {
             success: false,
@@ -298,7 +298,7 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
 }
 
 function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index, obligations) {
-     message("processEmployee: " + datum);
+    
 
     try {
         // Nájdi platnú hodinovku
