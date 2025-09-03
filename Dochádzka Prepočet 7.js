@@ -333,11 +333,9 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index, obligati
             // Spracuj záväzky
             var obligationResult = processObligation(datum, {
                 entry: zamestnanec,
-                index: index,
                 dailyWage: dennaMzda,
                 name: utils.formatEmployeeName(zamestnanec),
-                obligations: obligations
-            });
+            }, obligations);
                 
             utils.addDebug(currentEntry, "Spracované úspešne", "success");
             return {
@@ -367,10 +365,9 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index, obligati
     }
 }
 
-function processObligation(date, empData) {
+function processObligation(date, empData, obligations) {
     var employee = empData.entry;
-    var obligations = empData.obligations;
-
+    message(obligations.length)
     var result = {
         created: 0,
         updated: 0,
@@ -399,7 +396,7 @@ function processObligation(date, empData) {
             if (existingObligation > 1) {
                 utils.addDebug(currentEntry, utils.getIcon("exclamation") + " Niekde je chyba, zamestnantec má viac ako jeden záväzok pre tento záznam" )
             }
-            
+
             if (existingObligation) {
                 // Aktualizuj existujúci
                 if (utils.updateObligation(date, existingObligation, empData.dailyWage)) {
