@@ -247,7 +247,12 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
             odpracovaneTotal: 0,
             pracovnaDoba: pracovnaDobaHodiny,
             celkoveMzdy: 0,
-            detaily: []
+            detaily: [],
+            created: 0,
+            updated: 0,
+            totalAmount: 0,
+            obligationSuccess: false
+
         };
               // Nájdi existujúce záväzky pre túto dochádzku
         var existingObligations = utils.findLinkedObligations('attendance');
