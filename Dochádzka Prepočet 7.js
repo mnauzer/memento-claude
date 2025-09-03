@@ -125,7 +125,6 @@ function validateInputData() {
         utils.addDebug(currentEntry, "  • Čas: " + moment(arrival).format("HH:mm") + " - " + moment(departure).format("HH:mm"));
         utils.addDebug(currentEntry, "  • Počet zamestnancov: " + employees.length);
         utils.addDebug(currentEntry, " Validácia úspešná", "success");
-        message("validateInputData: " + date);
         return {
             success: true,
             date: date,
