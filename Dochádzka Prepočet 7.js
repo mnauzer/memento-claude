@@ -51,7 +51,7 @@ var CONFIG = {
         // Pridané mapovanie pre arrival/departure polia
         date: centralConfig.fields.attendance.date,
         employees: centralConfig.fields.attendance.employees,
-        obligations: centralConfig.fields.attendance.obligations,
+        obligations: centralConfig.fields.obligations,
         arrival: centralConfig.fields.attendance.arrival,      // "Príchod"
         departure: centralConfig.fields.attendance.departure,  // "Odchod"
         pracovnaDoba: centralConfig.fields.attendance.workTime, // "Pracovná doba"
