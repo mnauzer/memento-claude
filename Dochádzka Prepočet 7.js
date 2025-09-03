@@ -383,8 +383,8 @@ function processObligation(date, empData, obligations) {
             var existingObligation = null;
             for (var j = 0; j < obligations.length; j++) {
                 var obligation = obligations[j];
-                var linkedEmployee = utils.safeGet(obligation, CONFIG.fields.obligations.employee);
-                message("LinkedEmployee ID: " + linkedEmployee[0].field("ID"))
+                var linkedEmployee = utils.safeGetLinks(obligation, CONFIG.fields.obligations.employee);
+                message("LinkedEmployee ID: " + linkedEmployee)
                 if (linkedEmployee && linkedEmployee.length > 0 && 
                     linkedEmployee[0].field("ID") === employee.field("ID")) {
                         utils.addDebug(currentEntry, utils.getIcon("exclamation") + "nájdený záväzok" )
