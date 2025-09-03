@@ -349,7 +349,7 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
 }
 
 function processObligation(date, empData) {
-    var employees = data.employees;
+    var employee = empData.entry;
 
     var result = {
         created: 0,
@@ -361,7 +361,7 @@ function processObligation(date, empData) {
     };
     
     try {
-        utils.addDebug(currentEntry, "📋 Spracovávam " + employees.length + " zamestnancov...");
+        utils.addDebug(currentEntry, "📋 Hľadám záväzok: " + utils.formatEmployeeName(employee));
         
         // Nájdi existujúce záväzky pre túto dochádzku
         var existingObligations = utils.findExistingObligations();
@@ -378,7 +378,7 @@ function processObligation(date, empData) {
                 var linkedEmployee = utils.safeGetLinks(obligation, CONFIG.fields.obligations.employee);
                 
                 if (linkedEmployee && linkedEmployee.length > 0 && 
-                    linkedEmployee[0].field("ID") === empData.entry.field("ID")) {
+                    linkedEmployee[0].field("ID") === employee.field("ID")) {
                     existingObligation = obligation;
                     break;
                 }
