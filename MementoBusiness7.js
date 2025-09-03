@@ -681,6 +681,8 @@ var MementoBusiness = (function() {
 // ==============================================
 
 function createObligation(date, data, creditor) {
+    message("createObligation: " + date);
+
     var core = getCore();
     var config = getConfig();
     
@@ -704,9 +706,9 @@ function createObligation(date, data, creditor) {
         // ✅ OPRAVENÉ: Nastav údaje priamo na newObligation
         try {
             // Základné polia záväzku
-            newObligation.set(config.fields.obligations.state, config.constants.obligationStates.unpaid || "Neuhradené");
-            newObligation.set(config.fields.obligations.date, core.formatDate(date));
-            newObligation.set(config.fields.obligations.type, config.constants.obligationTypes.wages || "Mzda");
+            newObligation.set(config.fields.obligations.state, config.constants.obligationStates.unpaid);
+            newObligation.set(config.fields.obligations.date, date);
+            newObligation.set(config.fields.obligations.type, config.constants.obligationTypes.wages);
             
             // Prepojenia
             newObligation.set(config.fields.obligations.employee, [data.entry]);
@@ -719,13 +721,13 @@ function createObligation(date, data, creditor) {
             newObligation.set(config.fields.obligations.balance, data.dailyWage);
             
             // Popis
-            var description = "Mzda zamestnanca " + data.name + " za deň " + core.formatDate(data.date);
+            var description = "Mzda zamestnanca " + data.name + " za deň " + core.formatDate(date);
             newObligation.set(config.fields.obligations.description, description);
             
             // Info záznam
             var infoText = "📋 AUTOMATICKY VYTVORENÝ ZÁVÄZOK\n";
             infoText += "=====================================\n\n";
-            infoText += "📅 Dátum: " + core.formatDate(data.date) + "\n";
+            infoText += "📅 Dátum: " + core.formatDate(date) + "\n";
             infoText += "👤 Zamestnanec: " + data.name + "\n";
             infoText += "💰 Suma: " + core.formatMoney(data.dailyWage) + "\n\n";
             infoText += "⏰ Vytvorené: " + core.formatDate(moment()) + "\n";
