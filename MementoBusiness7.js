@@ -675,7 +675,7 @@ var MementoBusiness = (function() {
             return [];
         }
     }
-    function findLinkedObligations() {
+    function findLinkedObligations(creditor) {
         var core = getCore();
         var config = getConfig();
         try {
