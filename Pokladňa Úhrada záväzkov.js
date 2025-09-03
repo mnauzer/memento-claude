@@ -35,17 +35,31 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Pokladňa Úhrada Záväzkov",
-    version: "8.0.1",
+    version: "8.0.2",
     
     // Referencie na centrálny config
     fields: {
         // Pokladňa polia
         cashBook: centralConfig.fields.cashBook,
         
-        // Záväzky polia
-        obligations: centralConfig.fields.obligations,
+        // Záväzky polia - používame priame názvy polí
+        obligations: {
+            date: "Dátum",
+            type: "Typ",
+            state: "Stav",
+            creditor: "Veriteľ",
+            employee: "Zamestnanec",
+            supplier: "Dodávateľ",
+            partner: "Partner",
+            client: "Klient",
+            amount: "Suma",
+            paid: "Zaplatené",
+            balance: "Zostatok",
+            description: "Popis",
+            info: "info"
+        },
         
-        // Pohľadávky polia (musíme definovať, nie sú v centrálnom)
+        // Pohľadávky polia
         receivables: {
             date: "Dátum",
             type: "Typ",
@@ -77,10 +91,10 @@ var CONFIG = {
     
     // Knižnice
     libraries: {
-        cashBook: centralConfig.libraries.cashBook || "Pokladňa",
-        obligations: centralConfig.libraries.obligations || "Záväzky",
-        receivables: centralConfig.libraries.receivables || "Pohľadávky",
-        employees: centralConfig.libraries.employees || "Zamestnanci"
+        cashBook: centralConfig.libraries.business.cashBook || "Pokladňa",
+        obligations: centralConfig.libraries.business.obligations || "Záväzky",
+        receivables: centralConfig.libraries.business.receivables || "Pohľadávky",
+        employees: centralConfig.libraries.business.employees || "Zamestnanci"
     },
     
     // Ikony
@@ -89,7 +103,7 @@ var CONFIG = {
     // Konštanty
     constants: {
         // Stavy
-        stavy: centralConfig.constants.obligationStates || {
+        stavy: {
             neuhradene: "Neuhradené",
             ciastocneUhradene: "Čiastočne uhradené",
             uhradene: "Uhradené"
@@ -103,7 +117,7 @@ var CONFIG = {
         },
         
         // Účel výdaja
-        ucelVydaja: centralConfig.constants.expensePurposes || {
+        ucelVydaja: {
             mzda: "Mzda",
             mzdaPremia: "Mzda prémia",
             mzdaZaloha: "Mzda záloha",
@@ -112,7 +126,7 @@ var CONFIG = {
         },
         
         // Pohyb
-        pohyb: centralConfig.constants.transactionTypes || {
+        pohyb: {
             prijem: "Príjem",
             vydavok: "Výdavok"
         }
