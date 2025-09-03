@@ -415,7 +415,7 @@ var MementoBusiness = (function() {
         
         try {
             var employeeName = formatEmployeeName(employee);
-            core.addDebug(entry, " Hľadám platnú sadzbu", "search");
+            core.addDebug(entry,core.getIcon("search") + " Hľadám platnú sadzbu");
             
             var hodinovka = findValidHourlyRate(employee, date);
             
