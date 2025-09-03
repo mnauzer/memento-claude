@@ -71,7 +71,7 @@ var CONFIG = {
         breakThreshold: 6, // hodín
         breakDuration: 30  // minút
     },
-    
+
      // Konštanty pre záväzky
     obligationTypes: {
         wages: centralConfig.constants.obligationTypes.wages
@@ -277,6 +277,7 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
             } else {
                 result.success = false;
             }
+            
         }
         
         return result;
@@ -318,7 +319,14 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
             
             utils.addDebug(currentEntry, "  • Denná mzda: " + dennaMzda + " €");
             utils.addDebug(currentEntry, "Spracované úspešne", "success");
-            
+           
+            // Spracuj záväzky
+            var obligationResult = processObligation(datum, {
+                    entry: zamestnanec,
+                    index: index,
+                    dailyWage: dennaMzda,
+                    name: utils.formatEmployeeName(zamestnanec)});
+
             return {
                 success: true,
                 hodinovka: hodinovka,
@@ -327,6 +335,7 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
                 premia: premia,
                 pokuta: pokuta,
                 zamestnanec: zamestnanec  // Pridané pre info záznam
+                
             };
         } else {
             utils.addError(currentEntry, "Nepodarilo sa získať zamesnanca na indexe " + index, "processEmployee");
@@ -336,6 +345,82 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "processEmployee", error);
         return { success: false };
+    }
+}
+
+function processObligation(date, empData) {
+    var employees = data.employees;
+
+    var result = {
+        created: 0,
+        updated: 0,
+        errors: 0,
+        total: 0,
+        totalAmount: 0,
+        success: false
+    };
+    
+    try {
+        utils.addDebug(currentEntry, "📋 Spracovávam " + employees.length + " zamestnancov...");
+        
+        // Nájdi existujúce záväzky pre túto dochádzku
+        var existingObligations = utils.findExistingObligations();
+        utils.addDebug(currentEntry, "📊 Nájdené existujúce záväzky: " + existingObligations.length);
+        
+             
+        utils.addDebug(currentEntry, "  • " + empData.name);
+        
+        try {
+            // Nájdi existujúci záväzok pre tohto zamestnanca
+            var existingObligation = null;
+            for (var j = 0; j < existingObligations.length; j++) {
+                var obligation = existingObligations[j];
+                var linkedEmployee = utils.safeGetLinks(obligation, CONFIG.fields.obligations.employee);
+                
+                if (linkedEmployee && linkedEmployee.length > 0 && 
+                    linkedEmployee[0].field("ID") === empData.entry.field("ID")) {
+                    existingObligation = obligation;
+                    break;
+                }
+            }
+            
+            if (existingObligation) {
+                // Aktualizuj existujúci
+                if (utils.updateObligation(date, existingObligation, empData.dailyWage)) {
+                    result.updated++;
+                    result.totalAmount += empData.dailyWage;
+                } else {
+                    result.errors++;
+                }
+            } else {
+                // Vytvor nový
+                if (utils.createObligation(date, empData, "attendance")) {
+                    result.created++;
+                    result.totalAmount += empData.dailyWage;
+                } else {
+                    result.errors++;
+                }
+            }
+            
+            result.total++;
+            
+        } catch (error) {
+            utils.addError(currentEntry, "Chyba pri spracovaní zamestnanca: " + error.toString(), "processObligations");
+            result.errors++;
+            }
+        
+        result.success = result.errors === 0 && result.total > 0;
+        
+        utils.addDebug(currentEntry, "\n📊 Výsledky:");
+        utils.addDebug(currentEntry, "  ✅ Vytvorené: " + result.created);
+        utils.addDebug(currentEntry, "  🔄 Aktualizované: " + result.updated);
+        utils.addDebug(currentEntry, "  💰 Celková suma: " + utils.formatMoney(result.totalAmount));
+        
+        return result;
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Kritická chyba pri spracovaní: " + error.toString(), "processObligations", error);
+        return result;
     }
 }
 
