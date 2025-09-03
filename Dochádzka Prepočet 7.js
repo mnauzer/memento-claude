@@ -251,7 +251,7 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
             detaily: []
         };
               // Nájdi existujúce záväzky pre túto dochádzku
-        var existingObligations = utils.findLinkedObligations(creditor);
+        var existingObligations = utils.findLinkedObligations('attendance');
         utils.addDebug(currentEntry, "📊 Nájdené existujúce záväzky: " + existingObligations.length);  
         // Ulož počet pracovníkov
         utils.safeSet(currentEntry, CONFIG.fields.pocetPracovnikov, result.pocetPracovnikov);
