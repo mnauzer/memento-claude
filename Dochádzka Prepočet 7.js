@@ -664,7 +664,7 @@ function logFinalSummary(steps) {
 
 function main() {
     try {
-        utils.clearLogs(currentEntry);
+        utils.clearLogs(currentEntry, true);
         utils.addDebug(currentEntry, "=== DOCHÁDZKA PREPOČET ===");
         utils.addDebug(currentEntry, "MementoUtils verzia: " + utils.version);
         // Kontrola závislostí
