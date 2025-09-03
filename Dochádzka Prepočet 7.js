@@ -289,10 +289,10 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
             }
             
         }
-        utils.addDebug(currentEntry, "📊 Výsledky:");
-        utils.addDebug(currentEntry, "  ✅ Vytvorené: " + result.created);
-        utils.addDebug(currentEntry, "  🔄 Aktualizované: " + result.updated);
-        utils.addDebug(currentEntry, "  💰 Celková suma: " + utils.formatMoney(result.totalAmount));
+        utils.addDebug(currentEntry,utils.getIcon("note") +  "  Záväzky z tohto záznamu:");
+        utils.addDebug(currentEntry,utils.getIcon("checkmark") + "    Vytvorené: " + result.created);
+        utils.addDebug(currentEntry,utils.getIcon("update") +  "    Aktualizované: " + result.updated);
+        utils.addDebug(currentEntry,utils.getIcon("money") +  "    Celková suma: " + utils.formatMoney(result.totalAmount));
         return result;
         
     } catch (error) {
