@@ -773,9 +773,9 @@ var MementoBusiness = (function() {
             
             var paidAmount = utils.safeGet(obligation, config.fields.obligations.paid || 0);
             var newBalance = amount - paidAmount;
-            var newStatus = newBalance <= 0 ? config.constants.stavy.uhradene : 
-                        paidAmount > 0 ? config.constants.stavy.ciastocneUhradene : 
-                        config.constants.stavy.neuhradene;
+            var newStatus = newBalance <= 0 ? config.constants.obligationStates.paid : 
+                        paidAmount > 0 ? config.constants.obligationStates.partiallyPaid : 
+                        config.constants.obligationStates.unpaid;
             obligation.set(config.fields.date, core.formatDate(date));
             obligation.set(config.fields.obligations.amount, amount);
             obligation.set(config.fields.obligations.balance, newBalance);
