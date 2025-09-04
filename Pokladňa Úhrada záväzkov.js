@@ -922,6 +922,16 @@ function finalizeTransaction(dostupnaSuma, paymentResult, ownerInfo, usedReceiva
     try {
         utils.addDebug(currentEntry, "Finalizujem transakciu...");
         
+        // Vypočítaj skutočnú použitú sumu (bez preplatku)
+        var skutocnaPouzitaSuma = dostupnaSuma - paymentResult.preplatokSuma;
+        
+        // Ak vznikol preplatok, uprav sumu v zázname
+        if (paymentResult.preplatokSuma > 0) {
+            utils.addDebug(currentEntry, "  💰 Úprava sumy z " + utils.formatMoney(dostupnaSuma) + 
+                         " na " + utils.formatMoney(skutocnaPouzitaSuma));
+            utils.safeSet(currentEntry, CONFIG.fields.suma, skutocnaPouzitaSuma);
+        }
+        
         // Nastavenie vlastníka v pokladni
         clearOwnerFields();
         setOwnerField(ownerInfo);
@@ -952,7 +962,7 @@ function finalizeTransaction(dostupnaSuma, paymentResult, ownerInfo, usedReceiva
         
         // Info záznam
         var infoData = {
-            suma: dostupnaSuma,
+            suma: skutocnaPouzitaSuma,  // Použiť skutočnú sumu
             vlastnik: ownerInfo.displayName,
             uhradenychZavazkov: paymentResult.uhradeneZavazky.length,
             preplatok: paymentResult.preplatokSuma
