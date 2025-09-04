@@ -91,10 +91,10 @@ var CONFIG = {
     
     // Knižnice
     libraries: {
-        cashBook: centralConfig.libraries.business.cashBook || "Pokladňa",
-        obligations: centralConfig.libraries.business.obligations || "Záväzky",
-        receivables: centralConfig.libraries.business.receivables || "Pohľadávky",
-        employees: centralConfig.libraries.business.employees || "Zamestnanci"
+        cashBook: centralConfig.libraries.cashBook || "Pokladňa",
+        obligations: centralConfig.libraries.obligations || "Záväzky",
+        receivables: centralConfig.libraries.receivables || "Pohľadávky",
+        employees: centralConfig.libraries.employees || "Zamestnanci"
     },
     
     // Ikony
