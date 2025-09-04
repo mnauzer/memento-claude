@@ -86,7 +86,7 @@ var CONFIG = {
         pohladavky: "Pohľadávky",
         suma: "Suma",
         zPreplatkulytvoriť: "Z preplatku vytvoriť",
-        info: centralConfig.fields.common.info
+        info: (centralConfig.fields && centralConfig.fields.common && centralConfig.fields.common.info) || "info"
     },
     
     // Knižnice
