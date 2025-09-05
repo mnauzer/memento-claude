@@ -374,7 +374,14 @@ var MementoConfig = (function() {
                 vat: "DPH", // suma DPH
                 decription: "Popis platby",
                 note: "Poznámka",
-                image: "Doklad" // screenshot alebo foto reálneho dokladu
+                image: "Doklad", // screenshot alebo foto reálneho dokladu
+                isVat: "s DPH", // checkbox: či je záznam s dph alebo bez dph
+                vatRate: "sadzba DPH" // singleChoice: základná, znížená, nulová
+            },
+            vatRates: {
+                validFrom: "Platnosť od",
+                standard: "základná",
+                reduced: "znížená"
             },
             // Pohľadávky
             receivables: {
