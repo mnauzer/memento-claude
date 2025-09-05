@@ -435,9 +435,7 @@ function linkWorkRecords() {
         }
         
         // Nájdi záznamy práce pre daný dátum
-        var workRecords = workRecordsLib.find({
-            [CONFIG.fields.workRecord.date || "Dátum"]: dochadzkaDate
-        });
+        var workRecords = workRecordsLib.find(CONFIG.fields.workRecord.date === dochadzkaDate);
         
         utils.addDebug(currentEntry, "  🔍 Nájdených záznamov práce pre dátum: " + workRecords.length);
         
