@@ -425,7 +425,7 @@ function linkWorkRecords() {
         utils.addDebug(currentEntry, "  👥 Počet zamestnancov: " + dochadzkaEmployees.length);
         
         // Získaj knižnicu záznamov práce
-        var workRecordsLib = libByName(CONFIG.libraries.workRecords || "Záznam práce");
+        var workRecordsLib = libByName(CONFIG.libraries.workRecords);
         if (!workRecordsLib) {
             utils.addError(currentEntry, "Knižnica 'Záznam práce' nenájdená", "linkWorkRecords");
             return {
@@ -445,7 +445,8 @@ function linkWorkRecords() {
         var targetDate = moment(dochadzkaDate).format("DD.MM.YYYY");
 
         workRecordsLib.entries().forEach(function(record) {
-            if (record.datum === targetDate) {
+            
+            if (moment(record.field(CONFIG.fields.workRecord.date)).format("DD.MM.YYYY") === targetDate) {
                 workRecords.push(record);
             }
         });
@@ -832,7 +833,7 @@ function main() {
         if (isDayOff) {
             // Script sa zastaví ak je zaškrtnuté "Voľno"
             utils.addDebug(currentEntry, "❌ Script ukončený - Je voľno z dôvodu: " + utils.safeGet(currentEntry, CONFIG.fields.attendace.dayOffReason));
-            return true; // Vrátime true aby sa neuloženie nezrušilo
+            cancel(); // Vrátime true aby sa neuloženie nezrušilo
         }
 
         // Debug info o načítaných moduloch
