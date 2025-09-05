@@ -25,6 +25,15 @@ var config = utils.getConfig();
 var centralConfig = utils.config;
 var currentEntry = entry();
 
+// Získanie centrálneho configu
+// var centralConfig = {};
+// if (typeof MementoConfig !== 'undefined') {
+//     centralConfig = MementoConfig.getConfig() || {};
+// }
+// if (!centralConfig.fields && utils && utils.config) {
+//     centralConfig = utils.config;
+// }
+
 var CONFIG = {
     scriptName: "Pokladňa Prepočet DPH",
     version: "1.0.1",
@@ -52,7 +61,11 @@ var CONFIG = {
     },
     
     // Polia knižnice "sadzby dph"
-    vatRatesFields: centralConfig.fields.vatRates,
+    vatRatesFields: {
+        validFrom: "Platnosť od",
+        standard: "základná",
+        reduced: "znížená"
+    },
     
     // Konštanty
     constants: {
@@ -64,7 +77,15 @@ var CONFIG = {
     },
     
     // Ikony
-    icons: centralConfig.icons,
+    icons: (centralConfig.icons) || {
+        start: "🚀",
+        success: "✅",
+        error: "❌",
+        warning: "⚠️",
+        info: "ℹ️",
+        money: "💰",
+        calculation: "🧮"
+    }
 };
 
 // ==============================================
@@ -274,7 +295,6 @@ function calculateVat(vatRate) {
         utils.safeSet(currentEntry, CONFIG.fields.sum, finalSumWithoutVat);
         utils.safeSet(currentEntry, CONFIG.fields.sumTotal, finalSumWithVat);
         utils.safeSet(currentEntry, CONFIG.fields.vat, vatAmount);  // Ukladá DPH do poľa "DPH"
-        utils.safeSet(currentEntry, CONFIG.fields.vatRate, vatRate);  // Ukladá sadzba DPH do poľa "sadzba DPH"
         
         utils.addDebug(currentEntry, "  • Suma bez DPH: " + utils.formatMoney(finalSumWithoutVat));
         utils.addDebug(currentEntry, "  • DPH (" + vatRate + "%): " + utils.formatMoney(vatAmount));
