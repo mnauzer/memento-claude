@@ -211,7 +211,6 @@ function validateInputData() {
 // ==============================================
 
 function processObligations(data) {
-    var date = data.date;
     var employees = data.employees;
 
     var result = {
@@ -297,7 +296,7 @@ function processObligations(data) {
 
 function markCheckbox() {
     try {
-        currentEntry.set(CONFIG.fields.obligations.obligations, true);
+        utils.safeSet(currentEntry, CONFIG.fields.obligations.obligations, true);
         utils.addDebug(currentEntry, "☑️ Checkbox Záväzky označený");
     } catch (error) {
         utils.addError(currentEntry, "Chyba pri označovaní checkboxu: " + error.toString(), "markCheckbox");
