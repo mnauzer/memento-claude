@@ -41,20 +41,13 @@ var CONFIG = {
     fields: {
         // Pokladňa polia
         cashBook: centralConfig.fields.cashBook,
-        
-        // Záväzky polia - používame priame názvy polí
         obligations: centralConfig.fields.obligations,
-        
         // Pohľadávky polia
         receivables: centralConfig.fields.receivables,
-        
         // Spoločné polia
         common: centralConfig.fields.common,
-        
         // Mapovanie pre rýchly prístup
-        uhradaZavazku: "Úhrada záväzku",
         zapocitatPohladavku: "Započítať pohľadávku",
-        zavazky: "Záväzky",
         pohladavky: "Pohľadávky",
         suma: "Suma",
         zPreplatkulytvoriť: "Z preplatku vytvoriť",
@@ -115,7 +108,7 @@ function main() {
         utils.addDebug(currentEntry, "Čas spustenia: " + utils.formatDate(moment()));
         
         // KONTROLA ČI MÁ SCRIPT BEŽAŤ
-        var uhradaZavazku = utils.safeGet(currentEntry, CONFIG.fields.uhradaZavazku, false);
+        var uhradaZavazku = utils.safeGet(currentEntry, CONFIG.fields.cashBook.obligationPayment, false);
         
         if (!uhradaZavazku) {
             // Script sa nespustí ak nie je zaškrtnuté "Úhrada záväzku"
@@ -123,14 +116,7 @@ function main() {
             return true; // Vrátime true aby sa neuloženie nezrušilo
         }
         
-        // Kontrola či už nebola úhrada spracovaná
-        var infoContent = utils.safeGet(currentEntry, CONFIG.fields.info, "");
-        if (infoContent.indexOf("ÚHRADA ZÁVÄZKOV DOKONČENÁ") !== -1) {
-            utils.addDebug(currentEntry, "✅ Úhrada už bola spracovaná - preskakujem");
-            return true;
-        }
-        
-        utils.addDebug(currentEntry, "✅ Checkbox 'Úhrada záväzku' je zaškrtnutý - pokračujem");
+            utils.addDebug(currentEntry, "✅ Checkbox 'Úhrada záväzku' je zaškrtnutý - pokračujem");
         
         // Kroky spracovania
         var steps = {
@@ -217,7 +203,8 @@ function main() {
 
 function validateObligations() {
     try {
-        var zavazkyArray = utils.safeGetLinks(currentEntry, CONFIG.fields.zavazky);
+        var config = getConfig();
+        var zavazkyArray = utils.safeGetLinks(currentEntry, config.fields.cashBook.obligations);
         
         if (!zavazkyArray || zavazkyArray.length === 0) {
             return { success: false, error: "Nie sú vybrané žiadne záväzky!" };
@@ -226,7 +213,7 @@ function validateObligations() {
         utils.addDebug(currentEntry, "  📋 Počet vybraných záväzkov: " + zavazkyArray.length);
         
         // Získanie sumy
-        var suma = utils.safeGet(currentEntry, CONFIG.fields.suma, 0);
+        var suma = utils.safeGet(currentEntry, config.fields.cashBook.sum, 0);
         suma = parseFloat(suma);
         
         if (isNaN(suma) || suma <= 0) {
@@ -240,11 +227,11 @@ function validateObligations() {
         
         for (var i = 0; i < zavazkyArray.length; i++) {
             var zavazok = zavazkyArray[i];
-            var stav = utils.safeGet(zavazok, CONFIG.fields.obligations.state);
+            var stav = utils.safeGet(zavazok, config.fields.obligations.state);
             
             // Kontrola stavu
-            if (stav !== CONFIG.constants.stavy.neuhradene && 
-                stav !== CONFIG.constants.stavy.ciastocneUhradene) {
+            if (stav !== config.constants.stavy.neuhradene && 
+                stav !== config.constants.stavy.ciastocneUhradene) {
                 utils.addDebug(currentEntry, "  ⚠️ Záväzok #" + zavazok.field("ID") + 
                              " preskočený - stav: " + stav, "warning");
                 continue;
@@ -270,7 +257,7 @@ function validateObligations() {
                 };
             }
             
-            var zostatok = utils.safeGet(zavazok, CONFIG.fields.obligations.balance, 0);
+            var zostatok = utils.safeGet(zavazok, config.fields.obligations.balance, 0);
             totalZostatok += zostatok;
             validZavazky.push(zavazok);
         }
