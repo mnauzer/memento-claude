@@ -829,11 +829,11 @@ function main() {
         }
          // KONTROLA ČI MÁ SCRIPT BEŽAŤ
         var isDayOff = utils.safeGet(currentEntry, CONFIG.fields.attendance.dayOff, false);
-        
+        message(isDayOff);
         if (isDayOff) {
             // Script sa zastaví ak je zaškrtnuté "Voľno"
             utils.addDebug(currentEntry, "❌ Script ukončený - Je voľno z dôvodu: " + utils.safeGet(currentEntry, CONFIG.fields.attendace.dayOffReason));
-            cancel(); // Vrátime true aby sa neuloženie nezrušilo
+            exit(); // Vrátime true aby sa neuloženie nezrušilo
         }
 
         // Debug info o načítaných moduloch
