@@ -896,6 +896,8 @@ function main() {
         var linkResult = linkWorkRecords();
         if (linkResult.success) {
             utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + linkResult.linkedCount + " záznamov");
+            utils.addDebug(currentEntry, "🔨 Odpracované na zákazkách: " + linkResult.workedOnOrders + " hodín");
+            utils.addDebug(currentEntry, "📋 Odpracovaný čas v dochádzke: " + workTimeResult.workHours + " hodín");
             var workHoursDiff = linkResult.workedOnOrders - workTimeResult.workHours;
             if (workHoursDiff > 0) {
                 utils.addDebug(currentEntry, "❗ Odpracovaný čas na zákazkách je vyšší ako čas v dochádzke: " + workHoursDiff + " hodín");
@@ -904,7 +906,7 @@ function main() {
                 utils.addDebug(currentEntry, "⚠️ Odpracovaný čas na zákazkách je nižší ako čas v dochádzke: " + workHoursDiff + " hodín");
                 utils.setColor(currentEntry, "bg", "pastel yellow");
             } else {
-                utils.addDebug(currentEntry, "☑️ Odpracovaný čas na zákazkách sedí na chlp s dohchádzkou ");
+                utils.addDebug(currentEntry, "☑️ Odpracovaný čas na zákazkách sedí na chlp s dochádzkou ");
                 utils.setColor(currentEntry, "bg", "pastel yellow");
             }
 
