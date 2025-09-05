@@ -437,9 +437,19 @@ function linkWorkRecords() {
         
         // Nájdi záznamy práce pre daný dátum
         //var workRecords = workRecordsLib.find(moment(dochadzkaDate).format("DD.MM.YYYY"));
-        var workRecords = workRecordsLib.filter(function(record) {
-            return record.datum === moment(dochadzkaDate).format("DD.MM.YYYY");
+        // var workRecords = workRecordsLib.filter(function(record) {
+        //     return record.datum === moment(dochadzkaDate).format("DD.MM.YYYY");
+        // });
+
+        var workRecords = [];
+        var targetDate = moment(dochadzkaDate).format("DD.MM.YYYY");
+
+        workRecordsLib.entries().forEach(function(record) {
+            if (record.datum === targetDate) {
+                workRecords.push(record);
+            }
         });
+
 
         
         utils.addDebug(currentEntry, "  🔍 Nájdených záznamov práce pre dátum: " + workRecords.length);
