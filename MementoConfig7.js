@@ -180,20 +180,40 @@ var MementoConfig = (function() {
             },
             // Zamestnanci polia
             employee: {
-                nick: "Nick",
-                firstName: "Meno",
-                lastName: "Priezvisko",
-                fullName: "Celé meno",
-                status: "Status",
+                nick: "Nick", // text: unique
+                firstName: "Meno", // text
+                lastName: "Priezvisko", //text
+                status: "Status", //singleChoice: 
+                position: "Pozícia", // option: Vedúcko, Zamestnanec, Brigádnik, Externý
+
                 phone: "Telefón",
                 email: "Email",
-                position: "Pozícia",
-                department: "Oddelenie",
-                telegramId: "Telegram ID",
                 address: "Adresa",
                 birthDate: "Dátum narodenia",
                 startDate: "Dátum nástupu",
-                telegramID: "Telegram ID"
+                //filters
+                obdobie: "výber obdobia", //singleChoice: tento deň. tento týždeň, minulý týždeň, tento mesiac, minulý mesiac, tento rok, minulý rok
+                obdobieTotal: "obdobie total", //singleChoice: tento mesiac, minulý mesiac, tento rok, minulý rok, Total
+
+                telegramId: "Telegram ID",
+                telegramID: "Telegram ID",
+                // calculations
+                workedTime: "Odpracované", //sum atribút odpracované z denného záznamu dochádzky (filter obdobie)
+                workedOnOrders: "Na zákazkách", //sum atribút odpracované z dennéh záznamu prác
+                drivingTime: "Jazdy", // sum Čas jazdy zo záznamu knižnice Kniha jázd, filter obdobie
+                workTimeTotal: "Odpracované total", //sum atribút odpracované z denného záznamu dochádzky (filter obdobieTotal)
+                workedOnOrdersTotal: "Na zákazkách total",
+                drivingTimeTotal: "Jazdy total", // sum Čas jazdy zo záznamu knižnice Kniha jázd, filter obdobieTotal
+                wage: "Zarobené", // sum denná mzda z atribútu zamestnanca v zázname dochádzky (Filter obdobie)
+                wageTotal: "Zarobené total", // sum denná mzda z atribútu zamestnanca v zázname dochádzky (Filter obdobieTotal)
+                paid: "Vyplatené", // sum vyplatené mzdy (z knižnice Pokladňa, filter obdobie)
+                paidTotal: "Vyplatené total", //sum vypletené mzdy (z knižnice Pokladňa, filter obdobieTotal)
+                unpaid: "Preplatok/Nedoplatok", // unpaid - paid
+                bonuses: "Prémie", // sum prémie (z knižnice Pokladňa)
+                obligations: "Záväzky", //sum záväzky
+                receivables: "Pohľadávky", // sum pohľadávky
+                saldo: "Saldo", // Záväzky - Pohľadávky
+
             },
             
             // Sadzby zamestnancov polia
@@ -380,6 +400,7 @@ var MementoConfig = (function() {
                 vatRate: "sadzba DPH", // singleChoice: základná, znížená, nulová
                 vatRateValue: "DPH%"
             },
+
             vatRates: {
                 validFrom: "Platnosť od",
                 standard: "základná",

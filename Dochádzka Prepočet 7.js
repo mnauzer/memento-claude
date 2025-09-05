@@ -41,7 +41,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Dochádzka Prepočet",
-    version: "7.3.5",  // Aktualizovaná verzia
+    version: "7.4",  // Aktualizovaná verzia
     
     // Referencie na centrálny config
     fields: {
@@ -400,6 +400,170 @@ function processObligation(date, empData, obligations) {
     }
 }
 
+function linkWorkRecords() {
+    try {
+        utils.addDebug(currentEntry, "\n📋 === KROK 5.5: Linkovanie záznamov práce ===");
+        
+        // Získaj základné údaje z dochádzky
+        var dochadzkaDate = utils.safeGet(currentEntry, CONFIG.fields.date);
+        var dochadzkaEmployees = utils.safeGetLinks(currentEntry, CONFIG.fields.employees);
+        var dochadzkaPrichod = utils.safeGet(currentEntry, CONFIG.fields.arrival);
+        var dochadzkaOdchod = utils.safeGet(currentEntry, CONFIG.fields.departure);
+        
+        if (!dochadzkaDate || !dochadzkaEmployees || dochadzkaEmployees.length === 0) {
+            utils.addDebug(currentEntry, "  ⚠️ Chýbajú základné údaje pre linkovanie");
+            return {
+                success: false,
+                linkedCount: 0,
+                message: "Chýbajú základné údaje"
+            };
+        }
+        
+        utils.addDebug(currentEntry, "  📅 Dátum dochádzky: " + utils.formatDate(dochadzkaDate));
+        utils.addDebug(currentEntry, "  ⏰ Časy dochádzky: " + dochadzkaPrichod + " - " + dochadzkaOdchod);
+        utils.addDebug(currentEntry, "  👥 Počet zamestnancov: " + dochadzkaEmployees.length);
+        
+        // Získaj knižnicu záznamov práce
+        var workRecordsLib = libByName(CONFIG.libraries.workRecords || "Záznam práce");
+        if (!workRecordsLib) {
+            utils.addError(currentEntry, "Knižnica 'Záznam práce' nenájdená", "linkWorkRecords");
+            return {
+                success: false,
+                linkedCount: 0,
+                message: "Knižnica nenájdená"
+            };
+        }
+        
+        // Nájdi záznamy práce pre daný dátum
+        var workRecords = workRecordsLib.find({
+            [centralConfig.fields.workRecord.date || "Dátum"]: dochadzkaDate
+        });
+        
+        utils.addDebug(currentEntry, "  🔍 Nájdených záznamov práce pre dátum: " + workRecords.length);
+        
+        if (workRecords.length === 0) {
+            utils.addDebug(currentEntry, "  ℹ️ Žiadne záznamy práce pre tento dátum");
+            return {
+                success: true,
+                linkedCount: 0,
+                message: "Žiadne záznamy práce"
+            };
+        }
+        
+        // Získaj ID všetkých zamestnancov z dochádzky
+        var dochadzkaEmployeeIds = [];
+        for (var i = 0; i < dochadzkaEmployees.length; i++) {
+            var empId = dochadzkaEmployees[i].field("ID");
+            if (empId) {
+                dochadzkaEmployeeIds.push(empId);
+            }
+        }
+        
+        // Filtruj záznamy práce podľa zamestnancov a časov
+        var matchingWorkRecords = [];
+        var warningRecords = [];
+        
+        for (var j = 0; j < workRecords.length; j++) {
+            var workRecord = workRecords[j];
+            var workEmployees = utils.safeGetLinks(workRecord, centralConfig.fields.workRecord.employees || "Zamestnanci");
+            var workStartTime = utils.safeGet(workRecord, centralConfig.fields.workRecord.startTime || "Od");
+            var workEndTime = utils.safeGet(workRecord, centralConfig.fields.workRecord.endTime || "Do");
+            
+            // Kontrola či má záznam aspoň jedného zhodného zamestnanca
+            var hasMatchingEmployee = false;
+            for (var k = 0; k < workEmployees.length; k++) {
+                var workEmpId = workEmployees[k].field("ID");
+                if (dochadzkaEmployeeIds.indexOf(workEmpId) !== -1) {
+                    hasMatchingEmployee = true;
+                    break;
+                }
+            }
+            
+            if (hasMatchingEmployee) {
+                utils.addDebug(currentEntry, "  ✅ Záznam #" + workRecord.field("ID") + " má zhodných zamestnancov");
+                
+                // Kontrola časov
+                var timeWarning = false;
+                var warningMessage = "";
+                
+                if (workStartTime && workEndTime && dochadzkaPrichod && dochadzkaOdchod) {
+                    // Konvertuj časy na minúty pre porovnanie
+                    var dochadzkaStart = utils.parseTimeToMinutes(dochadzkaPrichod);
+                    var dochadzkaEnd = utils.parseTimeToMinutes(dochadzkaOdchod);
+                    var workStart = utils.parseTimeToMinutes(workStartTime);
+                    var workEnd = utils.parseTimeToMinutes(workEndTime);
+                    
+                    if (workStart < dochadzkaStart || workEnd > dochadzkaEnd) {
+                        timeWarning = true;
+                        warningMessage = "Časy práce presahujú dochádzku! ";
+                        warningMessage += "(" + workStartTime + "-" + workEndTime + " vs " + dochadzkaPrichod + "-" + dochadzkaOdchod + ")";
+                    }
+                }
+                
+                if (timeWarning) {
+                    utils.addDebug(currentEntry, "  ⚠️ " + warningMessage);
+                    warningRecords.push({
+                        record: workRecord,
+                        warning: warningMessage
+                    });
+                } else {
+                    matchingWorkRecords.push(workRecord);
+                }
+            }
+        }
+        
+        utils.addDebug(currentEntry, "  📊 Záznamy na linkovanie: " + matchingWorkRecords.length);
+        utils.addDebug(currentEntry, "  ⚠️ Záznamy s upozornením: " + warningRecords.length);
+        
+        // Pridaj všetky záznamy (aj tie s upozornením)
+        var allRecordsToLink = matchingWorkRecords.slice(); // Kópia normálnych záznamov
+        
+        // Pridaj aj záznamy s upozornením
+        for (var w = 0; w < warningRecords.length; w++) {
+            allRecordsToLink.push(warningRecords[w].record);
+        }
+        
+        if (allRecordsToLink.length > 0) {
+            // Nastav pole Práce
+            utils.safeSet(currentEntry, CONFIG.fields.attendance.works || "Práce", allRecordsToLink);
+            
+            // Označ záznamy s upozornením farebne
+            for (var wr = 0; wr < warningRecords.length; wr++) {
+                var warningRecord = warningRecords[wr].record;
+                
+                // Nastav žltú farbu pozadia pre upozornenie
+                utils.safeSet(warningRecord, CONFIG.fields.common.backgroundColor || "farba pozadia", "#FFEB3B");
+                
+                // Pridaj info do info poľa záznamu práce
+                var existingInfo = utils.safeGet(warningRecord, CONFIG.fields.common.info || "info", "");
+                var warningInfo = "\n⚠️ UPOZORNENIE (Dochádzka #" + currentEntry.field("ID") + "):\n";
+                warningInfo += warningRecords[wr].warning + "\n";
+                warningInfo += "Čas kontroly: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
+                
+                utils.safeSet(warningRecord, CONFIG.fields.common.info || "info", existingInfo + warningInfo);
+            }
+            
+            utils.addDebug(currentEntry, "  ✅ Nalinkovaných záznamov: " + allRecordsToLink.length);
+        }
+        
+        return {
+            success: true,
+            linkedCount: allRecordsToLink.length,
+            normalCount: matchingWorkRecords.length,
+            warningCount: warningRecords.length,
+            message: "Úspešne nalinkované"
+        };
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "linkWorkRecords", error);
+        return {
+            success: false,
+            linkedCount: 0,
+            message: "Chyba: " + error.toString()
+        };
+    }
+}
+
 // ==============================================
 // KROK 4: CELKOVÉ VÝPOČTY
 // ==============================================
@@ -700,8 +864,12 @@ function main() {
         if (employeeResult.success) {
             steps.step4.success = calculateTotals(employeeResult);
         }
-        
-        
+        // KROK 4.5: Linkovanie záznamov práce
+        var linkResult = linkWorkRecords();
+        if (linkResult.success) {
+            utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + linkResult.linkedCount + " záznamov");
+        }
+
         // KROK 5: Info záznam
         utils.addDebug(currentEntry, " KROK 5: Vytvorenie info záznamu", "note");
         steps.step5.success = createInfoRecord(workTimeResult, employeeResult);
@@ -713,188 +881,12 @@ function main() {
         } else if (isWeekend) {
             farba = "#FFFFCC"; // Žltá - víkend
         }
-        // pre nastavíme zaokrúhlené časy príchodu a odchodu
-       
         utils.safeSet(currentEntry, CONFIG.fields.common.backgroundColor, farba);
 
         return true;
         // Finálny log
         logFinalSummary(steps);
-        // // Vypočítaj hrubý pracovný čas
-        // var hrubyCasMinuty = calculateTimeDifference(prichod, odchod);
-        // if (hrubyCasMinuty <= 0) {
-        //     utils.addError(currentEntry, "Nesprávny čas príchodu/odchodu", "časový výpočet");
-        //     message("❌ Chyba: Čas odchodu musí byť po čase príchodu!");
-        //     return false;
-        // }
-        
-        // utils.addDebug(currentEntry, "⏱️ Hrubý pracovný čas: " + formatMinutesToTime(hrubyCasMinuty));
-        
-        // // Vypočítaj prestávku
-        // var breakSettings = getDefaultBreakSettings();
-        // var prestavkaMinuty = calculateBreakDuration(hrubyCasMinuty);
-        
-        // utils.addDebug(currentEntry, "⏸️ Prestávka: " + prestavkaMinuty + " minút");
-        
-        // // Vypočítaj čistý pracovný čas
-        // var cistyPracovnyCasMinuty = hrubyCasMinuty - prestavkaMinuty;
-        // var cistyPracovnyCasHodiny = cistyPracovnyCasMinuty / 60;
-        
-        // utils.addDebug(currentEntry, "✅ Čistý pracovný čas: " + formatMinutesToTime(cistyPracovnyCasMinuty) + " (" + cistyPracovnyCasHodiny.toFixed(2) + "h)");
-        
-        // KROK 4: Kontrola víkendu a sviatkov
-        // utils.addDebug(currentEntry, "\n📋 KROK 4: Kontrola víkendu a sviatkov");
-        
-        // var jeVikend = utils.isWeekend(datum);
-        // var jeSviatok = utils.isHoliday(datum);
-        
-        // if (jeVikend) {
-        //     utils.addDebug(currentEntry, "📅 Víkendová zmena - " + moment(datum).format("dddd"));
-        // }
-        // if (jeSviatok) {
-        //     utils.addDebug(currentEntry, "🎉 Práca počas sviatku");
-        // }
-        
-        // KROK 5: Spracovanie záznamov práce
-        // utils.addDebug(currentEntry, "\n📋 KROK 5: Spracovanie záznamov práce");
-        
-        // var hoursOnProjects = 0;
-        // for (var i = 0; i < praceLinks.length; i++) {
-        //     var praca = praceLinks[i];
-        //     var odpracovaneNaPraci = utils.safeGet(praca, CONFIG.fields.workRecord.workedHours, 0);
-        //     hoursOnProjects += odpracovaneNaPraci;
-            
-        //     utils.addDebug(currentEntry, "  🔨 Práca #" + (i + 1) + ": " + odpracovaneNaPraci + "h");
-        // }
-        
-        // // KROK 6: Spracovanie zamestnancov
-        // utils.addDebug(currentEntry, "\n📋 KROK 6: Spracovanie zamestnancov");
-        
-        // if (zamestnanci.length === 0) {
-        //     utils.addError(currentEntry, "Žiadni zamestnanci na spracovanie", "zamestnanci");
-        //     message("❌ Chyba: Pridajte aspoň jedného zamestnanca!");
-        //     return false;
-        // }
-        
-        // var pocetPracovnikov = zamestnanci.length;
-        // var spracovaniZamestnanci = 0;
-        
-        // for (var j = 0; j < zamestnanci.length; j++) {
-        //     var zamestnanec = zamestnanci[j];
-            
-        //     utils.addDebug(currentEntry, "\n--- Zamestnanec " + (j + 1) + "/" + pocetPracovnikov + " ---");
-            
-        //     // Získaj detaily zamestnanca
-        //     var details = utils.getEmployeeDetails(zamestnanec, datum);
-        //     if (!details) {
-        //         utils.addError(currentEntry, "Nepodarilo sa získať údaje zamestnanca", "employee_" + j);
-        //         continue;
-        //     }
-            
-        //     spracovaniZamestnanci++;
-            
-        //     utils.addDebug(currentEntry, "👤 " + details.fullName);
-        //     utils.addDebug(currentEntry, "📍 Nick: " + details.nick);
-            
-        //     // Vypočítaj mzdu
-        //     var mzdaCalc = utils.calculateDailyWage(zamestnanec, cistyPracovnyCasHodiny, datum);
-            
-        //     utils.addDebug(currentEntry, "💰 Hodinová sadzba: " + utils.formatMoney(mzdaCalc.hourlyRate) + "/h");
-        //     utils.addDebug(currentEntry, "🕐 Odpracované: " + cistyPracovnyCasHodiny.toFixed(2) + "h");
-            
-        //     // Príplatky za víkend/sviatok
-        //     var priplatok = 0;
-        //     if (jeVikend) {
-        //         priplatok += mzdaCalc.wage * 0.5; // 50% príplatok za víkend
-        //         utils.addDebug(currentEntry, "📅 Víkendový príplatok: +" + utils.formatMoney(mzdaCalc.wage * 0.5));
-        //     }
-        //     if (jeSviatok) {
-        //         priplatok += mzdaCalc.wage * 1.0; // 100% príplatok za sviatok
-        //         utils.addDebug(currentEntry, "🎉 Sviatkový príplatok: +" + utils.formatMoney(mzdaCalc.wage * 1.0));
-        //     }
-            
-        //     var celkovaMzda = mzdaCalc.wage + priplatok;
-            
-        //     utils.addDebug(currentEntry, "💸 Základná mzda: " + utils.formatMoney(mzdaCalc.wage));
-        //     if (priplatok > 0) {
-        //         utils.addDebug(currentEntry, "➕ Príplatky spolu: " + utils.formatMoney(priplatok));
-        //     }
-        //     utils.addDebug(currentEntry, "💰 Celková mzda: " + utils.formatMoney(celkovaMzda));
-            
-        //     // Nastav atribúty na Link to Entry poli
-        //     utils.safeSetAttribute(currentEntry, CONFIG.fields.attendance.employees, 
-        //                          CONFIG.attributes.employees.workedHours, cistyPracovnyCasHodiny, j);
-            
-        //     utils.safeSetAttribute(currentEntry, CONFIG.fields.attendance.employees, 
-        //                          CONFIG.attributes.employees.hourlyRate, mzdaCalc.hourlyRate, j);
-            
-        //     utils.safeSetAttribute(currentEntry, CONFIG.fields.attendance.employees, 
-        //                          CONFIG.attributes.employees.dailyWage, mzdaCalc.wage, j);
-            
-        //     if (priplatok > 0) {
-        //         utils.safeSetAttribute(currentEntry, CONFIG.fields.attendance.employees, 
-        //                              CONFIG.attributes.employees.bonus, priplatok, j);
-        //     }
-            
-        //     utils.safeSetAttribute(currentEntry, CONFIG.fields.attendance.employees, 
-        //                          CONFIG.attributes.employees.costs, celkovaMzda, j);
-            
-        //     // Pripočítaj k celkovým hodnotám
-        //     totalOdpracovane += cistyPracovnyCasHodiny;
-        //     totalMzdoveNaklady += celkovaMzda;
-        // }
-        
-        // // Kontrola či sme spracovali aspoň jedného zamestnanca
-        // if (spracovaniZamestnanci === 0) {
-        //     utils.addError(currentEntry, "Nepodarilo sa spracovať žiadneho zamestnanca", "zamestnanci");
-        //     message("❌ Chyba: Nepodarilo sa spracovať zamestnancov!");
-        //     return false;
-        // }
-        
-        // KROK 7: Výpočet prestojov
-        // utils.addDebug(currentEntry, "\n📋 KROK 7: Výpočet prestojov");
-        
-        // totalPracovnaDoba = hrubyCasMinuty / 60;  // Hrubý čas v hodinách
-        // totalCistyPracovnyCas = cistyPracovnyCasHodiny * pocetPracovnikov;  // Čistý čas * počet ľudí
-        // totalNaZakazkach = hoursOnProjects;
-        // totalPrestoje = Math.max(0, totalOdpracovane - totalNaZakazkach);
-        // totalPrestavka = prestavkaMinuty / 60;  // Prestávka v hodinách
-        
-        // utils.addDebug(currentEntry, "⏱️ Hrubá pracovná doba: " + totalPracovnaDoba.toFixed(2) + "h");
-        // utils.addDebug(currentEntry, "⏸️ Prestávka: " + totalPrestavka.toFixed(2) + "h");
-        // utils.addDebug(currentEntry, "✅ Čistý pracovný čas (všetci): " + totalCistyPracovnyCas.toFixed(2) + "h");
-        // utils.addDebug(currentEntry, "🔨 Na zákazkách: " + totalNaZakazkach.toFixed(2) + "h");
-        // utils.addDebug(currentEntry, "⏸️ Prestoje: " + totalPrestoje.toFixed(2) + "h");
-        
-        // // KROK 8: Nastavenie súhrnných polí
-        // utils.addDebug(currentEntry, "\n📋 KROK 8: Nastavenie súhrnných polí");
-        
-        // utils.safeSet(currentEntry, CONFIG.fields.attendance.employeeCount, pocetPracovnikov);
-        // utils.safeSet(currentEntry, CONFIG.fields.attendance.workTime, totalPracovnaDoba);
-        // utils.safeSet(currentEntry, CONFIG.fields.attendance.workedHours, totalOdpracovane);
-        // utils.safeSet(currentEntry, CONFIG.fields.attendance.onProjects, totalNaZakazkach);
-        // utils.safeSet(currentEntry, CONFIG.fields.attendance.downtime, totalPrestoje);
-        // utils.safeSet(currentEntry, CONFIG.fields.attendance.wageCosts, totalMzdoveNaklady);
-        // utils.safeSet(currentEntry, "Prestávka", totalPrestavka);  // Prestávka pole
-        // utils.safeSet(currentEntry, "Čistý pracovný čas", totalCistyPracovnyCas);  // Čistý pracovný čas pole
-        
-       
-        // utils.safeSet(currentEntry, CONFIG.fields.common.backgroundColor, farba);
-        
-        // KROK 10: Info pole
-        //vytvorInfoZaznam();
-        
-        // Záverečné štatistiky
-        // utils.addDebug(currentEntry, "\n📊 === VÝSLEDKY PREPOČTU ===");
-        // utils.addDebug(currentEntry, "Pracovníkov: " + employeeResult.pocetPracovnikov, "group");
-        // //utils.addDebug(currentEntry, "⏱️ Hrubý čas: " + formatMinutesToTime(hrubyCasMinuty));
-        // //utils.addDebug(currentEntry, "⏸️ Prestávka: " + prestavkaMinuty + " minút");
-        // //utils.addDebug(currentEntry, "✅ Čistý čas: " + formatMinutesToTime(cistyPracovnyCasMinuty));
-        // utils.addDebug(currentEntry, "Mzdové náklady: " + utils.formatMoney(totalMzdoveNaklady), "money");
-        // utils.addDebug(currentEntry, "=== PREPOČET DOKONČENÝ ===", "checkmark");
-        
-        //
-       
+
         
     } catch (error) {
         utils.addError(currentEntry, "Kritická chyba v hlavnej funkcii", "main", error);
