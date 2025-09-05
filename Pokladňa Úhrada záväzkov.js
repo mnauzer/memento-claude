@@ -613,7 +613,9 @@ function processFullPayment(zavazok, suma, ownerInfo) {
         // Aktualizácia záväzku
         utils.safeSet(zavazok, CONFIG.fields.obligations.paid, noveZaplatene);
         utils.safeSet(zavazok, CONFIG.fields.obligations.balance, 0);
-        utils.safeSet(zavazok, CONFIG.fields.obligations.state, CONFIG.constants.stavy.uhradene);
+        
+        // OPRAVA: Použiť priame nastavenie poľa "Stav"
+        zavazok.set("Stav", CONFIG.constants.stavy.uhradene);
         
         // Info záznam
         utils.addInfo(zavazok, "ÚPLNÁ ÚHRADA ZÁVÄZKU", {
@@ -640,7 +642,9 @@ function processPartialPayment(zavazok, suma, ownerInfo) {
         // Aktualizácia záväzku
         utils.safeSet(zavazok, CONFIG.fields.obligations.paid, noveZaplatene);
         utils.safeSet(zavazok, CONFIG.fields.obligations.balance, novyZostatok);
-        utils.safeSet(zavazok, CONFIG.fields.obligations.state, CONFIG.constants.stavy.ciastocneUhradene);
+        
+        // OPRAVA: Použiť priame nastavenie poľa "Stav"
+        zavazok.set("Stav", CONFIG.constants.stavy.ciastocneUhradene);
         
         // Info záznam
         utils.addInfo(zavazok, "ČIASTOČNÁ ÚHRADA ZÁVÄZKU", {
@@ -657,7 +661,6 @@ function processPartialPayment(zavazok, suma, ownerInfo) {
         utils.addError(currentEntry, error.toString(), "processPartialPayment", error);
     }
 }
-
 // ==============================================
 // KROK 5: SPRACOVANIE PREPLATKU
 // ==============================================
@@ -787,7 +790,8 @@ function createAdvancePayment(suma, ownerInfo) {
             return { success: false };
         }
         
-        var novyZaznam = pokladnaLib.create({});
+        // OPRAVA: Vytvorenie s prázdnymi údajmi, Memento vygeneruje nové ID
+        var novyZaznam = pokladnaLib.create();
         
         // Nastavenie údajov
         utils.safeSet(novyZaznam, CONFIG.fields.cashBook.date, moment().toDate());
@@ -900,11 +904,16 @@ function finalizeTransaction(dostupnaSuma, paymentResult, ownerInfo, usedReceiva
         // Vypočítaj skutočnú použitú sumu (bez preplatku)
         var skutocnaPouzitaSuma = dostupnaSuma - paymentResult.preplatokSuma;
         
+        // OPRAVA: Správne zaokrúhlenie sumy na 2 desatinné miesta
+        skutocnaPouzitaSuma = Math.round(skutocnaPouzitaSuma * 100) / 100;
+        
         // Ak vznikol preplatok, uprav sumu v zázname
         if (paymentResult.preplatokSuma > 0) {
             utils.addDebug(currentEntry, "  💰 Úprava sumy z " + utils.formatMoney(dostupnaSuma) + 
                          " na " + utils.formatMoney(skutocnaPouzitaSuma));
-            utils.safeSet(currentEntry, CONFIG.fields.suma, utils.formatMoney(skutocnaPouzitaSuma));
+            
+            // OPRAVA: Použitie priameho set() pre správne formátovanie
+            currentEntry.set(CONFIG.fields.suma, skutocnaPouzitaSuma);
         }
         
         // Nastavenie vlastníka v pokladni
