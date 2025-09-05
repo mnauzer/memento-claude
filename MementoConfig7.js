@@ -131,7 +131,7 @@ var MementoConfig = (function() {
                 employeeCount: "Počet pracovníkov",
                 workTime: "Pracovná doba",
                 workedHours: "Odpracované",
-                onProjects: "Na zákazkách",
+                workedOnOrders: "Na zákazkách",
                 downtime: "Prestoje",
                 wageCosts: "Mzdové náklady",
                 keys: "keys",
