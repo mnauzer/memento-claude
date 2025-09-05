@@ -43,38 +43,10 @@ var CONFIG = {
         cashBook: centralConfig.fields.cashBook,
         
         // Záväzky polia - používame priame názvy polí
-        obligations: {
-            date: "Dátum",
-            type: "Typ",
-            state: "Stav",
-            creditor: "Veriteľ",
-            employee: "Zamestnanec",
-            supplier: "Dodávateľ",
-            partner: "Partner",
-            client: "Klient",
-            amount: "Suma",
-            paid: "Zaplatené",
-            balance: "Zostatok",
-            description: "Popis",
-            info: "info"
-        },
+        obligations: centralConfig.fields.obligations,
         
         // Pohľadávky polia
-        receivables: {
-            date: "Dátum",
-            type: "Typ",
-            state: "Stav",
-            creditor: "Veriteľ",
-            employee: "Zamestnanec",
-            supplier: "Dodávateľ",
-            partner: "Partner",
-            client: "Klient",
-            amount: "Suma",
-            paid: "Zaplatené",
-            balance: "Zostatok",
-            description: "Popis",
-            info: "info"
-        },
+        receivables: centralConfig.fields.receivables,
         
         // Spoločné polia
         common: centralConfig.fields.common,
@@ -462,6 +434,12 @@ function checkAndProcessReceivables(ownerInfo, zakladnaSuma) {
             utils.safeSet(pohladavkaInfo.entry, CONFIG.fields.receivables.state, 
                          novyZostatok > 0 ? CONFIG.constants.stavy.ciastocneUhradene : CONFIG.constants.stavy.uhradene);
             
+            // Pridaj link na pokladňu ak nie je nastavený
+            var existingPokladna = utils.safeGetLinks(pohladavkaInfo.entry, "Pokladňa") || [];
+            if (!existingPokladna || existingPokladna.length === 0) {
+                utils.safeSet(pohladavkaInfo.entry, "Pokladňa", [currentEntry]);
+            }
+            
             // Info záznam
             utils.addInfo(pohladavkaInfo.entry, "ZAPOČÍTANIE POHĽADÁVKY", {
                 suma: pouzit,
@@ -758,16 +736,25 @@ function createReceivableFromOverpayment(suma, ownerInfo) {
         utils.safeSet(novaPohladavka, CONFIG.fields.receivables.paid, 0);
         utils.safeSet(novaPohladavka, CONFIG.fields.receivables.balance, suma);
         
-        // Nastavenie vlastníka
+        // Nastavenie Dlžníka podľa typu vlastníka
+        var dlznik = "";
         if (ownerInfo.type === "employee") {
+            dlznik = "Zamestnanec";
             utils.safeSet(novaPohladavka, CONFIG.fields.receivables.employee, [ownerInfo.owner]);
         } else if (ownerInfo.type === "supplier") {
+            dlznik = "Dodávateľ";
             utils.safeSet(novaPohladavka, CONFIG.fields.receivables.supplier, [ownerInfo.owner]);
         } else if (ownerInfo.type === "partner") {
+            dlznik = "Partner";
             utils.safeSet(novaPohladavka, CONFIG.fields.receivables.partner, [ownerInfo.owner]);
         } else if (ownerInfo.type === "client") {
+            dlznik = "Klient";
             utils.safeSet(novaPohladavka, CONFIG.fields.receivables.client, [ownerInfo.owner]);
         }
+        utils.safeSet(novaPohladavka, "Dlžník", dlznik);
+        
+        // Link na pokladňu
+        utils.safeSet(novaPohladavka, "Pokladňa", [currentEntry]);
         
         // Popis
         var popis = "Preplatok z úhrady záväzkov - " + ownerInfo.displayName;
@@ -929,7 +916,7 @@ function finalizeTransaction(dostupnaSuma, paymentResult, ownerInfo, usedReceiva
         if (paymentResult.preplatokSuma > 0) {
             utils.addDebug(currentEntry, "  💰 Úprava sumy z " + utils.formatMoney(dostupnaSuma) + 
                          " na " + utils.formatMoney(skutocnaPouzitaSuma));
-            utils.safeSet(currentEntry, CONFIG.fields.suma, skutocnaPouzitaSuma);
+            utils.safeSet(currentEntry, CONFIG.fields.suma, utils.formatMoney(skutocnaPouzitaSuma));
         }
         
         // Nastavenie vlastníka v pokladni

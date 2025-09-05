@@ -375,7 +375,25 @@ var MementoConfig = (function() {
                 decription: "Popis platby",
                 note: "Poznámka",
                 image: "Doklad" // screenshot alebo foto reálneho dokladu
-            }
+            },
+            // Pohľadávky
+            receivables: {
+                date: "Dátum",
+                type: "Typ",
+                state: "Stav",
+                creditor: "Veriteľ",
+                employee: "Zamestnanec",
+                supplier: "Dodávateľ",
+                partner: "Partner",
+                client: "Klient",
+                amount: "Suma",
+                paid: "Zaplatené",
+                balance: "Zostatok",
+                description: "Popis",
+                info: "info",
+                debtor: "Dlžník",        // Pridané
+                cashBook: "Pokladňa"      // Pridané
+            },
         },
         
         // === ATRIBÚTY ===
