@@ -586,7 +586,7 @@ function linkWorkRecords() {
 // KROK 4: CELKOVÉ VÝPOČTY
 // ==============================================
 
-function calculateTotals(employeeResult) {
+function calculateTotals(employeeResult, linkResult) {
     try {
         // Ulož celkové hodnoty
         utils.safeSet(currentEntry, CONFIG.fields.attendance.workedHours, employeeResult.odpracovaneTotal);
@@ -597,8 +597,23 @@ function calculateTotals(employeeResult) {
         utils.addDebug(currentEntry, "  • Pracovná doba: " + employeeResult.pracovnaDoba + " hodín");
         utils.addDebug(currentEntry, "  • Odpracované spolu: " + employeeResult.odpracovaneTotal + " hodín");
         utils.addDebug(currentEntry, "  • Mzdové náklady: " + utils.formatMoney(employeeResult.celkoveMzdy));
-        utils.addDebug(currentEntry, "  • Na zákazkách: " + "0 hodín");
-        utils.addDebug(currentEntry, "  • Prestoje: " + "0 hodín");
+       
+        var workHoursDiff = linkResult.workedOnOrders - employeeResult.workHours;
+        if (workHoursDiff > 0) {
+            utils.addDebug(currentEntry, "❗ Odpracovaný čas na zákazkách je vyšší ako čas v dochádzke: " + workHoursDiff + " hodín");
+            utils.setColor(currentEntry, "bg", "pastel red");
+        } else if (workHoursDiff < 0) {
+            utils.addDebug(currentEntry, "⚠️ Odpracovaný čas na zákazkách je nižší ako čas v dochádzke: " + workHoursDiff + " hodín");
+            utils.setColor(currentEntry, "bg", "pastel yellow");
+        } else {
+            utils.addDebug(currentEntry, "☑️ Odpracovaný čas na zákazkách sedí na chlp s dochádzkou ");
+            utils.setColor(currentEntry, "bg", "pastel yellow");
+        }
+
+        utils.safeSet(currentEntry,CONFIG.fields.attendance.downtime, workHoursDiff)
+        utils.safeSet(currentEntry,CONFIG.fields.attendance.workedOnOrders, linkResult.workedOnOrders)
+        utils.addDebug(currentEntry, "  • Na zákazkách: " + linkResult.workedOnOrders +" hodín");
+        utils.addDebug(currentEntry, "  • Prestoje: " + workHoursDiff + " hodín");
         utils.addDebug(currentEntry, " Celkové výpočty úspešné", "success");
         
         return true;
@@ -850,9 +865,10 @@ function main() {
             step1: { success: false, name: "Načítanie a validácia dát" },
             step2: { success: false, name: "Výpočet pracovnej doby" },
             step3: { success: false, name: "Spracovanie zamestnancov" },
-            step4: { success: false, name: "Celkové výpočty" },
-            step5: { success: false, name: "Vytvorenie info záznamu" },
-            step6: { success: false, name: "Vytvorenie info_telegram záznamu" }
+            step4: { success: false, name: "Linkovanie pracovných záznamov" },
+            step5: { success: false, name: "Celkové výpočty" },
+            step6: { success: false, name: "Vytvorenie info záznamu" },
+            step7: { success: false, name: "Vytvorenie info_telegram záznamu" }
         };
 
         // KROK 1: Validácia vstupných dát
@@ -887,39 +903,24 @@ function main() {
         }
         steps.step3.success = employeeResult.success;
         
-        // KROK 4: Celkové výpočty
-        utils.addDebug(currentEntry, " KROK 4: Celkové výpočty", "calculation");
-        if (employeeResult.success) {
-            steps.step4.success = calculateTotals(employeeResult);
-        }
-        // KROK 4.5: Linkovanie záznamov práce
+        utils.addDebug(currentEntry, " KROK 4: Linkovanie pracovných záznamov", "work");
         var linkResult = linkWorkRecords();
         if (linkResult.success) {
-            utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + linkResult.linkedCount + " záznamov");
-            utils.addDebug(currentEntry, "🔨 Odpracované na zákazkách: " + linkResult.workedOnOrders + " hodín");
-            utils.addDebug(currentEntry, "📋 Odpracovaný čas v dochádzke: " + workTimeResult.workHours + " hodín");
-            var workHoursDiff = linkResult.workedOnOrders - workTimeResult.workHours;
-            if (workHoursDiff > 0) {
-                utils.addDebug(currentEntry, "❗ Odpracovaný čas na zákazkách je vyšší ako čas v dochádzke: " + workHoursDiff + " hodín");
-                utils.setColor(currentEntry, "bg", "pastel red");
-            } else if (workHoursDiff < 0) {
-                utils.addDebug(currentEntry, "⚠️ Odpracovaný čas na zákazkách je nižší ako čas v dochádzke: " + workHoursDiff + " hodín");
-                utils.setColor(currentEntry, "bg", "pastel yellow");
-            } else {
-                utils.addDebug(currentEntry, "☑️ Odpracovaný čas na zákazkách sedí na chlp s dochádzkou ");
-                utils.setColor(currentEntry, "bg", "pastel yellow");
-            }
-
-            utils.safeSet(currentEntry,CONFIG.fields.attendance.downtime, workHoursDiff)
-            utils.safeSet(currentEntry,CONFIG.fields.attendance.workedOnOrders, linkResult.workedOnOrders)
+            utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + linkResult.linkedCount + " záznamov");   
         }
-
-        // KROK 5: Info záznam
-        utils.addDebug(currentEntry, " KROK 5: Vytvorenie info záznamu", "note");
-        steps.step5.success = createInfoRecord(workTimeResult, employeeResult);
-        steps.step6.success = createTelegramInfoRecord(workTimeResult, employeeResult) && steps.step5.success;  
+        steps.step4.success = linkResult.success;
         
-        var farba = "#FFFFFF"; // Biela - štandard
+        // KROK 5: Celkové výpočty
+        utils.addDebug(currentEntry, " KROK 5: Celkové výpočty", "calculation");
+        steps.step5.success = calculateTotals(employeeResult, linkResult);
+        
+        // KROK 6,7: Info záznam
+        utils.addDebug(currentEntry, " KROK 6: Vytvorenie info záznamu", "note");
+        steps.step6.success = createInfoRecord(workTimeResult, employeeResult);
+        utils.addDebug(currentEntry, " KROK 7: Vytvorenie telegram info záznamu", "note");
+        steps.step7.success = createTelegramInfoRecord(workTimeResult, employeeResult) && steps.step6.success;  
+        
+        //var farba = "#FFFFFF"; // Biela - štandard
         if (isHoliday) {
             farba = "#FFE6CC"; // Oranžová - sviatok
         } else if (isWeekend) {
