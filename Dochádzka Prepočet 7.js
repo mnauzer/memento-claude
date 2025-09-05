@@ -403,8 +403,6 @@ function processObligation(date, empData, obligations) {
 
 function linkWorkRecords() {
     try {
-        utils.addDebug(currentEntry, "\n📋 === KROK 5.5: Linkovanie záznamov práce ===");
-        
         // Získaj základné údaje z dochádzky
         var dochadzkaDate = utils.safeGet(currentEntry, CONFIG.fields.date);
         var dochadzkaEmployees = utils.safeGetLinks(currentEntry, CONFIG.fields.employees);
@@ -483,15 +481,14 @@ function linkWorkRecords() {
             var workEmployees = utils.safeGetLinks(workRecord, CONFIG.fields.workRecord.employees);
             var workStartTime = utils.safeGet(workRecord, CONFIG.fields.workRecord.startTime);
             var workEndTime = utils.safeGet(workRecord, CONFIG.fields.workRecord.endTime);
-            var workedOnOrder = utils.safeGet(workRecord, CONFIG.fields.workRecord.workedHours);
+            var workedOnOrder = utils.safeGet(workRecord, CONFIG.fields.workRecord.workTime);
             // Kontrola či má záznam aspoň jedného zhodného zamestnanca
             var hasMatchingEmployee = false;
-            workedOnOrders += workedOnOrder;
             for (var k = 0; k < workEmployees.length; k++) {
                 var workEmpId = workEmployees[k].field("ID");
                 if (dochadzkaEmployeeIds.indexOf(workEmpId) !== -1) {
+                    workedOnOrders += workedOnOrder;
                     hasMatchingEmployee = true;
-                    break;
                 }
             }
             
@@ -922,9 +919,9 @@ function main() {
         
         //var farba = "#FFFFFF"; // Biela - štandard
         if (isHoliday) {
-            farba = "#FFE6CC"; // Oranžová - sviatok
+            utils.setColor(currentEntry, "bg", "light blue")
         } else if (isWeekend) {
-            farba = "#FFFFCC"; // Žltá - víkend
+            utils.setColor(currentEntry, "bg", "orange")
         }
         utils.safeSet(currentEntry, CONFIG.fields.common.backgroundColor, farba);
 
