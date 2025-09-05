@@ -310,7 +310,8 @@ var MementoConfig = (function() {
                 totalAmount: "Suma s DPH",
                 paid: "Zaplatené",
                 balance: "Zostatok", // amount || totalAmount - paid
-                info: "info úhrada"
+                info: "info úhrada", 
+                obligations: "Záväzky" // Chceckbox, true ak sync zaväzkov prebehol úspešne
             },
             
             // Zákazky polia
