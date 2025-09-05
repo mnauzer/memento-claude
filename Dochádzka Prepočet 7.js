@@ -541,7 +541,7 @@ function linkWorkRecords() {
         
         if (allRecordsToLink.length > 0) {
             // Nastav pole Práce
-            utils.safeSet(currentEntry, CONFIG.fields.attendance.works || "Práce", allRecordsToLink);
+            utils.safeSet(currentEntry, CONFIG.fields.attendance.works, allRecordsToLink);
             
             // Označ záznamy s upozornením farebne
             for (var wr = 0; wr < warningRecords.length; wr++) {
@@ -561,12 +561,14 @@ function linkWorkRecords() {
             
             utils.addDebug(currentEntry, "  ✅ Nalinkovaných záznamov: " + allRecordsToLink.length);
         }
-        utils.safeSet(currentEntry,CONFIG.fields.attendance.workedOnOrders, workedOnOrders)
+        
+
         return {
             success: true,
             linkedCount: allRecordsToLink.length,
             normalCount: matchingWorkRecords.length,
             warningCount: warningRecords.length,
+            workedOnOrders: workedOnOrders,
             message: "Úspešne nalinkované"
         };
         
@@ -894,6 +896,20 @@ function main() {
         var linkResult = linkWorkRecords();
         if (linkResult.success) {
             utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + linkResult.linkedCount + " záznamov");
+            var workHoursDiff = linkResult.workedOnOrders - workTimeResult.workHours;
+            if (workHoursDiff > 0) {
+                utils.addDebug(currentEntry, "❗ Odpracovaný čas na zákazkách je vyšší ako čas v dochádzke: " + workHoursDiff + " hodín");
+                utils.setColor(currentEntry, "bg", "pastel red");
+            } else if (workHoursDiff < 0) {
+                utils.addDebug(currentEntry, "⚠️ Odpracovaný čas na zákazkách je nižší ako čas v dochádzke: " + workHoursDiff + " hodín");
+                utils.setColor(currentEntry, "bg", "pastel yellow");
+            } else {
+                utils.addDebug(currentEntry, "☑️ Odpracovaný čas na zákazkách sedí na chlp s dohchádzkou ");
+                utils.setColor(currentEntry, "bg", "pastel yellow");
+            }
+
+            utils.safeSet(currentEntry,CONFIG.fields.attendance.downtime, workHoursDiff)
+            utils.safeSet(currentEntry,CONFIG.fields.attendance.workedOnOrders, linkResult.workedOnOrders)
         }
 
         // KROK 5: Info záznam
