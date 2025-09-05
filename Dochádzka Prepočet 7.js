@@ -465,9 +465,9 @@ function linkWorkRecords() {
         
         for (var j = 0; j < workRecords.length; j++) {
             var workRecord = workRecords[j];
-            var workEmployees = utils.safeGetLinks(workRecord, centralConfig.fields.workRecord.employees || "Zamestnanci");
-            var workStartTime = utils.safeGet(workRecord, centralConfig.fields.workRecord.startTime || "Od");
-            var workEndTime = utils.safeGet(workRecord, centralConfig.fields.workRecord.endTime || "Do");
+            var workEmployees = utils.safeGetLinks(workRecord, CONFIG.fields.workRecord.employees || "Zamestnanci");
+            var workStartTime = utils.safeGet(workRecord, CONFIG.fields.workRecord.startTime || "Od");
+            var workEndTime = utils.safeGet(workRecord, CONFIG.fields.workRecord.endTime || "Do");
             
             // Kontrola či má záznam aspoň jedného zhodného zamestnanca
             var hasMatchingEmployee = false;
