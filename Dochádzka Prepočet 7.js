@@ -923,7 +923,6 @@ function main() {
         } else if (isWeekend) {
             utils.setColor(currentEntry, "bg", "orange")
         }
-        utils.safeSet(currentEntry, CONFIG.fields.common.backgroundColor, farba);
 
         return true;
         // Finálny log
