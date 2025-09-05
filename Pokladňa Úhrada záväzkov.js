@@ -114,6 +114,24 @@ function main() {
         utils.addDebug(currentEntry, utils.getIcon("start") + " === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
         utils.addDebug(currentEntry, "Čas spustenia: " + utils.formatDate(moment()));
         
+        // KONTROLA ČI MÁ SCRIPT BEŽAŤ
+        var uhradaZavazku = utils.safeGet(currentEntry, CONFIG.fields.uhradaZavazku, false);
+        
+        if (!uhradaZavazku) {
+            // Script sa nespustí ak nie je zaškrtnuté "Úhrada záväzku"
+            utils.addDebug(currentEntry, "❌ Script ukončený - 'Úhrada záväzku' nie je zaškrtnutá");
+            return true; // Vrátime true aby sa neuloženie nezrušilo
+        }
+        
+        // Kontrola či už nebola úhrada spracovaná
+        var infoContent = utils.safeGet(currentEntry, CONFIG.fields.info, "");
+        if (infoContent.indexOf("ÚHRADA ZÁVÄZKOV DOKONČENÁ") !== -1) {
+            utils.addDebug(currentEntry, "✅ Úhrada už bola spracovaná - preskakujem");
+            return true;
+        }
+        
+        utils.addDebug(currentEntry, "✅ Checkbox 'Úhrada záväzku' je zaškrtnutý - pokračujem");
+        
         // Kroky spracovania
         var steps = {
             step1: { success: false, name: "Kontrola spúšťacích podmienok" },
@@ -124,23 +142,7 @@ function main() {
             step6: { success: false, name: "Finalizácia transakcie" }
         };
         
-        // KROK 1: Kontrola spúšťacích podmienok
-        utils.addDebug(currentEntry, utils.getIcon("validation") + " KROK 1: Kontrola spúšťacích podmienok");
-        
-        var uhradaZavazku = utils.safeGet(currentEntry, CONFIG.fields.uhradaZavazku, false);
-        
-        if (!uhradaZavazku) {
-            utils.addDebug(currentEntry, "❌ Script ukončený - 'Úhrada záväzku' nie je zaškrtnutá");
-            return true; // Nekončíme chybou, len preskakujeme
-        }
-        
-        // Kontrola či už nebola úhrada spracovaná
-        var infoContent = utils.safeGet(currentEntry, CONFIG.fields.info, "");
-        if (infoContent.indexOf("ÚHRADA ZÁVÄZKOV DOKONČENÁ") !== -1) {
-            utils.addDebug(currentEntry, "✅ Úhrada už bola spracovaná - preskakujem");
-            return true;
-        }
-        
+        // KROK 1: Kontrola spúšťacích podmienok (už je splnená)
         steps.step1.success = true;
         
         // KROK 2: Validácia a filtrovanie záväzkov
