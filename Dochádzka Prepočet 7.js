@@ -138,45 +138,7 @@ function validateInputData() {
         return { success: false, error: error.toString() };
     }
 }
-// ==============================================
-// KROK 2: VÝPOČET PRACOVNEJ DOBY
-// ==============================================
 
-// function calculateWorkTime(arrival, departure) {
-//     try {
-//         utils.addDebug(currentEntry, "--- Výpočet pracovnej doby");
-        
-//         // Výpočet hodín - priamo bez úprav času
-//         var workHours = utils.calculateWorkHours(arrival, departure);
-        
-//         if (!workHours || workHours.error) {
-//             return { success: false, error: workHours ? workHours.error : "Nepodarilo sa vypočítať hodiny" };
-//         }
-        
-//         var pracovnaDobaHodiny = workHours.totalMinutes / 60;
-//         pracovnaDobaHodiny = Math.round(pracovnaDobaHodiny * 100) / 100;
-        
-//         // Ulož do poľa
-//         currentEntry.set(CONFIG.fields.attendance.workTime, pracovnaDobaHodiny);
-        
-//         utils.addDebug(currentEntry, "✅ Pracovná doba: " + pracovnaDobaHodiny + " hodín");
-//         //utils.addDebug(currentEntry, "  • Príchod: " + moment(arrival).format("HH:mm"));
-//         utils.addDebug(currentEntry, "  • Príchod: " + utils.formatTime(arrival));
-//         utils.addDebug(currentEntry, "  • Odchod: " + moment(departure).format("HH:mm"));
-        
-//         return {
-//             success: true,
-//             arrivalRounded: arrival,      // Používame originálne časy
-//             departureRounded: departure,  // Používame originálne časy
-//             pracovnaDobaHodiny: pracovnaDobaHodiny,
-//             workHours: workHours
-//         };
-        
-//     } catch (error) {
-//         utils.addError(currentEntry, error.toString(), "calculateWorkTime", error);
-//         return { success: false, error: error.toString() };
-//     }
-// }
 function calculateWorkTime(arrival, departure) {
     try {
         utils.addDebug(currentEntry, "  Výpočet pracovnej doby", "calculation");
@@ -638,7 +600,7 @@ function escapeMarkdown(text) {
 // ==============================================
 function markCheckbox() {
     try {
-        currentEntry.set(CONFIG.fields.obligations, true);
+        utils.safeSet(currentEntry, CONFIG.fields.obligations.obligations, true);
         utils.addDebug(currentEntry, "☑️ Checkbox Záväzky označený");
     } catch (error) {
         utils.addError(currentEntry, "Chyba pri označovaní checkboxu: " + error.toString(), "markCheckbox");
