@@ -297,7 +297,7 @@ function processObligations(data) {
 
 function markCheckbox() {
     try {
-        currentEntry.set(CONFIG.fields.obligations, true);
+        currentEntry.set(CONFIG.fields.obligations.obligations, true);
         utils.addDebug(currentEntry, "☑️ Checkbox Záväzky označený");
     } catch (error) {
         utils.addError(currentEntry, "Chyba pri označovaní checkboxu: " + error.toString(), "markCheckbox");
