@@ -421,7 +421,7 @@ function linkWorkRecords() {
         }
         
         utils.addDebug(currentEntry, "  📅 Dátum dochádzky: " + utils.formatDate(dochadzkaDate));
-        utils.addDebug(currentEntry, "  ⏰ Časy dochádzky: " + dochadzkaPrichod + " - " + dochadzkaOdchod);
+        utils.addDebug(currentEntry, "  ⏰ Časy dochádzky: " + utils.formatTime(dochadzkaPrichod) + " - " + utils.formatTime(dochadzkaOdchod));
         utils.addDebug(currentEntry, "  👥 Počet zamestnancov: " + dochadzkaEmployees.length);
         
         // Získaj knižnicu záznamov práce
@@ -436,7 +436,7 @@ function linkWorkRecords() {
         }
         
         // Nájdi záznamy práce pre daný dátum
-        var workRecords = workRecordsLib.find(CONFIG.fields.workRecord.date === dochadzkaDate);
+        var workRecords = workRecordsLib.find(utils.formatDate(CONFIG.fields.workRecord.date) === utils.formatDate(dochadzkaDate));
         
         utils.addDebug(currentEntry, "  🔍 Nájdených záznamov práce pre dátum: " + workRecords.length);
         
@@ -464,9 +464,9 @@ function linkWorkRecords() {
         
         for (var j = 0; j < workRecords.length; j++) {
             var workRecord = workRecords[j];
-            var workEmployees = utils.safeGetLinks(workRecord, CONFIG.fields.workRecord.employees || "Zamestnanci");
-            var workStartTime = utils.safeGet(workRecord, CONFIG.fields.workRecord.startTime || "Od");
-            var workEndTime = utils.safeGet(workRecord, CONFIG.fields.workRecord.endTime || "Do");
+            var workEmployees = utils.safeGetLinks(workRecord, CONFIG.fields.workRecord.employees);
+            var workStartTime = utils.safeGet(workRecord, CONFIG.fields.workRecord.startTime);
+            var workEndTime = utils.safeGet(workRecord, CONFIG.fields.workRecord.endTime);
             
             // Kontrola či má záznam aspoň jedného zhodného zamestnanca
             var hasMatchingEmployee = false;
