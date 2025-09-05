@@ -830,8 +830,8 @@ function main() {
         var isDayOff = utils.safeGet(currentEntry, CONFIG.fields.attendance.dayOff, false);
         
         if (isDayOff) {
-            // Script sa nespustí ak nie je zaškrtnuté "Úhrada záväzku"
-            utils.addDebug(currentEntry, "❌ Script ukončený - Je voľno z dôvodu: " + utils.safeGet(currentEntry, fields.attendace.dayOffReason));
+            // Script sa zastaví ak je zaškrtnuté "Voľno"
+            utils.addDebug(currentEntry, "❌ Script ukončený - Je voľno z dôvodu: " + utils.safeGet(currentEntry, CONFIG.fields.attendace.dayOffReason));
             return true; // Vrátime true aby sa neuloženie nezrušilo
         }
 
