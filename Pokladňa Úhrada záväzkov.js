@@ -211,6 +211,7 @@ function validateObligations() {
         
         utils.addDebug(currentEntry, "  📋 Počet vybraných záväzkov: " + zavazkyArray.length);
         
+        // Získanie sumy
         var suma = utils.safeGet(currentEntry, CONFIG.fields.cashBook.sum, 0);
         suma = parseFloat(suma);
         
@@ -224,8 +225,11 @@ function validateObligations() {
         var totalZostatok = 0;
         
         for (var i = 0; i < zavazkyArray.length; i++) {
+            var zavazok = zavazkyArray[i];
             var stav = utils.safeGet(zavazok, CONFIG.fields.obligations.state);
             
+            // Kontrola stavu
+            if (stav !== CONFIG.constants.stavy.neuhradene && 
                 stav !== CONFIG.constants.stavy.ciastocneUhradene) {
                 utils.addDebug(currentEntry, "  ⚠️ Záväzok #" + zavazok.field("ID") + 
                              " preskočený - stav: " + stav, "warning");
@@ -251,6 +255,7 @@ function validateObligations() {
                           "Konfliktný vlastník: " + currentOwner.displayName 
                 };
             }
+            
             var zostatok = utils.safeGet(zavazok, CONFIG.fields.obligations.balance, 0);
             totalZostatok += zostatok;
             validZavazky.push(zavazok);
@@ -286,6 +291,7 @@ function validateObligations() {
 
 function getObligationOwner(zavazok) {
     try {
+        // Kontrola typu veriteľa a získanie vlastníka
         var creditorType = utils.safeGet(zavazok, CONFIG.fields.obligations.creditor);
         
         var owner = null;
