@@ -45,6 +45,7 @@ var CONFIG = {
     
     // Referencie na centrálny config
     fields: {
+        workRecord: centralConfig.fields.workRecord,
         attendance: centralConfig.fields.attendance,
         obligations: centralConfig.fields.obligations,
         common: centralConfig.fields.common,
