@@ -44,7 +44,7 @@ var MementoConfig = (function() {
         libraries: {
             // Evidencia - denné záznamy
             attendance: "Dochádzka",
-            workRecords: "Záznam práce",
+            workRecords: "Záznam prác",
             rideLog: "Kniha jázd",
             cashBook: "Pokladňa",
     
