@@ -436,7 +436,7 @@ function linkWorkRecords() {
         }
         
         // Nájdi záznamy práce pre daný dátum
-        var workRecords = workRecordsLib.find(utils.formatDate(dochadzkaDate));
+        var workRecords = workRecordsLib.find(moment(dochadzkaDate).format(DD.MM.YYYY));
         
         utils.addDebug(currentEntry, "  🔍 Nájdených záznamov práce pre dátum: " + workRecords.length);
         
