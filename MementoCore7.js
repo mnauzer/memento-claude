@@ -733,7 +733,7 @@ var MementoCore = (function() {
             return false;
         }
     }
-    
+
     function setPrint(entry) {
         try {
             safeSet(entry, CONFIG.fields.common.view, CONFIG.constants.viewTypes.print);
@@ -761,6 +761,309 @@ var MementoCore = (function() {
         }
     }
 
+    // Farby
+    // ==============================================
+// PRIDAŤ DO MementoCore.js (v7.0+)
+// Funkcie pre nastavenie farieb záznamu
+// ==============================================
+
+/**
+ * Nastaví farbu pozadia alebo popredia záznamu
+ * @param {Entry} entry - Memento entry objekt (alebo null pre currentEntry)
+ * @param {string} type - Typ farby: "background" alebo "foreground" (alebo skratky "bg", "fg")
+ * @param {string} color - Názov farby alebo HEX kód
+ * @returns {boolean} True ak úspešné, false ak nie
+ * 
+ * @example
+ * // Použitie s currentEntry
+ * utils.setColor(null, "background", "light blue");
+ * utils.setColor(null, "bg", "#FF5733");
+ * 
+ * // Použitie s konkrétnym entry
+ * utils.setColor(myEntry, "foreground", "red");
+ * utils.setColor(myEntry, "fg", "#000000");
+ */
+function setColor(entry, type, color) {
+    try {
+        // Ak entry nie je zadané, použi currentEntry
+        var targetEntry = entry || currentEntry;
+        if (!targetEntry) {
+            addError(null, "Neplatný entry objekt", "setColor");
+            return false;
+        }
+        
+        // Normalizuj typ
+        var colorType = type ? type.toLowerCase() : "";
+        
+        // Mapovanie názvov polí
+        var fieldName = null;
+        switch(colorType) {
+            case "background":
+            case "bg":
+            case "pozadie":
+                fieldName = CONFIG.fields.common.backgroundColor || "farba pozadia";
+                break;
+            case "foreground":
+            case "fg":
+            case "popredie":
+            case "text":
+                fieldName = CONFIG.fields.common.rowColor || "farba záznamu";
+                break;
+            default:
+                addError(targetEntry, "Neplatný typ farby: " + type + ". Použite 'background' alebo 'foreground'", "setColor");
+                return false;
+        }
+        
+        // Konvertuj farbu na HEX ak je to potrebné
+        var hexColor = convertToHex(color);
+        
+        // Nastav farbu
+        if (hexColor) {
+            safeSet(targetEntry, fieldName, hexColor);
+            addDebug(targetEntry, "🎨 Farba " + colorType + " nastavená na: " + hexColor);
+            return true;
+        } else {
+            addError(targetEntry, "Nepodarilo sa konvertovať farbu: " + color, "setColor");
+            return false;
+        }
+        
+    } catch (error) {
+        addError(targetEntry, "Chyba pri nastavovaní farby: " + error.toString(), "setColor");
+        return false;
+    }
+}
+
+/**
+ * Konvertuje názov farby na HEX kód
+ * @param {string} color - Názov farby alebo HEX kód
+ * @returns {string|null} HEX kód farby alebo null ak neplatná
+ */
+function convertToHex(color) {
+    if (!color) return null;
+    
+    // Ak už je HEX, vráť ho
+    if (color.charAt(0) === '#') {
+        return color;
+    }
+    
+    // Slovník farieb - rozšírený o slovenské názvy
+    var colorMap = {
+        // Základné farby
+        "white": "#FFFFFF",
+        "biela": "#FFFFFF",
+        "black": "#000000",
+        "čierna": "#000000",
+        "red": "#FF0000",
+        "červená": "#FF0000",
+        "green": "#00FF00",
+        "zelená": "#00FF00",
+        "blue": "#0000FF",
+        "modrá": "#0000FF",
+        "yellow": "#FFFF00",
+        "žltá": "#FFFF00",
+        "orange": "#FFA500",
+        "oranžová": "#FFA500",
+        "purple": "#800080",
+        "fialová": "#800080",
+        "pink": "#FFC0CB",
+        "ružová": "#FFC0CB",
+        "gray": "#808080",
+        "grey": "#808080",
+        "sivá": "#808080",
+        "šedá": "#808080",
+        
+        // Material Design farby
+        "light blue": "#03A9F4",
+        "svetlo modrá": "#03A9F4",
+        "svetlomodrá": "#03A9F4",
+        "dark blue": "#1976D2",
+        "tmavo modrá": "#1976D2",
+        "tmavomodrá": "#1976D2",
+        "light green": "#8BC34A",
+        "svetlo zelená": "#8BC34A",
+        "svetlozelená": "#8BC34A",
+        "dark green": "#388E3C",
+        "tmavo zelená": "#388E3C",
+        "tmavozelená": "#388E3C",
+        "light red": "#EF5350",
+        "svetlo červená": "#EF5350",
+        "svetločervená": "#EF5350",
+        "dark red": "#C62828",
+        "tmavo červená": "#C62828",
+        "tmavočervená": "#C62828",
+        
+        // Špeciálne farby pre upozornenia
+        "warning": "#FFEB3B",
+        "upozornenie": "#FFEB3B",
+        "error": "#F44336",
+        "chyba": "#F44336",
+        "success": "#4CAF50",
+        "úspech": "#4CAF50",
+        "info": "#2196F3",
+        "informácia": "#2196F3",
+        
+        // Pastelové farby
+        "pastel blue": "#B3E5FC",
+        "pastel green": "#DCEDC8",
+        "pastel red": "#FFCDD2",
+        "pastel yellow": "#FFF9C4",
+        "pastel orange": "#FFE0B2",
+        "pastel purple": "#E1BEE7",
+        
+        // Tmavé varianty
+        "dark gray": "#424242",
+        "dark grey": "#424242",
+        "tmavo sivá": "#424242",
+        "tmavosivá": "#424242",
+        "light gray": "#E0E0E0",
+        "light grey": "#E0E0E0",
+        "svetlo sivá": "#E0E0E0",
+        "svetlosivá": "#E0E0E0"
+    };
+    
+    // Normalizuj názov farby (malé písmená, bez medzier na začiatku/konci)
+    var normalizedColor = color.toLowerCase().trim();
+    
+    return colorMap[normalizedColor] || null;
+}
+
+/**
+ * Odstráni farbu pozadia alebo popredia záznamu
+ * @param {Entry} entry - Memento entry objekt (alebo null pre currentEntry)
+ * @param {string} type - Typ farby: "background" alebo "foreground" (alebo "both" pre obe)
+ * @returns {boolean} True ak úspešné
+ */
+function removeColor(entry, type) {
+    try {
+        var targetEntry = entry || currentEntry;
+        if (!targetEntry) return false;
+        
+        var colorType = type ? type.toLowerCase() : "both";
+        
+        switch(colorType) {
+            case "background":
+            case "bg":
+            case "pozadie":
+                safeSet(targetEntry, CONFIG.fields.common.backgroundColor || "farba pozadia", null);
+                break;
+            case "foreground":
+            case "fg":
+            case "popredie":
+            case "text":
+                safeSet(targetEntry, CONFIG.fields.common.rowColor || "farba záznamu", null);
+                break;
+            case "both":
+            case "obe":
+            case "all":
+            case "všetky":
+                safeSet(targetEntry, CONFIG.fields.common.backgroundColor || "farba pozadia", null);
+                safeSet(targetEntry, CONFIG.fields.common.rowColor || "farba záznamu", null);
+                break;
+            default:
+                return false;
+        }
+        
+        addDebug(targetEntry, "🎨 Farba " + colorType + " odstránená");
+        return true;
+        
+    } catch (error) {
+        addError(targetEntry, "Chyba pri odstraňovaní farby: " + error.toString(), "removeColor");
+        return false;
+    }
+}
+
+/**
+ * Získa aktuálnu farbu záznamu
+ * @param {Entry} entry - Memento entry objekt (alebo null pre currentEntry)
+ * @param {string} type - Typ farby: "background" alebo "foreground"
+ * @returns {string|null} HEX kód farby alebo null
+ */
+function getColor(entry, type) {
+    try {
+        var targetEntry = entry || currentEntry;
+        if (!targetEntry) return null;
+        
+        var colorType = type ? type.toLowerCase() : "";
+        var fieldName = null;
+        
+        switch(colorType) {
+            case "background":
+            case "bg":
+            case "pozadie":
+                fieldName = CONFIG.fields.common.backgroundColor || "farba pozadia";
+                break;
+            case "foreground":
+            case "fg":
+            case "popredie":
+            case "text":
+                fieldName = CONFIG.fields.common.rowColor || "farba záznamu";
+                break;
+            default:
+                return null;
+        }
+        
+        return safeGet(targetEntry, fieldName, null);
+        
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
+ * Nastaví farbu podľa podmienky
+ * @param {Entry} entry - Memento entry objekt
+ * @param {string} condition - Podmienka: "warning", "error", "success", "info"
+ * @returns {boolean} True ak úspešné
+ * 
+ * @example
+ * utils.setColorByCondition(null, "warning"); // Žltá
+ * utils.setColorByCondition(null, "error");   // Červená
+ * utils.setColorByCondition(null, "success"); // Zelená
+ */
+function setColorByCondition(entry, condition) {
+    var conditionColors = {
+        "warning": "#FFEB3B",     // Žltá
+        "upozornenie": "#FFEB3B",
+        "error": "#F44336",       // Červená
+        "chyba": "#F44336",
+        "success": "#4CAF50",     // Zelená
+        "úspech": "#4CAF50",
+        "info": "#2196F3",        // Modrá
+        "informácia": "#2196F3",
+        "late": "#FF9800",        // Oranžová
+        "meškanie": "#FF9800",
+        "weekend": "#E1BEE7",     // Svetlo fialová
+        "víkend": "#E1BEE7",
+        "holiday": "#BBDEFB",     // Svetlo modrá
+        "sviatok": "#BBDEFB"
+    };
+    
+    var color = conditionColors[condition ? condition.toLowerCase() : ""];
+    if (color) {
+        return setColor(entry, "background", color);
+    }
+    
+    return false;
+}
+
+// ==============================================
+// EXPORT DO MementoCore
+// ==============================================
+// Pridaj tieto funkcie do return bloku MementoCore:
+/*
+return {
+    // ... existujúce funkcie ...
+    
+    // Funkcie pre farby
+    setColor: setColor,
+    removeColor: removeColor,
+    getColor: getColor,
+    setColorByCondition: setColorByCondition,
+    convertToHex: convertToHex,
+    
+    // ... ostatné funkcie ...
+};
+*/
      // ==============================================
     // PUBLIC API
     // ==============================================
@@ -819,7 +1122,14 @@ var MementoCore = (function() {
         // Notifikácie
         getLinkedNotifications: getLinkedNotifications,
         linkNotificationToSource: linkNotificationToSource,
-        deleteNotificationAndTelegram: deleteNotificationAndTelegram 
+        deleteNotificationAndTelegram: deleteNotificationAndTelegram,
+
+        // Funkcie pre farby
+        setColor: setColor,
+        removeColor: removeColor,
+        getColor: getColor,
+        setColorByCondition: setColorByCondition,
+        convertToHex: convertToHex
 
     };
 })();

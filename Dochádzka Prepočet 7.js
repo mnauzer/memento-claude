@@ -476,15 +476,17 @@ function linkWorkRecords() {
         // Filtruj záznamy práce podľa zamestnancov a časov
         var matchingWorkRecords = [];
         var warningRecords = [];
+        var workedOnOrders = 0;
         
         for (var j = 0; j < workRecords.length; j++) {
             var workRecord = workRecords[j];
             var workEmployees = utils.safeGetLinks(workRecord, CONFIG.fields.workRecord.employees);
             var workStartTime = utils.safeGet(workRecord, CONFIG.fields.workRecord.startTime);
             var workEndTime = utils.safeGet(workRecord, CONFIG.fields.workRecord.endTime);
-            
+            var workedOnOrder = utils.safeGet(workRecord, CONFIG.fields.workRecord.workedHours);
             // Kontrola či má záznam aspoň jedného zhodného zamestnanca
             var hasMatchingEmployee = false;
+            workedOnOrders += workedOnOrder;
             for (var k = 0; k < workEmployees.length; k++) {
                 var workEmpId = workEmployees[k].field("ID");
                 if (dochadzkaEmployeeIds.indexOf(workEmpId) !== -1) {
@@ -559,7 +561,7 @@ function linkWorkRecords() {
             
             utils.addDebug(currentEntry, "  ✅ Nalinkovaných záznamov: " + allRecordsToLink.length);
         }
-        
+        utils.safeSet(currentEntry,CONFIG.fields.attendance.workedOnOrders, workedOnOrders)
         return {
             success: true,
             linkedCount: allRecordsToLink.length,
@@ -833,6 +835,7 @@ function main() {
         if (isDayOff) {
             // Script sa zastaví ak je zaškrtnuté "Voľno"
             utils.addDebug(currentEntry, "❌ Script ukončený - Je voľno z dôvodu: " + utils.safeGet(currentEntry, CONFIG.fields.attendace.dayOffReason));
+            utils.setColor(currentEntry, "bg", "pastel blue");
             exit(); // Vrátime true aby sa neuloženie nezrušilo
         }
 
@@ -913,7 +916,7 @@ function main() {
         
     } catch (error) {
         utils.addError(currentEntry, "Kritická chyba v hlavnej funkcii", "main", error);
-        message("❌ Kritická chyba!\n\n" + error.lineNumber + ": " + error.toString());
+        message("❌ Kritická chyba! Line: " + error.lineNumber + ": " + error.toString());
         return false;
     }
 }

@@ -113,6 +113,7 @@ function main() {
         if (!uhradaZavazku) {
             // Script sa nespustí ak nie je zaškrtnuté "Úhrada záväzku"
             utils.addDebug(currentEntry, "❌ Script ukončený - 'Úhrada záväzku' nie je zaškrtnutá");
+            utils.setColor(currentEntry, "bg", "light blue")
             return true; // Vrátime true aby sa neuloženie nezrušilo
         }
         

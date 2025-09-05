@@ -241,7 +241,13 @@ var MementoUtils = (function() {
         findValidWorkPrice: lazyCall('business', 'findValidWorkPrice'),
         findValidItemPrice: lazyCall('business', 'findValidItemPrice'),
         processEmployees: lazyCall('business', 'processEmployees'),
-
+        
+        // Funkcie pre farby
+        setColor: lazyCall('core', 'setColor'),
+        removeColor: lazyCall('core', 'removeColor'),
+        getColor: lazyCall('core', 'getColor'),
+        setColorByCondition:lazyCall('core', 'setColorByCondition'),
+        convertToHex: lazyCall('core', 'convertToHex'),
         
         // === HELPER FUNKCIE ===
         
