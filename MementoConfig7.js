@@ -136,6 +136,8 @@ var MementoConfig = (function() {
                 wageCosts: "Mzdové náklady",
                 keys: "keys",
                 notifications: "Notifikácie",
+                dayOff: "Voľno", //checkbox: zastaví script ak je true
+                dayOffReason: "Dôvod voľna", // singleChoice: Dážď, Mokro, Oddych, Dovolenka, Iné
                 employeeAttributes: {
                     workedHours: "odpracované",
                     hourlyRate: "hodinovka",

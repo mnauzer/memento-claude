@@ -816,6 +816,15 @@ function main() {
             message("❌ Chýbajú potrebné moduly!\n\n" + depCheck.missing.join(", "));
             return false;
         }
+         // KONTROLA ČI MÁ SCRIPT BEŽAŤ
+        var isDayOff = utils.safeGet(currentEntry, CONFIG.fields.attendance.dayOff, false);
+        
+        if (isDayOff) {
+            // Script sa nespustí ak nie je zaškrtnuté "Úhrada záväzku"
+            utils.addDebug(currentEntry, "❌ Script ukončený - Je voľno z dôvodu: " + utils.safeGet(currentEntry, fields.attendace.dayOffReason));
+            return true; // Vrátime true aby sa neuloženie nezrušilo
+        }
+
         // Debug info o načítaných moduloch
         utils.addDebug(currentEntry, "=== ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===", "start");
         utils.addDebug(currentEntry, "Čas spustenia: " + utils.formatDate(moment()) ,"calendar");
