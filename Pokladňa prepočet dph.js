@@ -274,6 +274,7 @@ function calculateVat(vatRate) {
         utils.safeSet(currentEntry, CONFIG.fields.sum, finalSumWithoutVat);
         utils.safeSet(currentEntry, CONFIG.fields.sumTotal, finalSumWithVat);
         utils.safeSet(currentEntry, CONFIG.fields.vat, vatAmount);  // Ukladá DPH do poľa "DPH"
+        utils.safeSet(currentEntry, CONFIG.fields.vatRate, vatRate);  // Ukladá sadzba DPH do poľa "sadzba DPH"
         
         utils.addDebug(currentEntry, "  • Suma bez DPH: " + utils.formatMoney(finalSumWithoutVat));
         utils.addDebug(currentEntry, "  • DPH (" + vatRate + "%): " + utils.formatMoney(vatAmount));
