@@ -632,7 +632,7 @@ function linkRideLogRecords() {
         
         for (var j = 0; j < rideLog.length; j++) {
             var rideLogRecord = rideLog[j];
-            var crew = utils.safeGetLinks(rideLogRecord, CONFIG.fields.rideLogRecord.crew);
+            var crew = utils.safeGetLinks(rideLogRecord, CONFIG.fields.rideLog.crew);
             // Kontrola či má záznam aspoň jedného zhodného zamestnanca
             var hasMatchingEmployee = false;
             for (var k = 0; k < crew.length; k++) {
@@ -690,7 +690,7 @@ function linkRideLogRecords() {
 function setEntryFields(employeeResult, workLinkResult, rideLogLinkResult, entryIcons, entryStatus) {
     try {
         // Ulož celkové hodnoty
-        var workHoursDiff = linkResult.workedOnOrders - employeeResult.workHours;
+        var workHoursDiff = workLinkResult.workedOnOrders - employeeResult.workHours;
         if (workHoursDiff > 0) {
             utils.addDebug(currentEntry, "❗ Odpracovaný čas na zákazkách je vyšší ako čas v dochádzke: " + workHoursDiff + " hodín");
             utils.setColor(currentEntry, "bg", "pastel red");
@@ -707,14 +707,14 @@ function setEntryFields(employeeResult, workLinkResult, rideLogLinkResult, entry
         utils.safeSet(currentEntry, CONFIG.fields.attendance.onProjects, 0);
         utils.safeSet(currentEntry, CONFIG.fields.attendance.downtime, 0);
         utils.safeSet(currentEntry,CONFIG.fields.attendance.downtime, workHoursDiff)
-        utils.safeSet(currentEntry,CONFIG.fields.attendance.workedOnOrders, linkResult.workedOnOrders)
+        utils.safeSet(currentEntry,CONFIG.fields.attendance.workedOnOrders, workLinkResult.workedOnOrders)
         utils.safeSet(currentEntry,CONFIG.fields.attendance.entryIcons, entryIcons)
         utils.safeSet(currentEntry,CONFIG.fields.attendance.entryStatus, entryStatus)
 
         utils.addDebug(currentEntry, "  • Pracovná doba: " + employeeResult.pracovnaDoba + " hodín");
         utils.addDebug(currentEntry, "  • Odpracované spolu: " + employeeResult.odpracovaneTotal + " hodín");
         utils.addDebug(currentEntry, "  • Mzdové náklady: " + utils.formatMoney(employeeResult.celkoveMzdy));
-        utils.addDebug(currentEntry, "  • Na zákazkách: " + linkResult.workedOnOrders +" hodín");
+        utils.addDebug(currentEntry, "  • Na zákazkách: " + workLinkResult.workedOnOrders +" hodín");
         utils.addDebug(currentEntry, "  • Prestoje: " + workHoursDiff + " hodín");
         utils.addDebug(currentEntry, " Celkové výpočty úspešné", "success");
         
