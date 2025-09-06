@@ -670,7 +670,7 @@ var MementoConfig = (function() {
             calculation: "🧮",
             note: "📝",
             //weather
-            rain: "🌧️❌",
+            rain_cross: "🌧️❌",
             storm: "⛈️🛑", 
             wet: "⚠️💧",
             fog: "🌫️👁️",
@@ -744,7 +744,6 @@ var MementoConfig = (function() {
             security: "🔒",
             key: "🔑",
             // Dochádzka
-            attendance: "📋",
             present: "✅",
             absent: "❌", 
             late: "⏰",
