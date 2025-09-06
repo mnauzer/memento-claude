@@ -579,6 +579,109 @@ function linkWorkRecords() {
     }
 }
 
+function linkRideLogRecords() {
+    try {
+        // Získaj základné údaje z dochádzky
+        var dochadzkaDate = utils.safeGet(currentEntry, CONFIG.fields.date);
+        var dochadzkaEmployees = utils.safeGetLinks(currentEntry, CONFIG.fields.employees);
+        
+        // Získaj knižnicu záznamov práce
+        var rideLogRecordsLib = libByName(CONFIG.libraries.rideLog);
+        if (!rideLogRecordsLib) {
+            utils.addError(currentEntry, "Knižnica 'Kniha jázd' nenájdená", "linkRideLogRecords");
+            return {
+                success: false,
+                linkedCount: 0,
+                message: "Knižnica nenájdená"
+            };
+        }
+        
+        var rideLog = [];
+        var targetDate = moment(dochadzkaDate).format("DD.MM.YYYY");
+
+        rideLogRecordsLib.entries().forEach(function(record) {
+            if (moment(record.field(CONFIG.fields.rideLog.date)).format("DD.MM.YYYY") === targetDate) {
+                rideLog.push(record);
+            }
+        });
+        
+        utils.addDebug(currentEntry, "  🔍 Nájdených záznamov jázd pre dátum: " + rideLog.length);
+        
+        if (rideLog.length === 0) {
+            utils.addDebug(currentEntry, "  ℹ️ Žiadne záznamy jázd pre tento dátum");
+            return {
+                success: true,
+                linkedCount: 0,
+                message: "Žiadne záznamy jázd"
+            };
+        }
+        
+        // Získaj ID všetkých zamestnancov z dochádzky
+        var dochadzkaEmployeeIds = [];
+        for (var i = 0; i < dochadzkaEmployees.length; i++) {
+            var empId = dochadzkaEmployees[i].field("ID");
+            if (empId) {
+                dochadzkaEmployeeIds.push(empId);
+            }
+        }
+        
+        // Filtruj záznamy práce podľa zamestnancov a časov
+        var matchingRideLog = [];
+        var warningRecords = [];
+        
+        for (var j = 0; j < rideLog.length; j++) {
+            var rideLogRecord = rideLog[j];
+            var crew = utils.safeGetLinks(rideLogRecord, CONFIG.fields.rideLogRecord.crew);
+            // Kontrola či má záznam aspoň jedného zhodného zamestnanca
+            var hasMatchingEmployee = false;
+            for (var k = 0; k < crew.length; k++) {
+                var crewId = crew[k].field("ID");
+                if (dochadzkaEmployeeIds.indexOf(crewId) !== -1) {
+                    hasMatchingEmployee = true;
+                }
+            }
+            
+            if (hasMatchingEmployee) {
+                utils.addDebug(currentEntry, "  ✅ Záznam #" + workRecord.field("ID") + " má zhodných zamestnancov");
+            }
+        }
+        
+        utils.addDebug(currentEntry, "  📊 Záznamy na linkovanie: " + matchingRideLog.length);
+        utils.addDebug(currentEntry, "  ⚠️ Záznamy s upozornením: " + warningRecords.length);
+        
+        // Pridaj všetky záznamy (aj tie s upozornením)
+        var allRecordsToLink = matchingRideLog.slice(); // Kópia normálnych záznamov
+        
+        // Pridaj aj záznamy s upozornením
+        for (var w = 0; w < warningRecords.length; w++) {
+            allRecordsToLink.push(warningRecords[w].record);
+        }
+        
+        if (allRecordsToLink.length > 0) {
+            // Nastav pole Práce
+            utils.safeSet(currentEntry, CONFIG.fields.attendance.rides, allRecordsToLink);
+            utils.addDebug(currentEntry, "  ✅ Nalinkovaných záznamov: " + allRecordsToLink.length);
+        }
+        
+
+        return {
+            success: true,
+            linkedCount: allRecordsToLink.length,
+            normalCount: matchingRideLog.length,
+            warningCount: warningRecords.length,
+            message: "Úspešne nalinkované"
+        };
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "linkRideLog", error);
+        return {
+            success: false,
+            linkedCount: 0,
+            message: "Chyba: " + error.toString()
+        };
+    }
+}
+
 // ==============================================
 // KROK 4: CELKOVÉ VÝPOČTY
 // ==============================================
@@ -939,6 +1042,7 @@ function main() {
             step2: { success: false, name: "Výpočet pracovnej doby" },
             step3: { success: false, name: "Spracovanie zamestnancov" },
             step4: { success: false, name: "Linkovanie pracovných záznamov" },
+            step41: { success: false, name: "Linkovanie dopravy" },
             step5: { success: false, name: "Celkové výpočty" },
             step6: { success: false, name: "Vytvorenie info záznamu" },
             step7: { success: false, name: "Vytvorenie Telegram notifikácie" },
@@ -989,6 +1093,20 @@ function main() {
             utils.addError(currentEntry, "Linkovanie záznamov neúspešné", CONFIG.scriptName);
         }
         steps.step4.success = linkResult.success;
+
+        // KROK 4.1: Linkovanie dopravných záznamov
+        utils.addDebug(currentEntry, " KROK 4.1: Linkovanie dopravy", "truck");
+        var transportLinkResult = linkRideLogRecords();
+        if (transportLinkResult.success) {
+            if (entryStatus.indexOf("Doprava") === -1) {
+                entryStatus.push("Doprava");
+            }
+            entryIcons += CONFIG.icons.truck;
+            utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + transportLinkResult.linkedCount + " záznamov");   
+        } else {
+            utils.addError(currentEntry, "Linkovanie záznamov neúspešné", CONFIG.scriptName);
+        }
+        steps.step41.success = transportLinkResult.success;
         
         // KROK 5: Celkové výpočty
         utils.addDebug(currentEntry, " KROK 5: Celkové výpočty", "calculation");

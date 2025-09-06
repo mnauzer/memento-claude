@@ -145,6 +145,12 @@ var MementoConfig = (function() {
                 infoTelegram: "info_telegram",    // NOVÉ
                 notifications: "Notifikácie",     // NOVÉ - link field
             },
+            // Kniha jázd
+            rideLog: {
+                date: "Dátum",
+                crew: "Posádka", 
+
+            },
             workPrices: {
                 work: "Práca",  // Pole ktoré odkazuje späť na HZS
                 validFrom: "Platnosť od",
