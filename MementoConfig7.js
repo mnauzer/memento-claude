@@ -20,7 +20,41 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0",
+        version: "7.0.1",
+        recipientMapping: {
+            "Partner": {
+                linkField: "Partner",
+                telegramField: "Telegram ID",
+                type: "individual"
+            },
+            "Zamestnanec": {
+                linkField: "Zamestnanec",
+                telegramField: "Telegram ID",
+                type: "individual"
+            },
+            "Klient": {
+                linkField: "Klient",
+                telegramField: "Telegram ID",
+                type: "individual"
+            },
+            "Zákazka": {
+                linkField: "Zákazka",
+                telegramGroupField: "Telegram skupina",  // Pole v zákazke
+                type: "customer"  // Špeciálny typ
+            },
+            "Skupina": {
+                linkField: "Skupina/Téma",
+                chatIdField: "Chat ID",
+                threadIdField: null,
+                type: "group"
+            },
+            "Skupina-Téma": {
+                linkField: "Skupina/Téma",
+                chatIdField: "Chat ID",
+                threadIdField: "Thread ID",
+                type: "group"
+            }
+        },
         // Defaultné hodnoty pre globálne nastavenia
         defaults: {
             debug: false, // Predvolený debug mód
@@ -635,8 +669,97 @@ var MementoConfig = (function() {
             validation: "🛡️",
             calculation: "🧮",
             note: "📝",
+            //weather
+            rain: "🌧️❌",
+            storm: "⛈️🛑", 
+            wet: "⚠️💧",
+            fog: "🌫️👁️",
+            wind: "💨⚠️",
+            frost: "❄️🛑",
+            soil_wet: "🌱💧",
+            weather: "🌤️",            // Všeobecné počasie
+            rain: "🌧️",               // Dážď
+            heavy_rain: "⛈️",         // Silný dážď/búrka
+            light_rain: "🌦️",         // Slabý dážď
+            wet: "💧",                 // Mokro
+            storm: "⛈️",               // Búrka
+            
+            // PRACOVNÉ PODMIENKY (pre záhradníctvo)
+            work_stop: "🛑",           // Zastavenie práce
+            weather_delay: "⏰🌧️",    // Odklad kvôli počasiu
+            indoor_work: "🏠",         // Práca v interiéri
+            weather_ok: "☀️",          // Vhodné počasie
+            // TYPY MRAKOV
+            cloud: "☁️",               // Mrak
+            cloudy: "🌥️",             // Oblačno
+            overcast: "☁️",            // Zamračené
+            fog: "🌫️",                // Hmla
+            mist: "🌫️",
+            // NÁSLEDKY MOKRA
+            muddy: "🟤",               // Bahno (hnedá farba)
+            slippery: "⚠️",           // Šmykľavo
+            splash: "💦",              // Striekanie vody
+            // HLAVNÉ DOPRAVNÉ KATEGÓRIE
+            transport: "🚚",        // Všeobecná doprava
+            vehicle: "🚗",          // Vozidlo
+            delivery: "🚚",         // Dodávka
+            travel: "✈️",           // Cestovanie
+            
+            // KNIHA JÁZD / VOZOVÝ PARK
+            trip: "🛣️",            // Výjazd/cesta
+            route: "🗺️",           // Trasa
+            distance: "📏",         // Vzdialenosť  
+            fuel: "⛽",             // Palivo
+            maintenance: "🔧",      // Údržba
+            service: "🛠️",         // Servis
+            
+            // TYPY VOZIDIEL (pre váš systém)
+            company_car: "🚗",      // Firemné auto
+            work_truck: "🚚",       // Pracovné vozidlo
+            equipment_van: "🚐",    // Dodávka s náradím
+            trailer: "🚛",          // Príves
+            
+            // DOPRAVNÉ AKCIE
+            start_trip: "🚀",       // Začiatok cesty
+            end_trip: "🏁",         // Koniec cesty
+            refuel: "⛽",           // Tankovanie
+            parking: "🅿️",         // Parkovanie
+            breakdown: "⚠️",        // Porucha
+            obligations: "💸",    // Peniaze s krídlami (odchádzajúce)
+            debt: "🔴",           // Červené koliesko (deficit)
+            liability: "⚖️",      // Váhy spravodlivosti
+            payment: "💳",        // Platobná karta
+            money_out: "💸",      // Odchádzajúce peniaze
+            // Záväzky/Povinnosti
+            contract: "📝",       // Dokument/zmluva
+            agreement: "🤝",      // Podanie rúk
+            commitment: "🪢",     // Uzol (spojenie/záväzok) [94]
+            obligation: "⚖️",     // Váhy (spravodlivosť)
+            bond: "🔗",          // Reťaz/spojenie
+            // Systémové
+            database: "🗄️",
+            sync: "🔄",
+            backup: "💾",
+            settings: "⚙️",
+            security: "🔒",
+            key: "🔑",
+            // Dochádzka
+            attendance: "📋",
+            present: "✅",
+            absent: "❌", 
+            late: "⏰",
+            overtime: "🕐",
+            vacation: "🏖️",
+            sick: "🤒",
 
-
+            // Práca/Projekty  
+            work: "🔨",
+            project: "📊",
+            task: "✔️",
+            completed: "🏁",
+            inProgress: "⚙️",
+            pending: "⏳",
+            priority: "🔴",
         }
     };
     
