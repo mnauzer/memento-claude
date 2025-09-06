@@ -125,8 +125,10 @@ var MementoConfig = (function() {
                 arrival: "Príchod",
                 departure: "Odchod",
                 employees: "Zamestnanci",
-                works: "Práce",
-                rides: "Jazdy",
+                works: "Práce", // linktToEntry: záznamy knižnice Záznam prác
+                rides: "Jazdy", // linkToEntry: záznamy knižnice Knija jázd
+                cashBook: "Pokladňa", // linkToEntry: záznamy knižnice Pokladňa
+                notifications: "Notifikácie", // linkToEntry: záznamy knižnice Notifikácie (group notifications)
                 obligations: "Záväzky",
                 employeeCount: "Počet pracovníkov",
                 workTime: "Pracovná doba",
@@ -135,8 +137,7 @@ var MementoConfig = (function() {
                 downtime: "Prestoje",
                 wageCosts: "Mzdové náklady",
                 keys: "keys",
-                notifications: "Notifikácie",
-                dayOff: "Voľno", //checkbox: zastaví script ak je true
+                entryStatus: "stav záznamu", // multiCheckboxes: Záväzky, Práce, Jazdy, Notifikácie, Skontrolované, Voľno
                 dayOffReason: "Dôvod voľna", // singleChoice: Dážď, Mokro, Oddych, Dovolenka, Iné
                 employeeAttributes: {
                     workedHours: "odpracované",

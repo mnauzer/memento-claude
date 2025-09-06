@@ -601,7 +601,7 @@ function calculateTotals(employeeResult, linkResult) {
             utils.setColor(currentEntry, "bg", "pastel red");
         } else if (workHoursDiff < 0) {
             utils.addDebug(currentEntry, "⚠️ Odpracovaný čas na zákazkách je nižší ako čas v dochádzke: " + workHoursDiff + " hodín");
-            utils.setColor(currentEntry, "bg", "pastel yellow");
+            utils.setColor(currentEntry, "bg", "pastel blue");
         } else {
             utils.addDebug(currentEntry, "☑️ Odpracovaný čas na zákazkách sedí na chlp s dochádzkou ");
             utils.setColor(currentEntry, "bg", "pastel yellow");
@@ -613,7 +613,9 @@ function calculateTotals(employeeResult, linkResult) {
         utils.addDebug(currentEntry, "  • Prestoje: " + workHoursDiff + " hodín");
         utils.addDebug(currentEntry, " Celkové výpočty úspešné", "success");
         
-        return true;
+        return {
+            success: true
+        };
         
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "calculateTotals", error);
@@ -844,13 +846,19 @@ function main() {
             return false;
         }
          // KONTROLA ČI MÁ SCRIPT BEŽAŤ
-        var isDayOff = utils.safeGet(currentEntry, CONFIG.fields.attendance.dayOff, false);
-        message(isDayOff);
+        var entryStatus = utils.safeGet(currentEntry, CONFIG.fields.attendance.entryStatus, []);
+        var dayOff = 'Voľno';
+
+        var isDayOff = dayOff.filter(function(status) {
+            return !entryStatus.includes(status);
+        });
+
         if (isDayOff) {
-            // Script sa zastaví ak je zaškrtnuté "Voľno"
-            utils.addDebug(currentEntry, "❌ Script ukončený - Je voľno z dôvodu: " + utils.safeGet(currentEntry, CONFIG.fields.attendace.dayOffReason));
-            utils.setColor(currentEntry, "bg", "pastel blue");
-            exit(); // Vrátime true aby sa neuloženie nezrušilo
+            
+        }
+        if (isDayOff.length > 0) {
+            message("Záznam je nastavený na: " + dayOff);
+            cancel();
         }
 
         // Debug info o načítaných moduloch
@@ -865,11 +873,11 @@ function main() {
             step4: { success: false, name: "Linkovanie pracovných záznamov" },
             step5: { success: false, name: "Celkové výpočty" },
             step6: { success: false, name: "Vytvorenie info záznamu" },
-            step7: { success: false, name: "Vytvorenie info_telegram záznamu" }
+            step7: { success: false, name: "Vytvorenie Telegram notifikácie" },
         };
 
-        // KROK 1: Validácia vstupných dát
-        utils.addDebug(currentEntry, " KROK 1: Validácia vstupných dát", "validation");
+        // KROK 1: Načítanie a validácia dát
+        utils.addDebug(currentEntry, " KROK 1: Načítanie a validácia dát", "validation");
         var validationResult = validateInputData();  // ✅ Volaj bez parametrov
         if (!validationResult.success) {
             utils.addError(currentEntry, "Validácia zlyhala: " + validationResult.error, CONFIG.scriptName);
@@ -879,18 +887,15 @@ function main() {
         steps.step1.success = true;
 
         // KROK 2: Výpočet pracovného času
-        utils.addDebug(currentEntry, " KROK 2: Získavanie údajov", "update");
+        utils.addDebug(currentEntry, " KROK 2: Výpočet pracovnej doby", "update");
         var isHoliday = utils.isHoliday(validationResult.date);
         var isWeekend = utils.isWeekend(validationResult.date);
         var workTimeResult = calculateWorkTime(validationResult.arrival,validationResult.departure);    
-
         if (!workTimeResult.success) {
             utils.addError(currentEntry, "Výpočet času zlyhal: " + workTimeResult.error, CONFIG.scriptName);
             return false;
         }
-
-      
-        steps.step2.success = true;
+        steps.step2.success = workTimeResult.success;
         
         // KROK 3: Spracovanie zamestnancov
         utils.addDebug(currentEntry, " KROK 3: Spracovanie zamestnancov", "group");
@@ -900,21 +905,27 @@ function main() {
         }
         steps.step3.success = employeeResult.success;
         
+        // KROK 4: Linkovanie pracovných záznamov
         utils.addDebug(currentEntry, " KROK 4: Linkovanie pracovných záznamov", "work");
         var linkResult = linkWorkRecords();
         if (linkResult.success) {
             utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + linkResult.linkedCount + " záznamov");   
+        } else {
+            utils.addError(currentEntry, "Linkovanie záznamov neúspešné", CONFIG.scriptName);
         }
         steps.step4.success = linkResult.success;
         
         // KROK 5: Celkové výpočty
         utils.addDebug(currentEntry, " KROK 5: Celkové výpočty", "calculation");
-        steps.step5.success = calculateTotals(employeeResult, linkResult);
+        var totals = calculateTotals(employeeResult, linkResult)
+        steps.step5.success = totals.success;
         
-        // KROK 6,7: Info záznam
+        // KROK 6: Vytvorenie info záznamu
         utils.addDebug(currentEntry, " KROK 6: Vytvorenie info záznamu", "note");
         steps.step6.success = createInfoRecord(workTimeResult, employeeResult);
-        utils.addDebug(currentEntry, " KROK 7: Vytvorenie telegram info záznamu", "note");
+
+        // KROK 7: Vytvorenie Telegram notifikácie
+        utils.addDebug(currentEntry, " KROK 7: Vytvorenie Telegram notifikácie", "note");
         steps.step7.success = createTelegramInfoRecord(workTimeResult, employeeResult) && steps.step6.success;  
         
         //var farba = "#FFFFFF"; // Biela - štandard
