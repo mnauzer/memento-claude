@@ -18,7 +18,7 @@
 var MementoCore = (function() {
     'use strict';
     
-    var version = "7.0";
+    var version = "7.0.1";
     
     // Lazy loading pre MementoConfig
     var _config = null;
@@ -29,7 +29,6 @@ var MementoCore = (function() {
         }
         return _config;
     }
-
   
     function addDebug(entry, message, iconName) {
         try {
@@ -287,7 +286,6 @@ var MementoCore = (function() {
         }
     }
 
-
     function isWeekend(date) {
         try {
             var day = moment(date).day();
@@ -385,83 +383,6 @@ var MementoCore = (function() {
             return 0;
         }
     }
-
-    // function formatTime(hours) {
-    //     if (!hours && hours !== 0) return "00:00";
-        
-    //     var totalMinutes = Math.round(hours * 60);
-    //     var h = Math.floor(totalMinutes / 60);
-    //     var m = totalMinutes % 60;
-    //     return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
-    // }
-
-    // function roundToQuarterHour(hours) {
-    //     if (!hours && hours !== 0) return 0;
-    //     return Math.round(hours * 4) / 4;
-    // }
-    // function formatTime(time) {
-    //     if (!time) return "00:00";
-        
-    //     try {
-    //         // Ak je to moment objekt
-    //         if (time._isAMomentObject) {
-    //             return time.format(config.global.timeFormat);
-    //         }
-            
-    //         // Ak je to číslo (minúty)
-    //         if (typeof time === "number") {
-    //             var hours = Math.floor(time / 60);
-    //             var minutes = time % 60;
-    //             return (hours < 10 ? "0" : "") + hours + ":" + (minutes < 10 ? "0" : "") + minutes;
-    //         }
-            
-    //         // Ak je to string alebo Date
-    //         return moment(time).format(config.global.timeFormat);
-            
-    //     } catch (e) {
-    //         addDebug(null, "Chyba pri formátovaní času: " + e.toString() + e.lineNumber);
-    //         return "00:00";
-    //     }
-    // }
-
-    // function roundToQuarter(time, direction) {
-    // try {
-    //     // Ak je to už string formát času, konvertuj na moment
-    //     if (typeof time === 'string') {
-    //         time = moment(time, 'HH:mm');
-    //     }
-        
-    //     // Ak nie je moment objekt, skús základnú konverziu
-    //     if (!time._isAMomentObject) {
-    //         time = moment(time);
-    //     }
-        
-    //     var quarterMinutes = 15;
-    //     var mom = moment(time).seconds(0).milliseconds(0);
-    //     var minutes = mom.minutes();
-    //     var roundedMinutes;
-        
-    //     if (direction === 'up') {
-    //         roundedMinutes = Math.ceil(minutes / quarterMinutes) * quarterMinutes;
-    //     } else if (direction === 'down') {
-    //         roundedMinutes = Math.floor(minutes / quarterMinutes) * quarterMinutes;
-    //     } else {
-    //         roundedMinutes = Math.round(minutes / quarterMinutes) * quarterMinutes;
-    //     }
-        
-    //     if (roundedMinutes >= 60) {
-    //         mom.add(1, 'hour').minutes(0);
-    //     } else {
-    //         mom.minutes(roundedMinutes);
-    //     }
-        
-    //     return mom;
-        
-    // } catch (e) {
-    //     // Ak zlyhá všetko, vráť originálny čas
-    //     return moment(time);
-    // }
-    // }
 
     function formatTime(timeValue) {
         try {
@@ -867,25 +788,25 @@ function convertToHex(color) {
         "fialová": "#800080",
         "pink": "#FFC0CB",
         "ružová": "#FFC0CB",
-        "gray": "#808080",
+        "gray": "#beb9b9ad",
         "grey": "#808080",
         "sivá": "#808080",
         "šedá": "#808080",
         
         // Material Design farby
-        "light blue": "#03A9F4",
+        "light blue": "#90dcffa2",
         "svetlo modrá": "#03A9F4",
         "svetlomodrá": "#03A9F4",
         "dark blue": "#1976D2",
         "tmavo modrá": "#1976D2",
         "tmavomodrá": "#1976D2",
-        "light green": "#8BC34A",
+        "light green": "#b7d693c6",
         "svetlo zelená": "#8BC34A",
         "svetlozelená": "#8BC34A",
         "dark green": "#388E3C",
         "tmavo zelená": "#388E3C",
         "tmavozelená": "#388E3C",
-        "light red": "#EF5350",
+        "light red": "#ec9a99ce",
         "svetlo červená": "#EF5350",
         "svetločervená": "#EF5350",
         "dark red": "#C62828",
@@ -1045,26 +966,7 @@ function setColorByCondition(entry, condition) {
     
     return false;
 }
-
-// ==============================================
-// EXPORT DO MementoCore
-// ==============================================
-// Pridaj tieto funkcie do return bloku MementoCore:
-/*
-return {
-    // ... existujúce funkcie ...
-    
-    // Funkcie pre farby
-    setColor: setColor,
-    removeColor: removeColor,
-    getColor: getColor,
-    setColorByCondition: setColorByCondition,
-    convertToHex: convertToHex,
-    
-    // ... ostatné funkcie ...
-};
-*/
-     // ==============================================
+    // ==============================================
     // PUBLIC API
     // ==============================================
     
@@ -1083,7 +985,6 @@ return {
         setPrint: setPrint,
         setDebug: setDebug,
         setView: setView,
-
         
         // Safe field access
         safeGet: safeGet,

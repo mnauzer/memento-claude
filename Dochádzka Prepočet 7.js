@@ -760,7 +760,69 @@ function createTelegramInfoRecord(workTimeResult, employeeResult) {
         return false;
     }
 }
-
+function sendTelegramMessage() {
+    try {
+        
+        // 1. Kontrola či je to nový záznam
+        if (!isNewRecord()) {
+            utils.addDebug(currentEntry, "Nie je nový záznam - preskakujem");
+            return true;
+        }
+        
+        // 2. Kontrola statusu
+        var status = utils.safeGet(currentEntry, CONFIG.fields.notifications.status);
+        if (status !== "Čaká") {
+            utils.addDebug(currentEntry, "Status nie je 'Čaká' - preskakujem");
+            return true;
+        }
+        
+        // 3. Získanie Telegram ID podľa adresáta
+        var telegramData = getTelegramID();
+        if (!telegramData.success) {
+            utils.addError(currentEntry, "Nepodarilo sa získať Telegram údaje: " + telegramData.error, "main");
+            updateStatus("Zlyhalo", telegramData.error);
+            return false;
+        }
+        
+        utils.addDebug(currentEntry, "Telegram údaje získané:");
+        utils.addDebug(currentEntry, "  • Chat ID: " + telegramData.chatId);
+        if (telegramData.threadId) {
+            utils.addDebug(currentEntry, "  • Thread ID: " + telegramData.threadId);
+        }
+        
+        // 4. Príprava správy
+        var message = utils.safeGet(currentEntry, CONFIG.fields.notifications.message);
+        if (!message) {
+            utils.addError(currentEntry, "Správa je prázdna", "main");
+            updateStatus("Zlyhalo", "Prázdna správa");
+            return false;
+        }
+        
+        // 5. Odoslanie na Telegram
+        var sendResult = sendToTelegram(telegramData.chatId, message, telegramData.threadId);
+        
+        if (!sendResult.success) {
+            utils.addError(currentEntry, "Odoslanie zlyhalo: " + sendResult.error, "main");
+            updateStatus("Zlyhalo", sendResult.error);
+            return false;
+        }
+        
+        // 6. Aktualizácia záznamu po úspešnom odoslaní
+        updateAfterSuccess(sendResult, telegramData);
+        
+        // 7. Aktualizácia info poľa zdrojového záznamu
+        updateSourceEntryInfo(sendResult, telegramData);
+        
+        utils.addDebug(currentEntry, utils.getIcon("success") + " === NOTIFIKÁCIA ÚSPEŠNE ODOSLANÁ ===");
+        
+        return true;
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Kritická chyba v hlavnej funkcii", "main", error);
+        updateStatus("Chyba", error.toString());
+        return false;
+    }
+}
 
 // Helper funkcia pre escape markdown znakov
 function escapeMarkdown(text) {
@@ -923,6 +985,10 @@ function main() {
         
         // KROK 6: Vytvorenie info záznamu
         utils.addDebug(currentEntry, " KROK 6: Vytvorenie info záznamu", "note");
+            if (entryStatus.indexOf("Notifikácie") === -1) {
+                 entryStatus.push("Notifikácie");
+            }
+            entryIcons += CONFIG.icons.rate;
         steps.step6.success = createInfoRecord(workTimeResult, employeeResult);
 
         // KROK 7: Vytvorenie Telegram notifikácie
@@ -931,7 +997,7 @@ function main() {
         
         //var farba = "#FFFFFF"; // Biela - štandard
         if (isHoliday) {
-            utils.setColor(currentEntry, "bg", "light blue")
+            utils.setColor(currentEntry, "bg", "pastel blue")
         } else if (isWeekend) {
             utils.setColor(currentEntry, "bg", "orange")
         }
