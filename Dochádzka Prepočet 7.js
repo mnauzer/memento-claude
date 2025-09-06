@@ -317,7 +317,6 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index, obligati
                 totalAmount: obligationResult.totalAmount,
                 errors: obligationResult.errors,
                 total: obligationResult.total,
-                obligationSuccess: obligationResult.success,
                 obligationResult: obligationResult
                 
             };
@@ -1076,7 +1075,7 @@ function main() {
             if (entryStatus.indexOf("Záväzky") === -1) {
                  entryStatus.push("Záväzky");
                 }
-            if(employeeResult.obligationResult.created || employeeResult.obligationResult.updated > 0){
+            if(employeeResult.created || employeeResult.updated > 0){
                 entryIcons += CONFIG.icons.obligation;
             }
         }
