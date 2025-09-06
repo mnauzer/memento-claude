@@ -849,7 +849,7 @@ function main() {
         var entryStatus = utils.safeGet(currentEntry, CONFIG.fields.attendance.entryStatus, []);
 
         if (entryStatus.indexOf("Voľno") !== -1) {
-            message("Záznam je nastavený na: " + dayOff);
+            message("Záznam je nastavený na: " + utils.safeGet(currentEntry, CONFIG.fields.attendance.dayOffReason));
             exit();
         }
 
