@@ -847,18 +847,10 @@ function main() {
         }
          // KONTROLA ČI MÁ SCRIPT BEŽAŤ
         var entryStatus = utils.safeGet(currentEntry, CONFIG.fields.attendance.entryStatus, []);
-        var dayOff = 'Voľno';
 
-        var isDayOff = dayOff.filter(function(status) {
-            return !entryStatus.includes(status);
-        });
-
-        if (isDayOff) {
-            
-        }
-        if (isDayOff.length > 0) {
+        if (entryStatus.indexOf("Voľno") !== -1) {
             message("Záznam je nastavený na: " + dayOff);
-            cancel();
+            exit();
         }
 
         // Debug info o načítaných moduloch
