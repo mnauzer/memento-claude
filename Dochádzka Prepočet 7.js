@@ -898,22 +898,34 @@ function logFinalSummary(steps) {
 
 function main() {
     try {
-        utils.clearLogs(currentEntry, true);
-        utils.addDebug(currentEntry, "=== DOCHÁDZKA PREPOČET ===");
-        utils.addDebug(currentEntry, "MementoUtils verzia: " + utils.version);
-        // Kontrola závislostí
         var depCheck = utils.checkDependencies(['config', 'core', 'business']);
         if (!depCheck.success) {
             utils.addError(currentEntry, "Chýbajú potrebné moduly: " + depCheck.missing.join(", "), "main");
             message("❌ Chýbajú potrebné moduly!\n\n" + depCheck.missing.join(", "));
             return false;
         }
+        utils.clearLogs(currentEntry, true);
+        utils.safeSet(currentEntry, CONFIG.fields.attendance.entryIcons, "");
+        utils.addDebug(currentEntry, "=== DOCHÁDZKA PREPOČET ===");
+        utils.addDebug(currentEntry, "MementoUtils verzia: " + utils.version);
+        // Kontrola závislostí
          // KONTROLA ČI MÁ SCRIPT BEŽAŤ
-        var entryStatus = utils.safeGet(currentEntry, CONFIG.fields.attendance.entryStatus, []);
-        var entryIcons = utils.safeGet(currentEntry, CONFIG.fields.attendance.entryIcons, null);
-
-        if (entryStatus.indexOf("Voľno") !== -1) {
+         var entryStatus = utils.safeGet(currentEntry, CONFIG.fields.attendance.entryStatus, []);
+         var entryIcons = utils.safeGet(currentEntry, CONFIG.fields.attendance.entryIcons, null);
+         
+         if (entryStatus.indexOf("Voľno") !== -1) {
             message("Záznam je nastavený na: " + utils.safeGet(currentEntry, CONFIG.fields.attendance.dayOffReason));
+            var dayOffReason = utils.safeGet(currentEntry, CONFIG.fields.attendance.dayOffReason, null);
+            if (dayOffReason === "Dažď") {
+                utils.safeSet(currentEntry, CONFIG.fields.attendance.entryIcons, CONFIG.icons.weather_delay);
+            } else if (dayOffReason === "Oddych") {
+                utils.safeSet(currentEntry, CONFIG.fields.attendance.entryIcons, CONFIG.icons.vacation);
+            } else if (dayOffReason === "Dovolenka") {
+                utils.safeSet(currentEntry, CONFIG.fields.attendance.entryIcons, CONFIG.icons.vacation);
+            } else if (dayOffReason === "Mokro") {
+                utils.safeSet(currentEntry, CONFIG.fields.attendance.entryIcons, CONFIG.icons.soil_wet);
+            }
+            utils.setColor(currentEntry, "bg", "light gray");
             exit();
         }
 
