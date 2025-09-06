@@ -266,8 +266,6 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
 }
 
 function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index, obligations) {
-    
-
     try {
         // Nájdi platnú hodinovku
         var hodinovka = utils.findValidSalary(currentEntry, zamestnanec, datum);
@@ -319,7 +317,8 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index, obligati
                 totalAmount: obligationResult.totalAmount,
                 errors: obligationResult.errors,
                 total: obligationResult.total,
-                obligationSuccess: obligationResult.success
+                obligationSuccess: obligationResult.success,
+                obligationResult: obligationResult
                 
             };
         } else {
@@ -643,7 +642,7 @@ function linkRideLogRecords() {
             }
             
             if (hasMatchingEmployee) {
-                utils.addDebug(currentEntry, "  ✅ Záznam #" + workRecord.field("ID") + " má zhodných zamestnancov");
+                utils.addDebug(currentEntry, "  ✅ Záznam #" + rideLogRecord.field("ID") + " má zhodných zamestnancov");
             }
         }
         
@@ -1074,10 +1073,12 @@ function main() {
         utils.addDebug(currentEntry, " KROK 3: Spracovanie zamestnancov", "group");
         var employeeResult = processEmployees(validationResult.employees, workTimeResult.pracovnaDobaHodiny, validationResult.date);
         if(employeeResult.success) {
-             if (entryStatus.indexOf("Záväzky") === -1) {
+            if (entryStatus.indexOf("Záväzky") === -1) {
                  entryStatus.push("Záväzky");
                 }
-            entryIcons += CONFIG.icons.rate;
+            if(employeeResult.obligationResult.created || employeeResult.obligationResult.updated > 0){
+                entryIcons += CONFIG.icons.obligation;
+            }
         }
         steps.step3.success = employeeResult.success;
         
@@ -1087,11 +1088,13 @@ function main() {
         if (workLinkResult.success) {
             if (entryStatus.indexOf("Práce") === -1) {
                 entryStatus.push("Práce");
+                utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + workLinkResult.linkedCount + " záznamov");   
             }
-            entryIcons += CONFIG.icons.work;
-            utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + workLinkResult.linkedCount + " záznamov");   
-        } else {
             utils.addError(currentEntry, "Linkovanie záznamov neúspešné", CONFIG.scriptName);
+            if (workLinkResult.linkedCount > 0) {
+                entryIcons += CONFIG.icons.work;
+            }
+        } else {
         }
         steps.step4.success = workLinkResult.success;
 
@@ -1102,8 +1105,10 @@ function main() {
             if (entryStatus.indexOf("Doprava") === -1) {
                 entryStatus.push("Doprava");
             }
-            entryIcons += CONFIG.icons.truck;
             utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + rideLogLinkResult.linkedCount + " záznamov");   
+            if (rideLogLinkResult.linkedCount > 0) {
+                entryIcons += CONFIG.icons.truck;
+            }
         } else {
             utils.addError(currentEntry, "Linkovanie záznamov neúspešné", CONFIG.scriptName);
         }
