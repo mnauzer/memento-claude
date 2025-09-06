@@ -635,137 +635,164 @@ var MementoConfig = (function() {
         
         // === EMOJI A IKONY ===
         icons: {
-            // Všeobecné
-            start: "🚀",
-            success: "✅",
-            error: "❌",
-            warning: "⚠️",
-            info: "ℹ️",
-            debug: "🐛",
+            // ═══════════════════════════════════════════════════════════════
+            // VŠEOBECNÉ STATUSY A AKCIE  
+            // ═══════════════════════════════════════════════════════════════
+            start: "🚀",              // Spustenie procesu
+            success: "✅",            // Všeobecný úspech
+            error: "❌",              // Všeobecná chyba
+            warning: "⚠️",            // Všeobecné varovanie
+            info: "ℹ️",               // Informácia
+            debug: "🐛",              // Debug
             
             // Akcie
-            create: "➕",
-            update: "🔄",
-            delete: "🗑️",
-            search: "🔍",
-            save: "💾",
-            
-            // Objekty
-            person: "👤",
-            group: "👥",
-            money: "💰",
-            rate: "💶",
-            time: "⏰",
-            calendar: "📅",
-            document: "📄",
+            create: "➕",             // Vytvorenie
+            update: "🔄",            // Aktualizácia  
+            delete: "🗑️",            // Vymazanie
+            search: "🔍",            // Vyhľadávanie
+            save: "💾",              // Uloženie
             
             // Stavy
-            checkmark: "☑️",
-            cross: "❎",
-            questionMark: "❓",
-            exclamation: "❗",
-            round: "🔄",
+            checkmark: "☑️",          // Označené
+            cross: "❎",              // Neoznačené  
+            questionMark: "❓",       // Otázka
+            exclamation: "❗",        // Výkričník
+            round: "🔄",             // Rotácia/cyklus (rovnaké ako update - OK!)
             
-            // Špecifické
-            attendance: "📋",
-            work: "🔨",
-            car: "🚗",
-            notification: "🔔",
-            telegram: "📱",
-            validation: "🛡️",
-            calculation: "🧮",
-            note: "📝",
-            //weather
-            rain_cross: "🌧️❌",
-            storm: "⛈️🛑", 
-            wet: "⚠️💧",
-            fog: "🌫️👁️",
-            wind: "💨⚠️",
-            frost: "❄️🛑",
-            soil_wet: "🌱💧",
-            weather: "🌤️",            // Všeobecné počasie
-            rain: "🌧️",               // Dážď
-            heavy_rain: "⛈️",         // Silný dážď/búrka
-            light_rain: "🌦️",         // Slabý dážď
-            wet: "💧",                 // Mokro
-            storm: "⛈️",               // Búrka
-            
-            // PRACOVNÉ PODMIENKY (pre záhradníctvo)
-            work_stop: "🛑",           // Zastavenie práce
-            weather_delay: "⏰🌧️",    // Odklad kvôli počasiu
-            indoor_work: "🏠",         // Práca v interiéri
-            weather_ok: "☀️",          // Vhodné počasie
-            // TYPY MRAKOV
-            cloud: "☁️",               // Mrak
-            cloudy: "🌥️",             // Oblačno
-            overcast: "☁️",            // Zamračené
-            fog: "🌫️",                // Hmla
-            mist: "🌫️",
-            // NÁSLEDKY MOKRA
-            muddy: "🟤",               // Bahno (hnedá farba)
-            slippery: "⚠️",           // Šmykľavo
-            splash: "💦",              // Striekanie vody
-            // HLAVNÉ DOPRAVNÉ KATEGÓRIE
-            transport: "🚚",        // Všeobecná doprava
-            vehicle: "🚗",          // Vozidlo
-            delivery: "🚚",         // Dodávka
-            travel: "✈️",           // Cestovanie
-            
-            // KNIHA JÁZD / VOZOVÝ PARK
-            trip: "🛣️",            // Výjazd/cesta
-            route: "🗺️",           // Trasa
-            distance: "📏",         // Vzdialenosť  
-            fuel: "⛽",             // Palivo
-            maintenance: "🔧",      // Údržba
-            service: "🛠️",         // Servis
-            
-            // TYPY VOZIDIEL (pre váš systém)
-            company_car: "🚗",      // Firemné auto
-            work_truck: "🚚",       // Pracovné vozidlo
-            equipment_van: "🚐",    // Dodávka s náradím
-            trailer: "🚛",          // Príves
-            
-            // DOPRAVNÉ AKCIE
-            start_trip: "🚀",       // Začiatok cesty
-            end_trip: "🏁",         // Koniec cesty
-            refuel: "⛽",           // Tankovanie
-            parking: "🅿️",         // Parkovanie
-            breakdown: "⚠️",        // Porucha
-            obligations: "💸",    // Peniaze s krídlami (odchádzajúce)
-            debt: "🔴",           // Červené koliesko (deficit)
-            liability: "⚖️",      // Váhy spravodlivosti
-            payment: "💳",        // Platobná karta
-            money_out: "💸",      // Odchádzajúce peniaze
-            // Záväzky/Povinnosti
-            contract: "📝",       // Dokument/zmluva
-            agreement: "🤝",      // Podanie rúk
-            commitment: "🪢",     // Uzol (spojenie/záväzok) [94]
-            obligation: "⚖️",     // Váhy (spravodlivosť)
-            bond: "🔗",          // Reťaz/spojenie
-            // Systémové
-            database: "🗄️",
-            sync: "🔄",
-            backup: "💾",
-            settings: "⚙️",
-            security: "🔒",
-            key: "🔑",
-            // Dochádzka
-            present: "✅",
-            absent: "❌", 
-            late: "⏰",
-            overtime: "🕐",
-            vacation: "🏖️",
-            sick: "🤒",
+            // ═══════════════════════════════════════════════════════════════
+            // OBJEKTY A ENTITY
+            // ═══════════════════════════════════════════════════════════════
+            person: "👤",             // Osoba
+            group: "👥",              // Skupina  
+            money: "💰",              // Peniaze
+            rate: "💶",               // Kurz
+            time: "⏰",               // Čas (všeobecný)
+            calendar: "📅",           // Kalendár
+            document: "📄",           // Dokument
 
-            // Práca/Projekty  
-            work: "🔨",
-            project: "📊",
-            task: "✔️",
-            completed: "🏁",
-            inProgress: "⚙️",
-            pending: "⏳",
-            priority: "🔴",
+            // ═══════════════════════════════════════════════════════════════
+            // DOCHÁDZKA (rovnaké emoji, iný kontext!)
+            // ═══════════════════════════════════════════════════════════════
+            attendance: "📋",         // Dochádzka
+            present: "✅",            // Prítomný (rovnaké ako success - OK!)
+            absent: "❌",             // Neprítomný (rovnaké ako error - OK!)
+            late: "⏰",               // Oneskorenie (rovnaké ako time - OK!)
+            overtime: "🕐",           // Nadčas
+            vacation: "🏖️",          // Dovolenka
+            sick: "🤒",               // Choroba
+
+            // ═══════════════════════════════════════════════════════════════  
+            // PRÁCA A PROJEKTY
+            // ═══════════════════════════════════════════════════════════════
+            work: "🔨",               // Práca
+            project: "📊",            // Projekt
+            task: "✔️",               // Úloha
+            completed: "🏁",          // Dokončené
+            inProgress: "⚙️",         // Prebieha
+            pending: "⏳",            // Čakajúce
+            priority: "🔴",           // Priorita
+
+            // ═══════════════════════════════════════════════════════════════
+            // DOPRAVA (rovnaké emoji pre príbuzné funkcie)
+            // ═══════════════════════════════════════════════════════════════
+            car: "🚗",                // Všeobecné auto
+            vehicle: "🚗",            // Vozidlo (rovnaké ako car - OK!)
+            company_car: "🚗",        // Firemné auto (rovnaké - OK!)
+            
+            transport: "🚚",          // Doprava
+            delivery: "🚚",           // Dodávka (rovnaké ako transport - OK!)
+            work_truck: "🚚",         // Pracovné vozidlo (rovnaké - OK!)
+            truck: "🚚",              // Pracovné vozidlo (rovnaké - OK!)
+            
+            equipment_van: "🚐",      // Dodávka s náradím
+            trailer: "🚛",            // Príves
+            travel: "✈️",             // Cestovanie
+            
+            // Cesty
+            trip: "🛣️",              // Výjazd
+            route: "🗺️",             // Trasa  
+            distance: "📏",           // Vzdialenosť
+            start_trip: "🚀",         // Začiatok cesty (rovnaké ako start - OK!)
+            end_trip: "🏁",           // Koniec cesty (rovnaké ako completed - OK!)
+            
+            // Palivo a servis
+            fuel: "⛽",               // Palivo
+            refuel: "⛽",             // Tankovanie (rovnaké ako fuel - OK!)
+            maintenance: "🔧",        // Údržba
+            service: "🛠️",           // Servis
+            parking: "🅿️",           // Parkovanie
+            breakdown: "⚠️",          // Porucha (rovnaké ako warning - OK!)
+
+            // ═══════════════════════════════════════════════════════════════
+            // POČASIE (kombinované emoji sú skvelé!)
+            // ═══════════════════════════════════════════════════════════════
+            weather: "🌤️",           // Všeobecné počasie
+            rain: "🌧️",              // Dážď
+            heavy_rain: "⛈️",        // Silný dážď  
+            light_rain: "🌦️",        // Slabý dážď
+            storm: "⛈️",             // Búrka (rovnaké ako heavy_rain - OK!)
+            wet: "💧",               // Mokro
+            
+            // Mraky
+            cloud: "☁️",             // Mrak
+            cloudy: "🌥️",           // Oblačno
+            overcast: "☁️",          // Zamračené (rovnaké ako cloud - OK!)
+            fog: "🌫️",              // Hmla
+            mist: "🌫️",             // Opar (rovnaké ako fog - OK!)
+            
+            // Podmienky
+            muddy: "🟤",             // Bahno
+            slippery: "⚠️",          // Šmykľavo (rovnaké ako warning - OK!)  
+            splash: "💦",            // Striekanie
+            
+            // Pracovné podmienky  
+            work_stop: "🛑",         // Zastavenie práce
+            weather_delay: "⏰🌧️",  // Odklad kvôli počasiu
+            indoor_work: "🏠",       // Práca v interiéri
+            weather_ok: "☀️",        // Vhodné počasie
+            
+            // Špeciálne kombinované (výborné!)
+            rain_cross: "🌧️❌",     // Dážď - nemožno pracovať
+            wet_warn: "⚠️💧",       // Mokro - varovanie  
+            fog_eye: "🌫️👁️",       // Hmla - viditeľnosť
+            wind: "💨⚠️",           // Vietor - varovanie
+            frost: "❄️🛑",          // Mráz - stop
+            soil_wet: "🌱💧",       // Mokrá pôda
+
+            // ═══════════════════════════════════════════════════════════════
+            // FINANČNÉ A ZÁVÄZKY  
+            // ═══════════════════════════════════════════════════════════════
+            obligations: "💸",       // Záväzky
+            debt: "🔴",             // Dlh
+            liability: "⚖️",         // Zodpovednosť
+            payment: "💳",          // Platba
+            money_out: "💸",        // Odchádzajúce peniaze (rovnaké ako obligations - OK!)
+            
+            // Zmluvy
+            contract: "📝",          // Zmluva
+            agreement: "🤝",         // Dohoda  
+            commitment: "🪢",        // Záväzok
+            obligation: "⚖️",        // Povinnosť (rovnaké ako liability - OK!)
+            bond: "🔗",             // Spojenie
+
+            // ═══════════════════════════════════════════════════════════════
+            // SYSTÉMOVÉ A APLIKAČNÉ
+            // ═══════════════════════════════════════════════════════════════
+            database: "🗄️",         // Databáza
+            sync: "🔄",             // Synchronizácia (rovnaké ako update - OK!)
+            backup: "💾",           // Záloha (rovnaké ako save - OK!)
+            settings: "⚙️",         // Nastavenia
+            security: "🔒",         // Bezpečnosť
+            key: "🔑",              // Kľúč
+            
+            // Aplikačné
+            notification: "🔔",      // Notifikácia
+            telegram: "📱",          // Telegram
+            validation: "🛡️",       // Validácia  
+            calculation: "🧮",       // Výpočet
+            note: "📝"              // Poznámka (rovnaké ako contract - OK!)
         }
+
     };
     
     // === POMOCNÉ FUNKCIE ===
