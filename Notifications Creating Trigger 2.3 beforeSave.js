@@ -21,7 +21,7 @@
 
 var utils = MementoUtils;
 var centralConfig = utils.config;
-var currentEntry = entry();
+var currentEntry = defaultEntry();
 
 var CONFIG = {
     scriptName: "Notification Create Trigger",
