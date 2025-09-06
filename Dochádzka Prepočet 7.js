@@ -583,7 +583,7 @@ function linkWorkRecords() {
 // KROK 4: CELKOVÉ VÝPOČTY
 // ==============================================
 
-function calculateTotals(employeeResult, linkResult) {
+function setEntryFields(employeeResult, linkResult) {
     try {
         // Ulož celkové hodnoty
         var workHoursDiff = linkResult.workedOnOrders - employeeResult.workHours;
@@ -619,7 +619,7 @@ function calculateTotals(employeeResult, linkResult) {
         };
         
     } catch (error) {
-        utils.addError(currentEntry, error.toString(), "calculateTotals", error);
+        utils.addError(currentEntry, error.toString(), "setEntryFields", error);
         return false;
     }
 }
@@ -895,7 +895,10 @@ function main() {
         utils.addDebug(currentEntry, " KROK 3: Spracovanie zamestnancov", "group");
         var employeeResult = processEmployees(validationResult.employees, workTimeResult.pracovnaDobaHodiny, validationResult.date);
         if(employeeResult.success) {
-            markCheckbox();
+             if (entryStatus.indexOf("Záväzky") === -1) {
+                 entryStatus.push("Záväzky");
+                }
+            entryIcons += CONFIG.icons.rate;
         }
         steps.step3.success = employeeResult.success;
         
@@ -915,7 +918,7 @@ function main() {
         
         // KROK 5: Celkové výpočty
         utils.addDebug(currentEntry, " KROK 5: Celkové výpočty", "calculation");
-        var totals = calculateTotals(employeeResult, linkResult)
+        var totals = setEntryFields(employeeResult, linkResult)
         steps.step5.success = totals.success;
         
         // KROK 6: Vytvorenie info záznamu
