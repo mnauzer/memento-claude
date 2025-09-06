@@ -583,7 +583,7 @@ function linkWorkRecords() {
 // KROK 4: CELKOVÉ VÝPOČTY
 // ==============================================
 
-function setEntryFields(employeeResult, linkResult) {
+function setEntryFields(employeeResult, linkResult, entryIcons) {
     try {
         // Ulož celkové hodnoty
         var workHoursDiff = linkResult.workedOnOrders - employeeResult.workHours;
@@ -918,7 +918,7 @@ function main() {
         
         // KROK 5: Celkové výpočty
         utils.addDebug(currentEntry, " KROK 5: Celkové výpočty", "calculation");
-        var totals = setEntryFields(employeeResult, linkResult)
+        var totals = setEntryFields(employeeResult, linkResult, entryIcons)
         steps.step5.success = totals.success;
         
         // KROK 6: Vytvorenie info záznamu
