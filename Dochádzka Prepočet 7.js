@@ -45,6 +45,7 @@ var CONFIG = {
     
     // Referencie na centrálny config
     fields: {
+        rideLog: centralConfig.fields.rideLog,
         workRecord: centralConfig.fields.workRecord,
         attendance: centralConfig.fields.attendance,
         obligations: centralConfig.fields.obligations,
@@ -686,7 +687,7 @@ function linkRideLogRecords() {
 // KROK 4: CELKOVÉ VÝPOČTY
 // ==============================================
 
-function setEntryFields(employeeResult, linkResult, entryIcons) {
+function setEntryFields(employeeResult, workLinkResult, rideLogLinkResult, entryIcons, entryStatus) {
     try {
         // Ulož celkové hodnoty
         var workHoursDiff = linkResult.workedOnOrders - employeeResult.workHours;
@@ -1082,35 +1083,35 @@ function main() {
         
         // KROK 4: Linkovanie pracovných záznamov
         utils.addDebug(currentEntry, " KROK 4: Linkovanie pracovných záznamov", "work");
-        var linkResult = linkWorkRecords();
-        if (linkResult.success) {
+        var workLinkResult = linkWorkRecords();
+        if (workLinkResult.success) {
             if (entryStatus.indexOf("Práce") === -1) {
                 entryStatus.push("Práce");
             }
             entryIcons += CONFIG.icons.work;
-            utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + linkResult.linkedCount + " záznamov");   
+            utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + workLinkResult.linkedCount + " záznamov");   
         } else {
             utils.addError(currentEntry, "Linkovanie záznamov neúspešné", CONFIG.scriptName);
         }
-        steps.step4.success = linkResult.success;
+        steps.step4.success = workLinkResult.success;
 
         // KROK 4.1: Linkovanie dopravných záznamov
         utils.addDebug(currentEntry, " KROK 4.1: Linkovanie dopravy", "truck");
-        var transportLinkResult = linkRideLogRecords();
-        if (transportLinkResult.success) {
+        var rideLogLinkResult = linkRideLogRecords();
+        if (rideLogLinkResult.success) {
             if (entryStatus.indexOf("Doprava") === -1) {
                 entryStatus.push("Doprava");
             }
             entryIcons += CONFIG.icons.truck;
-            utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + transportLinkResult.linkedCount + " záznamov");   
+            utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + rideLogLinkResult.linkedCount + " záznamov");   
         } else {
             utils.addError(currentEntry, "Linkovanie záznamov neúspešné", CONFIG.scriptName);
         }
-        steps.step41.success = transportLinkResult.success;
+        steps.step41.success = rideLogLinkResult.success;
         
         // KROK 5: Celkové výpočty
         utils.addDebug(currentEntry, " KROK 5: Celkové výpočty", "calculation");
-        var totals = setEntryFields(employeeResult, linkResult, entryIcons)
+        var totals = setEntryFields(employeeResult, workLinkResult, rideLogLinkResult, entryIcons, entryStatus)
         steps.step5.success = totals.success;
         
         // KROK 6: Vytvorenie info záznamu
