@@ -642,6 +642,7 @@ function linkRideLogRecords() {
             
             if (hasMatchingEmployee) {
                 utils.addDebug(currentEntry, "  ✅ Záznam #" + rideLogRecord.field("ID") + " má zhodných zamestnancov");
+                matchingRideLog.push(rideLogRecord);
             }
         }
         
@@ -1076,7 +1077,7 @@ function main() {
                  entryStatus.push("Záväzky");
                 }
             if(employeeResult.created || employeeResult.updated > 0){
-                entryIcons += CONFIG.icons.obligation;
+                entryIcons += CONFIG.icons.obligations;
             }
         }
         steps.step3.success = employeeResult.success;
@@ -1089,7 +1090,7 @@ function main() {
                 entryStatus.push("Práce");
                 utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + workLinkResult.linkedCount + " záznamov");   
             }
-            utils.addError(currentEntry, "Linkovanie záznamov neúspešné", CONFIG.scriptName);
+            utils.addError(currentEntry, "Linkovanie pracovných záznamov neúspešné", CONFIG.scriptName);
             if (workLinkResult.linkedCount > 0) {
                 entryIcons += CONFIG.icons.work;
             }
@@ -1109,7 +1110,7 @@ function main() {
                 entryIcons += CONFIG.icons.truck;
             }
         } else {
-            utils.addError(currentEntry, "Linkovanie záznamov neúspešné", CONFIG.scriptName);
+            utils.addError(currentEntry, "Linkovanie záznamov dopravy neúspešné", CONFIG.scriptName);
         }
         steps.step41.success = rideLogLinkResult.success;
         
