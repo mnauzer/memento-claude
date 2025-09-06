@@ -586,15 +586,6 @@ function linkWorkRecords() {
 function calculateTotals(employeeResult, linkResult) {
     try {
         // Ulož celkové hodnoty
-        utils.safeSet(currentEntry, CONFIG.fields.attendance.workedHours, employeeResult.odpracovaneTotal);
-        utils.safeSet(currentEntry, CONFIG.fields.attendance.wageCosts, employeeResult.celkoveMzdy);
-        utils.safeSet(currentEntry, CONFIG.fields.attendance.onProjects, 0);
-        utils.safeSet(currentEntry, CONFIG.fields.attendance.downtime, 0);
-        
-        utils.addDebug(currentEntry, "  • Pracovná doba: " + employeeResult.pracovnaDoba + " hodín");
-        utils.addDebug(currentEntry, "  • Odpracované spolu: " + employeeResult.odpracovaneTotal + " hodín");
-        utils.addDebug(currentEntry, "  • Mzdové náklady: " + utils.formatMoney(employeeResult.celkoveMzdy));
-       
         var workHoursDiff = linkResult.workedOnOrders - employeeResult.workHours;
         if (workHoursDiff > 0) {
             utils.addDebug(currentEntry, "❗ Odpracovaný čas na zákazkách je vyšší ako čas v dochádzke: " + workHoursDiff + " hodín");
@@ -606,9 +597,19 @@ function calculateTotals(employeeResult, linkResult) {
             utils.addDebug(currentEntry, "☑️ Odpracovaný čas na zákazkách sedí na chlp s dochádzkou ");
             utils.setColor(currentEntry, "bg", "pastel yellow");
         }
-
+        
+        utils.safeSet(currentEntry, CONFIG.fields.attendance.workedHours, employeeResult.odpracovaneTotal);
+        utils.safeSet(currentEntry, CONFIG.fields.attendance.wageCosts, employeeResult.celkoveMzdy);
+        utils.safeSet(currentEntry, CONFIG.fields.attendance.onProjects, 0);
+        utils.safeSet(currentEntry, CONFIG.fields.attendance.downtime, 0);
         utils.safeSet(currentEntry,CONFIG.fields.attendance.downtime, workHoursDiff)
         utils.safeSet(currentEntry,CONFIG.fields.attendance.workedOnOrders, linkResult.workedOnOrders)
+        utils.safeSet(currentEntry,CONFIG.fields.attendance.entryIcons, entryIcons)
+        utils.safeSet(currentEntry,CONFIG.fields.attendance.entryStatus, entryStatus)
+
+        utils.addDebug(currentEntry, "  • Pracovná doba: " + employeeResult.pracovnaDoba + " hodín");
+        utils.addDebug(currentEntry, "  • Odpracované spolu: " + employeeResult.odpracovaneTotal + " hodín");
+        utils.addDebug(currentEntry, "  • Mzdové náklady: " + utils.formatMoney(employeeResult.celkoveMzdy));
         utils.addDebug(currentEntry, "  • Na zákazkách: " + linkResult.workedOnOrders +" hodín");
         utils.addDebug(currentEntry, "  • Prestoje: " + workHoursDiff + " hodín");
         utils.addDebug(currentEntry, " Celkové výpočty úspešné", "success");
@@ -847,6 +848,7 @@ function main() {
         }
          // KONTROLA ČI MÁ SCRIPT BEŽAŤ
         var entryStatus = utils.safeGet(currentEntry, CONFIG.fields.attendance.entryStatus, []);
+        var entryIcons = utils.safeGet(currentEntry, CONFIG.fields.attendance.entryIcons, null);
 
         if (entryStatus.indexOf("Voľno") !== -1) {
             message("Záznam je nastavený na: " + utils.safeGet(currentEntry, CONFIG.fields.attendance.dayOffReason));
@@ -901,6 +903,10 @@ function main() {
         utils.addDebug(currentEntry, " KROK 4: Linkovanie pracovných záznamov", "work");
         var linkResult = linkWorkRecords();
         if (linkResult.success) {
+            if (entryStatus.indexOf("Práce") === -1) {
+                entryStatus.push("Práce");
+            }
+            entryIcons += CONFIG.icons.work;
             utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + linkResult.linkedCount + " záznamov");   
         } else {
             utils.addError(currentEntry, "Linkovanie záznamov neúspešné", CONFIG.scriptName);

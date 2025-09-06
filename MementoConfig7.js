@@ -139,6 +139,7 @@ var MementoConfig = (function() {
                 keys: "keys",
                 entryStatus: "stav záznamu", // multiCheckboxes: Záväzky, Práce, Jazdy, Notifikácie, Skontrolované, Voľno
                 dayOffReason: "Dôvod voľna", // singleChoice: Dážď, Mokro, Oddych, Dovolenka, Iné
+                entryIcons: "ikony záznamu",
                 employeeAttributes: {
                     workedHours: "odpracované",
                     hourlyRate: "hodinovka",
