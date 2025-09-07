@@ -912,7 +912,7 @@ function createInfoRecord(workTimeResult, employeeResult) {
 function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsData) {
     try {
         var date = currentEntry.field(CONFIG.fields.attendance.date);
-        var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
+        var dateFormatted = utils.formatDate(date, "DD.MMMM.YYYY");
         var dayName = utils.getDayNameSK(moment(date).day()).toUpperCase();
 
         // Inicializuj linkedRecordsData ak nebol poskytnutý
@@ -921,7 +921,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
         }
 
         // HTML formátovaná správa
-        var telegramInfo = "📋 <b>DOCHÁDZKA - DENNÝ SÚHRN</b>\n";
+        var telegramInfo = "📋 <b>ZÁHRADY KRAJINKA - DENNÝ SÚHRN</b>\n";
         telegramInfo += "═══════════════════════════════════\n\n";
         
         telegramInfo += "📅 <b>Dátum:</b> " + dateFormatted + " (" + dayName + ")\n";
@@ -939,10 +939,10 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             var empName = utils.formatEmployeeName(detail.zamestnanec);
             
             telegramInfo += "• <b>" + empName + "</b>\n";
-            telegramInfo += "  💶 Hodinovka: " + detail.hodinovka + " €/h\n";
+            telegramInfo += "  💶 Sadzba: " + detail.hodinovka + " €(h)\n";
             
             if (detail.priplatok > 0) {
-                telegramInfo += "  ➕ Príplatok: " + detail.priplatok + " €/h\n";
+                telegramInfo += "  ➕ Príplatok: " + detail.priplatok + " €(h)\n";
             }
             if (detail.premia > 0) {
                 telegramInfo += "  🎁 Prémia: " + detail.premia + " €\n";
@@ -955,7 +955,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
         }
         
         // ZÁZNAMY PRÁCE (nová sekcia)
-        if (linkedRecordsData.workRecords && linkedRecordsData.workRecords.count > 0) {
+        if (linkedRecordsData.workRecords.count > 0) {
             telegramInfo += "🔨 <b>ZÁZNAMY PRÁCE</b> (" + linkedRecordsData.workRecords.count + ")\n";
             telegramInfo += "───────────────────────────────────\n";
             
@@ -975,7 +975,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
         }
         
         // KNIHA JÁZD (nová sekcia)
-        if (linkedRecordsData.rideLog && linkedRecordsData.rideLog.count > 0) {
+        if (linkedRecordsData.rideLog.count > 0) {
             telegramInfo += "🚗 <b>KNIHA JÁZD</b> (" + linkedRecordsData.rideLog.count + ")\n";
             telegramInfo += "───────────────────────────────────\n";
             
@@ -1619,7 +1619,7 @@ function main() {
                         
                         // Odošli na Telegram
                         var sendResult = utils.sendNotificationEntry(newNotification.notification);
-                        if (sendResult && sendResult.success) {
+                        if (sendResult.success) {
                             if (entryStatus.indexOf("Telegram") === -1) {
                                 entryStatus.push("Telegram");
                                 entryIcons += CONFIG.icons.telegram || "✈️";
