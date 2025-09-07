@@ -506,6 +506,9 @@ var MementoConfig = (function() {
                 hourlyRate: "hodinovka", 
                 wageCosts: "mzdové náklady"
             },
+            workRecordHzs: {
+                price: "cena",
+            },
             workReport: {
                 workDescription: "vykonané práce",
                 hoursCount: "počet hodín",
