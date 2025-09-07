@@ -1607,7 +1607,9 @@ function main() {
                             entryStatus.push("Telegram notifikácie");
                         }
                         entryIcons += CONFIG.icons.notification;
-                        
+                        utils.addDebug(currentEntry, utils.getIcon("success") + " Záznam notifikácie úspešne vytvorený");
+                        utils.safeSet(currentEntry,CONFIG.fields.attendance.entryIcons, entryIcons)
+                        utils.safeSet(currentEntry,CONFIG.fields.attendance.entryStatus, entryStatus);
                         // Odošli na Telegram
                         var sendResult = utils.sendNotificationEntry(newNotification.notification);
                         if (sendResult.success) {
@@ -1617,6 +1619,8 @@ function main() {
                                 entryIcons += CONFIG.icons.telegram;
                             }
                             utils.addDebug(currentEntry, utils.getIcon("success") + " Telegram notifikácia úspešne odoslaná");
+                            utils.safeSet(currentEntry,CONFIG.fields.attendance.entryIcons, entryIcons);
+                            utils.safeSet(currentEntry,CONFIG.fields.attendance.entryStatus, entryStatus);
                         } else {
                             utils.addError(currentEntry, "Nepodarilo sa odoslať notifikáciu na Telegram", "step9");
                         }
