@@ -22,6 +22,7 @@
 
 var utils = MementoUtils;
 var config = utils.getConfig();
+var centralConfig = utils.config;
 var currentEntry = entry();
 
 var CONFIG = {
@@ -30,14 +31,14 @@ var CONFIG = {
     
     // Referencie na centrálny config
     fields: {
-        attendance: config.fields.attendance,
-        obligations: config.fields.obligations,
-        notifications: config.fields.notifications,
-        common: config.fields.common
+        attendance: centralConfig.fields.attendance,
+        obligations: centralConfig.fields.obligations,
+        notifications: centralConfig.fields.notifications,
+        common: centralConfig.fields.common
     },
     
-    libraries: config.libraries,
-    icons: config.icons,
+    libraries: centralConfig.libraries,
+    icons: centralConfig.icons,
     
     // Audit log nastavenia
     auditLog: {
