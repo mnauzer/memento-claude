@@ -958,11 +958,13 @@ function createTelegramInfoRecord(workTimeResult, employeeResult) {
         telegramInfo += "📝 <i>Záznam #" + currentEntry.field("ID") + "</i>";
         
         // Ulož do poľa info_telegram
-        currentEntry.set("info_telegram", telegramInfo);
+        utils.safaSet(currentEntry, CONFIG.fields.common.infoTelegram, telegramInfo);
         
         utils.addDebug(currentEntry, utils.getIcon("success") + " Info_telegram záznam vytvorený");
         
-        return true;
+        return {
+            succes: true
+        };
         
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "createTelegramInfoRecord", error);
@@ -1314,32 +1316,28 @@ function main() {
         
         // KROK 6: Vytvorenie info záznamu
         utils.addDebug(currentEntry, " KROK 6: Vytvorenie info záznamu", "note");
-            if (entryStatus.indexOf("Notifikácie") === -1) {
-                entryStatus.push("Notifikácie");
-            }
-            entryIcons += CONFIG.icons.rate;
-            steps.step6.success = createInfoRecord(workTimeResult, employeeResult);
+        steps.step6.success = createInfoRecord(workTimeResult, employeeResult);
             
-            // KROK 7: Vytvorenie Telegram notifikácie
-            utils.addDebug(currentEntry, " KROK 7: Vytvorenie Telegram notifikácie", "note");
-            var telegramRecord = createTelegramInfoRecord(workTimeResult, employeeResult) && steps.step6.success;  
-            steps.step7.success = telegramRecord;
-            if (telegramRecord) {
-                if (entryStatus.indexOf("Telegram notifikácie") === -1) {
-                    entryStatus.push("Telegram notifikácie");
-                }
-                var newNotification = utils.createTelegramMessage()
-                if (newNotification) {
-                    var sendToTelegram = utils.sendNotificationEntry(newNotification.notification)
-                    entryIcons += CONFIG.icons.notofication;
-                }
-                if (sendToTelegram) {
-                    if (entryStatus.indexOf("Telegram") === -1) {
-                        entryStatus.push("Telegram");
-                        entryIcons += CONFIG.icons.telegram;
-                    }   
-                }
+        // KROK 7: Vytvorenie Telegram notifikácie
+        utils.addDebug(currentEntry, " KROK 7: Vytvorenie Telegram notifikácie", "note");
+        var telegramRecord = createTelegramInfoRecord(workTimeResult, employeeResult) && steps.step6.success;  
+        steps.step7.success = telegramRecord.succes;
+        if (telegramRecord.succes) {
+            if (entryStatus.indexOf("Telegram notifikácie") === -1) {
+                entryStatus.push("Telegram notifikácie");
             }
+            var newNotification = utils.createTelegramMessage()
+            if (newNotification) {
+                var sendToTelegram = utils.sendNotificationEntry(newNotification.notification)
+                entryIcons += CONFIG.icons.notofication;
+            }
+            if (sendToTelegram) {
+                if (entryStatus.indexOf("Telegram") === -1) {
+                    entryStatus.push("Telegram");
+                    entryIcons += CONFIG.icons.telegram;
+                }   
+            }
+        }
         
         
          //var farba = "#FFFFFF"; // Biela - štandard
