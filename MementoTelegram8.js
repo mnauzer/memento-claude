@@ -167,7 +167,6 @@ var MementoTelegram = (function() {
             var config = getConfig();
             var currentEntry = sourceEntry || entry();
             var libraryName = lib().title;
-            message(libraryName + ", ID: " + currentEntry.field("ID"))
             // 1. Kontrola či máme info_telegram pole
             var telegramMessage = core.safeGet(currentEntry, config.fields.common.infoTelegram);
             if (!telegramMessage) {
@@ -189,20 +188,20 @@ var MementoTelegram = (function() {
             }
             
             // 4. Získanie Telegram skupiny
-            var telegramGroup = core.getTelegramGroup(libraryConfig.telegramGroupField, currentEntry);
+            var telegramGroup = getTelegramGroup(libraryConfig.telegramGroupField, currentEntry);
             if (!telegramGroup) {
                 core.addDebug(currentEntry, core.getIcon("warning") + " Telegram skupina nenájdená alebo neaktívna");
                 return true;
             }
             
             // 5. Cleanup starých notifikácií
-            var cleanupResult = core.cleanupOldNotifications(currentEntry);
+            var cleanupResult = cleanupOldNotifications(currentEntry);
             if (cleanupResult.deletedCount > 0) {
                 core.addDebug(currentEntry, core.getIcon("delete") + " Vymazaných " + cleanupResult.deletedCount + " starých notifikácií");
             }
             
             // 6. Vytvorenie novej notifikácie
-            var notification = core.createNotification({
+            var notification = createNotification({
                 message: telegramMessage,
                 messageType: libraryName,
                 telegramGroup: telegramGroup
@@ -214,13 +213,13 @@ var MementoTelegram = (function() {
             }
             
             // 7. Nalinkuj notifikáciu k záznamu
-            core.linkNotification(notificationm, currentEntry);
+            linkNotification(notification, currentEntry);
             
             core.addDebug(currentEntry, core.getIcon("success") + " Notifikácia vytvorená (ID: " + notification.field("ID") + ")");
             core.addDebug(currentEntry, core.getIcon("success") + " === SCRIPT DOKONČENÝ ===");
             
             return {
-                succes: true,
+                success: true,
                 notification: notification
             };
             
