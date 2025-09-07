@@ -134,10 +134,10 @@ var MementoUtils = (function() {
             return modules.config ? modules.config.getField(category, field) : null;
         },
         
-        getIcon: function(name) {
-            loadModule('config');
-            return modules.config ? modules.config.getIcon(name) : "";
-        },
+        // getIcon: function(name) {
+        //     loadModule('config');
+        //     return modules.config ? modules.config.getIcon(name) : "";
+        // },
         
         // === CORE FUNKCIE (vždy dostupné) ===
         
