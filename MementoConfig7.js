@@ -142,6 +142,8 @@ var MementoConfig = (function() {
             telegramGroups: "Telegram Groups"
         },
         
+
+    
         // === NÁZVY POLÍ ===
         fields: {
             // Spoločné polia vo všetkých knižniciach
