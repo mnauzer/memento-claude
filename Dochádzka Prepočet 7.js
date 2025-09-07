@@ -1027,7 +1027,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             
             for (var n = 0; n < linkedRecordsData.obligations.records.length; n++) {
                 var obligation = linkedRecordsData.obligations.records[n];
-                telegramInfo += "• " + obligation.typ + " - " + obligation.popis + "\n";
+                telegramInfo += "• " + obligation.popis + "\n";
                 telegramInfo += "  💰 " + utils.formatMoney(obligation.suma) + 
                                " (splatnosť: " + utils.formatDate(obligation.splatnost, "DD.MM.") + ")\n";
             }
@@ -1213,7 +1213,7 @@ function collectLinkedRecordsData() {
         if (obligationsLib) {
             var obligations = currentEntry.linksFrom(CONFIG.libraries.obligations, CONFIG.fields.obligations.attendance);
             
-            if (obligations && obligations.length > 0) {
+            if (obligations.length > 0) {
                 data.obligations.count = obligations.length;
                 
                 for (var l = 0; l < obligations.length; l++) {
