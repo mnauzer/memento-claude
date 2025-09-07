@@ -30,7 +30,7 @@ var CONFIG = {
     
     // Referencie na centrálny config
     fields: {
-        account: centralConfig.field.account,
+        account: centralConfig.fields.account,
         notifications: centralConfig.fields.notifications,
         rideLog: centralConfig.fields.rideLog,
         cashBook: centralConfig.fields.cashBook,
