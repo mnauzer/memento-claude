@@ -408,6 +408,7 @@ var MementoConfig = (function() {
                 driver: "Šofér",
                 crew: "Posádka",
                 customers: "Zákazky",
+                rate: "Sadzba za km",
                 km: "Km",
                 wageCosts: "Mzdové náklady",
                 rideTime: "Čas jazdy",
@@ -415,7 +416,8 @@ var MementoConfig = (function() {
                 totalTime: "Celkový čas",
                 start: "Štart",
                 destination: "Cieľ",
-                stops: "Zastávky"
+                stops: "Zastávky",
+                trasa: ""
             },
             // Účty (Accounts)
             account: {

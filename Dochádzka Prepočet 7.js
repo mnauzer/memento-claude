@@ -30,6 +30,7 @@ var CONFIG = {
     
     // Referencie na centrálny config
     fields: {
+        bookOfRides: centralConfig.fields.bookOfRides,
         account: centralConfig.fields.account,
         notifications: centralConfig.fields.notifications,
         rideLog: centralConfig.fields.rideLog,
@@ -970,12 +971,13 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             for (var k = 0; k < linkedRecordsData.rideLog.records.length; k++) {
                 var ride = linkedRecordsData.rideLog.records[k];
                 telegramInfo += "• " + ride.vozidlo + " - " + ride.trasa + "\n";
-                telegramInfo += "  📏 " + ride.km + " km × " + ride.sadzbaKm + " €/km = " + 
+                telegramInfo += "  📏 " + ride.km + " km × " + ride.sadzbaKm + " €(km) = " + 
                 utils.formatMoney(ride.naklady) + "\n";
             }
             
             telegramInfo += "\n📊 Súhrn jázd:\n";
             telegramInfo += "• Celkom km: " + linkedRecordsData.rideLog.totalKm + " km\n";
+            telegramInfo += "• Mzdové náklady: " + utils.formatMoney(linkedRecordsData.rideLog.totalWageCosts) + "\n";
             telegramInfo += "• Náklady: " + utils.formatMoney(linkedRecordsData.rideLog.totalCost) + "\n\n";
         } else {
            telegramInfo += "\n⚠️🚗 <b>Chýba záznam dopravy !</b>";
@@ -1126,7 +1128,7 @@ function collectLinkedRecordsData() {
             for (var i = 0; i < workLinks.length; i++) {
                 var work = workLinks[i];
                 var odpracovane = utils.safeGet(work, CONFIG.fields.workRecord.workedHours, 0);
-                var pocetPrac = utils.safeGet(work, CONFIG.fields.workRecord.employeeCount, 1);
+                var pocetPrac = utils.safeGet(currentEntry, CONFIG.fields.attendance.employeeCount, 1);
                 var odpracTotal = odpracovane * pocetPrac;
                 var hzs = utils.safeGet(work, CONFIG.fields.workRecord.hzsSum, 0);
                 var zakazka = utils.safeGetLinks(work, CONFIG.fields.workRecord.customer);
@@ -1153,21 +1155,27 @@ function collectLinkedRecordsData() {
             
             for (var j = 0; j < rideLinks.length; j++) {
                 var ride = rideLinks[j];
-                var km = utils.safeGet(ride, "Vzdialenosť", 0);
-                var sadzbaKm = utils.safeGet(ride, "Sadzba za km", 0);
-                var naklady = km * sadzbaKm;
-                var vozidlo = utils.safeGet(ride, "Vozidlo", "Neznáme");
-                var trasa = utils.safeGet(ride, "Trasa", "");
+                var km = utils.safeGet(ride, CONFIG.fields.bookOfRides.km, 0);
+                var sadzbaKm = utils.safeGet(ride, CONFIG.fields.bookOfRides.rate, 0);
+                var vozidlo = utils.safeGet(ride, CONFIG.fields.bookOfRides.vehicle, "Neznáme");
+                var trasa = utils.safeGet(ride, CONFIG.fields.bookOfRides.trasa, "coming soon :)");
+                var rideWageCosts = utils.safeGet(ride, CONFIG.fields.bookOfRides.wageCosts);
+                var totalTime = utils.safeGet(ride, CONFIG.fields.bookOfRides.totalTime);
+                var naklady = (km * sadzbaKm) + rideWageCosts;
+
                 
                 data.rideLog.records.push({
                     vozidlo: vozidlo,
                     trasa: trasa,
                     km: km,
                     sadzbaKm: sadzbaKm,
+                    rideWageCosts: rideWageCosts,
+                    totalTime: totalTime,
                     naklady: naklady
                 });
                 
                 data.rideLog.totalKm += km;
+                data.rideLog.totalWageCosts += rideWageCosts;
                 data.rideLog.totalCost += naklady;
             }
         }
