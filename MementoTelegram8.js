@@ -29,8 +29,8 @@ var MementoTelegram = (function() {
     var _ai = null;
     
     function getConfig() {
-        if (!_config && typeof Mementoconfig !== 'undefined') {
-            _config = Mementoconfig.getConfig();
+        if (!_config && typeof MementoConfig !== 'undefined') {  // Oprav na MementoConfig
+            _config = MementoConfig.getConfig();
         }
         return _config;
     }
