@@ -1335,7 +1335,7 @@ function main() {
             }
             
             // Vytvor novú notifikáciu
-            var newNotification = utils.createTelegramMessage();
+            var newNotification = utils.createTelegramMessage(currentEntry);
             if (newNotification && newNotification.success && newNotification.notification) {
                 // Pridaj ikonu notifikácie
                 if (entryStatus.indexOf("Telegram notifikácie") === -1) {
