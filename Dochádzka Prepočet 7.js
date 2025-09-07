@@ -975,6 +975,8 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             telegramInfo += "\n📊 Súhrn jázd:\n";
             telegramInfo += "• Celkom km: " + linkedRecordsData.rideLog.totalKm + " km\n";
             telegramInfo += "• Náklady: " + utils.formatMoney(linkedRecordsData.rideLog.totalCost) + "\n\n";
+        } else {
+           telegramInfo += "⚠️🚗 <b>Chýba záznam dopravy !</b>";
         }
         
         message("CashLogs: "+ linkedRecordsData.cashBook.count)
@@ -1005,6 +1007,8 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             telegramInfo += "• Príjmy: +" + utils.formatMoney(linkedRecordsData.cashBook.totalIncome) + "\n";
             telegramInfo += "• Výdavky: -" + utils.formatMoney(linkedRecordsData.cashBook.totalExpenses) + "\n";
             telegramInfo += "• <b>Saldo: " + utils.formatMoney(linkedRecordsData.cashBook.balance) + "</b>\n\n";
+        } else {
+           telegramInfo += "⚠️💳 <b>Dnes neboli žiadne platby ?</b>";
         }
         
         // ZÁVÄZKY (nová sekcia)
