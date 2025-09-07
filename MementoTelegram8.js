@@ -169,7 +169,7 @@ var MementoTelegram = (function() {
         var libraryName = lib().title;
         
         // 1. Kontrola či máme info_telegram pole
-        var telegramMessage = core.safeGet(currentEntry, config.fields.common.infoTelegram);
+        var telegramMessage = core.safeGet(currentEntry, "info_telegram");
         if (!telegramMessage) {
             core.addDebug(currentEntry, core.getIcon("info") + " Pole info_telegram je prázdne - žiadna notifikácia");
             return {
