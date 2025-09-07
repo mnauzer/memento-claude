@@ -1164,7 +1164,7 @@ function collectLinkedRecordsData() {
 
                 
                 data.rideLog.records.push({
-                    vozidlo: utils.safeGet(vehicle[0], "Názov", "Neznáme"),
+                    vozidlo: vozidlo[0].field("Názov") || "Neznáme",
                     trasa: trasa,
                     km: km,
                     sadzbaKm: sadzbaKm,
