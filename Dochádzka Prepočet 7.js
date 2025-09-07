@@ -1127,7 +1127,7 @@ function collectLinkedRecordsData() {
     try {
         // Získaj linkované záznamy práce
         var workLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.workRecord);
-        if (workLinks && workLinks.length > 0) {
+        if (workLinks.length > 0) {
             data.workRecords.count = workLinks.length;
             
             for (var i = 0; i < workLinks.length; i++) {
@@ -1155,7 +1155,7 @@ function collectLinkedRecordsData() {
         
         // Získaj linkované jazdy
         var rideLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.rideLog);
-        if (rideLinks && rideLinks.length > 0) {
+        if (rideLinks.length > 0) {
             data.rideLog.count = rideLinks.length;
             
             for (var j = 0; j < rideLinks.length; j++) {
@@ -1181,7 +1181,7 @@ function collectLinkedRecordsData() {
         
         // Získaj linkované pokladničné doklady
         var cashLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.cashBook);
-        if (cashLinks && cashLinks.length > 0) {
+        if (cashLinks.length > 0) {
             data.cashBook.count = cashLinks.length;
             
             for (var k = 0; k < cashLinks.length; k++) {
