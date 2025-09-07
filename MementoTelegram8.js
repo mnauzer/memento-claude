@@ -472,7 +472,6 @@ var MementoTelegram = (function() {
             
             return {
                 succes: true,
-                
             };
             
         } catch (error) {
