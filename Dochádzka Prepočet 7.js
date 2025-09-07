@@ -959,7 +959,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             telegramInfo += "• HZS celkom: " + utils.formatMoney(linkedRecordsData.workRecords.totalHZS) + "\n\n";
         }
         
-        message("RideLogs: "+ linkedRecordsData.rideLogs.count)
+        message("RideLogs: "+ linkedRecordsData.rideLog.count)
         // KNIHA JÁZD (nová sekcia)
         if (linkedRecordsData.rideLog.count > 0) {
             telegramInfo += "🚗 <b>KNIHA JÁZD</b> (" + linkedRecordsData.rideLog.count + ")\n";
@@ -977,7 +977,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             telegramInfo += "• Náklady: " + utils.formatMoney(linkedRecordsData.rideLog.totalCost) + "\n\n";
         }
         
-        message("CashLogs: "+ linkedRecordsData.cashLogs.count)
+        message("CashLogs: "+ linkedRecordsData.cashBook.count)
         // POKLADŇA (nová sekcia)
         if (linkedRecordsData.cashBook.count > 0) {
             telegramInfo += "💳 <b>POKLADŇA</b> (" + linkedRecordsData.cashBook.count + ")\n";
