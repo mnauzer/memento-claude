@@ -57,7 +57,7 @@ var MementoConfig = (function() {
         },
 
 
-        
+
         // Mapovanie knižníc na ich konfigurácie
         libraryMapping: {
             "Dochádzka": {
@@ -163,7 +163,6 @@ var MementoConfig = (function() {
                 modifiedDate: "dátum úpravy",
                 rowColor: "farba záznamu",
                 backgroundColor: "farba pozadia",
-                debugFields: "Debug_Fields",
                 infoTelegram: "info_telegram",    // NOVÉ
                 notifications: "Notifikácie",     // NOVÉ - link field
             },
