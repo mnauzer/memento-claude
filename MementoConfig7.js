@@ -8,19 +8,13 @@
 //    - Globálne nastavenia a konštanty
 //    - Jednoduchý prístup cez API
 // ==============================================
-// 🔧 CHANGELOG v7.0:
-//    - Kompletne nová štruktúra bez spätnej kompatibility
-//    - Všetky názvy polí z reálnych .mlt2 súborov
-//    - Lazy loading podpora
-//    - Slovenské komentáre
-// ==============================================
 
 var MementoConfig = (function() {
     'use strict';
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.1",
+        version: "7.0.2",
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",

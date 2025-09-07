@@ -12,21 +12,6 @@
 //    - Prepočet prestojov (rozdiel medzi odpracovaným a na zákazkách)
 //    - Nastavenie atribútov na zamestnancoch
 // ==============================================
-// 🔧 POUŽÍVA:
-//    - MementoUtils v7.0+ (nová verzia)
-//    - MementoConfig v7.0+ (centralizovaný CONFIG)
-//    - MementoCore v7.0+ (základné funkcie)
-//    - MementoBusiness v7.0+ (business logika)
-// ==============================================
-// ✅ REFAKTOROVANÉ v7.3:
-//    - Opravené všetky return statements
-//    - Použitie nového MementoUtils bez fallbackov
-//    - Priamy prístup k centrálnemu CONFIGu
-//    - Zachované všetky pôvodné funkcie
-//    - Správny výpočet prestávok
-//    - Čistý pracovný čas
-// ==============================================
-
 
 // ==============================================
 // INICIALIZÁCIA MODULOV
@@ -41,10 +26,11 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Dochádzka Prepočet",
-    version: "7.4",  // Aktualizovaná verzia
+    version: "7.4.1",  // Aktualizovaná verzia
     
     // Referencie na centrálny config
     fields: {
+        account: centralConfig.field.account,
         notifications: centralConfig.fields.notifications,
         rideLog: centralConfig.fields.rideLog,
         cashBook: centralConfig.fields.cashBook,
@@ -1495,11 +1481,11 @@ function main() {
             step2: { success: false, name: "Výpočet pracovnej doby" },
             step3: { success: false, name: "Spracovanie zamestnancov" },
             step4: { success: false, name: "Linkovanie pracovných záznamov" },
-            step41: { success: false, name: "Linkovanie dopravy" },
-            step42: { success: false, name: "Linkovanie záznamov pokladne" },
-            step5: { success: false, name: "Celkové výpočty" },
-            step6: { success: false, name: "Vytvorenie info záznamu" },
-            step7: { success: false, name: "Vytvorenie Telegram notifikácie" },
+            step5: { success: false, name: "Linkovanie dopravy" },
+            step6: { success: false, name: "Linkovanie záznamov pokladne" },
+            step7: { success: false, name: "Celkové výpočty" },
+            step8: { success: false, name: "Vytvorenie info záznamu" },
+            step9: { success: false, name: "Vytvorenie Telegram notifikácie" },
         };
 
         // KROK 1: Načítanie a validácia dát
@@ -1552,8 +1538,8 @@ function main() {
         }
         steps.step4.success = workLinkResult.success;
 
-        // KROK 4.1: Linkovanie dopravných záznamov
-        utils.addDebug(currentEntry, " KROK 4.1: Linkovanie dopravy", "truck");
+        // KROK 5: Linkovanie dopravných záznamov
+        utils.addDebug(currentEntry, " KROK 5: Linkovanie dopravy", "truck");
         var rideLogLinkResult = linkRideLogRecords();
         if (rideLogLinkResult.success) {
             if (entryStatus.indexOf("Doprava") === -1) {
@@ -1566,10 +1552,10 @@ function main() {
         } else {
             utils.addError(currentEntry, "Linkovanie záznamov dopravy neúspešné", CONFIG.scriptName);
         }
-        steps.step41.success = rideLogLinkResult.success;
+        steps.step5.success = rideLogLinkResult.success;
         
-        // KROK 4.2: Linkovanie záznamov pokladne
-        utils.addDebug(currentEntry, " KROK 4.2: Linkovanie záznamov pokladne", "payment");
+        // KROK 6: Linkovanie záznamov pokladne
+        utils.addDebug(currentEntry, " KROK 6: Linkovanie záznamov pokladne", "payment");
         var cashBookResult = linkCashBookRecords();
         if (cashBookResult.success) {
             if (entryStatus.indexOf("Pokladňa") === -1) {
@@ -1582,30 +1568,30 @@ function main() {
         } else {
             utils.addError(currentEntry, "Linkovanie záznamov dopravy neúspešné", CONFIG.scriptName);
         }
-        steps.step42.success = cashBookResult.success;
+        steps.step6.success = cashBookResult.success;
 
-        // KROK 5: Celkové výpočty
-        utils.addDebug(currentEntry, " KROK 5: Celkové výpočty", "calculation");
+        // KROK 7: Celkové výpočty
+        utils.addDebug(currentEntry, " KROK 7: Celkové výpočty", "calculation");
         var totals = setEntryFields(employeeResult, workLinkResult, cashBookResult, entryIcons, entryStatus)
-        steps.step5.success = totals.success;
+        steps.step7.success = totals.success;
         
-        // KROK 6: Vytvorenie info záznamu
-        utils.addDebug(currentEntry, " KROK 6: Vytvorenie info záznamu", "note");
-        steps.step6.success = createInfoRecord(workTimeResult, employeeResult);
+        // KROK 8: Vytvorenie info záznamu
+        utils.addDebug(currentEntry, " KROK 8: Vytvorenie info záznamu", "note");
+        steps.step8.success = createInfoRecord(workTimeResult, employeeResult);
             
-        // KROK 7: Vytvorenie Telegram notifikácie
-        utils.addDebug(currentEntry, utils.getIcon("notification") + " KROK 7: Vytvorenie Telegram notifikácie", "note");
+        // KROK 9: Vytvorenie Telegram notifikácie
+        utils.addDebug(currentEntry, utils.getIcon("notification") + " KROK 9: Vytvorenie Telegram notifikácie", "note");
 
         // Najprv získaj údaje z linkovaných záznamov
         var linkedData = collectLinkedRecordsData();
 
         // Potom zavolaj funkciu s novým parametrom
         var telegramRecord = createTelegramInfoRecord(workTimeResult, employeeResult, linkedData);
-        steps.step7.success = telegramRecord && telegramRecord.success && steps.step6.success;
-                if (steps.step7.success) {
+        steps.step9.success = telegramRecord.success;
+                if (steps.step9.success) {
                     // Odstráň staré notifikácie pred vytvorením novej
                     var existingNotifications = utils.getLinkedNotifications(currentEntry);
-                    if (existingNotifications && existingNotifications.length > 0) {
+                    if (existingNotifications.length > 0) {
                         utils.addDebug(currentEntry, utils.getIcon("delete") + " Mažem " + existingNotifications.length + " existujúcich notifikácií");
                         for (var i = 0; i < existingNotifications.length; i++) {
                             utils.deleteNotificationAndTelegram(existingNotifications[i]);
@@ -1614,7 +1600,7 @@ function main() {
                     
                     // Vytvor novú notifikáciu
                     var newNotification = utils.createTelegramMessage(currentEntry);
-                    if (newNotification.success && newNotification.notification) {
+                    if (newNotification.notification > 0) {
                         // Pridaj ikonu notifikácie
                         if (entryStatus.indexOf("Telegram notifikácie") === -1) {
                             entryStatus.push("Telegram notifikácie");
