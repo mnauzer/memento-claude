@@ -471,7 +471,7 @@ var MementoTelegram = (function() {
             core.addDebug(notificationEntry, core.getIcon("success") + " === NOTIFIKÁCIA ÚSPEŠNE ODOSLANÁ ===");
             
             return {
-                succes: true,
+                success: true,
             };
             
         } catch (error) {
