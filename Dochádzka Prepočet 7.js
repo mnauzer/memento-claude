@@ -1601,6 +1601,7 @@ function main() {
                     // Vytvor novú notifikáciu
                     var newNotification = utils.createTelegramMessage(currentEntry);
                     if (newNotification.success) {
+                        message("newNotification.success: " + newNotification.success )
                         // Pridaj ikonu notifikácie
                         if (entryStatus.indexOf("Telegram notifikácie") === -1) {
                             entryStatus.push("Telegram notifikácie");
@@ -1610,6 +1611,7 @@ function main() {
                         // Odošli na Telegram
                         var sendResult = utils.sendNotificationEntry(newNotification.notification);
                         if (sendResult.success) {
+                            message("sendResult.success: " + sendResult.success )
                             if (entryStatus.indexOf("Telegram") === -1) {
                                 entryStatus.push("Telegram");
                                 entryIcons += CONFIG.icons.telegram;
