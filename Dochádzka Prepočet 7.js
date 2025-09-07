@@ -764,7 +764,7 @@ function linkCashBookRecords() {
         
         if (allRecordsToLink.length > 0) {
             // Nastav pole Práce
-            utils.safeSet(currentEntry, CONFIG.fields.attendance.rides, allRecordsToLink);
+            utils.safeSet(currentEntry, CONFIG.fields.attendance.cashBook, allRecordsToLink);
             utils.addDebug(currentEntry, "  ✅ Nalinkovaných záznamov: " + allRecordsToLink.length);
         }
         
