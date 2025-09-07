@@ -435,7 +435,7 @@ var MementoTelegram = (function() {
             var telegramData = core.getTelegramID(notificationEntry);
             if (!telegramData.success) {
                 core.addError(notificationEntry, "Nepodarilo sa získať Telegram údaje: " + telegramData.error, "main");
-                core.updateStatus("Zlyhalo", telegramData.error);
+                core.updateStatus("Zlyhalo", telegramData.error, notificationEntry);
                 return false;
             }
             
@@ -458,7 +458,7 @@ var MementoTelegram = (function() {
             
             if (!sendResult.success) {
                 core.addError(notificationEntry, "Odoslanie zlyhalo: " + sendResult.error, "main");
-                core.updateStatus("Zlyhalo", sendResult.error);
+                core.updateStatus("Zlyhalo", sendResult.error, notificationEntry);
                 return false;
             }
             
@@ -477,7 +477,7 @@ var MementoTelegram = (function() {
             
         } catch (error) {
             core.addError(notificationEntry, "Kritická chyba v hlavnej funkcii", "main", error);
-            updateStatus("Chyba", error.toString());
+            updateStatus("Chyba", error.toString(), notificationEntry);
             return false;
         }
     }
