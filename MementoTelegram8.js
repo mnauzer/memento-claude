@@ -161,7 +161,7 @@ var MementoTelegram = (function() {
         }
     }
     
-    function createTelegramMessage(){
+    function createTelegramMessage(currentEntry){
         try {
             var core = getCore();
             var config = getConfig();
