@@ -141,9 +141,6 @@ var MementoConfig = (function() {
             notifications: "Notifications",
             telegramGroups: "Telegram Groups"
         },
-        
-
-    
         // === NÁZVY POLÍ ===
         fields: {
             // Spoločné polia vo všetkých knižniciach
@@ -276,7 +273,6 @@ var MementoConfig = (function() {
                 saldo: "Saldo", // Záväzky - Pohľadávky
 
             },
-            
             // Sadzby zamestnancov polia
             wages: {
                 employee: "Zamestnanec",
@@ -286,7 +282,6 @@ var MementoConfig = (function() {
                 rateType: "Typ sadzby",
                 note: "Poznámka"
             },
-            
             // ASISTANTO Defaults polia
             defaults: {
                 date: "Dátum",
@@ -324,7 +319,6 @@ var MementoConfig = (function() {
                 // Debug nastavenia
                 debugMode: "Debug mód"
             },
-            
             // Notifications polia
             notifications: {
                 status: "Status",
@@ -347,7 +341,6 @@ var MementoConfig = (function() {
                 retryCount: "Retry Count",
                 lastError: "Posledná chyba"
             },
-            
             // Telegram Groups polia
             telegramGroups: {
                 groupName: "Názov skupiny",
@@ -369,7 +362,6 @@ var MementoConfig = (function() {
                 totalMessageCount: "Celkový počet správ",
                 lastError: "Posledná chyba"
             },
-            
             // Záväzky polia
             obligations: {
                 date: "Dátum",
@@ -394,7 +386,6 @@ var MementoConfig = (function() {
                 info: "info úhrada", 
                 obligations: "Záväzky" // Chceckbox, true ak sync zaväzkov prebehol úspešne
             },
-            
             // Zákazky polia
             customers: {
                 state: "Stav",
@@ -407,7 +398,6 @@ var MementoConfig = (function() {
                 transportPriceCalc: "Počítanie cien Dopravy",
                 priceOffer: "Cenová ponuka"
             },
-            
             // Kniha jázd polia
             bookOfRides: {
                 date: "Dátum",
@@ -470,7 +460,6 @@ var MementoConfig = (function() {
                 vatRate: "sadzba DPH", // singleChoice: základná, znížená, nulová
                 vatRateValue: "DPH%"
             },
-
             vatRates: {
                 validFrom: "Platnosť od",
                 standard: "základná",
