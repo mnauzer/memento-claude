@@ -236,7 +236,7 @@ var MementoUtils = (function() {
         getTelegramFromIndividual: lazyCall('telegram','getTelegramFromIndividual'),
         getTelegramFromGroup: lazyCall('telegram','getTelegramFromGroup'),
         detectFormatting: lazyCall('telegram','detectFormatting'),
-        sendNotifcationEntry: lazyCall('telegram','sendNotifcationEntry'),
+        sendNotificationEntry: lazyCall('telegram','sendNotificationEntry'),
         createTelegramMessage: lazyCall('telegram','createTelegramMessage'),
                 // Notifikácie
         getLinkedNotifications: lazyCall('telegram', 'getLinkedNotifications'),

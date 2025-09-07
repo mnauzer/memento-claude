@@ -414,7 +414,7 @@ var MementoTelegram = (function() {
         }
     }
 
-    function sendNotifcationEntry(notificationEntry) {
+    function sendNotificationEntry(notificationEntry) {
         try {
             var core = getCore();
             var config = getConfig();
@@ -1275,7 +1275,7 @@ var MementoTelegram = (function() {
         
         sendTelegramMessage: sendTelegramMessage,
         sendToTelegram: sendToTelegram,
-        sendNotifcationEntry: sendNotifcationEntry,
+        sendNotificationEntry: sendNotificationEntry,
         //  sendToTelegramThread: sendToTelegramThread,
         
         // Skupiny a témy
