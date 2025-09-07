@@ -1132,11 +1132,11 @@ function collectLinkedRecordsData() {
                 var odpracovane = utils.safeGet(work, CONFIG.fields.workRecord.workTime, 0);
                 var pocetPrac = utils.safeGet(currentEntry, CONFIG.fields.attendance.employeeCount, 1);
                 var odpracTotal = odpracovane * pocetPrac;
-                var hzs = utils.safeGetAttr(work, CONFIG.fields.workRecord.hzs, 0);
+                var hzs = utils.safeGetAttribute(work, CONFIG.fields.workRecord.hzs, CONFIG.attributes.workRecordHzs.price, 0);
                 var zakazka = utils.safeGetLinks(work, CONFIG.fields.workRecord.customer);
                 var zakazkaNazov = zakazka && zakazka.length > 0 ? 
                                   utils.safeGet(zakazka[0], "Názov", "Bez názvu") : "Bez zákazky";
-                var hzsSum = hzs * pocetPrac;
+                var hzsSum = hzs * odpracTotal;
                 data.workRecords.records.push({
                     zakazka: zakazkaNazov,
                     odpracovane: odpracovane,
@@ -1146,7 +1146,7 @@ function collectLinkedRecordsData() {
                 });
                 
                 data.workRecords.totalHours += odpracTotal;
-                data.workRecords.totalHZS += hzs;
+                data.workRecords.totalHZS += hzsSum;
             }
         }
         
@@ -1159,7 +1159,7 @@ function collectLinkedRecordsData() {
                 var ride = rideLinks[j];
                 var km = utils.safeGet(ride, CONFIG.fields.bookOfRides.km, 0);
                 var sadzbaKm = utils.safeGet(ride, CONFIG.fields.bookOfRides.rate, 0);
-                var vozidlo = utils.safeGet(ride, CONFIG.fields.bookOfRides.vehicle, "Neznáme");
+                var vozidlo = utils.safeGet(ride, CONFIG.fields.bookOfRides.vehicle);
                 var trasa = utils.safeGet(ride, CONFIG.fields.bookOfRides.trasa, "coming soon :)");
                 var rideWageCosts = utils.safeGet(ride, CONFIG.fields.bookOfRides.wageCosts);
                 var totalTime = utils.safeGet(ride, CONFIG.fields.bookOfRides.totalTime);
@@ -1167,7 +1167,7 @@ function collectLinkedRecordsData() {
 
                 
                 data.rideLog.records.push({
-                    vozidlo: vozidlo,
+                    vozidlo: utils.safeGet(vehicle[0], "Názov", "Neznáme"),
                     trasa: trasa,
                     km: km,
                     sadzbaKm: sadzbaKm,
