@@ -992,7 +992,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
         }
         
         // POKLADŇA (nová sekcia)
-        if (linkedRecordsData.cashBook && linkedRecordsData.cashBook.count > 0) {
+        if (linkedRecordsData.cashBook.count > 0) {
             telegramInfo += "💳 <b>POKLADŇA</b> (" + linkedRecordsData.cashBook.count + ")\n";
             telegramInfo += "───────────────────────────────────\n";
             
@@ -1021,7 +1021,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
         }
         
         // ZÁVÄZKY (nová sekcia)
-        if (linkedRecordsData.obligations && linkedRecordsData.obligations.count > 0) {
+        if (linkedRecordsData.obligations.count > 0) {
             telegramInfo += "📝 <b>ZÁVÄZKY</b> (" + linkedRecordsData.obligations.count + ")\n";
             telegramInfo += "───────────────────────────────────\n";
             
@@ -1189,14 +1189,18 @@ function collectLinkedRecordsData() {
                 var typ = utils.safeGet(cash, "Typ", "");
                 var suma = utils.safeGet(cash, CONFIG.fields.cashBook.sum, 0);
                 var popis = utils.safeGet(cash, CONFIG.fields.cashBook.description, "Bez popisu");
-                
+                var accounts = libByName(CONFIG.libraries.accounts).entries();
+
                 if (typ === "Príjem") {
+                    //var toAccount = utils.safeGet(cash, CONFIG.fields.accounts.toAccount);
                     data.cashBook.income.push({
                         popis: popis,
                         suma: suma
                     });
                     data.cashBook.totalIncome += suma;
                 } else if (typ === "Výdavok") {
+                    
+                    //var fromAccount = utils.safeGet(cash, CONFIG.fields.accounts.fromAccount);
                     data.cashBook.expenses.push({
                         popis: popis,
                         suma: suma

@@ -431,7 +431,15 @@ var MementoConfig = (function() {
                 destination: "Cieľ",
                 stops: "Zastávky"
             },
-            
+            // Účty (Accounts)
+            account: {
+                type: "Typ", //options: Hotovosť, Banka
+                name: "Názov", //
+                accountNumber: "Číslo účtu", //
+                iban: "IBAN", //
+                initialValue: "Počiatočný stav", //
+                balance: "Stav"
+            },
             // Pokladňa polia
             cashBook: {
                 date: "Dátum",
