@@ -165,7 +165,7 @@ var MementoConfig = (function() {
                 arrival: "Príchod",
                 departure: "Odchod",
                 employees: "Zamestnanci",
-                works: "Práce", // linktToEntry: záznamy knižnice Záznam prác
+                works: "Práce", // linkToEntry: záznamy knižnice Záznam prác
                 rides: "Jazdy", // linkToEntry: záznamy knižnice Knija jázd
                 cashBook: "Pokladňa", // linkToEntry: záznamy knižnice Pokladňa
                 notifications: "Notifikácie", // linkToEntry: záznamy knižnice Notifikácie (group notifications)
@@ -174,7 +174,7 @@ var MementoConfig = (function() {
                 workTime: "Pracovná doba",
                 workedHours: "Odpracované",
                 workedOnOrders: "Na zákazkách",
-                downtime: "Prestoje",
+                downTime: "Prestoje",
                 wageCosts: "Mzdové náklady",
                 keys: "keys",
                 entryStatus: "stav záznamu", // multiCheckboxes: Záväzky, Práce, Jazdy, Notifikácie, Skontrolované, Voľno
@@ -414,9 +414,10 @@ var MementoConfig = (function() {
             // Pokladňa polia
             cashBook: {
                 date: "Dátum",
-                transactionType: "Pohyb", //singleChoice: Príjem, Výdaj, PP (Priebežná položka)
-                fromAccount: "Z pokladne", //linkToEntry: Účty (Accounts)
-                toAccount: "Do pokladne", //linkToEntry: Účty (Accounts)
+                transactionType: "Pohyb", //s ingleChoice: Príjem, Výdaj, PP (Priebežná položka)
+                fromAccount: "Z pokladne", // linkToEntry: Účty (Accounts)
+                toAccount: "Do pokladne", // linkToEntry: Účty (Accounts)
+                paidBy: "Platbu vykonal", // linkToEntry: Zamestnanci (Employees), kto vykonal platbu
                 obligationPayment: "Úhrada záväzku", //Checkbox - či sa platbou uhrádzajú záväzky
                 obligationType: "Typ záväzku", //singleChoice: Mzdy, Faktúry, Nájomné, Leasing (pribudnú ďalšie)
                 offsetClaim: "Započítať pohľadávku", //Checkbox - pri úhrade záväzku sa môže započítať pohľadávka ak je rovnaký subjekt (creditor)

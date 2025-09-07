@@ -682,6 +682,110 @@ function linkRideLogRecords() {
     }
 }
 
+function linkCashBookRecords() {
+    try {
+        // Získaj základné údaje z dochádzky
+        var dochadzkaDate = utils.safeGet(currentEntry, CONFIG.fields.date);
+        var dochadzkaEmployees = utils.safeGetLinks(currentEntry, CONFIG.fields.employees);
+        
+        // Získaj knižnicu záznamov práce
+        var cashBookRecordsLib = libByName(CONFIG.libraries.cashBook);
+        if (!cashBookRecordsLib) {
+            utils.addError(currentEntry, "Knižnica 'Pokladňa' nenájdená", "linkCashBookRecords");
+            return {
+                success: false,
+                linkedCount: 0,
+                message: "Knižnica nenájdená"
+            };
+        }
+        
+        var cashBook = [];
+        var targetDate = moment(dochadzkaDate).format("DD.MM.YYYY");
+
+        cashBookRecordsLib.entries().forEach(function(record) {
+            if (moment(record.field(CONFIG.fields.cashBook.date)).format("DD.MM.YYYY") === targetDate) {
+                cashBook.push(record);
+            }
+        });
+        
+        utils.addDebug(currentEntry, "  🔍 Nájdených záznamov Pokladne pre dátum: " + cashBook.length);
+        
+        if (cashBook.length === 0) {
+            utils.addDebug(currentEntry, "  ℹ️ Žiadne záznamy Pokladne pre tento dátum");
+            return {
+                success: true,
+                linkedCount: 0,
+                message: "Žiadne záznamy Pokladne"
+            };
+        }
+        
+        // Získaj ID všetkých zamestnancov z dochádzky
+        var dochadzkaEmployeeIds = [];
+        for (var i = 0; i < dochadzkaEmployees.length; i++) {
+            var empId = dochadzkaEmployees[i].field("ID");
+            if (empId) {
+                dochadzkaEmployeeIds.push(empId);
+            }
+        }
+        
+        // Filtruj záznamy práce podľa zamestnancov a časov
+        var matchingCashBook = [];
+        var warningRecords = [];
+        
+        for (var j = 0; j < cashBook.length; j++) {
+            var cashBookRecord = cashBook[j];
+            var paidBy = utils.safeGetLinks(cashBookRecord, CONFIG.fields.cashBook.paidBy);
+            // Kontrola či má záznam aspoň jedného zhodného zamestnanca
+            var hasMatchingEmployee = false;
+            for (var k = 0; k < paidBy.length; k++) {
+                var paidById = paidBy[k].field("ID");
+                if (dochadzkaEmployeeIds.indexOf(paidById) !== -1) {
+                    hasMatchingEmployee = true;
+                }
+            }
+            
+            if (hasMatchingEmployee) {
+                utils.addDebug(currentEntry, "  ✅ Záznam #" + cashBookRecord.field("ID") + " má zhodných zamestnancov");
+                matchingCashBook.push(cashBookRecord);
+            }
+        }
+        
+        utils.addDebug(currentEntry, "  📊 Záznamy na linkovanie: " + matchingCashBook.length);
+        utils.addDebug(currentEntry, "  ⚠️ Záznamy s upozornením: " + warningRecords.length);
+        
+        // Pridaj všetky záznamy (aj tie s upozornením)
+        var allRecordsToLink = matchingCashBook.slice(); // Kópia normálnych záznamov
+        
+        // Pridaj aj záznamy s upozornením
+        for (var w = 0; w < warningRecords.length; w++) {
+            allRecordsToLink.push(warningRecords[w].record);
+        }
+        
+        if (allRecordsToLink.length > 0) {
+            // Nastav pole Práce
+            utils.safeSet(currentEntry, CONFIG.fields.attendance.rides, allRecordsToLink);
+            utils.addDebug(currentEntry, "  ✅ Nalinkovaných záznamov: " + allRecordsToLink.length);
+        }
+        
+
+        return {
+            success: true,
+            linkedCount: allRecordsToLink.length,
+            normalCount: matchingCashBook.length,
+            warningCount: warningRecords.length,
+            message: "Úspešne nalinkované"
+        };
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "linkCashBook", error);
+        return {
+            success: false,
+            linkedCount: 0,
+            message: "Chyba: " + error.toString()
+        };
+    }
+}
+
 // ==============================================
 // KROK 4: CELKOVÉ VÝPOČTY
 // ==============================================
@@ -1035,7 +1139,41 @@ function main() {
         // Debug info o načítaných moduloch
         utils.addDebug(currentEntry, "=== ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===", "start");
         utils.addDebug(currentEntry, "Čas spustenia: " + utils.formatDate(moment()) ,"calendar");
-        
+        var calculationsResults = {
+            attendance: {
+                workedTime: "", // napr. 7:00-13:45
+                employeesCount: 0, // Počet zamestnancov v zázname dochádzky
+                workTime: 0, // pracovná doba
+                workedHours:0, // odpracované - čas pracovnej doby za všetkých zamestnancov
+                wageCosts: 0 // mzdové náklady za dochádzku
+                
+            },
+            obligations: {
+                count: 0,
+                total: 0
+            },
+            workRecords: {
+                count: 0,
+                orders: [], // zákazky 
+                workedOnOrders: 0, // odpracované na zákazkách
+                wageCosts: 0, // mzdové náklady na zákazkách
+                hzsSum: 0, // suma za hzs
+                downTime: 0 // prestoje
+            },
+            bookOfRides: {
+                count: 0,
+                
+            },
+            cashBook: {
+                count: 0,
+                incomesCount: 0,
+                expensesCount: 0,
+                incomesSum: 0,
+                expensesSum: 0,
+                total: 0,
+            },
+            notiifications: {}
+        }
          // Kroky prepočtu
         var steps = {
             step1: { success: false, name: "Načítanie a validácia dát" },
@@ -1043,6 +1181,7 @@ function main() {
             step3: { success: false, name: "Spracovanie zamestnancov" },
             step4: { success: false, name: "Linkovanie pracovných záznamov" },
             step41: { success: false, name: "Linkovanie dopravy" },
+            step42: { success: false, name: "Linkovanie záznamov pokladne" },
             step5: { success: false, name: "Celkové výpočty" },
             step6: { success: false, name: "Vytvorenie info záznamu" },
             step7: { success: false, name: "Vytvorenie Telegram notifikácie" },
@@ -1090,11 +1229,11 @@ function main() {
                 entryStatus.push("Práce");
                 utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + workLinkResult.linkedCount + " záznamov");   
             }
-            utils.addError(currentEntry, "Linkovanie pracovných záznamov neúspešné", CONFIG.scriptName);
             if (workLinkResult.linkedCount > 0) {
                 entryIcons += CONFIG.icons.work;
             }
         } else {
+            utils.addError(currentEntry, "Linkovanie pracovných záznamov neúspešné", CONFIG.scriptName);
         }
         steps.step4.success = workLinkResult.success;
 
@@ -1114,9 +1253,25 @@ function main() {
         }
         steps.step41.success = rideLogLinkResult.success;
         
+        // KROK 4.2: Linkovanie záznamov pokladne
+        utils.addDebug(currentEntry, " KROK 4.2: Linkovanie záznamov pokladne", "payment");
+        var cashBookResult = linkCashBookRecords();
+        if (cashBookResult.success) {
+            if (entryStatus.indexOf("Pokladňa") === -1) {
+                entryStatus.push("Pokladňa");
+            }
+            utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + cashBookResult.linkedCount + " záznamov");   
+            if (cashBookResult.linkedCount > 0) {
+                entryIcons += CONFIG.icons.payment;
+            }
+        } else {
+            utils.addError(currentEntry, "Linkovanie záznamov dopravy neúspešné", CONFIG.scriptName);
+        }
+        steps.step42.success = cashBookResult.success;
+
         // KROK 5: Celkové výpočty
         utils.addDebug(currentEntry, " KROK 5: Celkové výpočty", "calculation");
-        var totals = setEntryFields(employeeResult, workLinkResult, rideLogLinkResult, entryIcons, entryStatus)
+        var totals = setEntryFields(employeeResult, workLinkResult, cashBookResult, entryIcons, entryStatus)
         steps.step5.success = totals.success;
         
         // KROK 6: Vytvorenie info záznamu
