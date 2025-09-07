@@ -1600,26 +1600,26 @@ function main() {
                     
                     // Vytvor novú notifikáciu
                     var newNotification = utils.createTelegramMessage(currentEntry);
-                    if (newNotification.notification > 0) {
+                    if (newNotification.success) {
                         // Pridaj ikonu notifikácie
                         if (entryStatus.indexOf("Telegram notifikácie") === -1) {
                             entryStatus.push("Telegram notifikácie");
                         }
-                        entryIcons += CONFIG.icons.notification || "📢";
+                        entryIcons += CONFIG.icons.notification;
                         
                         // Odošli na Telegram
                         var sendResult = utils.sendNotificationEntry(newNotification.notification);
                         if (sendResult.success) {
                             if (entryStatus.indexOf("Telegram") === -1) {
                                 entryStatus.push("Telegram");
-                                entryIcons += CONFIG.icons.telegram || "✈️";
+                                entryIcons += CONFIG.icons.telegram;
                             }
                             utils.addDebug(currentEntry, utils.getIcon("success") + " Telegram notifikácia úspešne odoslaná");
                         } else {
-                            utils.addError(currentEntry, "Nepodarilo sa odoslať notifikáciu na Telegram", "step7");
+                            utils.addError(currentEntry, "Nepodarilo sa odoslať notifikáciu na Telegram", "step9");
                         }
                     } else {
-                        utils.addError(currentEntry, "Nepodarilo sa vytvoriť notifikáciu", "step7");
+                        utils.addError(currentEntry, "Nepodarilo sa vytvoriť notifikáciu", "step9");
                     }
                 }
         
