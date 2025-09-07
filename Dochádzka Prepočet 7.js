@@ -1102,7 +1102,9 @@ function collectLinkedRecordsData() {
             count: 0,
             records: [],
             totalKm: 0,
-            totalCost: 0
+            totalCost: 0,
+            totalWageCosts: 0,
+            totalTime: 0
         },
         cashBook: {
             count: 0,
@@ -1127,20 +1129,20 @@ function collectLinkedRecordsData() {
             
             for (var i = 0; i < workLinks.length; i++) {
                 var work = workLinks[i];
-                var odpracovane = utils.safeGet(work, CONFIG.fields.workRecord.workedHours, 0);
+                var odpracovane = utils.safeGet(work, CONFIG.fields.workRecord.workTime, 0);
                 var pocetPrac = utils.safeGet(currentEntry, CONFIG.fields.attendance.employeeCount, 1);
                 var odpracTotal = odpracovane * pocetPrac;
-                var hzs = utils.safeGet(work, CONFIG.fields.workRecord.hzsSum, 0);
+                var hzs = utils.safeGetAttr(work, CONFIG.fields.workRecord.hzs, 0);
                 var zakazka = utils.safeGetLinks(work, CONFIG.fields.workRecord.customer);
                 var zakazkaNazov = zakazka && zakazka.length > 0 ? 
                                   utils.safeGet(zakazka[0], "Názov", "Bez názvu") : "Bez zákazky";
-                
+                var hzsSum = hzs * pocetPrac;
                 data.workRecords.records.push({
                     zakazka: zakazkaNazov,
                     odpracovane: odpracovane,
                     pocetPracovnikov: pocetPrac,
                     odpracovaneTotal: odpracTotal.toFixed(2),
-                    hzs: hzs
+                    hzs: hzsSum
                 });
                 
                 data.workRecords.totalHours += odpracTotal;
