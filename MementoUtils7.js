@@ -226,7 +226,6 @@ var MementoUtils = (function() {
         sendToTelegramThread: lazyCall('telegram', 'sendToTelegramThread'),
         getBotToken:lazyCall('telegram', 'getBotToken'),
         // Skupiny a témy
-        checkPermissions: lazyCall('telegram', 'checkPermissions'),
         cleanupOldNotifications: lazyCall('telegram', 'cleanupOldNotifications'),
         createNotification: lazyCall('telegram', 'createNotification'),
         linkNotification: lazyCall('telegram', 'linkNotification'),
