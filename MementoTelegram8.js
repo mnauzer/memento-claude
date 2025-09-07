@@ -189,14 +189,14 @@ var MementoTelegram = (function() {
             }
             
             // 4. Získanie Telegram skupiny
-            var telegramGroup = core.getTelegramGroup(libraryConfig.telegramGroupField);
+            var telegramGroup = core.getTelegramGroup(libraryConfig.telegramGroupField, currentEntry);
             if (!telegramGroup) {
                 core.addDebug(currentEntry, core.getIcon("warning") + " Telegram skupina nenájdená alebo neaktívna");
                 return true;
             }
             
             // 5. Cleanup starých notifikácií
-            var cleanupResult = core.cleanupOldNotifications();
+            var cleanupResult = core.cleanupOldNotifications(currentEntry);
             if (cleanupResult.deletedCount > 0) {
                 core.addDebug(currentEntry, core.getIcon("delete") + " Vymazaných " + cleanupResult.deletedCount + " starých notifikácií");
             }
@@ -206,7 +206,7 @@ var MementoTelegram = (function() {
                 message: telegramMessage,
                 messageType: libraryName,
                 telegramGroup: telegramGroup
-            });
+            }, currentEntry);
             
             if (!notification) {
                 core.addError(currentEntry, "Nepodarilo sa vytvoriť notifikáciu", "main");
@@ -214,7 +214,7 @@ var MementoTelegram = (function() {
             }
             
             // 7. Nalinkuj notifikáciu k záznamu
-            core.linkNotification(notification);
+            core.linkNotification(notificationm, currentEntry);
             
             core.addDebug(currentEntry, core.getIcon("success") + " Notifikácia vytvorená (ID: " + notification.field("ID") + ")");
             core.addDebug(currentEntry, core.getIcon("success") + " === SCRIPT DOKONČENÝ ===");
@@ -619,8 +619,10 @@ var MementoTelegram = (function() {
         }
     }
 
-    function linkNotification(notification) {
+    function linkNotification(notification, sourceEntry) {
         try {
+            var core = getCore();
+            var currentEntry = sourceEntry || entry();
             var existingNotifications = core.safeGet(currentEntry, "Notifikácie", []);
             existingNotifications.push(notification);
             currentEntry.set("Notifikácie", existingNotifications);
@@ -678,13 +680,13 @@ var MementoTelegram = (function() {
             // Spracuj podľa typu
             switch (recipientconfig.type) {
                 case "individual":
-                    return getTelegramFromIndividual(recipientconfig);
+                    return getTelegramFromIndividual(recipientconfig, currentEntry);
                     
                 case "group":
-                    return getTelegramFromGroup(recipientconfig);
+                    return getTelegramFromGroup(recipientconfig, currentEntry);
                     
                 case "customer":
-                    return getTelegramFromOrder(recipientconfig);
+                    return getTelegramFromOrder(recipientconfig, currentEntry);
                     
                 default:
                     return {
