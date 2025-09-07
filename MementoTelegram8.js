@@ -388,7 +388,7 @@ var MementoTelegram = (function() {
             core.addDebug(currentEntry, "  • Formátovanie: " + formatting);
             core.addDebug(currentEntry, "  • Tichá správa: " + (silent ? "Áno" : "Nie"));
             
-            var result = core.sendTelegramMessage(chatId, message, options);
+            var result = sendTelegramMessage(chatId, message, options);
             
             if (result.success) {
                 core.addDebug(currentEntry, core.getIcon("success") + " Správa odoslaná, Message ID: " + result.messageId);
@@ -432,10 +432,10 @@ var MementoTelegram = (function() {
             }
             
             // 3. Získanie Telegram ID podľa adresáta
-            var telegramData = core.getTelegramID(notificationEntry);
+            var telegramData = getTelegramID(notificationEntry);
             if (!telegramData.success) {
                 core.addError(notificationEntry, "Nepodarilo sa získať Telegram údaje: " + telegramData.error, "main");
-                core.updateStatus("Zlyhalo", telegramData.error, notificationEntry);
+                updateStatus("Zlyhalo", telegramData.error, notificationEntry);
                 return false;
             }
             
@@ -449,16 +449,16 @@ var MementoTelegram = (function() {
             var message = core.safeGet(notificationEntry, config.fields.notifications.message);
             if (!message) {
                 core.addError(notificationEntry, "Správa je prázdna", "main");
-                core.updateStatus("Zlyhalo", "Prázdna správa");
+                updateStatus("Zlyhalo", "Prázdna správa");
                 return false;
             }
             
             // 5. Odoslanie na Telegram
-            var sendResult = core.sendToTelegram(telegramData.chatId, message, telegramData.threadId);
+            var sendResult = sendToTelegram(telegramData.chatId, message, telegramData.threadId);
             
             if (!sendResult.success) {
                 core.addError(notificationEntry, "Odoslanie zlyhalo: " + sendResult.error, "main");
-                core.updateStatus("Zlyhalo", sendResult.error, notificationEntry);
+                updateStatus("Zlyhalo", sendResult.error, notificationEntry);
                 return false;
             }
             
@@ -1214,11 +1214,12 @@ var MementoTelegram = (function() {
     // ==============================================
     // NOTIFIKÁCIE
     //
-    function getLinkedNotifications(entry) {
+    function getLinkedNotifications(sourceEntry) {
         try {
             var core = getCore();
             var config = getConfig();
-            var notifications = core.safeGetLinks(entry, config.fields.common.notifications);
+            var currentEntry = sourceEntry
+            var notifications = core.safeGetLinks(currentEntry, config.fields.common.notifications);
             return notifications || [];
         } catch (error) {
             return [];
