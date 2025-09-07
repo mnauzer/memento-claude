@@ -236,13 +236,13 @@ var MementoTelegram = (function() {
             };
         }
         
-        // 7. Nalinkuj notifikáciu k záznamu - OPRAVENÝ NÁZOV PREMENNEJ
+        // 7. Nalinkuj notifikáciu k záznamu
         linkNotification(notification, currentEntry);
         
         core.addDebug(currentEntry, core.getIcon("success") + " Notifikácia vytvorená (ID: " + notification.field("ID") + ")");
         
         return {
-            success: true,  // OPRAVENÝ NÁZOV
+            success: true,  
             notification: notification
         };
         
@@ -253,7 +253,7 @@ var MementoTelegram = (function() {
             error: error.toString()
         };
     }
-}
+    }
     /**
      * Edituje existujúcu správu
      * @param {string} chatId - ID chatu
