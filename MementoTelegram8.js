@@ -167,7 +167,7 @@ var MementoTelegram = (function() {
             var config = getConfig();
             var currentEntry = sourceEntry || entry();
             var libraryName = lib().title;
-            
+            message(libraryName + ", ID: " + currentEntry.field("ID"))
             // 1. Kontrola či máme info_telegram pole
             var telegramMessage = core.safeGet(currentEntry, config.fields.common.infoTelegram);
             if (!telegramMessage) {
