@@ -55,6 +55,25 @@ var MementoConfig = (function() {
                 type: "group"
             }
         },
+        // Mapovanie knižníc na ich konfigurácie
+        libraryMapping: {
+            "Dochádzka": {
+                telegramGroupField: "Telegram skupina dochádzky",
+                permissionField: "Dochádzka skupinové notifikácie"
+            },
+            "Záznam práce": {
+                telegramGroupField: "Telegram skupina záznamu prác",
+                permissionField: "Záznam prác skupinové notifikácie"
+            },
+            "ASISTANTO API": {
+                telegramGroupField: "Telegram skupina záznamu prác",
+                permissionField: "Záznam prác skupinové notifikácie"
+            },
+            "Kniha jázd": {
+                telegramGroupField: "Telegram skupina knihy jázd",
+                permissionField: "Kniha jázd skupinové notifikácie"
+            }
+        },
         // Defaultné hodnoty pre globálne nastavenia
         defaults: {
             debug: false, // Predvolený debug mód
