@@ -162,72 +162,90 @@ var MementoTelegram = (function() {
     }
     
     function createTelegramMessage(sourceEntry){
-        try {
-            var core = getCore();
-            var config = getConfig();
-            var currentEntry = sourceEntry || entry();
-            var libraryName = lib().title;
-            // 1. Kontrola či máme info_telegram pole
-            var telegramMessage = core.safeGet(currentEntry, "info_telegram");
-            if (!telegramMessage) {
-                core.addDebug(currentEntry, core.getIcon("info") + " Pole info_telegram je prázdne - žiadna notifikácia");
-                return true;
-            }
-            
-            // 2. Identifikácia knižnice
-            var libraryConfig = config.libraryMapping[libraryName];
-            if (!libraryConfig) {
-                core.addDebug(currentEntry, core.getIcon("info") + " Knižnica '" + libraryName + "' nie je nakonfigurovaná pre notifikácie");
-                return true;
-            }
-            
-            // 3. Kontrola povolení
-            if (!checkPermissions(libraryConfig.permissionField)) {
-                core.addDebug(currentEntry, core.getIcon("info") + " Skupinové notifikácie sú vypnuté");
-                return true;
-            }
-            
-            // 4. Získanie Telegram skupiny
-            var telegramGroup = getTelegramGroup(libraryConfig.telegramGroupField, currentEntry);
-            if (!telegramGroup) {
-                core.addDebug(currentEntry, core.getIcon("warning") + " Telegram skupina nenájdená alebo neaktívna");
-                return true;
-            }
-            
-            // 5. Cleanup starých notifikácií
-            var cleanupResult = cleanupOldNotifications(currentEntry);
-            if (cleanupResult.deletedCount > 0) {
-                core.addDebug(currentEntry, core.getIcon("delete") + " Vymazaných " + cleanupResult.deletedCount + " starých notifikácií");
-            }
-            
-            // 6. Vytvorenie novej notifikácie
-            var notification = createNotification({
-                message: telegramMessage,
-                messageType: libraryName,
-                telegramGroup: telegramGroup
-            }, currentEntry);
-            
-            if (!notification) {
-                core.addError(currentEntry, "Nepodarilo sa vytvoriť notifikáciu", "main");
-                return false;
-            }
-            
-            // 7. Nalinkuj notifikáciu k záznamu
-            linkNotification(notification, currentEntry);
-            
-            core.addDebug(currentEntry, core.getIcon("success") + " Notifikácia vytvorená (ID: " + notification.field("ID") + ")");
-            core.addDebug(currentEntry, core.getIcon("success") + " === SCRIPT DOKONČENÝ ===");
-            
+    try {
+        var core = getCore();
+        var config = getConfig();
+        var currentEntry = sourceEntry || entry();
+        var libraryName = lib().title;
+        
+        // 1. Kontrola či máme info_telegram pole
+        var telegramMessage = core.safeGet(currentEntry, config.fields.common.infoTelegram);
+        if (!telegramMessage) {
+            core.addDebug(currentEntry, core.getIcon("info") + " Pole info_telegram je prázdne - žiadna notifikácia");
             return {
-                success: true,
-                notification: notification
+                success: false,
+                reason: "Prázdne info_telegram pole"
             };
-            
-        } catch (error) {
-            core.addError(currentEntry, "Kritická chyba v hlavnej funkcii", "main", error);
-            return false;
         }
+        
+        // 2. Identifikácia knižnice
+        var libraryConfig = config.libraryMapping[libraryName];
+        if (!libraryConfig) {
+            core.addDebug(currentEntry, core.getIcon("info") + " Knižnica '" + libraryName + "' nie je nakonfigurovaná pre notifikácie");
+            return {
+                success: false,
+                reason: "Knižnica nie je nakonfigurovaná"
+            };
+        }
+        
+        // 3. Kontrola povolení
+        if (!checkPermissions(libraryConfig.permissionField)) {
+            core.addDebug(currentEntry, core.getIcon("info") + " Skupinové notifikácie sú vypnuté");
+            return {
+                success: false,
+                reason: "Notifikácie vypnuté"
+            };
+        }
+        
+        // 4. Získanie Telegram skupiny
+        var telegramGroup = getTelegramGroup(libraryConfig.telegramGroupField, currentEntry);
+        if (!telegramGroup) {
+            core.addDebug(currentEntry, core.getIcon("warning") + " Telegram skupina nenájdená alebo neaktívna");
+            return {
+                success: false,
+                reason: "Telegram skupina nenájdená"
+            };
+        }
+        
+        // 5. Cleanup starých notifikácií
+        var cleanupResult = cleanupOldNotifications(currentEntry);
+        if (cleanupResult.deletedCount > 0) {
+            core.addDebug(currentEntry, core.getIcon("delete") + " Vymazaných " + cleanupResult.deletedCount + " starých notifikácií");
+        }
+        
+        // 6. Vytvorenie novej notifikácie
+        var notification = createNotification({
+            message: telegramMessage,
+            messageType: libraryName,
+            telegramGroup: telegramGroup
+        }, currentEntry);
+        
+        if (!notification) {
+            core.addError(currentEntry, "Nepodarilo sa vytvoriť notifikáciu", "createTelegramMessage");
+            return {
+                success: false,
+                error: "Vytvorenie notifikácie zlyhalo"
+            };
+        }
+        
+        // 7. Nalinkuj notifikáciu k záznamu - OPRAVENÝ NÁZOV PREMENNEJ
+        linkNotification(notification, currentEntry);
+        
+        core.addDebug(currentEntry, core.getIcon("success") + " Notifikácia vytvorená (ID: " + notification.field("ID") + ")");
+        
+        return {
+            success: true,  // OPRAVENÝ NÁZOV
+            notification: notification
+        };
+        
+    } catch (error) {
+        core.addError(sourceEntry || entry(), "Kritická chyba v createTelegramMessage", "main", error);
+        return {
+            success: false,
+            error: error.toString()
+        };
     }
+}
     /**
      * Edituje existujúcu správu
      * @param {string} chatId - ID chatu
