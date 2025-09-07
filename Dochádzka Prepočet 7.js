@@ -957,6 +957,8 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             telegramInfo += "\n📊 Súhrn práce:\n";
             telegramInfo += "• Odpracované: " + linkedRecordsData.workRecords.totalHours + " hodín\n";
             telegramInfo += "• HZS celkom: " + utils.formatMoney(linkedRecordsData.workRecords.totalHZS) + "\n\n";
+        } else {
+           telegramInfo += "⚠️🔨 <b>Chýba záznam práce !</b>";
         }
         
         message("RideLogs: "+ linkedRecordsData.rideLog.count)
