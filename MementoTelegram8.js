@@ -161,10 +161,11 @@ var MementoTelegram = (function() {
         }
     }
     
-    function createTelegramMessage(currentEntry){
+    function createTelegramMessage(sourceEntry){
         try {
             var core = getCore();
             var config = getConfig();
+            var currentEntry = sourceEntry || entry();
             var libraryName = lib().title;
             
             // 1. Kontrola či máme info_telegram pole
