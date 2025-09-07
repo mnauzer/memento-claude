@@ -224,6 +224,30 @@ var MementoUtils = (function() {
         createNotificationEntry: lazyCall('telegram', 'createNotificationEntry'),
         getTelegramGroup: lazyCall('telegram', 'getTelegramGroup'),
         sendToTelegramThread: lazyCall('telegram', 'sendToTelegramThread'),
+        getBotToken:lazyCall('telegram', 'getBotToken'),
+        // Skupiny a témy
+        checkPermissions: lazyCall('telegram', 'checkPermissions'),
+        cleanupOldNotifications: lazyCall('telegram', 'cleanupOldNotifications'),
+        createNotification: lazyCall('telegram', 'createNotification'),
+        linkNotification: lazyCall('telegram', 'linkNotification'),
+        //
+        escapeMarkdown: lazyCall('telegram', 'escapeMarkdown'),
+        createInlineKeyboard: lazyCall('telegram', 'createInlineKeyboard'),
+        // Notifikácie
+
+        getTelegramID: lazyCall('telegram','getTelegramID'),
+        getTelegramFromOrder: lazyCall('telegram','getTelegramFromOrder'),
+        isNewRecord: lazyCall('telegram','isNewRecord'),
+        checkPermissions: lazyCall('telegram','checkPermissions'),
+        updateStatus: lazyCall('telegram','updateStatus'),
+        updateSourceEntryInfo: lazyCall('telegram','updateSourceEntryInfo'),
+        sendToTelegram: lazyCall('telegram','sendToTelegram'),
+        updateAfterSuccess: lazyCall('telegram','updateAfterSuccess'),
+        getTelegramFromIndividual: lazyCall('telegram','getTelegramFromIndividual'),
+        getTelegramFromGroup: lazyCall('telegram','getTelegramFromGroup'),
+        detectFormatting: lazyCall('telegram','detectFormatting'),
+        sendNotifcationEntry: lazyCall('telegram','sendNotifcationEntry'),
+        createTelegramMessage: lazyCall('telegram','createTelegramMessage'),
         
         // === BUSINESS FUNKCIE (ak je modul dostupný) ===
         
