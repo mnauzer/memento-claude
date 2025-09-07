@@ -369,7 +369,7 @@ var MementoTelegram = (function() {
             var core = getCore();
             var config = getConfig();
             var currentEntry = sourceEntry || entry();
-            var formatting = core.safeGet(currentEntry, config.fields.notifications.formatting, "Markdown");
+            var formatting = core.safeGet(currentEntry, config.fields.notifications.formatting);
             var silent = core.safeGet(currentEntry, "Tichá správa", false);
             
             var options = {
@@ -454,7 +454,7 @@ var MementoTelegram = (function() {
             }
             
             // 5. Odoslanie na Telegram
-            var sendResult = sendToTelegram(telegramData.chatId, message, telegramData.threadId);
+            var sendResult = sendToTelegram(telegramData.chatId, message, telegramData.threadId, notificationEntry);
             
             if (!sendResult.success) {
                 core.addError(notificationEntry, "Odoslanie zlyhalo: " + sendResult.error, "main");
