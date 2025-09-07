@@ -963,7 +963,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult) {
         utils.addDebug(currentEntry, utils.getIcon("success") + " Info_telegram záznam vytvorený");
         
         return {
-            succes: true
+            success: true
         };
         
     } catch (error) {
@@ -1318,24 +1318,44 @@ function main() {
         utils.addDebug(currentEntry, " KROK 6: Vytvorenie info záznamu", "note");
         steps.step6.success = createInfoRecord(workTimeResult, employeeResult);
             
-        // KROK 7: Vytvorenie Telegram notifikácie
-        utils.addDebug(currentEntry, " KROK 7: Vytvorenie Telegram notifikácie", "note");
-        var telegramRecord = createTelegramInfoRecord(workTimeResult, employeeResult) && steps.step6.success;  
-        steps.step7.success = telegramRecord.succes;
-        if (telegramRecord.succes) {
-            if (entryStatus.indexOf("Telegram notifikácie") === -1) {
-                entryStatus.push("Telegram notifikácie");
+       // KROK 7: Vytvorenie Telegram notifikácie
+        utils.addDebug(currentEntry, utils.getIcon("notification") + " KROK 7: Vytvorenie Telegram notifikácie", "note");
+
+        var telegramRecord = createTelegramInfoRecord(workTimeResult, employeeResult);
+        steps.step7.success = telegramRecord && telegramRecord.success && steps.step6.success;
+
+        if (steps.step7.success) {
+            // Odstráň staré notifikácie pred vytvorením novej
+            var existingNotifications = utils.getLinkedNotifications(currentEntry);
+            if (existingNotifications && existingNotifications.length > 0) {
+                utils.addDebug(currentEntry, utils.getIcon("delete") + " Mažem " + existingNotifications.length + " existujúcich notifikácií");
+                for (var i = 0; i < existingNotifications.length; i++) {
+                    utils.deleteNotificationAndTelegram(existingNotifications[i]);
+                }
             }
-            var newNotification = utils.createTelegramMessage()
-            if (newNotification) {
-                var sendToTelegram = utils.sendNotificationEntry(newNotification.notification)
-                entryIcons += CONFIG.icons.notofication;
-            }
-            if (sendToTelegram) {
-                if (entryStatus.indexOf("Telegram") === -1) {
-                    entryStatus.push("Telegram");
-                    entryIcons += CONFIG.icons.telegram;
-                }   
+            
+            // Vytvor novú notifikáciu
+            var newNotification = utils.createTelegramMessage();
+            if (newNotification && newNotification.success && newNotification.notification) {
+                // Pridaj ikonu notifikácie
+                if (entryStatus.indexOf("Telegram notifikácie") === -1) {
+                    entryStatus.push("Telegram notifikácie");
+                }
+                entryIcons += CONFIG.icons.notification || "📢";
+                
+                // Odošli na Telegram
+                var sendResult = utils.sendNotificationEntry(newNotification.notification);
+                if (sendResult && sendResult.success) {
+                    if (entryStatus.indexOf("Telegram") === -1) {
+                        entryStatus.push("Telegram");
+                        entryIcons += CONFIG.icons.telegram || "✈️";
+                    }
+                    utils.addDebug(currentEntry, utils.getIcon("success") + " Telegram notifikácia úspešne odoslaná");
+                } else {
+                    utils.addError(currentEntry, "Nepodarilo sa odoslať notifikáciu na Telegram", "step7");
+                }
+            } else {
+                utils.addError(currentEntry, "Nepodarilo sa vytvoriť notifikáciu", "step7");
             }
         }
         
