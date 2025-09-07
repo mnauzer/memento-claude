@@ -1169,10 +1169,10 @@ var MementoTelegram = (function() {
         } catch (error) {
             core.addError(currentEntry, "Chyba pri aktualizácii záznamu: " + error.toString(), "updateAfterSuccess", error);
         }
-    }   // ==============================================
+    }   
+    // ==============================================
     // NOTIFIKÁCIE
     //
-    // V MementoCore7.js
     function getLinkedNotifications(entry) {
         try {
             var core = getCore();
@@ -1236,7 +1236,6 @@ var MementoTelegram = (function() {
         getTelegramGroup: getTelegramGroup,
         sendToTelegramThread: sendToTelegramThread,
         
-        checkPermissions: checkPermissions,
         cleanupOldNotifications: cleanupOldNotifications,
         createNotification: createNotification,
         linkNotification: linkNotification,
