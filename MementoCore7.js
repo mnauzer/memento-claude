@@ -1021,9 +1021,9 @@ function setColorByCondition(entry, condition) {
         calculateEaster: calculateEaster,
 
         // Notifikácie
-        getLinkedNotifications: getLinkedNotifications,
-        linkNotificationToSource: linkNotificationToSource,
-        deleteNotificationAndTelegram: deleteNotificationAndTelegram,
+        // getLinkedNotifications: getLinkedNotifications,
+        // linkNotificationToSource: linkNotificationToSource,
+        // deleteNotificationAndTelegram: deleteNotificationAndTelegram,
 
         // Funkcie pre farby
         setColor: setColor,

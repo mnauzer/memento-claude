@@ -239,9 +239,9 @@ var MementoUtils = (function() {
         sendNotifcationEntry: lazyCall('telegram','sendNotifcationEntry'),
         createTelegramMessage: lazyCall('telegram','createTelegramMessage'),
                 // Notifikácie
-        getLinkedNotifications: lazyCall('core', 'getLinkedNotifications'),
-        linkNotificationToSource: lazyCall('core', 'linkNotificationToSource'),
-        deleteNotificationAndTelegram: lazyCall('core', 'deleteNotificationAndTelegram'),
+        getLinkedNotifications: lazyCall('telegram', 'getLinkedNotifications'),
+        linkNotificationToSource: lazyCall('telegram', 'linkNotificationToSource'),
+        deleteNotificationAndTelegram: lazyCall('telegram', 'deleteNotificationAndTelegram'),
 
         // === BUSINESS FUNKCIE (ak je modul dostupný) ===
         

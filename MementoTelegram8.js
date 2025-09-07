@@ -1169,7 +1169,55 @@ var MementoTelegram = (function() {
         } catch (error) {
             core.addError(currentEntry, "Chyba pri aktualizácii záznamu: " + error.toString(), "updateAfterSuccess", error);
         }
+    }   // ==============================================
+    // NOTIFIKÁCIE
+    //
+    // V MementoCore7.js
+    function getLinkedNotifications(entry) {
+        try {
+            var core = getCore();
+            var config = getConfig();
+            var notifications = core.safeGetLinks(entry, config.fields.common.notifications);
+            return notifications || [];
+        } catch (error) {
+            return [];
+        }
     }
+
+    function linkNotificationToSource(sourceEntry, notificationEntry) {
+        try {
+            var core = getCore();
+            var config = getConfig();
+            var currentNotifications = core.safeGetLinks(sourceEntry, config.fields.common.notifications);
+            currentNotifications.push(notificationEntry);
+            sourceEntry.set(config.fields.common.notifications, currentNotifications);
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function deleteNotificationAndTelegram(notificationEntry) {
+        try {
+            var core = getCore();
+            var config = getConfig();
+            // 1. Získaj Telegram údaje
+            var chatId = core.safeGet(notificationEntry, "Chat ID");
+            var messageId = core.safeGet(notificationEntry, "Message ID");
+            
+            // 2. Vymaž z Telegramu (ak existuje message ID)
+            if (chatId && messageId) {
+                deleteTelegramMessage(chatId, messageId);
+            }
+            
+            // 3. Vymaž z knižnice Notifications
+            notificationEntry.trash();
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
 
     // ==============================================
     // PUBLIC API
@@ -1214,7 +1262,10 @@ var MementoTelegram = (function() {
         getTelegramFromGroup: getTelegramFromGroup,
         detectFormatting: detectFormatting,
         sendNotifcationEntry: sendNotifcationEntry,
-        createTelegramMessage: createTelegramMessage
+        createTelegramMessage: createTelegramMessage,
+        getLinkedNotifications: getLinkedNotifications,
+        linkNotificationToSource: linkNotificationToSource,
+        deleteNotificationAndTelegram: deleteNotificationAndTelegram,
 
     };
 })();
