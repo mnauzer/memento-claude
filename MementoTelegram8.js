@@ -21,7 +21,7 @@
 var MementoTelegram = (function() {
     'use strict';
     
-    var version = "8.0";
+    var version = "8.0.1";
     
     // Lazy loading pre závislosti
     var _config = null;
