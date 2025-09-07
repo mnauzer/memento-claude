@@ -1227,44 +1227,45 @@ var MementoTelegram = (function() {
         version: version,
         
         // Základné Telegram funkcie
-        sendTelegramMessage: sendTelegramMessage,
+        createTelegramMessage: createTelegramMessage,
         editTelegramMessage: editTelegramMessage,
         deleteTelegramMessage: deleteTelegramMessage,
         getBotToken: getBotToken,
         
+        sendTelegramMessage: sendTelegramMessage,
+        sendToTelegram: sendToTelegram,
+        sendNotifcationEntry: sendNotifcationEntry,
+        //  sendToTelegramThread: sendToTelegramThread,
+        
         // Skupiny a témy
         getTelegramGroup: getTelegramGroup,
-        sendToTelegramThread: sendToTelegramThread,
-        
-        cleanupOldNotifications: cleanupOldNotifications,
-        createNotification: createNotification,
-        linkNotification: linkNotification,
-
-        //
-        escapeMarkdown: escapeMarkdown,
-        createInlineKeyboard: createInlineKeyboard,
-
-
-        // Notifikácie
-        createNotificationEntry: createNotificationEntry,
-
-        // new
         getTelegramID: getTelegramID,
+        getTelegramFromIndividual: getTelegramFromIndividual,
+        getTelegramFromGroup: getTelegramFromGroup,
         getTelegramFromOrder: getTelegramFromOrder,
+        
+        // Notifikácie
+        createNotification: createNotification,
+        createNotificationEntry: createNotificationEntry,
+        linkNotification: linkNotification,
+        linkNotificationToSource: linkNotificationToSource,
+        
+        // CLEANUP
+        cleanupOldNotifications: cleanupOldNotifications,
+        getLinkedNotifications: getLinkedNotifications,
+        deleteNotificationAndTelegram: deleteNotificationAndTelegram,
+        
+        // POMOCNÉ FUNKCIE
         isNewRecord: isNewRecord,
         checkPermissions: checkPermissions,
         updateStatus: updateStatus,
-        updateSourceEntryInfo: updateSourceEntryInfo,
-        sendToTelegram: sendToTelegram,
-        updateAfterSuccess: updateAfterSuccess,
-        getTelegramFromIndividual: getTelegramFromIndividual,
-        getTelegramFromGroup: getTelegramFromGroup,
         detectFormatting: detectFormatting,
-        sendNotifcationEntry: sendNotifcationEntry,
-        createTelegramMessage: createTelegramMessage,
-        getLinkedNotifications: getLinkedNotifications,
-        linkNotificationToSource: linkNotificationToSource,
-        deleteNotificationAndTelegram: deleteNotificationAndTelegram,
+        escapeMarkdown: escapeMarkdown,
+        createInlineKeyboard: createInlineKeyboard,
+        
+        // UPDATING Entry fields
+        updateSourceEntryInfo: updateSourceEntryInfo,
+        updateAfterSuccess: updateAfterSuccess,
 
     };
 })();
