@@ -958,7 +958,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             telegramInfo += "• Odpracované: " + linkedRecordsData.workRecords.totalHours + " hodín\n";
             telegramInfo += "• HZS celkom: " + utils.formatMoney(linkedRecordsData.workRecords.totalHZS) + "\n\n";
         } else {
-           telegramInfo += "⚠️🔨 <b>Chýba záznam práce !</b>";
+           telegramInfo += "\n⚠️🔨 <b>Chýba záznam práce !</b>";
         }
         
         message("RideLogs: "+ linkedRecordsData.rideLog.count)
@@ -978,7 +978,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             telegramInfo += "• Celkom km: " + linkedRecordsData.rideLog.totalKm + " km\n";
             telegramInfo += "• Náklady: " + utils.formatMoney(linkedRecordsData.rideLog.totalCost) + "\n\n";
         } else {
-           telegramInfo += "⚠️🚗 <b>Chýba záznam dopravy !</b>";
+           telegramInfo += "\n⚠️🚗 <b>Chýba záznam dopravy !</b>";
         }
         
         message("CashLogs: "+ linkedRecordsData.cashBook.count)
@@ -1010,7 +1010,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             telegramInfo += "• Výdavky: -" + utils.formatMoney(linkedRecordsData.cashBook.totalExpenses) + "\n";
             telegramInfo += "• <b>Saldo: " + utils.formatMoney(linkedRecordsData.cashBook.balance) + "</b>\n\n";
         } else {
-           telegramInfo += "⚠️💳 <b>Dnes neboli žiadne platby ?</b>";
+           telegramInfo += "\n❓💳 <b>Dnes neboli žiadne platby ?</b>\n\n";
         }
         
         // ZÁVÄZKY (nová sekcia)
