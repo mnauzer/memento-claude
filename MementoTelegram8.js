@@ -339,10 +339,11 @@ var MementoTelegram = (function() {
         }
     }
     
-    function sendToTelegram(chatId, message, threadId) {
+    function sendToTelegram(chatId, message, threadId, sourceEntry) {
         try {
             var core = getCore();
             var config = getConfig();
+            var currentEntry = sourceEntry || entry();
             var formatting = core.safeGet(currentEntry, config.fields.notifications.formatting, "Markdown");
             var silent = core.safeGet(currentEntry, "Tichá správa", false);
             
@@ -459,10 +460,11 @@ var MementoTelegram = (function() {
 // POMOCNÉ FUNKCIE
 // ==============================================
 
-    function cleanupOldNotifications() {
+    function cleanupOldNotifications(sourceEntry) {
         try {
             var core = getCore();
             var config = getConfig();
+            var currentEntry = sourceEntry || entry();
             var existingNotifications = core.safeGet(currentEntry, config.fields.common.notifications, []);
             var deletedCount = 0;
             
@@ -495,10 +497,11 @@ var MementoTelegram = (function() {
         }
     }
 
-    function createNotification(params) {
+    function createNotification(params, sourceEntry) {
         try {
             var core = getCore();
             var config = getConfig();
+            var currentEntry = sourceEntry || entry();
             var notifLib = libByName(config.libraries.notifications);
             if (!notifLib) {
                 core.addError(currentEntry, "Knižnica " + config.libraries.notifications + " nenájdená", "createNotification");
@@ -632,10 +635,11 @@ var MementoTelegram = (function() {
     // FUNKCIA PRE ZÍSKANIE TELEGRAM ID
     // ==============================================
 
-    function getTelegramID(currentEntry) {
+    function getTelegramID(sourceEntry) {
         try {
             var core = getCore();
             var config = getConfig();
+            var currentEntry = sourceEntry || entry();
             // Získaj typ adresáta
             var recipientType = core.safeGet(currentEntry, config.fields.notifications.recipient);
             
@@ -698,10 +702,11 @@ var MementoTelegram = (function() {
         }
     }
 
-    function getTelegramFromOrder(recipientconfig) {
+    function getTelegramFromOrder(recipientconfig, sourceEntry) {
         try {
             var core = getCore();
             var config = getConfig();
+            var currentEntry = sourceEntry || entry();
 
             core.addDebug(currentEntry, "Získavam Telegram údaje cez Zákazku");
             
@@ -783,10 +788,11 @@ var MementoTelegram = (function() {
         }
     }
 
-    function getTelegramFromIndividual(recipientconfig) {
+    function getTelegramFromIndividual(recipientconfig, sourceEntry) {
         try {
             var core = getCore();
             var config = getConfig();
+            var currentEntry = sourceEntry || entry();
             // Získaj linknutý záznam
             var linkedRecords = core.safeGet(currentEntry, recipientconfig.linkField);
             
@@ -832,9 +838,10 @@ var MementoTelegram = (function() {
         }
     }
 
-    function getTelegramFromGroup(recipientconfig) {
+    function getTelegramFromGroup(recipientconfig, sourceEntry) {
         try {
             var core = getCore();
+            var currentEntry = sourceEntry || entry();
             
             // Získaj linknutú skupinu
             var linkedGroups = core.safeGet(currentEntry, recipientconfig.linkField);
@@ -887,10 +894,11 @@ var MementoTelegram = (function() {
         }
     }
 
-    function getTelegramGroup(telegramGroupField) {
+    function getTelegramGroup(telegramGroupField, sourceEntry) {
         try {
             var core = getCore();
             var config = getConfig();
+            var currentEntry = sourceEntry || entry();
             var defaultsLib = libByName(config.libraries.defaults);
             if (!defaultsLib) return null;
             
@@ -934,9 +942,10 @@ var MementoTelegram = (function() {
     // POMOCNÉ FUNKCIE
     // ==============================================
 
-    function isNewRecord() {
+    function isNewRecord(sourceEntry) {
         var core = getCore();
         var config = getConfig();
+        var currentEntry = sourceEntry || entry();
 
         var createdDate = core.safeGet(currentEntry, config.fields.common.createdDate);
         var modifiedDate = core.safeGet(currentEntry, config.fields.common.modifiedDate);
@@ -947,10 +956,11 @@ var MementoTelegram = (function() {
         return timeDiff < 5;
     }
 
-    function updateStatus(status, error) {
+    function updateStatus(status, error, sourceEntry) {
         try {
             var core = getCore();
             var config = getConfig();
+            var currentEntry = sourceEntry || entry();
             currentEntry.set(config.fields.notifications.status, status);
             
             if (error) {
@@ -980,10 +990,11 @@ var MementoTelegram = (function() {
         return "Text";
     }
 
-    function checkPermissions(permissionField) {
+    function checkPermissions(permissionField, sourceEntry) {
         try {
             var core = getCore();
             var config = getConfig();
+            var currentEntry = sourceEntry || entry();
 
             var defaultsLib = libByName(config.libraries.defaults);
             if (!defaultsLib) return false;
@@ -1055,10 +1066,11 @@ var MementoTelegram = (function() {
     // AKTUALIZÁCIA ZDROJOVÉHO ZÁZNAMU
     // ==============================================
 
-    function updateSourceEntryInfo(sendResult, telegramData) {
+    function updateSourceEntryInfo(sendResult, telegramData, sourceEntry) {
         try {
             var core = getCore();
             var config = getConfig();
+            var currentEntry = sourceEntry || entry();
             // Získaj zdrojový záznam (ak existuje prepojenie)
             var sourceLibrary = core.safeGet(currentEntry, "Zdrojová knižnica");
             var sourceEntryId = core.safeGet(currentEntry, "Zdrojový záznam ID");
@@ -1120,10 +1132,11 @@ var MementoTelegram = (function() {
         }
     }
 
-    function updateAfterSuccess(sendResult, telegramData) {
+    function updateAfterSuccess(sendResult, telegramData, sourceEntry) {
         try {
             var core = getCore();
             var config = getConfig();
+            var currentEntry = sourceEntry || entry();
             // Aktualizuj status
             currentEntry.set(config.fields.notifications.status, "Odoslané");
             
