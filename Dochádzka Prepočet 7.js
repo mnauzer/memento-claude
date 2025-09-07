@@ -936,10 +936,9 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             if (detail.pokuta > 0) {
                 telegramInfo += "  ➖ Pokuta: " + detail.pokuta + " €\n";
             }
-            
             telegramInfo += "  💰 <b>Denná mzda: " + detail.dennaMzda + " €</b>\n\n";
         }
-        
+        message("WorkRecords: "+linkedRecordsData.workRecords.count)
         // ZÁZNAMY PRÁCE (nová sekcia)
         if (linkedRecordsData.workRecords.count > 0) {
             telegramInfo += "🔨 <b>ZÁZNAMY PRÁCE</b> (" + linkedRecordsData.workRecords.count + ")\n";
@@ -949,7 +948,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
                 var work = linkedRecordsData.workRecords.records[j];
                 telegramInfo += "• " + work.zakazka + "\n";
                 telegramInfo += "  ⏱️ " + work.odpracovane + " h × " + work.pocetPracovnikov + " os = " + 
-                               work.odpracovaneTotal + " h\n";
+                work.odpracovaneTotal + " h\n";
                 if (work.hzs > 0) {
                     telegramInfo += "  💵 HZS: " + utils.formatMoney(work.hzs) + "\n";
                 }
@@ -960,6 +959,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             telegramInfo += "• HZS celkom: " + utils.formatMoney(linkedRecordsData.workRecords.totalHZS) + "\n\n";
         }
         
+        message("RideLogs: "+ linkedRecordsData.rideLogs.count)
         // KNIHA JÁZD (nová sekcia)
         if (linkedRecordsData.rideLog.count > 0) {
             telegramInfo += "🚗 <b>KNIHA JÁZD</b> (" + linkedRecordsData.rideLog.count + ")\n";
@@ -969,7 +969,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
                 var ride = linkedRecordsData.rideLog.records[k];
                 telegramInfo += "• " + ride.vozidlo + " - " + ride.trasa + "\n";
                 telegramInfo += "  📏 " + ride.km + " km × " + ride.sadzbaKm + " €/km = " + 
-                               utils.formatMoney(ride.naklady) + "\n";
+                utils.formatMoney(ride.naklady) + "\n";
             }
             
             telegramInfo += "\n📊 Súhrn jázd:\n";
@@ -977,6 +977,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             telegramInfo += "• Náklady: " + utils.formatMoney(linkedRecordsData.rideLog.totalCost) + "\n\n";
         }
         
+        message("CashLogs: "+ linkedRecordsData.cashLogs.count)
         // POKLADŇA (nová sekcia)
         if (linkedRecordsData.cashBook.count > 0) {
             telegramInfo += "💳 <b>POKLADŇA</b> (" + linkedRecordsData.cashBook.count + ")\n";
