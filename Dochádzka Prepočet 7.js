@@ -958,7 +958,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult) {
         telegramInfo += "📝 <i>Záznam #" + currentEntry.field("ID") + "</i>";
         
         // Ulož do poľa info_telegram
-        utils.safaSet(currentEntry, CONFIG.fields.common.infoTelegram, telegramInfo);
+        utils.safeSet(currentEntry, CONFIG.fields.common.infoTelegram, telegramInfo);
         
         utils.addDebug(currentEntry, utils.getIcon("success") + " Info_telegram záznam vytvorený");
         
