@@ -1129,7 +1129,7 @@ function collectLinkedRecordsData() {
                 var odpracovane = utils.safeGet(work, CONFIG.fields.workRecord.workTime, 0);
                 var pocetPrac = utils.safeGet(currentEntry, CONFIG.fields.attendance.employeeCount, 1);
                 var odpracTotal = odpracovane * pocetPrac;
-                var hzs = work.field(CONFIG.fields.workRecord.hzs)[0].attr(CONFIG.attributes.workRecordHzs.price) || 0;
+                var hzs = work.field(CONFIG.fields.workRecord.hzs)[0].attr("cena") || 0;
                 var zakazka = utils.safeGetLinks(work, CONFIG.fields.workRecord.customer);
                 var zakazkaNazov = zakazka && zakazka.length > 0 ? 
                                   utils.safeGet(zakazka[0], "Názov", "Bez názvu") : "Bez zákazky";
