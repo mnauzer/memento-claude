@@ -27,7 +27,15 @@ var MementoTelegram = (function() {
     var _config = null;
     var _core = null;
     var _ai = null;
-    
+    var _utils = null;
+
+    function getUtils() {
+        if (!_utils && typeof MementoUtils !== 'undefined') {
+            _utils = MementoUtils;
+        }
+        return _utils;
+    }
+
     function getConfig() {
         if (!_config && typeof MementoConfig !== 'undefined') {  // Oprav na MementoConfig
             _config = MementoConfig.getConfig();
@@ -169,7 +177,7 @@ var MementoTelegram = (function() {
         var libraryName = lib().title;
         
         // 1. Kontrola či máme info_telegram pole
-        var telegramMessage = core.safeGet(currentEntry, "info_telegram");
+        var telegramMessage = core.safeGet(currentEntry, config.fields.common.infoTelegram);
         if (!telegramMessage) {
             core.addDebug(currentEntry, core.getIcon("info") + " Pole info_telegram je prázdne - žiadna notifikácia");
             return {

@@ -268,7 +268,7 @@ var MementoUtils = (function() {
         convertToHex: lazyCall('core', 'convertToHex'),
         
         // === HELPER FUNKCIE ===
-        
+        getIcon: lazyCall('core', 'getIcon'),
 
         /**
          * Získa informácie o načítaných moduloch

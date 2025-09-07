@@ -681,6 +681,58 @@ var MementoCore = (function() {
             return false;
         }
     }
+    function getIcon(name) {
+        try {
+            var config = getConfig();
+            if (config && config.icons && config.icons[name]) {
+                return config.icons[name];
+            }
+            
+            // Fallback ikony ak config nie je dostupný
+            var fallbackIcons = {
+                info: "ℹ️",
+                warning: "⚠️",
+                error: "❌",
+                success: "✅",
+                delete: "🗑️",
+                start: "🚀",
+                notification: "📢",
+                telegram: "✈️",
+                time: "⏰",
+                calendar: "📅",
+                group: "👥",
+                money: "💰",
+                note: "📝",
+                calculation: "🧮",
+                link: "🔗",
+                user: "👤",
+                search: "🔍",
+                settings: "⚙️",
+                check: "✔️",
+                cross: "❌",
+                arrow: "➡️",
+                flag: "🚩",
+                star: "⭐",
+                heart: "❤️",
+                fire: "🔥",
+                bolt: "⚡",
+                clock: "🕐",
+                mail: "📧",
+                phone: "📱",
+                home: "🏠",
+                work: "💼",
+                car: "🚗",
+                tools: "🔧",
+                package: "📦",
+                chart: "📊"
+            };
+            
+            return fallbackIcons[name] || "";
+            
+        } catch (e) {
+            return "";
+        }
+    }
 
     // Farby
     // ==============================================
@@ -1030,7 +1082,8 @@ function setColorByCondition(entry, condition) {
         removeColor: removeColor,
         getColor: getColor,
         setColorByCondition: setColorByCondition,
-        convertToHex: convertToHex
+        convertToHex: convertToHex,
+        getIcon: getIcon
 
     };
 })();
