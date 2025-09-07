@@ -186,15 +186,6 @@ var MementoUtils = (function() {
         findRecordIndex: lazyCall('core', 'findRecordIndex'),
 
 
-        // Notifikácie
-        getLinkedNotifications: lazyCall('core', 'getLinkedNotifications'),
-        linkNotificationToSource: lazyCall('core', 'linkNotificationToSource'),
-        deleteNotificationAndTelegram: lazyCall('core', 'deleteNotificationAndTelegram'),
-        checkPermissions: lazyCall('telegram', 'checkPermissions'),
-        cleanupOldNotifications: lazyCall('telegram', 'cleanupOldNotifications'),
-        createNotification: lazyCall('telegram', 'createNotification'),
-        linkNotification: lazyCall('telegram', 'linkNotification'),
-
 
         
         // Obligations
@@ -247,7 +238,11 @@ var MementoUtils = (function() {
         detectFormatting: lazyCall('telegram','detectFormatting'),
         sendNotifcationEntry: lazyCall('telegram','sendNotifcationEntry'),
         createTelegramMessage: lazyCall('telegram','createTelegramMessage'),
-        
+                // Notifikácie
+        getLinkedNotifications: lazyCall('core', 'getLinkedNotifications'),
+        linkNotificationToSource: lazyCall('core', 'linkNotificationToSource'),
+        deleteNotificationAndTelegram: lazyCall('core', 'deleteNotificationAndTelegram'),
+
         // === BUSINESS FUNKCIE (ak je modul dostupný) ===
         
         calculateWorkHours: lazyCall('business', 'calculateWorkHours'),
@@ -274,6 +269,7 @@ var MementoUtils = (function() {
         
         // === HELPER FUNKCIE ===
         
+
         /**
          * Získa informácie o načítaných moduloch
          * @returns {Object} Status modulov
