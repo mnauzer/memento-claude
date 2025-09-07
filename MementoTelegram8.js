@@ -463,7 +463,7 @@ var MementoTelegram = (function() {
             }
             
             // 6. Aktualizácia záznamu po úspešnom odoslaní
-            updateAfterSuccess(sendResult, telegramData);
+            updateAfterSuccess(sendResult, telegramData, notificationEntry);
             
             // 7. Aktualizácia info poľa zdrojového záznamu
             updateSourceEntryInfo(sendResult, telegramData);
@@ -1163,7 +1163,7 @@ var MementoTelegram = (function() {
         try {
             var core = getCore();
             var config = getConfig();
-            var currentEntry = sourceEntry || entry();
+            var currentEntry = sourceEntry;
             // Aktualizuj status
             currentEntry.set(config.fields.notifications.status, "Odoslané");
             
