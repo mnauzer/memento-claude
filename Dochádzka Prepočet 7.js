@@ -46,6 +46,7 @@ var CONFIG = {
     // Referencie na centrálny config
     fields: {
         rideLog: centralConfig.fields.rideLog,
+        cashBook: centralConfig.fields.cashBook,
         workRecord: centralConfig.fields.workRecord,
         attendance: centralConfig.fields.attendance,
         obligations: centralConfig.fields.obligations,
