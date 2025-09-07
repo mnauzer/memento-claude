@@ -26,7 +26,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Dochádzka Prepočet",
-    version: "7.4.2",  // Aktualizovaná verzia
+    version: "7.4.3",  // Aktualizovaná verzia
     
     // Referencie na centrálny config
     fields: {
@@ -939,7 +939,6 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             }
             telegramInfo += "  💰 <b>Denná mzda: " + detail.dennaMzda + " €</b>\n\n";
         }
-        message("WorkRecords: "+linkedRecordsData.workRecords.count)
         // ZÁZNAMY PRÁCE (nová sekcia)
         if (linkedRecordsData.workRecords.count > 0) {
             telegramInfo += "🔨 <b>ZÁZNAMY PRÁCE</b> (" + linkedRecordsData.workRecords.count + ")\n";
@@ -962,7 +961,6 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
            telegramInfo += "\n⚠️🔨 <b>Chýba záznam práce !</b>";
         }
         
-        message("RideLogs: "+ linkedRecordsData.rideLog.count)
         // KNIHA JÁZD (nová sekcia)
         if (linkedRecordsData.rideLog.count > 0) {
             telegramInfo += "🚗 <b>KNIHA JÁZD</b> (" + linkedRecordsData.rideLog.count + ")\n";
@@ -983,7 +981,6 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
            telegramInfo += "\n⚠️🚗 <b>Chýba záznam dopravy !</b>";
         }
         
-        message("CashLogs: "+ linkedRecordsData.cashBook.count)
         // POKLADŇA (nová sekcia)
         if (linkedRecordsData.cashBook.count > 0) {
             telegramInfo += "💳 <b>POKLADŇA</b> (" + linkedRecordsData.cashBook.count + ")\n";
@@ -1132,7 +1129,7 @@ function collectLinkedRecordsData() {
                 var odpracovane = utils.safeGet(work, CONFIG.fields.workRecord.workTime, 0);
                 var pocetPrac = utils.safeGet(currentEntry, CONFIG.fields.attendance.employeeCount, 1);
                 var odpracTotal = odpracovane * pocetPrac;
-                var hzs = utils.safeGetAttribute(work, CONFIG.fields.workRecord.hzs, CONFIG.attributes.workRecordHzs.price, 0);
+                var hzs = work.field(CONFIG.fields.workRecord.hzs)[0].attr(CONFIG.attributes.workRecordHzs.price) || 0;
                 var zakazka = utils.safeGetLinks(work, CONFIG.fields.workRecord.customer);
                 var zakazkaNazov = zakazka && zakazka.length > 0 ? 
                                   utils.safeGet(zakazka[0], "Názov", "Bez názvu") : "Bez zákazky";
@@ -1443,11 +1440,11 @@ function main() {
             var dayOffReason = utils.safeGet(currentEntry, CONFIG.fields.attendance.dayOffReason, null);
             if (dayOffReason === "Dažď") {
                 utils.safeSet(currentEntry, CONFIG.fields.attendance.entryIcons, CONFIG.icons.weather_delay);
-            } else if (dayOffReason === "Oddych") {
+            } else if (dayOffReason === "Voľný deň") {
                 utils.safeSet(currentEntry, CONFIG.fields.attendance.entryIcons, CONFIG.icons.vacation);
             } else if (dayOffReason === "Dovolenka") {
                 utils.safeSet(currentEntry, CONFIG.fields.attendance.entryIcons, CONFIG.icons.vacation);
-            } else if (dayOffReason === "Mokro") {
+            } else if (dayOffReason === "Voľno - mokrý terén") {
                 utils.safeSet(currentEntry, CONFIG.fields.attendance.entryIcons, CONFIG.icons.soil_wet);
             }
             utils.setColor(currentEntry, "bg", "light gray");
@@ -1618,7 +1615,6 @@ function main() {
                     // Vytvor novú notifikáciu
                     var newNotification = utils.createTelegramMessage(currentEntry);
                     if (newNotification.success) {
-                        message("newNotification.success: " + newNotification.success )
                         // Pridaj ikonu notifikácie
                         if (entryStatus.indexOf("Telegram notifikácie") === -1) {
                             entryStatus.push("Telegram notifikácie");
@@ -1630,7 +1626,6 @@ function main() {
                         // Odošli na Telegram
                         var sendResult = utils.sendNotificationEntry(newNotification.notification);
                         if (sendResult.success) {
-                            message("sendResult.success: " + sendResult.success )
                             if (entryStatus.indexOf("Telegram") === -1) {
                                 entryStatus.push("Telegram");
                                 entryIcons += CONFIG.icons.telegram;
