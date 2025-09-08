@@ -368,6 +368,7 @@ var MementoConfig = (function() {
             // Záväzky polia
             obligations: {
                 date: "Dátum",
+                dueDate: "Splatnosť",
                 type: "Typ", // SingleChoice: Nákup materiálu, Mzda, Podiely, Pôžička, Poistné, Faktúra
                 state: "Stav", // SingleChoice: Neuhradené, Čiastočne uhradené, Uhradené
                 creditor: "Veriteľ", //SingleChoice list: Dodávateľ, Partner, Zamestnanec, Klient
