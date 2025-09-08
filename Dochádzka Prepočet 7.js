@@ -535,7 +535,7 @@ function linkWorkRecords() {
                 var warningRecord = warningRecords[wr].record;
                 
                 // Nastav žltú farbu pozadia pre upozornenie
-                utils.safeSet(warningRecord, CONFIG.fields.common.backgroundColor || "farba pozadia", "#FFEB3B");
+                utils.setColor(currentEntry, "fg", "warning");
                 
                 // Pridaj info do info poľa záznamu práce
                 var existingInfo = utils.safeGet(warningRecord, CONFIG.fields.common.info || "info", "");
@@ -784,8 +784,8 @@ function linkCashBookRecords() {
 function setEntryFields(employeeResult, workLinkResult, rideLogLinkResult, entryIcons, entryStatus) {
     try {
         // Ulož celkové hodnoty
-        var workHoursDiff = workLinkResult.workedOnOrders - employeeResult.workHours;
-        message("on orders: " + " employee workhours: " + employeeResult.workHours);
+        var workHoursDiff = workLinkResult.workedOnOrders - employeeResult.odpracovaneTotal;
+        message("on orders: " + " employee workhours: " + employeeResult.odpracovaneTotal);
         if (workHoursDiff > 0) {
             utils.addDebug(currentEntry, "❗ Odpracovaný čas na zákazkách je vyšší ako čas v dochádzke: " + workHoursDiff + " hodín");
             utils.setColor(currentEntry, "fg", "red");
