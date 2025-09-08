@@ -724,8 +724,8 @@ function linkCashBookRecords() {
         
         for (var j = 0; j < cashBook.length; j++) {
             var cashBookRecord = cashBook[j];
-            var paidBy = utils.safeGetLinks(cashBookRecord, CONFIG.fields.cashBook.paidBy);
-            var paidTo = utils.safeGetLinks(cashBookRecord, CONFIG.fields.cashBook.paidTo);
+            var paidBy = utils.safeGet(cashBookRecord, CONFIG.fields.cashBook.paidBy);
+            var paidTo = utils.safeGet(cashBookRecord, CONFIG.fields.cashBook.paidTo);
             // Kontrola či má záznam aspoň jedného zhodného zamestnanca
             var hasMatchingEmployee = false;
             var paidById = paidBy[0].field("ID");
@@ -1534,7 +1534,6 @@ function collectLinkedRecordsData() {
 }
  // Pomocné funkcie
 function getSumaFromCashRecord(record) {
-    message("Získavam sumu")
     var isVat = utils.safeGet(record, CONFIG.fields.cashBook.isVat || "s DPH", false);
     var suma = 0;
     
@@ -1545,7 +1544,6 @@ function getSumaFromCashRecord(record) {
     if (!suma || suma === 0) {
         suma = utils.safeGet(record, CONFIG.fields.cashBook.sum || "Suma", 0);
     }
-    message("Suma: " + suma)
     return suma;
 }
 
