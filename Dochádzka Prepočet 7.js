@@ -1338,7 +1338,7 @@ function collectLinkedRecordsData() {
                 var destinationName = utils.safeGet(destination, CONFIG.fields.place.name)[0];
                 var startName = utils.safeGet(start, CONFIG.fields.place.name);
                 var trasa = startName + " - " + destinationName;
-                
+                message(vehicleName);
                 data.rideLog.records.push({
                     vehicle: vehicleName,
                     stops: stops.length,
