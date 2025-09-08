@@ -123,7 +123,7 @@ var MementoConfig = (function() {
             partners: "Partneri",
             clients: "Klienti",
             vehicles: "Vozidlá",
-            machines: "Stroje",
+            machines: "Mechanizácia",
             places: "Miesta",
             addresses: "Adresy",
             accounts: "Účty",
@@ -389,6 +389,24 @@ var MementoConfig = (function() {
                 info: "info úhrada", 
                 obligations: "Záväzky" // Chceckbox, true ak sync zaväzkov prebehol úspešne
             },
+            // Pohľadávky
+            receivables: {
+                date: "Dátum",
+                type: "Typ",
+                state: "Stav",
+                creditor: "Veriteľ",
+                employee: "Zamestnanec",
+                supplier: "Dodávateľ",
+                partner: "Partner",
+                client: "Klient",
+                amount: "Suma",
+                paid: "Zaplatené",
+                balance: "Zostatok",
+                description: "Popis",
+                info: "info",
+                debtor: "Dlžník",        // Pridané
+                cashBook: "Pokladňa"      // Pridané
+            },
             // Zákazky polia
             customers: {
                 state: "Stav",
@@ -505,24 +523,17 @@ var MementoConfig = (function() {
                 standard: "základná",
                 reduced: "znížená"
             }, 
-            // Pohľadávky
-            receivables: {
-                date: "Dátum",
-                type: "Typ",
-                state: "Stav",
-                creditor: "Veriteľ",
-                employee: "Zamestnanec",
-                supplier: "Dodávateľ",
-                partner: "Partner",
-                client: "Klient",
-                amount: "Suma",
-                paid: "Zaplatené",
-                balance: "Zostatok",
+            machine: {
+                type: "Typ", // singleChoice: Stroj, Technika, Ručné náradie, Príslušenstvo
+                status: "status", // options: vlastné, externé, požičovňa
+                name: "Názov",
                 description: "Popis",
-                info: "info",
-                debtor: "Dlžník",        // Pridané
-                cashBook: "Pokladňa"      // Pridané
-            },
+                owner: "Vlastník",
+                mth: "MTH", // motohodiny
+                hzs: "HZS", // linkToEntry: Cenník prác
+                flatRate: "Paušál", // linkToEntry: Cenník prác
+            }
+            
         },
         
         // === ATRIBÚTY ===
