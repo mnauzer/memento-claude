@@ -1309,7 +1309,8 @@ function collectLinkedRecordsData() {
                     odpracovane: odpracovane,
                     pocetPracovnikov: pocetPrac,
                     odpracovaneTotal: odpracTotal.toFixed(2),
-                    hzs: hzsSum
+                    hzs: hzs,
+                    hzsSum: hzsSum
                 });
                 
                 data.workRecords.totalHours += odpracTotal;
@@ -1532,31 +1533,31 @@ function collectLinkedRecordsData() {
     return data;
 }
  // Pomocné funkcie
-        function getSumaFromCashRecord(record) {
-            message("Získavam sumu")
-            var isVat = utils.safeGet(record, CONFIG.fields.cashBook.isVat || "s DPH", false);
-            var suma = 0;
-            
-            if (isVat) {
-                suma = utils.safeGet(record, CONFIG.fields.cashBook.sumTotal || "Suma s DPH", 0);
-            }
-            
-            if (!suma || suma === 0) {
-                suma = utils.safeGet(record, CONFIG.fields.cashBook.sum || "Suma", 0);
-            }
-            message("Suma: " + suma)
-            return suma;
+function getSumaFromCashRecord(record) {
+    message("Získavam sumu")
+    var isVat = utils.safeGet(record, CONFIG.fields.cashBook.isVat || "s DPH", false);
+    var suma = 0;
+    
+    if (isVat) {
+        suma = utils.safeGet(record, CONFIG.fields.cashBook.sumTotal || "Suma s DPH", 0);
+    }
+    
+    if (!suma || suma === 0) {
+        suma = utils.safeGet(record, CONFIG.fields.cashBook.sum || "Suma", 0);
+    }
+    message("Suma: " + suma)
+    return suma;
+}
+
+function isTransactionInLinks(transaction, linkedTransactions) {
+    var transId = transaction.field("ID");
+    for (var i = 0; i < linkedTransactions.length; i++) {
+        if (linkedTransactions[i].field("ID") === transId) {
+            return true;
         }
-        
-        function isTransactionInLinks(transaction, linkedTransactions) {
-            var transId = transaction.field("ID");
-            for (var i = 0; i < linkedTransactions.length; i++) {
-                if (linkedTransactions[i].field("ID") === transId) {
-                    return true;
-                }
-            }
-            return false;
-        }
+    }
+    return false;
+}
 /**
  * Vytvorí Telegram info záznam s komplexným sumárom
  * @param {Object} workTimeResult - Výsledky pracovného času
