@@ -109,7 +109,8 @@ var MementoTelegram = (function() {
                 text: text,
                 parse_mode: options.parseMode || "Markdown",
                 disable_web_page_preview: options.disablePreview || false,
-                disable_notification: options.silent || false
+                disable_notification: options.silent || false,
+                reply_markup: options.inlineKeyboard
             };
             
             // Thread ID pre odpoveď v téme
@@ -364,77 +365,78 @@ var MementoTelegram = (function() {
         }
     }
     
- function sendToTelegram(chatId, message, threadId, sourceEntry) {
-    try {
-        var core = getCore();
-        var config = getConfig();
-        var currentEntry = sourceEntry || entry();
-        
-        // Získaj formátovanie z notifikácie
-        var formatting = core.safeGet(currentEntry, config.fields.notifications.formatting, "Markdown");
-        
-        // OPRAVA: Získaj "Tichá správa" z Telegram Groups, nie z notifikácie
-        var silent = false;
-        
-        // Skús získať skupinu z notifikácie
-        var groupOrTopic = core.safeGetLinks(currentEntry, config.fields.notifications.groupOrTopic || "Skupina/Téma");
-        if (groupOrTopic && groupOrTopic.length > 0) {
-            var telegramGroup = groupOrTopic[0];
-            // Získaj "Tichá správa" z Telegram Groups záznamu
-            silent = core.safeGet(telegramGroup, config.fields.telegramGroups.silentMessage || "Tichá správa", false);
+    function sendToTelegram(chatId, message, threadId, sourceEntry, inlineKeyboard) {
+        try {
+            var core = getCore();
+            var config = getConfig();
+            var currentEntry = sourceEntry || entry();
             
-            core.addDebug(currentEntry, "  • Telegram skupina: " + core.safeGet(telegramGroup, "Názov skupiny"));
-            core.addDebug(currentEntry, "  • Tichá správa (zo skupiny): " + (silent ? "Áno" : "Nie"));
-        } else {
-            // Fallback - skús získať priamo z notifikácie
-            silent = core.safeGet(currentEntry, "Tichá správa", false);
-            core.addDebug(currentEntry, "  • Tichá správa (z notifikácie): " + (silent ? "Áno" : "Nie"));
-        }
-        
-        var options = {
-            parseMode: formatting,
-            silent: silent,
-            createNotification: false
-        };
-        
-        if (threadId) {
-            options.threadId = threadId;
-        }
-        
-        core.addDebug(currentEntry, "Odosielam správu:");
-        core.addDebug(currentEntry, "  • Chat ID: " + chatId);
-        core.addDebug(currentEntry, "  • Thread ID: " + (threadId || "N/A"));
-        core.addDebug(currentEntry, "  • Formátovanie: " + formatting);
-        core.addDebug(currentEntry, "  • Tichá správa: " + (silent ? "Áno ✅" : "Nie ❌"));
-        
-        var result = sendTelegramMessage(chatId, message, options);
-        
-        if (result.success) {
-            core.addDebug(currentEntry, core.getIcon("success") + " Správa odoslaná, Message ID: " + result.messageId);
-            return {
-                success: true,
-                messageId: result.messageId,
-                chatId: result.chatId,
-                date: result.date
+            // Získaj formátovanie z notifikácie
+            var formatting = core.safeGet(currentEntry, config.fields.notifications.formatting, "Markdown");
+            
+            // OPRAVA: Získaj "Tichá správa" z Telegram Groups, nie z notifikácie
+            var silent = false;
+            
+            // Skús získať skupinu z notifikácie
+            var groupOrTopic = core.safeGetLinks(currentEntry, config.fields.notifications.groupOrTopic || "Skupina/Téma");
+            if (groupOrTopic && groupOrTopic.length > 0) {
+                var telegramGroup = groupOrTopic[0];
+                // Získaj "Tichá správa" z Telegram Groups záznamu
+                silent = core.safeGet(telegramGroup, config.fields.telegramGroups.silentMessage || "Tichá správa", false);
+                
+                core.addDebug(currentEntry, "  • Telegram skupina: " + core.safeGet(telegramGroup, "Názov skupiny"));
+                core.addDebug(currentEntry, "  • Tichá správa (zo skupiny): " + (silent ? "Áno" : "Nie"));
+            } else {
+                // Fallback - skús získať priamo z notifikácie
+                silent = core.safeGet(currentEntry, "Tichá správa", false);
+                core.addDebug(currentEntry, "  • Tichá správa (z notifikácie): " + (silent ? "Áno" : "Nie"));
+            }
+            
+            var options = {
+                parseMode: formatting,
+                silent: silent,
+                createNotification: false,
+                inlineKeyboard: inlineKeyboard
             };
-        } else {
+            
+            if (threadId) {
+                options.threadId = threadId;
+            }
+            
+            core.addDebug(currentEntry, "Odosielam správu:");
+            core.addDebug(currentEntry, "  • Chat ID: " + chatId);
+            core.addDebug(currentEntry, "  • Thread ID: " + (threadId || "N/A"));
+            core.addDebug(currentEntry, "  • Formátovanie: " + formatting);
+            core.addDebug(currentEntry, "  • Tichá správa: " + (silent ? "Áno ✅" : "Nie ❌"));
+            
+            var result = sendTelegramMessage(chatId, message, options);
+            
+            if (result.success) {
+                core.addDebug(currentEntry, core.getIcon("success") + " Správa odoslaná, Message ID: " + result.messageId);
+                return {
+                    success: true,
+                    messageId: result.messageId,
+                    chatId: result.chatId,
+                    date: result.date
+                };
+            } else {
+                return {
+                    success: false,
+                    error: result.error || "Neznáma chyba"
+                };
+            }
+            
+        } catch (error) {
+            var errorEntry = sourceEntry || entry();
+            core.addError(errorEntry, "Chyba pri odosielaní: " + error.toString(), "sendToTelegram", error);
             return {
                 success: false,
-                error: result.error || "Neznáma chyba"
+                error: error.toString()
             };
         }
-        
-    } catch (error) {
-        var errorEntry = sourceEntry || entry();
-        core.addError(errorEntry, "Chyba pri odosielaní: " + error.toString(), "sendToTelegram", error);
-        return {
-            success: false,
-            error: error.toString()
-        };
     }
-}
 
-    function sendNotificationEntry(notificationEntry) {
+    function sendNotificationEntry(notificationEntry, inlineKeyboard) {
         try {
             var core = getCore();
             var config = getConfig();
@@ -474,7 +476,7 @@ var MementoTelegram = (function() {
             }
             
             // 5. Odoslanie na Telegram
-            var sendResult = sendToTelegram(telegramData.chatId, message, telegramData.threadId, notificationEntry);
+            var sendResult = sendToTelegram(telegramData.chatId, message, telegramData.threadId, notificationEntry, inlineKeyboard);
             
             if (!sendResult.success) {
                 core.addError(notificationEntry, "Odoslanie zlyhalo: " + sendResult.error, "main");
