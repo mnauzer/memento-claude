@@ -531,7 +531,7 @@ var MementoConfig = (function() {
                 owner: "Vlastník",
                 mth: "MTH", // motohodiny
                 hzs: "HZS", // linkToEntry: Cenník prác
-                flatRate: "Paušál", // linkToEntry: Cenník prác
+                flatRate: "Paušál" // linkToEntry: Cenník prác
             }
             
         },

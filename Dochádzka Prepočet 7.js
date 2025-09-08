@@ -1331,12 +1331,16 @@ function collectLinkedRecordsData() {
                 var sadzbaKm = utils.safeGet(ride, "Sadzba za km", 0) || 0.193;
                 var naklady = km * sadzbaKm;
                 var vozidlo = utils.safeGet(ride, CONFIG.fields.bookOfRides.vehicle)[0];
-                var start = utils.safeGet(ride, CONFIG.fields.bookOfRides.start)[0].field(CONFIG.fields.place.name);
-                var destination = utils.safeGet(ride, CONFIG.fields.bookOfRides.destination)[0].field(CONFIG.fields.place.name);
-                var trasa = start + " - " + destination;
+                var start = utils.safeGet(ride, CONFIG.fields.bookOfRides.start)[0]
+                var destination = utils.safeGet(ride, CONFIG.fields.bookOfRides.destination)[0]
+                var stops = utils.safeGet(ride, CONFIG.fields.bookOfRides.stops)
+                var destinationName = utils.safeGet(destination, CONFIG.fields.place.name)[0];
+                var startName = utils.safeGet(start, CONFIG.fields.place.name);
+                var trasa = startName + " - " + destinationName;
                 
                 data.rideLog.records.push({
                     vozidlo: utils.safeGet(vozidlo, CONFIG.fields.vehicle.name),
+                    stops: stops.length,
                     trasa: trasa,
                     km: km,
                     sadzbaKm: sadzbaKm,
