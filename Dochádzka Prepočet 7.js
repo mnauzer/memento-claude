@@ -721,12 +721,16 @@ function linkCashBookRecords() {
         
         for (var j = 0; j < cashBook.length; j++) {
             var cashBookRecord = cashBook[j];
-            var paidBy = utils.safeGet(cashBookRecord, CONFIG.fields.cashBook.paidBy)[0];
-            var paidTo = utils.safeGet(cashBookRecord, CONFIG.fields.cashBook.paidTo)[0];
             // Kontrola či má záznam aspoň jedného zhodného zamestnanca
+            var paidBy = utils.safeGet(cashBookRecord, CONFIG.fields.cashBook.paidBy);
+            var paidTo = utils.safeGet(cashBookRecord, CONFIG.fields.cashBook.paidTo);
             var hasMatchingEmployee = false;
-            var paidById = paidBy.field("ID");
-            var paidToId = paidTo.field("ID");
+            if (paidBy && paidBy.length > 0){
+                var paidById = paidBy[0].field("ID");
+            }
+            if (paidTo && paidTo.length > 0){
+                var paidToId = paidTo.field("ID");
+            }
             if (dochadzkaEmployeeIds.indexOf(paidById) !== -1 || dochadzkaEmployeeIds.indexOf(paidToId) !== -1) {
                 hasMatchingEmployee = true;
             } 
