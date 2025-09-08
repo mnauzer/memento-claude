@@ -1336,7 +1336,7 @@ function collectLinkedRecordsData() {
                 var trasa = start + " - " + destination;
                 
                 data.rideLog.records.push({
-                    vozidlo: utils.safeGet(vozidlo, CONFIG.fields.vehiclee.name),
+                    vozidlo: utils.safeGet(vozidlo, CONFIG.fields.vehicle.name),
                     trasa: trasa,
                     km: km,
                     sadzbaKm: sadzbaKm,
