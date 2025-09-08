@@ -896,10 +896,597 @@ function createInfoRecord(workTimeResult, employeeResult) {
 // VYTVORENIE INFO_TELEGRAM ZÁZNAMU
 // ==============================================
 
+// function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsData) {
+//     try {
+//         var date = currentEntry.field(CONFIG.fields.attendance.date);
+//         var dateFormatted = utils.formatDate(date, "DD.MMMM.YYYY");
+//         var dayName = utils.getDayNameSK(moment(date).day()).toUpperCase();
+
+//         // Inicializuj linkedRecordsData ak nebol poskytnutý
+//         if (!linkedRecordsData) {
+//             linkedRecordsData = collectLinkedRecordsData();
+//         }
+
+//         // HTML formátovaná správa
+//         var telegramInfo = "📋 <b>ZÁHRADY KRAJINKA - DENNÝ SÚHRN</b>\n";
+//         telegramInfo += "═══════════════════════════════════\n\n";
+        
+//         telegramInfo += "📅 <b>Dátum:</b> " + dateFormatted + " (" + dayName + ")\n";
+//         telegramInfo += "⏰ <b>Pracovný čas:</b> " + utils.formatTime(workTimeResult.arrivalRounded) + 
+//                         " - " + utils.formatTime(workTimeResult.departureRounded) + "\n";
+//         telegramInfo += "⏱️ <b>Pracovná doba:</b> " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
+        
+//         // ZAMESTNANCI
+//         telegramInfo += "👥 <b>ZAMESTNANCI</b> (" + employeeResult.pocetPracovnikov + " " + 
+//                         utils.selectOsobaForm(employeeResult.pocetPracovnikov) + ")\n";
+//         telegramInfo += "───────────────────────────────────\n";
+        
+//         for (var i = 0; i < employeeResult.detaily.length; i++) {
+//             var detail = employeeResult.detaily[i];
+//             var empName = utils.formatEmployeeName(detail.zamestnanec);
+            
+//             telegramInfo += "• <b>" + empName + "</b>\n";
+//             telegramInfo += "  💶 Sadzba: " + detail.hodinovka + " €(h)\n";
+            
+//             if (detail.priplatok > 0) {
+//                 telegramInfo += "  ➕ Príplatok: " + detail.priplatok + " €(h)\n";
+//             }
+//             if (detail.premia > 0) {
+//                 telegramInfo += "  🎁 Prémia: " + detail.premia + " €\n";
+//             }
+//             if (detail.pokuta > 0) {
+//                 telegramInfo += "  ➖ Pokuta: " + detail.pokuta + " €\n";
+//             }
+//             telegramInfo += "  💰 <b>Denná mzda: " + detail.dennaMzda + " €</b>\n\n";
+//         }
+//         // ZÁZNAMY PRÁCE (nová sekcia)
+//         if (linkedRecordsData.workRecords.count > 0) {
+//             telegramInfo += "🔨 <b>ZÁZNAMY PRÁCE</b> (" + linkedRecordsData.workRecords.count + ")\n";
+//             telegramInfo += "───────────────────────────────────\n";
+            
+//             for (var j = 0; j < linkedRecordsData.workRecords.records.length; j++) {
+//                 var work = linkedRecordsData.workRecords.records[j];
+//                 telegramInfo += "• " + work.zakazka + "\n";
+//                 telegramInfo += "  ⏱️ " + work.odpracovane + " h × " + work.pocetPracovnikov + " os = " + 
+//                 work.odpracovaneTotal + " h\n";
+//                 if (work.hzs > 0) {
+//                     telegramInfo += "  💵 HZS: " + utils.formatMoney(work.hzs) + "\n";
+//                 }
+//             }
+            
+//             telegramInfo += "\n📊 Súhrn práce:\n";
+//             telegramInfo += "• Odpracované: " + linkedRecordsData.workRecords.totalHours + " hodín\n";
+//             telegramInfo += "• HZS celkom: " + utils.formatMoney(linkedRecordsData.workRecords.totalHZS) + "\n\n";
+//         } else {
+//            telegramInfo += "\n⚠️🔨 <b>Chýba záznam práce !</b>";
+//         }
+        
+//         // KNIHA JÁZD (nová sekcia)
+//         if (linkedRecordsData.rideLog.count > 0) {
+//             telegramInfo += "🚗 <b>KNIHA JÁZD</b> (" + linkedRecordsData.rideLog.count + ")\n";
+//             telegramInfo += "───────────────────────────────────\n";
+            
+//             for (var k = 0; k < linkedRecordsData.rideLog.records.length; k++) {
+//                 var ride = linkedRecordsData.rideLog.records[k];
+//                 telegramInfo += "• " + ride.vozidlo + " - " + ride.trasa + "\n";
+//                 telegramInfo += "  📏 " + ride.km + " km × " + ride.sadzbaKm + " €(km) = " + 
+//                 utils.formatMoney(ride.naklady) + "\n";
+//             }
+            
+//             telegramInfo += "\n📊 Súhrn jázd:\n";
+//             telegramInfo += "• Celkom km: " + linkedRecordsData.rideLog.totalKm + " km\n";
+//             telegramInfo += "• Mzdové náklady: " + utils.formatMoney(linkedRecordsData.rideLog.totalWageCosts) + "\n";
+//             telegramInfo += "• Náklady: " + utils.formatMoney(linkedRecordsData.rideLog.totalCost) + "\n\n";
+//         } else {
+//            telegramInfo += "\n⚠️🚗 <b>Chýba záznam dopravy !</b>";
+//         }
+        
+//         // POKLADŇA (nová sekcia)
+//         if (linkedRecordsData.cashBook.count > 0) {
+//             telegramInfo += "💳 <b>POKLADŇA</b> (" + linkedRecordsData.cashBook.count + ")\n";
+//             telegramInfo += "───────────────────────────────────\n";
+            
+//             // Príjmy
+//             if (linkedRecordsData.cashBook.income.length > 0) {
+//                 telegramInfo += "📈 Príjmy:\n";
+//                 for (var l = 0; l < linkedRecordsData.cashBook.income.length; l++) {
+//                     var income = linkedRecordsData.cashBook.income[l];
+//                     telegramInfo += "• " + income.popis + ": +" + utils.formatMoney(income.suma) + "\n";
+//                 }
+//             }
+            
+//             // Výdavky
+//             if (linkedRecordsData.cashBook.expenses.length > 0) {
+//                 telegramInfo += "\n📉 Výdavky:\n";
+//                 for (var m = 0; m < linkedRecordsData.cashBook.expenses.length; m++) {
+//                     var expense = linkedRecordsData.cashBook.expenses[m];
+//                     telegramInfo += "• " + expense.popis + ": -" + utils.formatMoney(expense.suma) + "\n";
+//                 }
+//             }
+            
+//             telegramInfo += "\n📊 Súhrn pokladne:\n";
+//             telegramInfo += "• Príjmy: +" + utils.formatMoney(linkedRecordsData.cashBook.totalIncome) + "\n";
+//             telegramInfo += "• Výdavky: -" + utils.formatMoney(linkedRecordsData.cashBook.totalExpenses) + "\n";
+//             telegramInfo += "• <b>Saldo: " + utils.formatMoney(linkedRecordsData.cashBook.balance) + "</b>\n\n";
+//         } else {
+//            telegramInfo += "\n❓💳 <b>Dnes neboli žiadne platby ?</b>\n\n";
+//         }
+        
+//         // ZÁVÄZKY (nová sekcia)
+//         if (linkedRecordsData.obligations.count > 0) {
+//             telegramInfo += "📝 <b>ZÁVÄZKY</b> (" + linkedRecordsData.obligations.count + ")\n";
+//             telegramInfo += "───────────────────────────────────\n";
+            
+//             for (var n = 0; n < linkedRecordsData.obligations.records.length; n++) {
+//                 var obligation = linkedRecordsData.obligations.records[n];
+//                 telegramInfo += "• " + obligation.popis + "\n";
+//                 telegramInfo += "  💰 " + utils.formatMoney(obligation.suma) + 
+//                                " (splatnosť: " + utils.formatDate(obligation.splatnost, "DD.MM.") + ")\n";
+//             }
+            
+//             telegramInfo += "\n📊 Súhrn záväzkov:\n";
+//             telegramInfo += "• Celkom: " + utils.formatMoney(linkedRecordsData.obligations.totalAmount) + "\n\n";
+//         }
+        
+//         // CELKOVÝ SÚHRN
+//         telegramInfo += "💰 <b>CELKOVÝ SÚHRN</b>\n";
+//         telegramInfo += "═══════════════════════════════════\n";
+//         telegramInfo += "• Odpracované (dochádzka): <b>" + employeeResult.odpracovaneTotal + " hodín</b>\n";
+//         telegramInfo += "• Mzdové náklady: <b>" + utils.formatMoney(employeeResult.celkoveMzdy) + "</b>\n";
+        
+//         if (linkedRecordsData.workRecords && linkedRecordsData.workRecords.totalHours > 0) {
+//             var prestoje = employeeResult.odpracovaneTotal - linkedRecordsData.workRecords.totalHours;
+//             if (prestoje > 0) {
+//                 telegramInfo += "• ⚠️ Prestoje: <b>" + prestoje.toFixed(2) + " hodín</b>\n";
+//             }
+//         }
+        
+//         // Celkové náklady
+//         var celkoveNaklady = employeeResult.celkoveMzdy;
+//         if (linkedRecordsData.rideLog) celkoveNaklady += linkedRecordsData.rideLog.totalCost;
+//         if (linkedRecordsData.cashBook) celkoveNaklady += linkedRecordsData.cashBook.totalExpenses;
+        
+//         telegramInfo += "• 💸 Celkové náklady dňa: <b>" + utils.formatMoney(celkoveNaklady) + "</b>\n";
+        
+//         // Celkové výnosy
+//         var celkoveVynosy = 0;
+//         if (linkedRecordsData.workRecords) celkoveVynosy += linkedRecordsData.workRecords.totalHZS;
+//         if (linkedRecordsData.cashBook) celkoveVynosy += linkedRecordsData.cashBook.totalIncome;
+        
+//         if (celkoveVynosy > 0) {
+//             telegramInfo += "• 💵 Celkové výnosy dňa: <b>" + utils.formatMoney(celkoveVynosy) + "</b>\n";
+//             var zisk = celkoveVynosy - celkoveNaklady;
+//             telegramInfo += "• 📊 Hrubý zisk/strata: <b>" + 
+//                            (zisk >= 0 ? "+" : "") + utils.formatMoney(zisk) + "</b>\n";
+//         }
+        
+//         telegramInfo += "\n🔧 <i>Script: " + CONFIG.scriptName + " v" + CONFIG.version + "</i>\n";
+//         telegramInfo += "⏰ <i>Spracované: " + moment().format("HH:mm:ss") + "</i>\n";
+//         telegramInfo += "📝 <i>Záznam #" + currentEntry.field("ID") + "</i>";
+        
+//         // Ulož do poľa info_telegram
+//         utils.safeSet(currentEntry, CONFIG.fields.common.infoTelegram, telegramInfo);
+        
+//         utils.addDebug(currentEntry, utils.getIcon("success") + " Info_telegram záznam vytvorený s rozšíreným sumárom");
+        
+//         return {
+//             success: true,
+//             message: "Telegram info vytvorené úspešne"
+//         };
+        
+//     } catch (error) {
+//         utils.addError(currentEntry, error.toString(), "createTelegramInfoRecord", error);
+//         return {
+//             success: false,
+//             error: error.toString()
+//         };
+//     }
+// }
+
+// /**
+//  * Pomocná funkcia na zbieranie dát z linkovaných záznamov
+//  * @returns {Object} Objekt s agregovanými údajmi
+//  */
+// function collectLinkedRecordsData() {
+//     var data = {
+//         workRecords: {
+//             count: 0,
+//             records: [],
+//             totalHours: 0,
+//             totalHZS: 0
+//         },
+//         rideLog: {
+//             count: 0,
+//             records: [],
+//             totalKm: 0,
+//             totalCost: 0,
+//             totalWageCosts: 0,
+//             totalTime: 0
+//         },
+//         cashBook: {
+//             count: 0,
+//             income: [],
+//             expenses: [],
+//             totalIncome: 0,
+//             totalExpenses: 0,
+//             balance: 0
+//         },
+//         obligations: {
+//             count: 0,
+//             records: [],
+//             totalAmount: 0
+//         }
+//     };
+    
+//     try {
+//         // Získaj linkované záznamy práce
+//         var workLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.works);
+//         if (workLinks && workLinks.length > 0) {
+//             data.workRecords.count = workLinks.length;
+            
+//             for (var i = 0; i < workLinks.length; i++) {
+//                 var work = workLinks[i];
+//                 var odpracovane = utils.safeGet(work, CONFIG.fields.workRecord.workTime, 0);
+//                 var pocetPrac = utils.safeGet(currentEntry, CONFIG.fields.attendance.employeeCount, 1);
+//                 var odpracTotal = odpracovane * pocetPrac;
+//                 var hzs = work.field(CONFIG.fields.workRecord.hzs)[0].attr("cena") || 0;
+//                 var zakazka = utils.safeGetLinks(work, CONFIG.fields.workRecord.customer);
+//                 var zakazkaNazov = zakazka && zakazka.length > 0 ? 
+//                                   utils.safeGet(zakazka[0], "Názov", "Bez názvu") : "Bez zákazky";
+//                 var hzsSum = hzs * odpracTotal;
+//                 data.workRecords.records.push({
+//                     zakazka: zakazkaNazov,
+//                     odpracovane: odpracovane,
+//                     pocetPracovnikov: pocetPrac,
+//                     odpracovaneTotal: odpracTotal.toFixed(2),
+//                     hzs: hzsSum
+//                 });
+                
+//                 data.workRecords.totalHours += odpracTotal;
+//                 data.workRecords.totalHZS += hzsSum;
+//             }
+//         }
+        
+//         // Získaj linkované jazdy
+//         var rideLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.rides);
+//         if (rideLinks && rideLinks.length > 0) {
+//             data.rideLog.count = rideLinks.length;
+            
+//             for (var j = 0; j < rideLinks.length; j++) {
+//                 var ride = rideLinks[j];
+//                 var km = utils.safeGet(ride, CONFIG.fields.bookOfRides.km, 0);
+//                 var sadzbaKm = utils.safeGet(ride, CONFIG.fields.bookOfRides.rate, 0);
+//                 var vozidlo = utils.safeGet(ride, CONFIG.fields.bookOfRides.vehicle);
+//                 var trasa = utils.safeGet(ride, CONFIG.fields.bookOfRides.trasa, "coming soon :)");
+//                 var rideWageCosts = utils.safeGet(ride, CONFIG.fields.bookOfRides.wageCosts);
+//                 var totalTime = utils.safeGet(ride, CONFIG.fields.bookOfRides.totalTime);
+//                 var naklady = (km * sadzbaKm) + rideWageCosts;
+
+                
+//                 data.rideLog.records.push({
+//                     vozidlo: vozidlo[0].field("Názov") || "Neznáme",
+//                     trasa: trasa,
+//                     km: km,
+//                     sadzbaKm: sadzbaKm,
+//                     rideWageCosts: rideWageCosts,
+//                     totalTime: totalTime,
+//                     naklady: naklady
+//                 });
+                
+//                 data.rideLog.totalKm += km;
+//                 data.rideLog.totalWageCosts += rideWageCosts;
+//                 data.rideLog.totalCost += naklady;
+//             }
+//         }
+        
+//         // Získaj linkované pokladničné doklady
+//         var cashLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.cashBook);
+//         if (cashLinks && cashLinks.length > 0) {
+//             data.cashBook.count = cashLinks.length;
+            
+//             for (var k = 0; k < cashLinks.length; k++) {
+//                 var cash = cashLinks[k];
+//                 var typ = utils.safeGet(cash, "Typ", "");
+//                 var suma = utils.safeGet(cash, CONFIG.fields.cashBook.sum, 0);
+//                 var popis = utils.safeGet(cash, CONFIG.fields.cashBook.description, "Bez popisu");
+//                 var accounts = libByName(CONFIG.libraries.accounts).entries();
+
+//                 if (typ === "Príjem") {
+//                     //var toAccount = utils.safeGet(cash, CONFIG.fields.accounts.toAccount);
+//                     data.cashBook.income.push({
+//                         popis: popis,
+//                         suma: suma
+//                     });
+//                     data.cashBook.totalIncome += suma;
+//                 } else if (typ === "Výdavok") {
+                    
+//                     //var fromAccount = utils.safeGet(cash, CONFIG.fields.accounts.fromAccount);
+//                     data.cashBook.expenses.push({
+//                         popis: popis,
+//                         suma: suma
+//                     });
+//                     data.cashBook.totalExpenses += suma;
+//                 }
+//             }
+            
+//             data.cashBook.balance = data.cashBook.totalIncome - data.cashBook.totalExpenses;
+//         }
+        
+//         // Získaj záväzky cez linksFrom
+//         var obligationsLib = libByName(CONFIG.libraries.obligations);
+//         if (obligationsLib) {
+//             var obligations = currentEntry.linksFrom(CONFIG.libraries.obligations, CONFIG.fields.obligations.attendance);
+            
+//             if (obligations.length > 0) {
+//                 data.obligations.count = obligations.length;
+                
+//                 for (var l = 0; l < obligations.length; l++) {
+//                     var obligation = obligations[l];
+//                     var typ = utils.safeGet(obligation, "Typ", "");
+//                     var suma = utils.safeGet(obligation, "Suma", 0);
+//                     var popis = utils.safeGet(obligation, "Popis", "");
+//                     var splatnost = utils.safeGet(obligation, "Splatnosť");
+                    
+//                     data.obligations.records.push({
+//                         typ: typ,
+//                         popis: popis,
+//                         suma: suma,
+//                         splatnost: splatnost
+//                     });
+                    
+//                     data.obligations.totalAmount += suma;
+//                 }
+//             }
+//         }
+        
+//     } catch (error) {
+//         utils.addError(currentEntry, "Chyba pri zbieraní dát z linkovaných záznamov", "collectLinkedRecordsData", error);
+//     }
+    
+//     return data;
+// }
+// ==============================================
+// UPGRADOVANÉ FUNKCIE PRE TELEGRAM INFO RECORD
+// Verzia: 7.7 | Dochádzka Prepočet
+// ==============================================
+
+/**
+ * Pomocná funkcia na zbieranie dát z linkovaných záznamov
+ * @returns {Object} Objekt s agregovanými údajmi
+ */
+function collectLinkedRecordsData() {
+    var data = {
+        workRecords: {
+            count: 0,
+            records: [],
+            totalHours: 0,
+            totalHZS: 0
+        },
+        rideLog: {
+            count: 0,
+            records: [],
+            totalKm: 0,
+            totalCost: 0
+        },
+        cashBook: {
+            count: 0,
+            accounts: {}, // Objekt pre účty
+            totalIncome: 0,
+            totalExpenses: 0,
+            balance: 0
+        },
+        obligations: {
+            count: 0,
+            records: [],
+            totalAmount: 0
+        }
+    };
+    
+    try {
+        utils.addDebug(currentEntry, "=== ZBIERANIE DÁT Z LINKOVANÝCH ZÁZNAMOV ===");
+        
+        // ZÍSKAJ LINKOVANÉ ZÁZNAMY PRÁCE
+        var workLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.works || "Práce");
+        utils.addDebug(currentEntry, "Záznamy práce: " + workLinks.length);
+        
+        if (workLinks && workLinks.length > 0) {
+            data.workRecords.count = workLinks.length;
+            
+            for (var i = 0; i < workLinks.length; i++) {
+                var work = workLinks[i];
+                var odpracovane = utils.safeGet(work, CONFIG.fields.workRecord.workedHours, 0);
+                var pocetPrac = utils.safeGet(work, CONFIG.fields.workRecord.employeeCount, 1);
+                var odpracTotal = odpracovane * pocetPrac;
+                var hzs = utils.safeGet(work, CONFIG.fields.workRecord.hzsSum, 0);
+                var zakazka = utils.safeGetLinks(work, CONFIG.fields.workRecord.customer);
+                var zakazkaNazov = zakazka && zakazka.length > 0 ? 
+                                  utils.safeGet(zakazka[0], "Názov", "Bez názvu") : "Bez zákazky";
+                
+                data.workRecords.records.push({
+                    zakazka: zakazkaNazov,
+                    odpracovane: odpracovane,
+                    pocetPracovnikov: pocetPrac,
+                    odpracovaneTotal: odpracTotal.toFixed(2),
+                    hzs: hzs
+                });
+                
+                data.workRecords.totalHours += odpracTotal;
+                data.workRecords.totalHZS += hzs;
+            }
+        }
+        
+        // ZÍSKAJ LINKOVANÉ JAZDY
+        var rideLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.rides || "Kniha jázd");
+        utils.addDebug(currentEntry, "Záznamy jázd: " + rideLinks.length);
+        
+        if (rideLinks && rideLinks.length > 0) {
+            data.rideLog.count = rideLinks.length;
+            
+            for (var j = 0; j < rideLinks.length; j++) {
+                var ride = rideLinks[j];
+                var km = utils.safeGet(ride, CONFIG.fields.bookOfRides.km || "Km", 0);
+                var sadzbaKm = utils.safeGet(ride, "Sadzba za km", 0) || 0.193;
+                var naklady = km * sadzbaKm;
+                var vozidlo = utils.safeGet(ride, CONFIG.fields.bookOfRides.vehicle || "Vozidlo", "Neznáme");
+                var start = utils.safeGet(ride, CONFIG.fields.bookOfRides.start || "Štart", "");
+                var destination = utils.safeGet(ride, CONFIG.fields.bookOfRides.destination || "Cieľ", "");
+                var trasa = start + " - " + destination;
+                
+                data.rideLog.records.push({
+                    vozidlo: vozidlo,
+                    trasa: trasa,
+                    km: km,
+                    sadzbaKm: sadzbaKm,
+                    naklady: naklady
+                });
+                
+                data.rideLog.totalKm += km;
+                data.rideLog.totalCost += naklady;
+            }
+        }
+        
+        // ZÍSKAJ LINKOVANÉ POKLADNIČNÉ DOKLADY S ÚČTAMI
+        var cashLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.cashBook || "Pokladňa");
+        utils.addDebug(currentEntry, "Záznamy pokladne: " + cashLinks.length);
+        
+        if (cashLinks && cashLinks.length > 0) {
+            data.cashBook.count = cashLinks.length;
+            
+            for (var k = 0; k < cashLinks.length; k++) {
+                var cash = cashLinks[k];
+                var pohyb = utils.safeGet(cash, CONFIG.fields.cashBook.transactionType || "Pohyb", "");
+                
+                // Získaj sumu - najprv skús sumTotal (s DPH), ak nie je, použi sum
+                var suma = utils.safeGet(cash, CONFIG.fields.cashBook.sumTotal || "Suma s DPH", 0);
+                if (!suma || suma === 0) {
+                    suma = utils.safeGet(cash, CONFIG.fields.cashBook.sum || "Suma", 0);
+                }
+                
+                var popis = utils.safeGet(cash, CONFIG.fields.cashBook.description || "Popis", "Bez popisu");
+                
+                // Získaj účty
+                var fromAccountLinks = utils.safeGetLinks(cash, CONFIG.fields.cashBook.fromAccount || "Z pokladne");
+                var toAccountLinks = utils.safeGetLinks(cash, CONFIG.fields.cashBook.toAccount || "Do pokladne");
+                
+                var accountName = null;
+                var accountId = null;
+                var accountBalance = null;
+                
+                if (pohyb === "Príjem" && toAccountLinks && toAccountLinks.length > 0) {
+                    // Pre príjem používame toAccount
+                    var account = toAccountLinks[0];
+                    accountName = utils.safeGet(account, CONFIG.fields.account.name || "Názov", "Neznámy účet");
+                    accountId = account.field("ID");
+                    accountBalance = utils.safeGet(account, CONFIG.fields.account.balance || "Stav", 0);
+                    
+                    // Inicializuj účet ak neexistuje
+                    if (!data.cashBook.accounts[accountId]) {
+                        data.cashBook.accounts[accountId] = {
+                            name: accountName,
+                            balance: accountBalance,
+                            income: [],
+                            expenses: [],
+                            totalIncome: 0,
+                            totalExpenses: 0,
+                            saldo: 0
+                        };
+                    }
+                    
+                    // Pridaj príjem
+                    data.cashBook.accounts[accountId].income.push({
+                        popis: popis,
+                        suma: suma
+                    });
+                    data.cashBook.accounts[accountId].totalIncome += suma;
+                    data.cashBook.totalIncome += suma;
+                    
+                } else if ((pohyb === "Výdavok" || pohyb === "Výdaj") && fromAccountLinks && fromAccountLinks.length > 0) {
+                    // Pre výdavok používame fromAccount
+                    var account = fromAccountLinks[0];
+                    accountName = utils.safeGet(account, CONFIG.fields.account.name || "Názov", "Neznámy účet");
+                    accountId = account.field("ID");
+                    accountBalance = utils.safeGet(account, CONFIG.fields.account.balance || "Stav", 0);
+                    
+                    // Inicializuj účet ak neexistuje
+                    if (!data.cashBook.accounts[accountId]) {
+                        data.cashBook.accounts[accountId] = {
+                            name: accountName,
+                            balance: accountBalance,
+                            income: [],
+                            expenses: [],
+                            totalIncome: 0,
+                            totalExpenses: 0,
+                            saldo: 0
+                        };
+                    }
+                    
+                    // Pridaj výdavok
+                    data.cashBook.accounts[accountId].expenses.push({
+                        popis: popis,
+                        suma: suma
+                    });
+                    data.cashBook.accounts[accountId].totalExpenses += suma;
+                    data.cashBook.totalExpenses += suma;
+                }
+            }
+            
+            // Vypočítaj saldá pre každý účet
+            for (var accountId in data.cashBook.accounts) {
+                var acc = data.cashBook.accounts[accountId];
+                acc.saldo = acc.totalIncome - acc.totalExpenses;
+            }
+            
+            data.cashBook.balance = data.cashBook.totalIncome - data.cashBook.totalExpenses;
+        }
+        
+        // ZÍSKAJ ZÁVÄZKY CEZ LINKSFROM
+        var obligationsLib = libByName(CONFIG.libraries.obligations);
+        if (obligationsLib) {
+            var obligations = currentEntry.linksFrom(CONFIG.libraries.obligations, CONFIG.fields.obligations.attendance || "Dochádzka");
+            utils.addDebug(currentEntry, "Záväzky (linksFrom): " + obligations.length);
+            
+            if (obligations && obligations.length > 0) {
+                data.obligations.count = obligations.length;
+                
+                for (var l = 0; l < obligations.length; l++) {
+                    var obligation = obligations[l];
+                    var typ = utils.safeGet(obligation, CONFIG.fields.obligations.type || "Typ", "");
+                    var suma = utils.safeGet(obligation, CONFIG.fields.obligations.amount || "Suma", 0);
+                    var popis = utils.safeGet(obligation, CONFIG.fields.obligations.description || "Popis", "");
+                    var splatnost = utils.safeGet(obligation, CONFIG.fields.obligations.dueDate || "Splatnosť");
+                    
+                    data.obligations.records.push({
+                        typ: typ,
+                        popis: popis,
+                        suma: suma,
+                        splatnost: splatnost
+                    });
+                    
+                    data.obligations.totalAmount += suma;
+                }
+            }
+        }
+        
+        utils.addDebug(currentEntry, "=== ZBIERANIE DOKONČENÉ ===");
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri zbieraní dát z linkovaných záznamov", "collectLinkedRecordsData", error);
+    }
+    
+    return data;
+}
+
+/**
+ * Vytvorí Telegram info záznam s komplexným sumárom
+ * @param {Object} workTimeResult - Výsledky pracovného času
+ * @param {Object} employeeResult - Výsledky zamestnancov
+ * @param {Object} linkedRecordsData - Objekt s údajmi z linkovaných záznamov
+ * @returns {Object} {success: boolean, message: string}
+ */
 function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsData) {
     try {
         var date = currentEntry.field(CONFIG.fields.attendance.date);
-        var dateFormatted = utils.formatDate(date, "DD.MMMM.YYYY");
+        var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
         var dayName = utils.getDayNameSK(moment(date).day()).toUpperCase();
 
         // Inicializuj linkedRecordsData ak nebol poskytnutý
@@ -908,7 +1495,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
         }
 
         // HTML formátovaná správa
-        var telegramInfo = "📋 <b>ZÁHRADY KRAJINKA - DENNÝ SÚHRN</b>\n";
+        var telegramInfo = "📋 <b>DOCHÁDZKA - DENNÝ SÚHRN</b>\n";
         telegramInfo += "═══════════════════════════════════\n\n";
         
         telegramInfo += "📅 <b>Dátum:</b> " + dateFormatted + " (" + dayName + ")\n";
@@ -926,10 +1513,10 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             var empName = utils.formatEmployeeName(detail.zamestnanec);
             
             telegramInfo += "• <b>" + empName + "</b>\n";
-            telegramInfo += "  💶 Sadzba: " + detail.hodinovka + " €(h)\n";
+            telegramInfo += "  💶 Hodinovka: " + detail.hodinovka + " €/h\n";
             
             if (detail.priplatok > 0) {
-                telegramInfo += "  ➕ Príplatok: " + detail.priplatok + " €(h)\n";
+                telegramInfo += "  ➕ Príplatok: " + detail.priplatok + " €/h\n";
             }
             if (detail.premia > 0) {
                 telegramInfo += "  🎁 Prémia: " + detail.premia + " €\n";
@@ -937,10 +1524,12 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             if (detail.pokuta > 0) {
                 telegramInfo += "  ➖ Pokuta: " + detail.pokuta + " €\n";
             }
+            
             telegramInfo += "  💰 <b>Denná mzda: " + detail.dennaMzda + " €</b>\n\n";
         }
-        // ZÁZNAMY PRÁCE (nová sekcia)
-        if (linkedRecordsData.workRecords.count > 0) {
+        
+        // ZÁZNAMY PRÁCE
+        if (linkedRecordsData.workRecords && linkedRecordsData.workRecords.count > 0) {
             telegramInfo += "🔨 <b>ZÁZNAMY PRÁCE</b> (" + linkedRecordsData.workRecords.count + ")\n";
             telegramInfo += "───────────────────────────────────\n";
             
@@ -948,78 +1537,92 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
                 var work = linkedRecordsData.workRecords.records[j];
                 telegramInfo += "• " + work.zakazka + "\n";
                 telegramInfo += "  ⏱️ " + work.odpracovane + " h × " + work.pocetPracovnikov + " os = " + 
-                work.odpracovaneTotal + " h\n";
+                               work.odpracovaneTotal + " h\n";
                 if (work.hzs > 0) {
                     telegramInfo += "  💵 HZS: " + utils.formatMoney(work.hzs) + "\n";
                 }
             }
             
             telegramInfo += "\n📊 Súhrn práce:\n";
-            telegramInfo += "• Odpracované: " + linkedRecordsData.workRecords.totalHours + " hodín\n";
+            telegramInfo += "• Odpracované: " + linkedRecordsData.workRecords.totalHours.toFixed(2) + " hodín\n";
             telegramInfo += "• HZS celkom: " + utils.formatMoney(linkedRecordsData.workRecords.totalHZS) + "\n\n";
-        } else {
-           telegramInfo += "\n⚠️🔨 <b>Chýba záznam práce !</b>";
         }
         
-        // KNIHA JÁZD (nová sekcia)
-        if (linkedRecordsData.rideLog.count > 0) {
+        // KNIHA JÁZD
+        if (linkedRecordsData.rideLog && linkedRecordsData.rideLog.count > 0) {
             telegramInfo += "🚗 <b>KNIHA JÁZD</b> (" + linkedRecordsData.rideLog.count + ")\n";
             telegramInfo += "───────────────────────────────────\n";
             
             for (var k = 0; k < linkedRecordsData.rideLog.records.length; k++) {
                 var ride = linkedRecordsData.rideLog.records[k];
                 telegramInfo += "• " + ride.vozidlo + " - " + ride.trasa + "\n";
-                telegramInfo += "  📏 " + ride.km + " km × " + ride.sadzbaKm + " €(km) = " + 
-                utils.formatMoney(ride.naklady) + "\n";
+                telegramInfo += "  📏 " + ride.km + " km × " + ride.sadzbaKm.toFixed(3) + " €/km = " + 
+                               utils.formatMoney(ride.naklady) + "\n";
             }
             
             telegramInfo += "\n📊 Súhrn jázd:\n";
             telegramInfo += "• Celkom km: " + linkedRecordsData.rideLog.totalKm + " km\n";
-            telegramInfo += "• Mzdové náklady: " + utils.formatMoney(linkedRecordsData.rideLog.totalWageCosts) + "\n";
             telegramInfo += "• Náklady: " + utils.formatMoney(linkedRecordsData.rideLog.totalCost) + "\n\n";
-        } else {
-           telegramInfo += "\n⚠️🚗 <b>Chýba záznam dopravy !</b>";
         }
         
-        // POKLADŇA (nová sekcia)
-        if (linkedRecordsData.cashBook.count > 0) {
-            telegramInfo += "💳 <b>POKLADŇA</b> (" + linkedRecordsData.cashBook.count + ")\n";
-            telegramInfo += "───────────────────────────────────\n";
+        // POKLADŇA - NOVÝ FORMÁT S ÚČTAMI
+        if (linkedRecordsData.cashBook && linkedRecordsData.cashBook.count > 0) {
+            telegramInfo += "💳 <b>POKLADŇA</b> (" + linkedRecordsData.cashBook.count + " transakcií)\n";
+            telegramInfo += "═══════════════════════════════════\n\n";
             
-            // Príjmy
-            if (linkedRecordsData.cashBook.income.length > 0) {
-                telegramInfo += "📈 Príjmy:\n";
-                for (var l = 0; l < linkedRecordsData.cashBook.income.length; l++) {
-                    var income = linkedRecordsData.cashBook.income[l];
-                    telegramInfo += "• " + income.popis + ": +" + utils.formatMoney(income.suma) + "\n";
+            // Iteruj cez všetky účty
+            for (var accountId in linkedRecordsData.cashBook.accounts) {
+                var account = linkedRecordsData.cashBook.accounts[accountId];
+                
+                // Hlavička účtu
+                telegramInfo += "💰 <b>" + account.name.toUpperCase() + "</b> (stav: " + 
+                               utils.formatMoney(account.balance) + ")\n";
+                
+                // Výdavky
+                telegramInfo += "📉 Výdavky (" + account.expenses.length + "): " + 
+                               utils.formatMoney(account.totalExpenses) + "\n";
+                
+                if (account.expenses.length > 0 && account.expenses.length <= 3) {
+                    // Ak je málo transakcií, zobraz detaily
+                    for (var m = 0; m < account.expenses.length; m++) {
+                        var exp = account.expenses[m];
+                        telegramInfo += "  • " + exp.popis + ": -" + utils.formatMoney(exp.suma) + "\n";
+                    }
                 }
+                
+                // Príjmy
+                telegramInfo += "📈 Príjmy (" + account.income.length + "): " + 
+                               utils.formatMoney(account.totalIncome) + "\n";
+                
+                if (account.income.length > 0 && account.income.length <= 3) {
+                    // Ak je málo transakcií, zobraz detaily
+                    for (var n = 0; n < account.income.length; n++) {
+                        var inc = account.income[n];
+                        telegramInfo += "  • " + inc.popis + ": +" + utils.formatMoney(inc.suma) + "\n";
+                    }
+                }
+                
+                // Saldo účtu
+                telegramInfo += "💎 <b>Saldo: " + (account.saldo >= 0 ? "+" : "") + 
+                               utils.formatMoney(account.saldo) + "</b>\n\n";
             }
             
-            // Výdavky
-            if (linkedRecordsData.cashBook.expenses.length > 0) {
-                telegramInfo += "\n📉 Výdavky:\n";
-                for (var m = 0; m < linkedRecordsData.cashBook.expenses.length; m++) {
-                    var expense = linkedRecordsData.cashBook.expenses[m];
-                    telegramInfo += "• " + expense.popis + ": -" + utils.formatMoney(expense.suma) + "\n";
-                }
-            }
-            
-            telegramInfo += "\n📊 Súhrn pokladne:\n";
-            telegramInfo += "• Príjmy: +" + utils.formatMoney(linkedRecordsData.cashBook.totalIncome) + "\n";
-            telegramInfo += "• Výdavky: -" + utils.formatMoney(linkedRecordsData.cashBook.totalExpenses) + "\n";
-            telegramInfo += "• <b>Saldo: " + utils.formatMoney(linkedRecordsData.cashBook.balance) + "</b>\n\n";
-        } else {
-           telegramInfo += "\n❓💳 <b>Dnes neboli žiadne platby ?</b>\n\n";
+            // Celkový súhrn pokladne
+            telegramInfo += "📊 <b>CELKOVÝ SÚHRN POKLADNE:</b>\n";
+            telegramInfo += "• Príjmy spolu: +" + utils.formatMoney(linkedRecordsData.cashBook.totalIncome) + "\n";
+            telegramInfo += "• Výdavky spolu: -" + utils.formatMoney(linkedRecordsData.cashBook.totalExpenses) + "\n";
+            telegramInfo += "• <b>Saldo dňa: " + (linkedRecordsData.cashBook.balance >= 0 ? "+" : "") + 
+                           utils.formatMoney(linkedRecordsData.cashBook.balance) + "</b>\n\n";
         }
         
-        // ZÁVÄZKY (nová sekcia)
-        if (linkedRecordsData.obligations.count > 0) {
+        // ZÁVÄZKY
+        if (linkedRecordsData.obligations && linkedRecordsData.obligations.count > 0) {
             telegramInfo += "📝 <b>ZÁVÄZKY</b> (" + linkedRecordsData.obligations.count + ")\n";
             telegramInfo += "───────────────────────────────────\n";
             
-            for (var n = 0; n < linkedRecordsData.obligations.records.length; n++) {
-                var obligation = linkedRecordsData.obligations.records[n];
-                telegramInfo += "• " + obligation.popis + "\n";
+            for (var p = 0; p < linkedRecordsData.obligations.records.length; p++) {
+                var obligation = linkedRecordsData.obligations.records[p];
+                telegramInfo += "• " + obligation.typ + " - " + obligation.popis + "\n";
                 telegramInfo += "  💰 " + utils.formatMoney(obligation.suma) + 
                                " (splatnosť: " + utils.formatDate(obligation.splatnost, "DD.MM.") + ")\n";
             }
@@ -1082,170 +1685,6 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
         };
     }
 }
-
-/**
- * Pomocná funkcia na zbieranie dát z linkovaných záznamov
- * @returns {Object} Objekt s agregovanými údajmi
- */
-function collectLinkedRecordsData() {
-    var data = {
-        workRecords: {
-            count: 0,
-            records: [],
-            totalHours: 0,
-            totalHZS: 0
-        },
-        rideLog: {
-            count: 0,
-            records: [],
-            totalKm: 0,
-            totalCost: 0,
-            totalWageCosts: 0,
-            totalTime: 0
-        },
-        cashBook: {
-            count: 0,
-            income: [],
-            expenses: [],
-            totalIncome: 0,
-            totalExpenses: 0,
-            balance: 0
-        },
-        obligations: {
-            count: 0,
-            records: [],
-            totalAmount: 0
-        }
-    };
-    
-    try {
-        // Získaj linkované záznamy práce
-        var workLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.works);
-        if (workLinks && workLinks.length > 0) {
-            data.workRecords.count = workLinks.length;
-            
-            for (var i = 0; i < workLinks.length; i++) {
-                var work = workLinks[i];
-                var odpracovane = utils.safeGet(work, CONFIG.fields.workRecord.workTime, 0);
-                var pocetPrac = utils.safeGet(currentEntry, CONFIG.fields.attendance.employeeCount, 1);
-                var odpracTotal = odpracovane * pocetPrac;
-                var hzs = work.field(CONFIG.fields.workRecord.hzs)[0].attr("cena") || 0;
-                var zakazka = utils.safeGetLinks(work, CONFIG.fields.workRecord.customer);
-                var zakazkaNazov = zakazka && zakazka.length > 0 ? 
-                                  utils.safeGet(zakazka[0], "Názov", "Bez názvu") : "Bez zákazky";
-                var hzsSum = hzs * odpracTotal;
-                data.workRecords.records.push({
-                    zakazka: zakazkaNazov,
-                    odpracovane: odpracovane,
-                    pocetPracovnikov: pocetPrac,
-                    odpracovaneTotal: odpracTotal.toFixed(2),
-                    hzs: hzsSum
-                });
-                
-                data.workRecords.totalHours += odpracTotal;
-                data.workRecords.totalHZS += hzsSum;
-            }
-        }
-        
-        // Získaj linkované jazdy
-        var rideLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.rides);
-        if (rideLinks && rideLinks.length > 0) {
-            data.rideLog.count = rideLinks.length;
-            
-            for (var j = 0; j < rideLinks.length; j++) {
-                var ride = rideLinks[j];
-                var km = utils.safeGet(ride, CONFIG.fields.bookOfRides.km, 0);
-                var sadzbaKm = utils.safeGet(ride, CONFIG.fields.bookOfRides.rate, 0);
-                var vozidlo = utils.safeGet(ride, CONFIG.fields.bookOfRides.vehicle);
-                var trasa = utils.safeGet(ride, CONFIG.fields.bookOfRides.trasa, "coming soon :)");
-                var rideWageCosts = utils.safeGet(ride, CONFIG.fields.bookOfRides.wageCosts);
-                var totalTime = utils.safeGet(ride, CONFIG.fields.bookOfRides.totalTime);
-                var naklady = (km * sadzbaKm) + rideWageCosts;
-
-                
-                data.rideLog.records.push({
-                    vozidlo: vozidlo[0].field("Názov") || "Neznáme",
-                    trasa: trasa,
-                    km: km,
-                    sadzbaKm: sadzbaKm,
-                    rideWageCosts: rideWageCosts,
-                    totalTime: totalTime,
-                    naklady: naklady
-                });
-                
-                data.rideLog.totalKm += km;
-                data.rideLog.totalWageCosts += rideWageCosts;
-                data.rideLog.totalCost += naklady;
-            }
-        }
-        
-        // Získaj linkované pokladničné doklady
-        var cashLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.cashBook);
-        if (cashLinks && cashLinks.length > 0) {
-            data.cashBook.count = cashLinks.length;
-            
-            for (var k = 0; k < cashLinks.length; k++) {
-                var cash = cashLinks[k];
-                var typ = utils.safeGet(cash, "Typ", "");
-                var suma = utils.safeGet(cash, CONFIG.fields.cashBook.sum, 0);
-                var popis = utils.safeGet(cash, CONFIG.fields.cashBook.description, "Bez popisu");
-                var accounts = libByName(CONFIG.libraries.accounts).entries();
-
-                if (typ === "Príjem") {
-                    //var toAccount = utils.safeGet(cash, CONFIG.fields.accounts.toAccount);
-                    data.cashBook.income.push({
-                        popis: popis,
-                        suma: suma
-                    });
-                    data.cashBook.totalIncome += suma;
-                } else if (typ === "Výdavok") {
-                    
-                    //var fromAccount = utils.safeGet(cash, CONFIG.fields.accounts.fromAccount);
-                    data.cashBook.expenses.push({
-                        popis: popis,
-                        suma: suma
-                    });
-                    data.cashBook.totalExpenses += suma;
-                }
-            }
-            
-            data.cashBook.balance = data.cashBook.totalIncome - data.cashBook.totalExpenses;
-        }
-        
-        // Získaj záväzky cez linksFrom
-        var obligationsLib = libByName(CONFIG.libraries.obligations);
-        if (obligationsLib) {
-            var obligations = currentEntry.linksFrom(CONFIG.libraries.obligations, CONFIG.fields.obligations.attendance);
-            
-            if (obligations.length > 0) {
-                data.obligations.count = obligations.length;
-                
-                for (var l = 0; l < obligations.length; l++) {
-                    var obligation = obligations[l];
-                    var typ = utils.safeGet(obligation, "Typ", "");
-                    var suma = utils.safeGet(obligation, "Suma", 0);
-                    var popis = utils.safeGet(obligation, "Popis", "");
-                    var splatnost = utils.safeGet(obligation, "Splatnosť");
-                    
-                    data.obligations.records.push({
-                        typ: typ,
-                        popis: popis,
-                        suma: suma,
-                        splatnost: splatnost
-                    });
-                    
-                    data.obligations.totalAmount += suma;
-                }
-            }
-        }
-        
-    } catch (error) {
-        utils.addError(currentEntry, "Chyba pri zbieraní dát z linkovaných záznamov", "collectLinkedRecordsData", error);
-    }
-    
-    return data;
-}
-
 
 function createTelegramMessage(){
     try {
