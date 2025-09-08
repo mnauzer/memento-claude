@@ -1789,10 +1789,14 @@ function main() {
                         utils.safeSet(currentEntry,CONFIG.fields.attendance.entryIcons, entryIcons)
                         utils.safeSet(currentEntry,CONFIG.fields.attendance.entryStatus, entryStatus);
                         // Odošli na Telegram
-                         var inlineKeyboard = utils.createInlineKeyboard([
+                        // var inlineKeyboard = utils.createInlineKeyboard([
+                        //     {text: "✅ Potvrdiť", callback_data: "confirmed"}, 
+                        //     {text: "⚠️ Rozporovať", callback_data: "dispute"}
+                        // ]);
+                        var inlineKeyboard = [
                             {text: "✅ Potvrdiť", callback_data: "confirmed"}, 
                             {text: "⚠️ Rozporovať", callback_data: "dispute"}
-                        ]);
+                        ];
                         var sendResult = utils.sendNotificationEntry(newNotification.notification, inlineKeyboard);
                         if (sendResult.success) {
                             entryStatus.push("Telegram");
