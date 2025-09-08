@@ -729,7 +729,7 @@ function linkCashBookRecords() {
                 var paidById = paidBy[0].field("ID");
             }
             if (paidTo && paidTo.length > 0){
-                var paidToId = paidTo.field("ID");
+                var paidToId = paidTo[0].field("ID");
             }
             if (dochadzkaEmployeeIds.indexOf(paidById) !== -1 || dochadzkaEmployeeIds.indexOf(paidToId) !== -1) {
                 hasMatchingEmployee = true;
