@@ -432,7 +432,7 @@ var MementoConfig = (function() {
                 trasa: ""
             },
             // Vozidlo
-            vehicles: {
+            vehicle: {
                 active: "Aktívny", // checkbox:
                 name: "Názov",
                 type: "Typ", // singleChoice: Dodávka, Valník, Osobné
@@ -444,7 +444,7 @@ var MementoConfig = (function() {
                 kmDriven: "Najazdené",
                 consumptionRate: "Spotreba"
             },
-            places: {
+            place: {
                 category: "Kategória", // singleChoice: Klient, Dodávateľ, Partner, Zamestnanec, Iné
                 active: "Aktívny", // checkbox
                 name: "Názov",
