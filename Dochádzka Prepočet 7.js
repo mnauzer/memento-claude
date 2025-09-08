@@ -44,7 +44,6 @@ var CONFIG = {
         // Pridané mapovanie pre arrival/departure polia
         date: centralConfig.fields.attendance.date,
         employees: centralConfig.fields.attendance.employees,
-        obligations: centralConfig.fields.obligations,
         arrival: centralConfig.fields.attendance.arrival,      // "Príchod"
         departure: centralConfig.fields.attendance.departure,  // "Odchod"
         pracovnaDoba: centralConfig.fields.attendance.workTime, // "Pracovná doba"
@@ -228,7 +227,7 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
             utils.addDebug(currentEntry, " [" + (i+1) + "/" + result.pocetPracovnikov + "] " + employeeName, "person");
             
             // Spracuj zamestnanca
-            var empResult = processEmployee(zamestnanec, pracovnaDobaHodiny, datum, i, existingObligations, );
+            var empResult = processEmployee(zamestnanec, pracovnaDobaHodiny, datum, i, existingObligations);
             
             if (empResult.success) {
                 result.odpracovaneTotal += pracovnaDobaHodiny;
@@ -350,7 +349,7 @@ function processObligation(date, empData, obligations) {
                     break;
                 }
             }
-            if (existingObligation > 1) {
+            if (existingObligation.length > 1) {
                 utils.addDebug(currentEntry, utils.getIcon("exclamation") + " Niekde je chyba, zamestnantec má viac ako jeden záväzok pre tento záznam" )
             }
 
