@@ -511,7 +511,7 @@ var MementoConfig = (function() {
                 sum: "Suma", // suma záznamu bez dph
                 sumTotal: "Suma s DPH", // suma záznamu s dph
                 vat: "DPH", // suma DPH
-                decription: "Popis platby",
+                description: "Popis platby",
                 note: "Poznámka",
                 image: "Doklad", // screenshot alebo foto reálneho dokladu
                 isVat: "s DPH", // checkbox: či je záznam s dph alebo bez dph
