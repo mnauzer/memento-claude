@@ -30,8 +30,8 @@ var CONFIG = {
     
     // Referencie na centrálny config
     fields: {
-        places: centralConfig.fields.places,
-        vehicles: centralConfig.fields.vehicles,
+        place: centralConfig.fields.place,
+        vehicle: centralConfig.fields.vehicle,
         bookOfRides: centralConfig.fields.bookOfRides,
         account: centralConfig.fields.account,
         notifications: centralConfig.fields.notifications,
@@ -970,7 +970,7 @@ function createInfoRecord(workTimeResult, employeeResult) {
             
 //             for (var k = 0; k < linkedRecordsData.rideLog.records.length; k++) {
 //                 var ride = linkedRecordsData.rideLog.records[k];
-//                 telegramInfo += "• " + ride.vozidlo + " - " + ride.trasa + "\n";
+//                 telegramInfo += "• " + ride.vehicle + " - " + ride.trasa + "\n";
 //                 telegramInfo += "  📏 " + ride.km + " km × " + ride.sadzbaKm + " €(km) = " + 
 //                 utils.formatMoney(ride.naklady) + "\n";
 //             }
@@ -1158,7 +1158,7 @@ function createInfoRecord(workTimeResult, employeeResult) {
 //                 var ride = rideLinks[j];
 //                 var km = utils.safeGet(ride, CONFIG.fields.bookOfRides.km, 0);
 //                 var sadzbaKm = utils.safeGet(ride, CONFIG.fields.bookOfRides.rate, 0);
-//                 var vozidlo = utils.safeGet(ride, CONFIG.fields.bookOfRides.vehicle);
+//                 var vehicle = utils.safeGet(ride, CONFIG.fields.bookOfRides.vehicle);
 //                 var trasa = utils.safeGet(ride, CONFIG.fields.bookOfRides.trasa, "coming soon :)");
 //                 var rideWageCosts = utils.safeGet(ride, CONFIG.fields.bookOfRides.wageCosts);
 //                 var totalTime = utils.safeGet(ride, CONFIG.fields.bookOfRides.totalTime);
@@ -1166,7 +1166,7 @@ function createInfoRecord(workTimeResult, employeeResult) {
 
                 
 //                 data.rideLog.records.push({
-//                     vozidlo: vozidlo[0].field("Názov") || "Neznáme",
+//                     vehicle: vehicle[0].field("Názov") || "Neznáme",
 //                     trasa: trasa,
 //                     km: km,
 //                     sadzbaKm: sadzbaKm,
@@ -1330,7 +1330,8 @@ function collectLinkedRecordsData() {
                 var km = utils.safeGet(ride, CONFIG.fields.bookOfRides.km || "Km", 0);
                 var sadzbaKm = utils.safeGet(ride, "Sadzba za km", 0) || 0.193;
                 var naklady = km * sadzbaKm;
-                var vozidlo = utils.safeGet(ride, CONFIG.fields.bookOfRides.vehicle)[0];
+                var vehicle = utils.safeGet(ride, CONFIG.fields.bookOfRides.vehicle)[0];
+                var vehicleName = utils.safeGet(vehicle, CONFIG.fields.vehicle.name)[0];
                 var start = utils.safeGet(ride, CONFIG.fields.bookOfRides.start)[0]
                 var destination = utils.safeGet(ride, CONFIG.fields.bookOfRides.destination)[0]
                 var stops = utils.safeGet(ride, CONFIG.fields.bookOfRides.stops)
@@ -1339,7 +1340,7 @@ function collectLinkedRecordsData() {
                 var trasa = startName + " - " + destinationName;
                 
                 data.rideLog.records.push({
-                    vozidlo: utils.safeGet(vozidlo, CONFIG.fields.vehicle.name),
+                    vehicle: vehicleName,
                     stops: stops.length,
                     trasa: trasa,
                     km: km,
@@ -1563,7 +1564,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             
             for (var k = 0; k < linkedRecordsData.rideLog.records.length; k++) {
                 var ride = linkedRecordsData.rideLog.records[k];
-                telegramInfo += "• " + ride.vozidlo + " - " + ride.trasa + "\n";
+                telegramInfo += "• " + ride.vehicle + " - " + ride.trasa + "\n";
                 telegramInfo += "  📏 " + ride.km + " km × " + ride.sadzbaKm.toFixed(3) + " €/km = " + 
                                utils.formatMoney(ride.naklady) + "\n";
             }
