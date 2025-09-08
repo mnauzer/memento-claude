@@ -943,7 +943,8 @@ function collectLinkedRecordsData() {
                 var odpracovane = utils.safeGet(work, CONFIG.fields.workRecord.workTime, 0);
                 var pocetPrac = utils.safeGet(currentEntry, CONFIG.fields.attendance.employeeCount, 1); // počítať ľudí v dochádzke nie v zázname prác (zvyšný pracovníci budú v druhom zázname)
                 var odpracTotal = odpracovane * pocetPrac;
-                var hzs = work.field(CONFIG.fields.workRecord.hzs)[0].attr("cena") || 0; // zisti sadzbu HZS zo záznamu
+                //var hzs = work.field(CONFIG.fields.workRecord.hzs)[0].attr("cena") || 0; // zisti sadzbu HZS zo záznamu
+                var hzs = utils.safeGet(work, CONFIG.fields.workRecord.hzs)[0].field("Cena") || 0; // zisti sadzbu HZS zo záznamu
                 var zakazka = utils.safeGetLinks(work, CONFIG.fields.workRecord.customer);
                 var zakazkaNazov = zakazka && zakazka.length > 0 ? 
                                   utils.safeGet(zakazka[0], "Názov", "Bez názvu") : "Bez zákazky";
@@ -1789,10 +1790,8 @@ function main() {
                         // Odošli na Telegram
                         var sendResult = utils.sendNotificationEntry(newNotification.notification);
                         if (sendResult.success) {
-                            if (entryStatus.indexOf("Telegram") === -1) {
-                                entryStatus.push("Telegram");
-                                entryIcons += CONFIG.icons.telegram;
-                            }
+                            entryStatus.push("Telegram");
+                            entryIcons += CONFIG.icons.telegram;
                             utils.addDebug(currentEntry, utils.getIcon("success") + " Telegram notifikácia úspešne odoslaná");
                             utils.safeSet(currentEntry,CONFIG.fields.attendance.entryIcons, entryIcons);
                             utils.safeSet(currentEntry,CONFIG.fields.attendance.entryStatus, entryStatus);
