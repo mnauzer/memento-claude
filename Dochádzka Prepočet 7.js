@@ -1448,238 +1448,409 @@ function collectLinkedRecordsData() {
         //     data.cashBook.balance = data.cashBook.totalIncome - data.cashBook.totalExpenses;
         // }
         // ZÍSKAJ LINKOVANÉ POKLADNIČNÉ DOKLADY S ÚČTAMI
-        var cashLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.cashBook || "Pokladňa");
-        utils.addDebug(currentEntry, "Záznamy pokladne: " + cashLinks.length);
+        // var cashLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.cashBook || "Pokladňa");
+        // utils.addDebug(currentEntry, "Záznamy pokladne: " + cashLinks.length);
         
-        // Mapa pre sledovanie všetkých účtov
-        var accountsMap = {};
+        // // Mapa pre sledovanie všetkých účtov
+        // var accountsMap = {};
+        
+        // if (cashLinks && cashLinks.length > 0) {
+        //     data.cashBook.count = cashLinks.length;
+            
+        //     // KROK 1: Spracuj všetky transakcie z linkovaných záznamov
+        //     for (var k = 0; k < cashLinks.length; k++) {
+        //         var cash = cashLinks[k];
+        //         var pohyb = utils.safeGet(cash, CONFIG.fields.cashBook.transactionType || "Pohyb", "");
+                
+        //         // Získaj sumu - kontroluj najprv checkbox s DPH
+        //         var isVat = utils.safeGet(cash, CONFIG.fields.cashBook.isVat || "s DPH", false);
+        //         var suma = 0;
+                
+        //         if (isVat) {
+        //             // Ak je s DPH, použi sumu s DPH
+        //             suma = utils.safeGet(cash, CONFIG.fields.cashBook.sumTotal || "Suma s DPH", 0);
+        //         }
+                
+        //         // Ak suma stále 0, použi sumu bez DPH
+        //         if (!suma || suma === 0) {
+        //             suma = utils.safeGet(cash, CONFIG.fields.cashBook.sum || "Suma", 0);
+        //         }
+                
+        //         var popis = utils.safeGet(cash, CONFIG.fields.cashBook.description || "Popis", "Bez popisu");
+                
+        //         // Získaj účty
+        //         var fromAccountLinks = utils.safeGetLinks(cash, CONFIG.fields.cashBook.fromAccount || "Z pokladne");
+        //         var toAccountLinks = utils.safeGetLinks(cash, CONFIG.fields.cashBook.toAccount || "Do pokladne");
+                
+        //         // Spracuj podľa typu pohybu
+        //         if (pohyb === "Príjem" && toAccountLinks && toAccountLinks.length > 0) {
+        //             var account = toAccountLinks[0];
+        //             var accountId = account.field("ID");
+                    
+        //             // Inicializuj účet v mape ak neexistuje
+        //             if (!accountsMap[accountId]) {
+        //                 accountsMap[accountId] = {
+        //                     account: account,
+        //                     name: utils.safeGet(account, CONFIG.fields.account.name || "Názov", "Neznámy účet"),
+        //                     income: [],
+        //                     expenses: [],
+        //                     totalIncome: 0,
+        //                     totalExpenses: 0
+        //                 };
+        //             }
+                    
+        //             // Pridaj príjem
+        //             accountsMap[accountId].income.push({
+        //                 popis: popis,
+        //                 suma: suma
+        //             });
+        //             accountsMap[accountId].totalIncome += suma;
+        //             data.cashBook.totalIncome += suma;
+                    
+        //         } else if ((pohyb === "Výdavok" || pohyb === "Výdaj") && fromAccountLinks && fromAccountLinks.length > 0) {
+        //             var account = fromAccountLinks[0];
+        //             var accountId = account.field("ID");
+                    
+        //             // Inicializuj účet v mape ak neexistuje
+        //             if (!accountsMap[accountId]) {
+        //                 accountsMap[accountId] = {
+        //                     account: account,
+        //                     name: utils.safeGet(account, CONFIG.fields.account.name || "Názov", "Neznámy účet"),
+        //                     income: [],
+        //                     expenses: [],
+        //                     totalIncome: 0,
+        //                     totalExpenses: 0
+        //                 };
+        //             }
+                    
+        //             // Pridaj výdavok
+        //             accountsMap[accountId].expenses.push({
+        //                 popis: popis,
+        //                 suma: suma
+        //             });
+        //             accountsMap[accountId].totalExpenses += suma;
+        //             data.cashBook.totalExpenses += suma;
+                    
+        //         } else if (pohyb === "PP" || pohyb === "Priebežná položka") {
+        //             // Pri priebežnej položke spracuj oba účty
+        //             if (fromAccountLinks && fromAccountLinks.length > 0) {
+        //                 var fromAccount = fromAccountLinks[0];
+        //                 var fromAccountId = fromAccount.field("ID");
+                        
+        //                 if (!accountsMap[fromAccountId]) {
+        //                     accountsMap[fromAccountId] = {
+        //                         account: fromAccount,
+        //                         name: utils.safeGet(fromAccount, CONFIG.fields.account.name || "Názov", "Neznámy účet"),
+        //                         income: [],
+        //                         expenses: [],
+        //                         totalIncome: 0,
+        //                         totalExpenses: 0
+        //                     };
+        //                 }
+                        
+        //                 accountsMap[fromAccountId].expenses.push({
+        //                     popis: "PP: " + popis,
+        //                     suma: suma
+        //                 });
+        //                 accountsMap[fromAccountId].totalExpenses += suma;
+        //             }
+                    
+        //             if (toAccountLinks && toAccountLinks.length > 0) {
+        //                 var toAccount = toAccountLinks[0];
+        //                 var toAccountId = toAccount.field("ID");
+                        
+        //                 if (!accountsMap[toAccountId]) {
+        //                     accountsMap[toAccountId] = {
+        //                         account: toAccount,
+        //                         name: utils.safeGet(toAccount, CONFIG.fields.account.name || "Názov", "Neznámy účet"),
+        //                         income: [],
+        //                         expenses: [],
+        //                         totalIncome: 0,
+        //                         totalExpenses: 0
+        //                     };
+        //                 }
+                        
+        //                 accountsMap[toAccountId].income.push({
+        //                     popis: "PP: " + popis,
+        //                     suma: suma
+        //                 });
+        //                 accountsMap[toAccountId].totalIncome += suma;
+        //             }
+        //         }
+        //     }
+            
+        //     // KROK 2: Získaj VŠETKY záznamy pokladne pre kompletný výpočet stavu
+        //     utils.addDebug(currentEntry, "Získavam všetky záznamy pokladne pre výpočet stavu účtov...");
+            
+        //     var cashBookLib = libByName(CONFIG.libraries.cashBook || "Pokladňa");
+        //     if (cashBookLib) {
+        //         var allCashRecords = cashBookLib.entries();
+        //         utils.addDebug(currentEntry, "Celkový počet záznamov v pokladni: " + allCashRecords.length);
+                
+        //         // Spracuj všetky záznamy pre každý účet ktorý sa vyskytol
+        //         for (var accountId in accountsMap) {
+        //             var accountData = accountsMap[accountId];
+        //             var account = accountData.account;
+        //             var allIncome = 0;
+        //             var allExpenses = 0;
+                    
+        //             // Prejdi všetky záznamy pokladne
+        //             for (var m = 0; m < allCashRecords.length; m++) {
+        //                 var record = allCashRecords[m];
+        //                 var recordPohyb = utils.safeGet(record, CONFIG.fields.cashBook.transactionType || "Pohyb", "");
+                        
+        //                 // Získaj sumu
+        //                 var recordIsVat = utils.safeGet(record, CONFIG.fields.cashBook.isVat || "s DPH", false);
+        //                 var recordSuma = 0;
+                        
+        //                 if (recordIsVat) {
+        //                     recordSuma = utils.safeGet(record, CONFIG.fields.cashBook.sumTotal || "Suma s DPH", 0);
+        //                 }
+                        
+        //                 if (!recordSuma || recordSuma === 0) {
+        //                     recordSuma = utils.safeGet(record, CONFIG.fields.cashBook.sum || "Suma", 0);
+        //                 }
+                        
+        //                 // Kontroluj účty
+        //                 var recordFromAccounts = utils.safeGetLinks(record, CONFIG.fields.cashBook.fromAccount || "Z pokladne");
+        //                 var recordToAccounts = utils.safeGetLinks(record, CONFIG.fields.cashBook.toAccount || "Do pokladne");
+                        
+        //                 // Ak je to príjem na tento účet
+        //                 if (recordPohyb === "Príjem" && recordToAccounts && recordToAccounts.length > 0) {
+        //                     if (recordToAccounts[0].field("ID") === accountId) {
+        //                         allIncome += recordSuma;
+        //                     }
+        //                 }
+                        
+        //                 // Ak je to výdavok z tohto účtu
+        //                 else if ((recordPohyb === "Výdavok" || recordPohyb === "Výdaj") && recordFromAccounts && recordFromAccounts.length > 0) {
+        //                     if (recordFromAccounts[0].field("ID") === accountId) {
+        //                         allExpenses += recordSuma;
+        //                     }
+        //                 }
+                        
+        //                 // Priebežné položky
+        //                 else if (recordPohyb === "PP" || recordPohyb === "Priebežná položka") {
+        //                     if (recordFromAccounts && recordFromAccounts.length > 0 && recordFromAccounts[0].field("ID") === accountId) {
+        //                         allExpenses += recordSuma;
+        //                     }
+        //                     if (recordToAccounts && recordToAccounts.length > 0 && recordToAccounts[0].field("ID") === accountId) {
+        //                         allIncome += recordSuma;
+        //                     }
+        //                 }
+        //             }
+                    
+        //             // Vypočítaj konečný stav účtu
+        //             var initialBalance = utils.safeGet(account, CONFIG.fields.account.initialValue || "Počiatočný stav", 0);
+        //             var calculatedBalance = initialBalance + allIncome - allExpenses;
+                    
+        //             utils.addDebug(currentEntry, "Účet: " + accountData.name);
+        //             utils.addDebug(currentEntry, "  • Počiatočný stav: " + utils.formatMoney(initialBalance));
+        //             utils.addDebug(currentEntry, "  • Všetky príjmy: " + utils.formatMoney(allIncome));
+        //             utils.addDebug(currentEntry, "  • Všetky výdavky: " + utils.formatMoney(allExpenses));
+        //             utils.addDebug(currentEntry, "  • Vypočítaný stav: " + utils.formatMoney(calculatedBalance));
+                    
+        //             // KROK 3: Aktualizuj pole "Stav" v účte
+        //             try {
+        //                 account.set(CONFIG.fields.account.balance || "Stav", calculatedBalance);
+        //                 utils.addDebug(currentEntry, "  ✅ Stav účtu aktualizovaný");
+        //             } catch (updateError) {
+        //                 utils.addError(currentEntry, "Nepodarilo sa aktualizovať stav účtu: " + updateError.toString(), "collectLinkedRecordsData");
+        //             }
+                    
+        //             // Ulož vypočítaný stav do dát pre zobrazenie
+        //             accountData.balance = calculatedBalance;
+        //             accountData.saldo = accountData.totalIncome - accountData.totalExpenses; // Denné saldo
+        //         }
+        //     }
+            
+        //     // KROK 4: Skonvertuj mapu účtov na formát pre data.cashBook.accounts
+        //     for (var accId in accountsMap) {
+        //         var accData = accountsMap[accId];
+        //         data.cashBook.accounts[accId] = {
+        //             name: accData.name,
+        //             balance: accData.balance || 0, // Celkový stav účtu
+        //             income: accData.income,
+        //             expenses: accData.expenses,
+        //             totalIncome: accData.totalIncome,
+        //             totalExpenses: accData.totalExpenses,
+        //             saldo: accData.saldo || (accData.totalIncome - accData.totalExpenses) // Denné saldo
+        //         };
+        //     }
+            
+        //     data.cashBook.balance = data.cashBook.totalIncome - data.cashBook.totalExpenses;
+        // }
+
+//
+// ZÍSKAJ LINKOVANÉ POKLADNIČNÉ DOKLADY S ÚČTAMI
+        var cashLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.attendance.cashBook || "Pokladňa");
+        utils.addDebug(currentEntry, "Záznamy pokladne linkované v dochádzke: " + cashLinks.length);
         
         if (cashLinks && cashLinks.length > 0) {
             data.cashBook.count = cashLinks.length;
             
-            // KROK 1: Spracuj všetky transakcie z linkovaných záznamov
+            // KROK 1: Najprv vytvor zoznam všetkých unikátnych účtov z linkovaných transakcií
+            var uniqueAccounts = {}; // Objekt pre uloženie unikátnych účtov
+            var dailyAccountsData = {}; // Dáta pre denný prehľad
+            
             for (var k = 0; k < cashLinks.length; k++) {
                 var cash = cashLinks[k];
-                var pohyb = utils.safeGet(cash, CONFIG.fields.cashBook.transactionType || "Pohyb", "");
                 
-                // Získaj sumu - kontroluj najprv checkbox s DPH
-                var isVat = utils.safeGet(cash, CONFIG.fields.cashBook.isVat || "s DPH", false);
-                var suma = 0;
-                
-                if (isVat) {
-                    // Ak je s DPH, použi sumu s DPH
-                    suma = utils.safeGet(cash, CONFIG.fields.cashBook.sumTotal || "Suma s DPH", 0);
-                }
-                
-                // Ak suma stále 0, použi sumu bez DPH
-                if (!suma || suma === 0) {
-                    suma = utils.safeGet(cash, CONFIG.fields.cashBook.sum || "Suma", 0);
-                }
-                
-                var popis = utils.safeGet(cash, CONFIG.fields.cashBook.description || "Popis", "Bez popisu");
-                
-                // Získaj účty
+                // Získaj účty z transakcie
                 var fromAccountLinks = utils.safeGetLinks(cash, CONFIG.fields.cashBook.fromAccount || "Z pokladne");
                 var toAccountLinks = utils.safeGetLinks(cash, CONFIG.fields.cashBook.toAccount || "Do pokladne");
                 
-                // Spracuj podľa typu pohybu
-                if (pohyb === "Príjem" && toAccountLinks && toAccountLinks.length > 0) {
-                    var account = toAccountLinks[0];
-                    var accountId = account.field("ID");
-                    
-                    // Inicializuj účet v mape ak neexistuje
-                    if (!accountsMap[accountId]) {
-                        accountsMap[accountId] = {
-                            account: account,
-                            name: utils.safeGet(account, CONFIG.fields.account.name || "Názov", "Neznámy účet"),
-                            income: [],
-                            expenses: [],
-                            totalIncome: 0,
-                            totalExpenses: 0
-                        };
-                    }
-                    
-                    // Pridaj príjem
-                    accountsMap[accountId].income.push({
-                        popis: popis,
-                        suma: suma
-                    });
-                    accountsMap[accountId].totalIncome += suma;
-                    data.cashBook.totalIncome += suma;
-                    
-                } else if ((pohyb === "Výdavok" || pohyb === "Výdaj") && fromAccountLinks && fromAccountLinks.length > 0) {
-                    var account = fromAccountLinks[0];
-                    var accountId = account.field("ID");
-                    
-                    // Inicializuj účet v mape ak neexistuje
-                    if (!accountsMap[accountId]) {
-                        accountsMap[accountId] = {
-                            account: account,
-                            name: utils.safeGet(account, CONFIG.fields.account.name || "Názov", "Neznámy účet"),
-                            income: [],
-                            expenses: [],
-                            totalIncome: 0,
-                            totalExpenses: 0
-                        };
-                    }
-                    
-                    // Pridaj výdavok
-                    accountsMap[accountId].expenses.push({
-                        popis: popis,
-                        suma: suma
-                    });
-                    accountsMap[accountId].totalExpenses += suma;
-                    data.cashBook.totalExpenses += suma;
-                    
-                } else if (pohyb === "PP" || pohyb === "Priebežná položka") {
-                    // Pri priebežnej položke spracuj oba účty
-                    if (fromAccountLinks && fromAccountLinks.length > 0) {
-                        var fromAccount = fromAccountLinks[0];
-                        var fromAccountId = fromAccount.field("ID");
-                        
-                        if (!accountsMap[fromAccountId]) {
-                            accountsMap[fromAccountId] = {
-                                account: fromAccount,
-                                name: utils.safeGet(fromAccount, CONFIG.fields.account.name || "Názov", "Neznámy účet"),
-                                income: [],
-                                expenses: [],
-                                totalIncome: 0,
-                                totalExpenses: 0
-                            };
-                        }
-                        
-                        accountsMap[fromAccountId].expenses.push({
-                            popis: "PP: " + popis,
-                            suma: suma
-                        });
-                        accountsMap[fromAccountId].totalExpenses += suma;
-                    }
-                    
-                    if (toAccountLinks && toAccountLinks.length > 0) {
-                        var toAccount = toAccountLinks[0];
-                        var toAccountId = toAccount.field("ID");
-                        
-                        if (!accountsMap[toAccountId]) {
-                            accountsMap[toAccountId] = {
-                                account: toAccount,
-                                name: utils.safeGet(toAccount, CONFIG.fields.account.name || "Názov", "Neznámy účet"),
-                                income: [],
-                                expenses: [],
-                                totalIncome: 0,
-                                totalExpenses: 0
-                            };
-                        }
-                        
-                        accountsMap[toAccountId].income.push({
-                            popis: "PP: " + popis,
-                            suma: suma
-                        });
-                        accountsMap[toAccountId].totalIncome += suma;
+                // Pridaj fromAccount do zoznamu ak existuje
+                if (fromAccountLinks && fromAccountLinks.length > 0) {
+                    var fromAccount = fromAccountLinks[0];
+                    var fromAccountId = fromAccount.field("ID");
+                    if (!uniqueAccounts[fromAccountId]) {
+                        uniqueAccounts[fromAccountId] = fromAccount;
+                        utils.addDebug(currentEntry, "Našiel som účet (from): " + utils.safeGet(fromAccount, "Názov"));
                     }
                 }
-            }
-            
-            // KROK 2: Získaj VŠETKY záznamy pokladne pre kompletný výpočet stavu
-            utils.addDebug(currentEntry, "Získavam všetky záznamy pokladne pre výpočet stavu účtov...");
-            
-            var cashBookLib = libByName(CONFIG.libraries.cashBook || "Pokladňa");
-            if (cashBookLib) {
-                var allCashRecords = cashBookLib.entries();
-                utils.addDebug(currentEntry, "Celkový počet záznamov v pokladni: " + allCashRecords.length);
                 
-                // Spracuj všetky záznamy pre každý účet ktorý sa vyskytol
-                for (var accountId in accountsMap) {
-                    var accountData = accountsMap[accountId];
-                    var account = accountData.account;
-                    var allIncome = 0;
-                    var allExpenses = 0;
-                    
-                    // Prejdi všetky záznamy pokladne
-                    for (var m = 0; m < allCashRecords.length; m++) {
-                        var record = allCashRecords[m];
-                        var recordPohyb = utils.safeGet(record, CONFIG.fields.cashBook.transactionType || "Pohyb", "");
-                        
-                        // Získaj sumu
-                        var recordIsVat = utils.safeGet(record, CONFIG.fields.cashBook.isVat || "s DPH", false);
-                        var recordSuma = 0;
-                        
-                        if (recordIsVat) {
-                            recordSuma = utils.safeGet(record, CONFIG.fields.cashBook.sumTotal || "Suma s DPH", 0);
-                        }
-                        
-                        if (!recordSuma || recordSuma === 0) {
-                            recordSuma = utils.safeGet(record, CONFIG.fields.cashBook.sum || "Suma", 0);
-                        }
-                        
-                        // Kontroluj účty
-                        var recordFromAccounts = utils.safeGetLinks(record, CONFIG.fields.cashBook.fromAccount || "Z pokladne");
-                        var recordToAccounts = utils.safeGetLinks(record, CONFIG.fields.cashBook.toAccount || "Do pokladne");
-                        
-                        // Ak je to príjem na tento účet
-                        if (recordPohyb === "Príjem" && recordToAccounts && recordToAccounts.length > 0) {
-                            if (recordToAccounts[0].field("ID") === accountId) {
-                                allIncome += recordSuma;
-                            }
-                        }
-                        
-                        // Ak je to výdavok z tohto účtu
-                        else if ((recordPohyb === "Výdavok" || recordPohyb === "Výdaj") && recordFromAccounts && recordFromAccounts.length > 0) {
-                            if (recordFromAccounts[0].field("ID") === accountId) {
-                                allExpenses += recordSuma;
-                            }
-                        }
-                        
-                        // Priebežné položky
-                        else if (recordPohyb === "PP" || recordPohyb === "Priebežná položka") {
-                            if (recordFromAccounts && recordFromAccounts.length > 0 && recordFromAccounts[0].field("ID") === accountId) {
-                                allExpenses += recordSuma;
-                            }
-                            if (recordToAccounts && recordToAccounts.length > 0 && recordToAccounts[0].field("ID") === accountId) {
-                                allIncome += recordSuma;
-                            }
-                        }
+                // Pridaj toAccount do zoznamu ak existuje
+                if (toAccountLinks && toAccountLinks.length > 0) {
+                    var toAccount = toAccountLinks[0];
+                    var toAccountId = toAccount.field("ID");
+                    if (!uniqueAccounts[toAccountId]) {
+                        uniqueAccounts[toAccountId] = toAccount;
+                        utils.addDebug(currentEntry, "Našiel som účet (to): " + utils.safeGet(toAccount, "Názov"));
                     }
-                    
-                    // Vypočítaj konečný stav účtu
-                    var initialBalance = utils.safeGet(account, CONFIG.fields.account.initialValue || "Počiatočný stav", 0);
-                    var calculatedBalance = initialBalance + allIncome - allExpenses;
-                    
-                    utils.addDebug(currentEntry, "Účet: " + accountData.name);
-                    utils.addDebug(currentEntry, "  • Počiatočný stav: " + utils.formatMoney(initialBalance));
-                    utils.addDebug(currentEntry, "  • Všetky príjmy: " + utils.formatMoney(allIncome));
-                    utils.addDebug(currentEntry, "  • Všetky výdavky: " + utils.formatMoney(allExpenses));
-                    utils.addDebug(currentEntry, "  • Vypočítaný stav: " + utils.formatMoney(calculatedBalance));
-                    
-                    // KROK 3: Aktualizuj pole "Stav" v účte
-                    try {
-                        account.set(CONFIG.fields.account.balance || "Stav", calculatedBalance);
-                        utils.addDebug(currentEntry, "  ✅ Stav účtu aktualizovaný");
-                    } catch (updateError) {
-                        utils.addError(currentEntry, "Nepodarilo sa aktualizovať stav účtu: " + updateError.toString(), "collectLinkedRecordsData");
-                    }
-                    
-                    // Ulož vypočítaný stav do dát pre zobrazenie
-                    accountData.balance = calculatedBalance;
-                    accountData.saldo = accountData.totalIncome - accountData.totalExpenses; // Denné saldo
                 }
             }
             
-            // KROK 4: Skonvertuj mapu účtov na formát pre data.cashBook.accounts
-            for (var accId in accountsMap) {
-                var accData = accountsMap[accId];
-                data.cashBook.accounts[accId] = {
-                    name: accData.name,
-                    balance: accData.balance || 0, // Celkový stav účtu
-                    income: accData.income,
-                    expenses: accData.expenses,
-                    totalIncome: accData.totalIncome,
-                    totalExpenses: accData.totalExpenses,
-                    saldo: accData.saldo || (accData.totalIncome - accData.totalExpenses) // Denné saldo
+            utils.addDebug(currentEntry, "Celkový počet unikátnych účtov: " + Object.keys(uniqueAccounts).length);
+            
+            // KROK 2: Pre každý účet získaj všetky transakcie pomocou linksFrom
+            for (var accountId in uniqueAccounts) {
+                var account = uniqueAccounts[accountId];
+                var accountName = utils.safeGet(account, CONFIG.fields.account.name || "Názov", "Neznámy účet");
+                
+                utils.addDebug(currentEntry, "\n=== Spracovávam účet: " + accountName + " ===");
+                
+                // Získaj všetky transakcie z pokladne ktoré obsahujú tento účet
+                var fromTransactions = account.linksFrom(CONFIG.libraries.cashBook || "Pokladňa", CONFIG.fields.cashBook.fromAccount || "Z pokladne");
+                var toTransactions = account.linksFrom(CONFIG.libraries.cashBook || "Pokladňa", CONFIG.fields.cashBook.toAccount || "Do pokladne");
+                
+                utils.addDebug(currentEntry, "  • Transakcie z účtu (fromAccount): " + fromTransactions.length);
+                utils.addDebug(currentEntry, "  • Transakcie na účet (toAccount): " + toTransactions.length);
+                
+                var allIncome = 0;
+                var allExpenses = 0;
+                var dailyIncome = 0;
+                var dailyExpenses = 0;
+                var dailyIncomeRecords = [];
+                var dailyExpenseRecords = [];
+                
+                // Spracuj výdavky (fromAccount transakcie)
+                for (var i = 0; i < fromTransactions.length; i++) {
+                    var trans = fromTransactions[i];
+                    var pohyb = utils.safeGet(trans, CONFIG.fields.cashBook.transactionType || "Pohyb", "");
+                    
+                    // Získaj sumu
+                    var suma = getSumaFromCashRecord(trans);
+                    
+                    if ((pohyb === "Výdavok" || pohyb === "Výdaj" || pohyb === "PP" || pohyb === "Priebežná položka") && suma > 0) {
+                        allExpenses += suma;
+                        
+                        // Ak je táto transakcia v našich linkovaných záznamoch, počítaj ju do denného súhrnu
+                        if (isTransactionInLinks(trans, cashLinks)) {
+                            dailyExpenses += suma;
+                            dailyExpenseRecords.push({
+                                popis: utils.safeGet(trans, CONFIG.fields.cashBook.description || "Popis", "Bez popisu"),
+                                suma: suma
+                            });
+                        }
+                    }
+                }
+                
+                // Spracuj príjmy (toAccount transakcie)
+                for (var j = 0; j < toTransactions.length; j++) {
+                    var trans = toTransactions[j];
+                    var pohyb = utils.safeGet(trans, CONFIG.fields.cashBook.transactionType || "Pohyb", "");
+                    
+                    // Získaj sumu
+                    var suma = getSumaFromCashRecord(trans);
+                    
+                    if ((pohyb === "Príjem" || pohyb === "PP" || pohyb === "Priebežná položka") && suma > 0) {
+                        allIncome += suma;
+                        
+                        // Ak je táto transakcia v našich linkovaných záznamoch, počítaj ju do denného súhrnu
+                        if (isTransactionInLinks(trans, cashLinks)) {
+                            dailyIncome += suma;
+                            dailyIncomeRecords.push({
+                                popis: utils.safeGet(trans, CONFIG.fields.cashBook.description || "Popis", "Bez popisu"),
+                                suma: suma
+                            });
+                        }
+                    }
+                }
+                
+                // Vypočítaj konečný stav účtu
+                var initialBalance = utils.safeGet(account, CONFIG.fields.account.initialValue || "Počiatočný stav", 0);
+                var calculatedBalance = initialBalance + allIncome - allExpenses;
+                
+                utils.addDebug(currentEntry, "\n📊 Výpočet stavu účtu:");
+                utils.addDebug(currentEntry, "  • Počiatočný stav: " + utils.formatMoney(initialBalance));
+                utils.addDebug(currentEntry, "  • Všetky príjmy: " + utils.formatMoney(allIncome));
+                utils.addDebug(currentEntry, "  • Všetky výdavky: " + utils.formatMoney(allExpenses));
+                utils.addDebug(currentEntry, "  • Vypočítaný stav: " + utils.formatMoney(calculatedBalance));
+                
+                // Aktualizuj pole "Stav" v účte
+                try {
+                    account.set(CONFIG.fields.account.balance || "Stav", calculatedBalance);
+                    utils.addDebug(currentEntry, "  ✅ Stav účtu aktualizovaný");
+                } catch (updateError) {
+                    utils.addError(currentEntry, "Nepodarilo sa aktualizovať stav účtu: " + updateError.toString(), "collectLinkedRecordsData");
+                }
+                
+                // Ulož dáta pre zobrazenie
+                data.cashBook.accounts[accountId] = {
+                    name: accountName,
+                    balance: calculatedBalance,
+                    income: dailyIncomeRecords,
+                    expenses: dailyExpenseRecords,
+                    totalIncome: dailyIncome,
+                    totalExpenses: dailyExpenses,
+                    saldo: dailyIncome - dailyExpenses
                 };
+                
+                data.cashBook.totalIncome += dailyIncome;
+                data.cashBook.totalExpenses += dailyExpenses;
             }
             
             data.cashBook.balance = data.cashBook.totalIncome - data.cashBook.totalExpenses;
         }
+        
+        // Pomocné funkcie
+        function getSumaFromCashRecord(record) {
+            var isVat = utils.safeGet(record, CONFIG.fields.cashBook.isVat || "s DPH", false);
+            var suma = 0;
+            
+            if (isVat) {
+                suma = utils.safeGet(record, CONFIG.fields.cashBook.sumTotal || "Suma s DPH", 0);
+            }
+            
+            if (!suma || suma === 0) {
+                suma = utils.safeGet(record, CONFIG.fields.cashBook.sum || "Suma", 0);
+            }
+            
+            return suma;
+        }
+        
+        function isTransactionInLinks(transaction, linkedTransactions) {
+            var transId = transaction.field("ID");
+            for (var i = 0; i < linkedTransactions.length; i++) {
+                if (linkedTransactions[i].field("ID") === transId) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+//
 
 
         // ZÍSKAJ ZÁVÄZKY CEZ LINKSFROM
