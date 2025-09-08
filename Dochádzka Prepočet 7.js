@@ -1387,7 +1387,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             telegramInfo += "• 📊 Hrubý zisk/strata: <b>" + 
                            (zisk >= 0 ? "+" : "") + utils.formatMoney(zisk) + "</b>\n";
         }
-        
+        telegramInfo += utils.createInlineKeyboard([{confirm: "Potvrdiť", callback_data:"confirmed"}, {confirm: "Rozporovať", callback_data:"dispute"}])
         telegramInfo += "\n🔧 <i>Script: " + CONFIG.scriptName + " v" + CONFIG.version + "</i>\n";
         telegramInfo += "⏰ <i>Spracované: " + moment().format("HH:mm:ss") + "</i>\n";
         telegramInfo += "📝 <i>Záznam #" + currentEntry.field("ID") + "</i>";
