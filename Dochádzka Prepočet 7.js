@@ -1220,7 +1220,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
         }
 
         // HTML formátovaná správa
-        var telegramInfo = "📋 <b>DOCHÁDZKA - DENNÝ SÚHRN</b>\n";
+        var telegramInfo = "📋 <b>㊙️ DOCHÁDZKA - DENNÝ SÚHRN ㊙️</b>\n";
         telegramInfo += "═══════════════════════════════════\n\n";
         
         telegramInfo += "📅 <b>Dátum:</b> " + dateFormatted + " (" + dayName + ")\n";
