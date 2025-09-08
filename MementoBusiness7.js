@@ -446,8 +446,6 @@ var MementoBusiness = (function() {
             
             // Získaj sadzby cez linksFrom
             var rates = core.safeGetLinksFrom(employee, libraryName, fields.employee);
-            // Alebo použij starú metódu
-            // var rates = employee.linksFrom(libraryName, fields.employee);
             
             if (!rates || rates.length === 0) {
                 return null;

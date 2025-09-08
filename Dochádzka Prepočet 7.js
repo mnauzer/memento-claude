@@ -168,7 +168,7 @@ function calculateWorkTime(arrival, departure) {
         pracovnaDobaHodiny = Math.round(pracovnaDobaHodiny * 100) / 100;
         
         // Ulož do poľa
-        currentEntry.set(CONFIG.fields.attendance.workTime, pracovnaDobaHodiny);
+        utils.safeSet(currentEntry, CONFIG.fields.attendance.workTime, pracovnaDobaHodiny);
         
         utils.addDebug(currentEntry, "  • Pracovná doba: " + pracovnaDobaHodiny + " hodín");
         

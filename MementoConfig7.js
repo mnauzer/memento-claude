@@ -284,6 +284,9 @@ var MementoConfig = (function() {
             },
             // ASISTANTO Defaults polia
             defaults: {
+                // Kniha jázd
+                defaultZdrzanie: "Default zdržanie",
+                // Main
                 date: "Dátum",
                 companyName: "Názov firmy",
                 street: "Ulica",
@@ -400,6 +403,15 @@ var MementoConfig = (function() {
             },
             // Kniha jázd polia
             bookOfRides: {
+                zastavky: "Zastávky", 
+                ciel: "Cieľ",
+                casJazdy: "Čas jazdy",
+                casNaZastavkach: "Čas na zastávkach",
+                celkovyCas: "Celkový čas",
+                posadka: "Posádka",
+                sofer: "Šofér",
+                datum: "Dátum",
+                mzdy: "Mzdové náklady",
                 date: "Dátum",
                 rideType: "Typ jazdy",
                 ridePurpose: "Účel jazdy",
