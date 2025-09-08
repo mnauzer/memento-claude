@@ -1339,14 +1339,13 @@ function collectLinkedRecordsData() {
                 var destinationName = utils.safeGet(destination, CONFIG.fields.place.name);
                 var stops = utils.safeGet(ride, CONFIG.fields.bookOfRides.stops)
                 var trasa = startName + " - " + destinationName;
-                message(vehicleName);
+
                 data.rideLog.records.push({
                     vehicle: vehicleName,
                     stops: stops.length,
                     trasa: trasa,
                     km: km,
                     sadzbaKm: sadzbaKm,
-                    totalTime: totalTime,
                     naklady: naklady
                 });
                 
