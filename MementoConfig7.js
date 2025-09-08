@@ -431,6 +431,32 @@ var MementoConfig = (function() {
                 stops: "Zastávky",
                 trasa: ""
             },
+            // Vozidlo
+            vehicles: {
+                active: "Aktívny", // checkbox:
+                name: "Názov",
+                type: "Typ", // singleChoice: Dodávka, Valník, Osobné
+                rate: "Sadzba za km",
+                flatRate: "Paušál za jazdu",
+                driver: "Šofér", // linkToEntry Zamestnanci, default zamestnanec ktorý jazdí na tomto vozidle
+                parkingBase: "Stanovište", // linkToEntry Miesta, default miesto kde parkuje vozidlo
+                odometerValue: "Stav tachometra",
+                kmDriven: "Najazdené",
+                consumptionRate: "Spotreba"
+            },
+            places: {
+                category: "Kategória", // singleChoice: Klient, Dodávateľ, Partner, Zamestnanec, Iné
+                active: "Aktívny", // checkbox
+                name: "Názov",
+                customer: "Klient", // linkToEntry Klienti
+                supplier: "Dodávateľ", // linkToEntry Dodávatelia
+                partner: "Partner", // linkToEntry Partneri
+                employee: "Zamestnanec", // linkToEntry Zamestnanci
+                distantce: "Vzdialenosť",
+                address: "Adresa",
+                GPS: "GPS",
+                location: "Lokalita"
+            },
             // Účty (Accounts)
             account: {
                 type: "Typ", //options: Hotovosť, Banka

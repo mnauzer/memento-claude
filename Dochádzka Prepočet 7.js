@@ -30,6 +30,8 @@ var CONFIG = {
     
     // Referencie na centrálny config
     fields: {
+        places: centralConfig.fields.places,
+        vehicles: centralConfig.fields.vehicles,
         bookOfRides: centralConfig.fields.bookOfRides,
         account: centralConfig.fields.account,
         notifications: centralConfig.fields.notifications,
@@ -1328,13 +1330,13 @@ function collectLinkedRecordsData() {
                 var km = utils.safeGet(ride, CONFIG.fields.bookOfRides.km || "Km", 0);
                 var sadzbaKm = utils.safeGet(ride, "Sadzba za km", 0) || 0.193;
                 var naklady = km * sadzbaKm;
-                var vozidlo = utils.safeGet(ride, CONFIG.fields.bookOfRides.vehicle);
-                var start = utils.safeGet(ride, CONFIG.fields.bookOfRides.start || "Štart", "");
-                var destination = utils.safeGet(ride, CONFIG.fields.bookOfRides.destination || "Cieľ", "");
+                var vozidlo = utils.safeGet(ride, CONFIG.fields.bookOfRides.vehicle)[0];
+                var start = utils.safeGet(ride, CONFIG.fields.bookOfRides.start)[0].field(CONFIF.fields.places.name);
+                var destination = utils.safeGet(ride, CONFIG.fields.bookOfRides.destination)[0].field(CONFIF.fields.places.name);
                 var trasa = start + " - " + destination;
                 
                 data.rideLog.records.push({
-                    vozidlo: vozidlo[0].field("Názov") || "Neznáme",
+                    vozidlo: utils.safeGet(vozidlo, CONFIG.fields.vehiclee.name),
                     trasa: trasa,
                     km: km,
                     sadzbaKm: sadzbaKm,
