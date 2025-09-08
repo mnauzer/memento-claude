@@ -1387,10 +1387,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
             telegramInfo += "• 📊 Hrubý zisk/strata: <b>" + 
                            (zisk >= 0 ? "+" : "") + utils.formatMoney(zisk) + "</b>\n";
         }
-        var inlineKeyboard = utils.createInlineKeyboard([
-            {text: "✅ Potvrdiť", callback_data: "confirmed"}, 
-            {text: "⚠️ Rozporovať", callback_data: "dispute"}
-        ]);
+        
         telegramInfo += inlineKeyboard;
         telegramInfo += "\n🔧 <i>Script: " + CONFIG.scriptName + " v" + CONFIG.version + "</i>\n";
         telegramInfo += "⏰ <i>Spracované: " + moment().format("HH:mm:ss") + "</i>\n";
@@ -1400,7 +1397,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
         utils.safeSet(currentEntry, CONFIG.fields.common.infoTelegram, telegramInfo);
         
         utils.addDebug(currentEntry, utils.getIcon("success") + " Info_telegram záznam vytvorený s rozšíreným sumárom");
-        
+       
         return {
             success: true,
             message: "Telegram info vytvorené úspešne"
@@ -1792,7 +1789,11 @@ function main() {
                         utils.safeSet(currentEntry,CONFIG.fields.attendance.entryIcons, entryIcons)
                         utils.safeSet(currentEntry,CONFIG.fields.attendance.entryStatus, entryStatus);
                         // Odošli na Telegram
-                        var sendResult = utils.sendNotificationEntry(newNotification.notification);
+                         var inlineKeyboard = utils.createInlineKeyboard([
+                            {text: "✅ Potvrdiť", callback_data: "confirmed"}, 
+                            {text: "⚠️ Rozporovať", callback_data: "dispute"}
+                        ]);
+                        var sendResult = utils.sendNotificationEntry(newNotification.notification, inlineKeyboard);
                         if (sendResult.success) {
                             entryStatus.push("Telegram");
                             entryIcons += CONFIG.icons.telegram;
