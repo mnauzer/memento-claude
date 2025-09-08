@@ -1297,7 +1297,7 @@ function collectLinkedRecordsData() {
             for (var i = 0; i < workLinks.length; i++) {
                 var work = workLinks[i];
                 var odpracovane = utils.safeGet(work, CONFIG.fields.workRecord.workTime, 0);
-                var pocetPrac = utils.safeGet(work, CONFIG.fields.attendance.employeeCount, 1); // počítať ľudí v dochádzke nie v zázname prác (zvyšný pracovníci budú v druhom zázname)
+                var pocetPrac = utils.safeGet(currentEntry, CONFIG.fields.attendance.employeeCount, 1); // počítať ľudí v dochádzke nie v zázname prác (zvyšný pracovníci budú v druhom zázname)
                 var odpracTotal = odpracovane * pocetPrac;
                 var hzs = work.field(CONFIG.fields.workRecord.hzs)[0].attr("cena") || 0; // zisti sadzbu HZS zo záznamu
                 var zakazka = utils.safeGetLinks(work, CONFIG.fields.workRecord.customer);
