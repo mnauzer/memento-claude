@@ -1750,7 +1750,8 @@ function collectLinkedRecordsData() {
                     var pohyb = utils.safeGet(trans, CONFIG.fields.cashBook.transactionType || "Pohyb", "");
                     
                     // Získaj sumu
-                    var suma = getSumaFromCashRecord(trans);
+                    //var suma = getSumaFromCashRecord(trans);
+                    var suma = 100;
                     
                     if ((pohyb === "Výdavok" || pohyb === "Výdaj" || pohyb === "PP" || pohyb === "Priebežná položka") && suma > 0) {
                         allExpenses += suma;
@@ -1862,7 +1863,7 @@ function collectLinkedRecordsData() {
 }
  // Pomocné funkcie
         function getSumaFromCashRecord(record) {
-            mesage("Získavam sumu")
+            message("Získavam sumu")
             var isVat = utils.safeGet(record, CONFIG.fields.cashBook.isVat || "s DPH", false);
             var suma = 0;
             
