@@ -406,11 +406,7 @@ var MementoTelegram = (function() {
         core.addDebug(currentEntry, "  • Thread ID: " + (threadId || "N/A"));
         core.addDebug(currentEntry, "  • Formátovanie: " + formatting);
         core.addDebug(currentEntry, "  • Tichá správa: " + (silent ? "Áno ✅" : "Nie ❌"));
-        if (data.disable_notification) {
-            core.addDebug(entry(), "🔕 Odosielam TICHÚ správu (disable_notification: true)");
-        } else {
-            core.addDebug(entry(), "🔔 Odosielam NORMÁLNU správu (disable_notification: false)");
-        }
+        
         var result = sendTelegramMessage(chatId, message, options);
         
         if (result.success) {
