@@ -1266,6 +1266,7 @@ function collectLinkedRecordsData() {
             count: 0,
             records: [],
             totalKm: 0,
+            totalTime: 0,
             totalCost: 0
         },
         cashBook: {
@@ -1294,24 +1295,24 @@ function collectLinkedRecordsData() {
             
             for (var i = 0; i < workLinks.length; i++) {
                 var work = workLinks[i];
-                var odpracovane = utils.safeGet(work, CONFIG.fields.workRecord.workedHours, 0);
-                var pocetPrac = utils.safeGet(work, CONFIG.fields.workRecord.employeeCount, 1);
+                var odpracovane = utils.safeGet(work, CONFIG.fields.workRecord.workTime, 0);
+                var pocetPrac = utils.safeGet(work, CONFIG.fields.attendance.employeeCount, 1); // počítať ľudí v dochádzke nie v zázname prác (zvyšný pracovníci budú v druhom zázname)
                 var odpracTotal = odpracovane * pocetPrac;
-                var hzs = utils.safeGet(work, CONFIG.fields.workRecord.hzsSum, 0);
+                var hzs = work.field(CONFIG.fields.workRecord.hzs)[0].attr("cena") || 0; // zisti sadzbu HZS zo záznamu
                 var zakazka = utils.safeGetLinks(work, CONFIG.fields.workRecord.customer);
                 var zakazkaNazov = zakazka && zakazka.length > 0 ? 
                                   utils.safeGet(zakazka[0], "Názov", "Bez názvu") : "Bez zákazky";
-                
+                var hzsSum = hzs * odpracTotal;
                 data.workRecords.records.push({
                     zakazka: zakazkaNazov,
                     odpracovane: odpracovane,
                     pocetPracovnikov: pocetPrac,
                     odpracovaneTotal: odpracTotal.toFixed(2),
-                    hzs: hzs
+                    hzs: hzsSum
                 });
                 
                 data.workRecords.totalHours += odpracTotal;
-                data.workRecords.totalHZS += hzs;
+                data.workRecords.totalHZS += hzsSum;
             }
         }
         
@@ -1327,16 +1328,17 @@ function collectLinkedRecordsData() {
                 var km = utils.safeGet(ride, CONFIG.fields.bookOfRides.km || "Km", 0);
                 var sadzbaKm = utils.safeGet(ride, "Sadzba za km", 0) || 0.193;
                 var naklady = km * sadzbaKm;
-                var vozidlo = utils.safeGet(ride, CONFIG.fields.bookOfRides.vehicle || "Vozidlo", "Neznáme");
+                var vozidlo = utils.safeGet(ride, CONFIG.fields.bookOfRides.vehicle);
                 var start = utils.safeGet(ride, CONFIG.fields.bookOfRides.start || "Štart", "");
                 var destination = utils.safeGet(ride, CONFIG.fields.bookOfRides.destination || "Cieľ", "");
                 var trasa = start + " - " + destination;
                 
                 data.rideLog.records.push({
-                    vozidlo: vozidlo,
+                    vozidlo: vozidlo[0].field("Názov") || "Neznáme",
                     trasa: trasa,
                     km: km,
                     sadzbaKm: sadzbaKm,
+                    totalTime: totalTime,
                     naklady: naklady
                 });
                 
