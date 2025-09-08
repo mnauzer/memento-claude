@@ -718,21 +718,21 @@ function linkCashBookRecords() {
             }
         }
         
-        // Filtruj záznamy práce podľa zamestnancov a časov
+        // Filtruj záznamy pokladne podľa zamestnancov a časov
         var matchingCashBook = [];
         var warningRecords = [];
         
         for (var j = 0; j < cashBook.length; j++) {
             var cashBookRecord = cashBook[j];
             var paidBy = utils.safeGetLinks(cashBookRecord, CONFIG.fields.cashBook.paidBy);
+            var paidTo = utils.safeGetLinks(cashBookRecord, CONFIG.fields.cashBook.paidTo);
             // Kontrola či má záznam aspoň jedného zhodného zamestnanca
             var hasMatchingEmployee = false;
-            for (var k = 0; k < paidBy.length; k++) {
-                var paidById = paidBy[k].field("ID");
-                if (dochadzkaEmployeeIds.indexOf(paidById) !== -1) {
-                    hasMatchingEmployee = true;
-                }
-            }
+            var paidById = paidBy[0].field("ID");
+            var paidToId = paidTo[0].field("ID");
+            if (dochadzkaEmployeeIds.indexOf(paidById) !== -1 || dochadzkaEmployeeIds.indexOf(paidToId) !== -1) {
+                hasMatchingEmployee = true;
+            } 
             
             if (hasMatchingEmployee) {
                 utils.addDebug(currentEntry, "  ✅ Záznam #" + cashBookRecord.field("ID") + " má zhodných zamestnancov");
