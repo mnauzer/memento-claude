@@ -1106,8 +1106,11 @@ var MementoTelegram = (function() {
             }
         }
         
-        return keyboard;
+        return {
+            inline_keyboard: keyboard
+        };
     }
+
     // ==============================================
     // AKTUALIZÁCIA ZDROJOVÉHO ZÁZNAMU
     // ==============================================
