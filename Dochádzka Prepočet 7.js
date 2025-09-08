@@ -785,15 +785,16 @@ function setEntryFields(employeeResult, workLinkResult, rideLogLinkResult, entry
     try {
         // Ulož celkové hodnoty
         var workHoursDiff = workLinkResult.workedOnOrders - employeeResult.workHours;
+        message("on orders: " + " employee workhours: " + employeeResult.workHours);
         if (workHoursDiff > 0) {
             utils.addDebug(currentEntry, "❗ Odpracovaný čas na zákazkách je vyšší ako čas v dochádzke: " + workHoursDiff + " hodín");
-            utils.setColor(currentEntry, "bg", "pastel red");
+            utils.setColor(currentEntry, "fg", "red");
         } else if (workHoursDiff < 0) {
             utils.addDebug(currentEntry, "⚠️ Odpracovaný čas na zákazkách je nižší ako čas v dochádzke: " + workHoursDiff + " hodín");
-            utils.setColor(currentEntry, "bg", "pastel blue");
+            utils.setColor(currentEntry, "fg", "blue");
         } else {
             utils.addDebug(currentEntry, "☑️ Odpracovaný čas na zákazkách sedí na chlp s dochádzkou ");
-            utils.setColor(currentEntry, "bg", "pastel yellow");
+            utils.setColor(currentEntry, "fg", "yellow");
         }
         
         utils.safeSet(currentEntry, CONFIG.fields.attendance.workedHours, employeeResult.odpracovaneTotal);
@@ -1331,12 +1332,12 @@ function collectLinkedRecordsData() {
                 var sadzbaKm = utils.safeGet(ride, "Sadzba za km", 0) || 0.193;
                 var naklady = km * sadzbaKm;
                 var vehicle = utils.safeGet(ride, CONFIG.fields.bookOfRides.vehicle)[0];
-                var vehicleName = utils.safeGet(vehicle, CONFIG.fields.vehicle.name)[0];
+                var vehicleName = utils.safeGet(vehicle, CONFIG.fields.vehicle.name);
                 var start = utils.safeGet(ride, CONFIG.fields.bookOfRides.start)[0]
-                var destination = utils.safeGet(ride, CONFIG.fields.bookOfRides.destination)[0]
-                var stops = utils.safeGet(ride, CONFIG.fields.bookOfRides.stops)
-                var destinationName = utils.safeGet(destination, CONFIG.fields.place.name)[0];
                 var startName = utils.safeGet(start, CONFIG.fields.place.name);
+                var destination = utils.safeGet(ride, CONFIG.fields.bookOfRides.destination)[0]
+                var destinationName = utils.safeGet(destination, CONFIG.fields.place.name);
+                var stops = utils.safeGet(ride, CONFIG.fields.bookOfRides.stops)
                 var trasa = startName + " - " + destinationName;
                 message(vehicleName);
                 data.rideLog.records.push({
