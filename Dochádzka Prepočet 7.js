@@ -781,7 +781,7 @@ function linkCashBookRecords() {
 // KROK 4: CELKOVÉ VÝPOČTY
 // ==============================================
 
-function setEntryFields(employeeResult, workLinkResult, rideLogLinkResult, entryIcons, entryStatus) {
+function setEntryFields(employeeResult, workLinkResult, rideLogLinkResult, cashBookResult, entryIcons, entryStatus) {
     try {
         // Ulož celkové hodnoty
         var workHoursDiff = workLinkResult.workedOnOrders - employeeResult.odpracovaneTotal;
@@ -2035,7 +2035,7 @@ function main() {
 
         // KROK 7: Celkové výpočty
         utils.addDebug(currentEntry, " KROK 7: Celkové výpočty", "calculation");
-        var totals = setEntryFields(employeeResult, workLinkResult, cashBookResult, entryIcons, entryStatus)
+        var totals = setEntryFields(employeeResult, workLinkResult, rideLogLinkResult, cashBookResult, entryIcons, entryStatus)
         steps.step7.success = totals.success;
         
         // KROK 8: Vytvorenie info záznamu
