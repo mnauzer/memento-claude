@@ -861,7 +861,33 @@ var MementoConfig = (function() {
             telegram: "📱",          // Telegram
             validation: "🛡️",       // Validácia  
             calculation: "🧮",       // Výpočet
-            note: "📝"              // Poznámka (rovnaké ako contract - OK!)
+            note: "📝",             // Poznámka (rovnaké ako contract - OK!)
+
+            // DÔVERNOSŤ A BEZPEČNOSŤ
+            confidential: "🔒",       // Dôverné
+            secret: "🤫",             // Tajomstvo
+            classified: "🔐",         // Utajované
+            private: "🛡️",           // Súkromné
+            restricted: "🚫",         // Obmedzené
+            secure: "🔑",             // Zabezpečené
+            
+            // ÚROVNE DÔVERNOSTI
+            top_secret: "㊙️",        // Prísne tajné
+            sensitive: "⚠️🔒",       // Citlivé údaje
+            internal_only: "🏢🔒",    // Len pre interné použitie
+            nda_required: "📝🤫",     // Vyžaduje NDA
+            
+            // BEZPEČNOSTNÉ AKCIE
+            encrypt: "🔏",            // Šifrovanie
+            decrypt: "🔓",            // Dešifrovanie
+            access_granted: "✅🔑",   // Prístup povolený
+            access_denied: "❌🔒",    // Prístup zamietnutý
+            
+            // ŠPECIALIZOVANÉ
+            detective: "🕵️",         // Vyšetrovanie
+            whisper: "🗣️🤫",         // Šepkanie
+            sealed: "📮🔒",          // Zapečatené
+            vault: "🏦🔐"            // Trezor
         }
 
     };
