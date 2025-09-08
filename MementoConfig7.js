@@ -491,6 +491,7 @@ var MementoConfig = (function() {
                 fromAccount: "Z pokladne", // linkToEntry: Účty (Accounts)
                 toAccount: "Do pokladne", // linkToEntry: Účty (Accounts)
                 paidBy: "Platbu vykonal", // linkToEntry: Zamestnanci (Employees), kto vykonal platbu
+                paidTo: "Platbu prijal", // linkToEntry: Zamestnanci (Employees), kto prijal platbu
                 obligationPayment: "Úhrada záväzku", //Checkbox - či sa platbou uhrádzajú záväzky
                 obligationType: "Typ záväzku", //singleChoice: Mzdy, Faktúry, Nájomné, Leasing (pribudnú ďalšie)
                 offsetClaim: "Započítať pohľadávku", //Checkbox - pri úhrade záväzku sa môže započítať pohľadávka ak je rovnaký subjekt (creditor)
