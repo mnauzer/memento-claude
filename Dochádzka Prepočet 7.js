@@ -1731,8 +1731,9 @@ function collectLinkedRecordsData() {
                 utils.addDebug(currentEntry, "\n=== Spracovávam účet: " + accountName + " ===");
                 
                 // Získaj všetky transakcie z pokladne ktoré obsahujú tento účet
-                var fromTransactions = account.linksFrom(CONFIG.libraries.cashBook || "Pokladňa", CONFIG.fields.cashBook.fromAccount || "Z pokladne");
-                var toTransactions = account.linksFrom(CONFIG.libraries.cashBook || "Pokladňa", CONFIG.fields.cashBook.toAccount || "Do pokladne");
+                //var fromTransactions = account.linksFrom(CONFIG.libraries.cashBook || "Pokladňa", CONFIG.fields.cashBook.fromAccount || "Z pokladne");
+                var fromTransactions = utils.safeGetLinksFrom(account, CONFIG.libraries.cashBook, CONFIG.fields.cashBook.fromAccount);
+                var toTransactions = utils.safeGetLinksFrom(account, CONFIG.libraries.cashBook, CONFIG.fields.cashBook.toAccount);
                 
                 utils.addDebug(currentEntry, "  • Transakcie z účtu (fromAccount): " + fromTransactions.length);
                 utils.addDebug(currentEntry, "  • Transakcie na účet (toAccount): " + toTransactions.length);
@@ -1826,6 +1827,7 @@ function collectLinkedRecordsData() {
         
         // Pomocné funkcie
         function getSumaFromCashRecord(record) {
+            mesage("Získavam sumu")
             var isVat = utils.safeGet(record, CONFIG.fields.cashBook.isVat || "s DPH", false);
             var suma = 0;
             
@@ -1836,7 +1838,7 @@ function collectLinkedRecordsData() {
             if (!suma || suma === 0) {
                 suma = utils.safeGet(record, CONFIG.fields.cashBook.sum || "Suma", 0);
             }
-            
+            message("Suma: " + suma)
             return suma;
         }
         
