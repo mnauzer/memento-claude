@@ -784,7 +784,7 @@ function setEntryFields(employeeResult, workLinkResult, rideLogLinkResult, cashB
     try {
         // Ulož celkové hodnoty
         var workHoursDiff = workLinkResult.workedOnOrders - employeeResult.odpracovaneTotal;
-        message("on orders: " + " employee workhours: " + employeeResult.odpracovaneTotal);
+        message("on orders: " + workLinkResult.workedOnOrders + " employee workhours: " + employeeResult.odpracovaneTotal);
         if (workHoursDiff > 0) {
             utils.addDebug(currentEntry, "❗ Odpracovaný čas na zákazkách je vyšší ako čas v dochádzke: " + workHoursDiff + " hodín");
             utils.setColor(currentEntry, "fg", "red");
@@ -1750,9 +1750,8 @@ function collectLinkedRecordsData() {
                     var pohyb = utils.safeGet(trans, CONFIG.fields.cashBook.transactionType || "Pohyb", "");
                     
                     // Získaj sumu
-                    //var suma = getSumaFromCashRecord(trans);
-                    var suma = 100;
-
+                    var suma = getSumaFromCashRecord(trans);
+                    
                     if ((pohyb === "Výdavok" || pohyb === "Výdaj" || pohyb === "PP" || pohyb === "Priebežná položka") && suma > 0) {
                         allExpenses += suma;
                         
