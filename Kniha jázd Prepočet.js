@@ -65,10 +65,10 @@ var CONFIG = {
     
     // Knižnice z centrálneho configu
     libraries: {
-        sadzby: centralConfig.libraries.business.rates,
-        miesta: "Miesta",
-        zamestnanci: centralConfig.libraries.business.employees,
-        defaults: centralConfig.libraries.core.defaults
+        sadzby: centralConfig.libraries.rates,
+        miesta: centralConfig.libraries.places,
+        zamestnanci: centralConfig.libraries.employees,
+        defaults: centralConfig.libraries.defaults
     },
     
     // OSRM API nastavenia
