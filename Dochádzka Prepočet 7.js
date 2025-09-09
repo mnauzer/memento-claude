@@ -1795,24 +1795,20 @@ function main() {
                         // ]);
                         // Pri vytváraní inline keyboard
                         var recordId = currentEntry.field("ID");
-                        var inlineKeyboard = utils.createInlineKeyboard([
-                            {
-                                text: "✅ Potvrdiť", 
-                                callback_data: JSON.stringify({
-                                    action: "confirmed",
-                                    record_id: recordId,
-                                    library: "dochádzka"
-                                })
-                            }, 
+                        var recordDate = utils.formatDate(currentEntry.field(CONFIG.fields.date));
+                        var buttons = [{
+                                text: "✅ Potvrdiť",
+                                callback_data: "confirm_attendance_" + recordId
+                            },
                             {
                                 text: "⚠️ Rozporovať", 
-                                callback_data: JSON.stringify({
-                                    action: "dispute", 
-                                    record_id: recordId,
-                                    library: "dochádzka"
-                                })
+                                callback_data: "dispute_attendance_" + recordId
                             }
-                        ]);
+                        ];
+
+                        // Vytvor inline keyboard (vráti pole, nie objekt)
+                        var inlineKeyboard = utils.createInlineKeyboard(buttons, 2);
+                        
                         var sendResult = utils.sendNotificationEntry(newNotification.notification, inlineKeyboard);
                         if (sendResult.success) {
                             entryStatus.push("Telegram");
