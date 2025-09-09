@@ -110,7 +110,7 @@ var MementoTelegram = (function() {
                 parse_mode: options.parseMode || "Markdown",
                 disable_web_page_preview: options.disablePreview || false,
                 disable_notification: options.silent || false,
-                reply_markup: JSON.stringify(options.inlineKeyboard)  // DÔLEŽITÉ: JSON.stringify()
+                reply_markup: options.inlineKeyboard
             };
             
             // Thread ID pre odpoveď v téme
