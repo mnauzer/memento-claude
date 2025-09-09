@@ -65,10 +65,10 @@ var CONFIG = {
     
     // Knižnice z centrálneho configu
     libraries: {
-        sadzby: centralConfig.libraries.rates,
+        sadzby: centralConfig.libraries.business.rates,
         miesta: "Miesta",
-        zamestnanci: centralConfig.libraries.employees,
-        defaults: centralConfig.libraries.defaults
+        zamestnanci: centralConfig.libraries.business.employees,
+        defaults: centralConfig.libraries.core.defaults
     },
     
     // OSRM API nastavenia
@@ -184,10 +184,12 @@ function callOSRMRoute(points) {
             return null;
         }
         
-        // Vytvor URL s koordinátmi
-        var coordinates = points.map(function(p) {
-            return p.lon + "," + p.lat;
-        }).join(';');
+        // Vytvor URL s koordinátmi - bez použitia map() a join()
+        var coordinates = "";
+        for (var i = 0; i < points.length; i++) {
+            if (i > 0) coordinates += ";";
+            coordinates += points[i].lon + "," + points[i].lat;
+        }
         
         var url = CONFIG.osrm.baseUrl + coordinates + "?overview=false&steps=false";
         
