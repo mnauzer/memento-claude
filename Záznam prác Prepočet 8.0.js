@@ -545,21 +545,18 @@ function processHZS(workedHours) {
         if (hzsField && hzsField.length > 0) {
             var hzsRecord = hzsField[0]; // Prvý HZS záznam
             var currentDate = utils.safeGet(currentEntry, CONFIG.fields.workRecord.date);
-            
+            message(hzsRecord.field("Názov"))
             // Získaj platnú cenu z histórie
             hzsPrice = utils.findValidWorkPrice(hzsRecord, currentDate);
             
             // Nastav cenu ako atribút na HZS poli
-            var hzsArray = hzsField;
-            if (hzsArray && hzsArray.length > 0 && hzsArray[0]) {
-                var hasHzsPrice = utils.safeGetAttribute(hzsArray[0], CONFIG.hzsAttributes.price); 
-                message(hasHzsPrice);
-                if (hasHzsPrice && hasHzsPrice != 0) {
-                    hzsArray[0].setAttr(CONFIG.hzsAttributes.price, hzsPrice);
-                    utils.addDebug(currentEntry, "  ✅ Cena nastavená ako atribút: " + hzsPrice + " €");
-                } else {
-                    utils.addDebug(currentEntry, "  ✅ Cena hzs už nastavená: " + hasHzsPrice + " €");
-                }
+            var hasHzsPrice = utils.safeGetAttribute(hzsRecord, CONFIG.hzsAttributes.price); 
+            message(hasHzsPrice);
+            if (hasHzsPrice && hasHzsPrice != 0) {
+                hzsArray[0].setAttr(CONFIG.hzsAttributes.price, hzsPrice);
+                utils.addDebug(currentEntry, "  ✅ Cena nastavená ako atribút: " + hzsPrice + " €");
+            } else {
+                utils.addDebug(currentEntry, "  ✅ Cena hzs už nastavená: " + hasHzsPrice + " €");
             }
         }
         
