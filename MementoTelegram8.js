@@ -86,6 +86,89 @@ var MementoTelegram = (function() {
      * @param {Object} options - Dodatočné parametre
      * @returns {Object} Výsledok operácie
      */
+    // function sendTelegramMessage(chatId, text, options, inlineKeyboard) {
+    //     try {
+    //         var core = getCore();
+    //         var ai = getAI();
+            
+    //         if (!ai) {
+    //             throw new Error("MementoAI modul nie je dostupný");
+    //         }
+            
+    //         var token = getBotToken();
+    //         if (!token) {
+    //             throw new Error("Telegram Bot API token nebol nájdený");
+    //         }
+            
+    //         options = options || {};
+            
+    //         // Príprava URL a dát
+    //         var url = "https://api.telegram.org/bot" + token + "/sendMessage";
+    //         var data = {
+    //             chat_id: chatId,
+    //             text: text,
+    //             parse_mode: options.parseMode || "Markdown",
+    //             disable_web_page_preview: options.disablePreview || false,
+    //             disable_notification: options.silent || false,
+    //             reply_markup: inlineKeyboard
+    //         };
+            
+    //         // Thread ID pre odpoveď v téme
+    //         if (options.threadId) {
+    //             data.message_thread_id = options.threadId;
+    //         }
+            
+    //         // Reply to message
+    //         if (options.replyToMessageId) {
+    //             data.reply_to_message_id = options.replyToMessageId;
+    //         }
+            
+    //         // Inline keyboard
+    //         if (options.inlineKeyboard) {
+    //             data.reply_markup = {
+    //                 inline_keyboard: options.inlineKeyboard
+    //             };
+    //         }
+            
+    //         // Odoslanie requestu
+    //         var response = ai.httpRequest("POST", url, data);
+            
+    //         if (response.code !== 200) {
+    //             var errorData = JSON.parse(response.body);
+    //             throw new Error("Telegram API error: " + (errorData.description || response.body));
+    //         }
+            
+    //         var responseData = JSON.parse(response.body);
+            
+    //         // Ulož info o správe do notifikácií
+    //         if (options.createNotification !== false) {
+    //             createNotificationEntry("sent", {
+    //                 chatId: chatId,
+    //                 messageId: responseData.result.message_id,
+    //                 threadId: options.threadId,
+    //                 text: text,
+    //                 timestamp: new Date()
+    //             });
+    //         }
+            
+    //         return {
+    //             success: true,
+    //             messageId: responseData.result.message_id,
+    //             chatId: responseData.result.chat.id,
+    //             date: responseData.result.date
+    //         };
+            
+    //     } catch (error) {
+    //         if (core) {
+    //             core.addError(entry(), "Odoslanie Telegram správy zlyhalo: " + error.toString(), "sendTelegramMessage", error);
+    //         }
+            
+    //         return {
+    //             success: false,
+    //             error: error.toString()
+    //         };
+    //     }
+    // }
     function sendTelegramMessage(chatId, text, options, inlineKeyboard) {
         try {
             var core = getCore();
@@ -109,8 +192,7 @@ var MementoTelegram = (function() {
                 text: text,
                 parse_mode: options.parseMode || "Markdown",
                 disable_web_page_preview: options.disablePreview || false,
-                disable_notification: options.silent || false,
-                reply_markup: inlineKeyboard
+                disable_notification: options.silent || false
             };
             
             // Thread ID pre odpoveď v téme
@@ -123,12 +205,19 @@ var MementoTelegram = (function() {
                 data.reply_to_message_id = options.replyToMessageId;
             }
             
-            // Inline keyboard
-            if (options.inlineKeyboard) {
+            // OPRAVA: Správne spracovanie inline keyboard
+            if (inlineKeyboard) {
+                data.reply_markup = {
+                    inline_keyboard: inlineKeyboard
+                };
+            } else if (options.inlineKeyboard) {
                 data.reply_markup = {
                     inline_keyboard: options.inlineKeyboard
                 };
             }
+            
+            // Debug log pre kontrolu
+            core.addDebug(entry(), "Telegram API data: " + JSON.stringify(data));
             
             // Odoslanie requestu
             var response = ai.httpRequest("POST", url, data);
@@ -140,17 +229,6 @@ var MementoTelegram = (function() {
             
             var responseData = JSON.parse(response.body);
             
-            // Ulož info o správe do notifikácií
-            if (options.createNotification !== false) {
-                createNotificationEntry("sent", {
-                    chatId: chatId,
-                    messageId: responseData.result.message_id,
-                    threadId: options.threadId,
-                    text: text,
-                    timestamp: new Date()
-                });
-            }
-            
             return {
                 success: true,
                 messageId: responseData.result.message_id,
@@ -159,17 +237,13 @@ var MementoTelegram = (function() {
             };
             
         } catch (error) {
-            if (core) {
-                core.addError(entry(), "Odoslanie Telegram správy zlyhalo: " + error.toString(), "sendTelegramMessage", error);
-            }
-            
+            core.addError(entry(), "SendTelegramMessage error: " + error.toString(), "sendTelegramMessage", error);
             return {
                 success: false,
                 error: error.toString()
             };
         }
     }
-    
     function createTelegramMessage(sourceEntry){
     try {
         var core = getCore();
@@ -263,6 +337,59 @@ var MementoTelegram = (function() {
      * @param {Object} options - Dodatočné parametre
      * @returns {Object} Výsledok operácie
      */
+    // function editTelegramMessage(chatId, messageId, newText, options) {
+    //     try {
+    //         var ai = getAI();
+    //         if (!ai) {
+    //             throw new Error("MementoAI modul nie je dostupný");
+    //         }
+            
+    //         var token = getBotToken();
+    //         if (!token) {
+    //             throw new Error("Telegram Bot API token nebol nájdený");
+    //         }
+            
+    //         options = options || {};
+            
+    //         var url = "https://api.telegram.org/bot" + token + "/editMessageText";
+    //         var data = {
+    //             chat_id: chatId,
+    //             message_id: messageId,
+    //             text: newText,
+    //             parse_mode: options.parseMode || "Markdown",
+    //             disable_web_page_preview: options.disablePreview || false
+    //         };
+            
+    //         if (options.inlineKeyboard) {
+    //             data.reply_markup = {
+    //                 inline_keyboard: options.inlineKeyboard
+    //             };
+    //         }
+            
+    //         var response = ai.httpRequest("POST", url, data);
+            
+    //         if (response.code !== 200) {
+    //             var errorData = JSON.parse(response.body);
+    //             throw new Error("Telegram API error: " + (errorData.description || response.body));
+    //         }
+            
+    //         return {
+    //             success: true,
+    //             messageId: messageId
+    //         };
+            
+    //     } catch (error) {
+    //         var core = getCore();
+    //         if (core) {
+    //             core.addError(entry(), "Editácia Telegram správy zlyhala: " + error.toString(), "editTelegramMessage", error);
+    //         }
+            
+    //         return {
+    //             success: false,
+    //             error: error.toString()
+    //         };
+    //     }
+    // }
     function editTelegramMessage(chatId, messageId, newText, options) {
         try {
             var ai = getAI();
@@ -286,10 +413,17 @@ var MementoTelegram = (function() {
                 disable_web_page_preview: options.disablePreview || false
             };
             
+            // OPRAVA: Správne spracovanie inline keyboard pri editácii
             if (options.inlineKeyboard) {
-                data.reply_markup = {
-                    inline_keyboard: options.inlineKeyboard
-                };
+                // Ak dostaneš pole (z createInlineKeyboard), zabaľ ho
+                if (Array.isArray(options.inlineKeyboard)) {
+                    data.reply_markup = {
+                        inline_keyboard: options.inlineKeyboard
+                    };
+                } else {
+                    // Ak už je to objekt s inline_keyboard
+                    data.reply_markup = options.inlineKeyboard;
+                }
             }
             
             var response = ai.httpRequest("POST", url, data);
@@ -316,7 +450,6 @@ var MementoTelegram = (function() {
             };
         }
     }
-    
     /**
      * Vymaže správu
      * @param {string} chatId - ID chatu
@@ -365,6 +498,76 @@ var MementoTelegram = (function() {
         }
     }
     
+    // function sendToTelegram(chatId, message, threadId, sourceEntry, inlineKeyboard) {
+    //     try {
+    //         var core = getCore();
+    //         var config = getConfig();
+    //         var currentEntry = sourceEntry || entry();
+            
+    //         // Získaj formátovanie z notifikácie
+    //         var formatting = core.safeGet(currentEntry, config.fields.notifications.formatting, "Markdown");
+            
+    //         // OPRAVA: Získaj "Tichá správa" z Telegram Groups, nie z notifikácie
+    //         var silent = false;
+            
+    //         // Skús získať skupinu z notifikácie
+    //         var groupOrTopic = core.safeGetLinks(currentEntry, config.fields.notifications.groupOrTopic || "Skupina/Téma");
+    //         if (groupOrTopic && groupOrTopic.length > 0) {
+    //             var telegramGroup = groupOrTopic[0];
+    //             // Získaj "Tichá správa" z Telegram Groups záznamu
+    //             silent = core.safeGet(telegramGroup, config.fields.telegramGroups.silentMessage || "Tichá správa", false);
+                
+    //             core.addDebug(currentEntry, "  • Telegram skupina: " + core.safeGet(telegramGroup, "Názov skupiny"));
+    //             core.addDebug(currentEntry, "  • Tichá správa (zo skupiny): " + (silent ? "Áno" : "Nie"));
+    //         } else {
+    //             // Fallback - skús získať priamo z notifikácie
+    //             silent = core.safeGet(currentEntry, "Tichá správa", false);
+    //             core.addDebug(currentEntry, "  • Tichá správa (z notifikácie): " + (silent ? "Áno" : "Nie"));
+    //         }
+            
+    //         var options = {
+    //             parseMode: formatting,
+    //             silent: silent,
+    //             createNotification: false,
+    //             inlineKeyboard: inlineKeyboard
+    //         };
+            
+    //         if (threadId) {
+    //             options.threadId = threadId;
+    //         }
+            
+    //         core.addDebug(currentEntry, "Odosielam správu:");
+    //         core.addDebug(currentEntry, "  • Chat ID: " + chatId);
+    //         core.addDebug(currentEntry, "  • Thread ID: " + (threadId || "N/A"));
+    //         core.addDebug(currentEntry, "  • Formátovanie: " + formatting);
+    //         core.addDebug(currentEntry, "  • Tichá správa: " + (silent ? "Áno ✅" : "Nie ❌"));
+            
+    //         var result = sendTelegramMessage(chatId, message, options, inlineKeyboard);
+            
+    //         if (result.success) {
+    //             core.addDebug(currentEntry, core.getIcon("success") + " Správa odoslaná, Message ID: " + result.messageId);
+    //             return {
+    //                 success: true,
+    //                 messageId: result.messageId,
+    //                 chatId: result.chatId,
+    //                 date: result.date
+    //             };
+    //         } else {
+    //             return {
+    //                 success: false,
+    //                 error: result.error || "Neznáma chyba"
+    //             };
+    //         }
+            
+    //     } catch (error) {
+    //         var errorEntry = sourceEntry || entry();
+    //         core.addError(errorEntry, "Chyba pri odosielaní: " + error.toString(), "sendToTelegram", error);
+    //         return {
+    //             success: false,
+    //             error: error.toString()
+    //         };
+    //     }
+    // }
     function sendToTelegram(chatId, message, threadId, sourceEntry, inlineKeyboard) {
         try {
             var core = getCore();
@@ -374,29 +577,19 @@ var MementoTelegram = (function() {
             // Získaj formátovanie z notifikácie
             var formatting = core.safeGet(currentEntry, config.fields.notifications.formatting, "Markdown");
             
-            // OPRAVA: Získaj "Tichá správa" z Telegram Groups, nie z notifikácie
+            // Získaj "Tichá správa" z Telegram Groups
             var silent = false;
-            
-            // Skús získať skupinu z notifikácie
             var groupOrTopic = core.safeGetLinks(currentEntry, config.fields.notifications.groupOrTopic || "Skupina/Téma");
+            
             if (groupOrTopic && groupOrTopic.length > 0) {
                 var telegramGroup = groupOrTopic[0];
-                // Získaj "Tichá správa" z Telegram Groups záznamu
                 silent = core.safeGet(telegramGroup, config.fields.telegramGroups.silentMessage || "Tichá správa", false);
-                
-                core.addDebug(currentEntry, "  • Telegram skupina: " + core.safeGet(telegramGroup, "Názov skupiny"));
-                core.addDebug(currentEntry, "  • Tichá správa (zo skupiny): " + (silent ? "Áno" : "Nie"));
-            } else {
-                // Fallback - skús získať priamo z notifikácie
-                silent = core.safeGet(currentEntry, "Tichá správa", false);
-                core.addDebug(currentEntry, "  • Tichá správa (z notifikácie): " + (silent ? "Áno" : "Nie"));
             }
             
             var options = {
                 parseMode: formatting,
                 silent: silent,
-                createNotification: false,
-                inlineKeyboard: inlineKeyboard
+                createNotification: false
             };
             
             if (threadId) {
@@ -407,18 +600,14 @@ var MementoTelegram = (function() {
             core.addDebug(currentEntry, "  • Chat ID: " + chatId);
             core.addDebug(currentEntry, "  • Thread ID: " + (threadId || "N/A"));
             core.addDebug(currentEntry, "  • Formátovanie: " + formatting);
-            core.addDebug(currentEntry, "  • Tichá správa: " + (silent ? "Áno ✅" : "Nie ❌"));
+            core.addDebug(currentEntry, "  • Tichá správa: " + (silent ? "Áno" : "Nie"));
             
+            // OPRAVA: Priamo posielaj inlineKeyboard ako parameter, nie cez options
             var result = sendTelegramMessage(chatId, message, options, inlineKeyboard);
             
             if (result.success) {
                 core.addDebug(currentEntry, core.getIcon("success") + " Správa odoslaná, Message ID: " + result.messageId);
-                return {
-                    success: true,
-                    messageId: result.messageId,
-                    chatId: result.chatId,
-                    date: result.date
-                };
+                return result;
             } else {
                 return {
                     success: false,
@@ -435,7 +624,6 @@ var MementoTelegram = (function() {
             };
         }
     }
-
     function sendNotificationEntry(notificationEntry, inlineKeyboard) {
         try {
             var core = getCore();
@@ -1092,26 +1280,25 @@ var MementoTelegram = (function() {
      * Vytvorí inline keyboard pre Telegram
      * @param {Array} buttons - Pole tlačidiel [{text: "Text", callback_data: "data"}]
      * @param {number} columns - Počet stĺpcov (default: 2)
-     * @returns {Array} Inline keyboard array
+     * @returns {Object} Inline keyboard objekt
      */
-   function createInlineKeyboard(buttons, columns) {
-    columns = columns || 2;
-    var keyboard = [];
-    var row = [];
-    
-    for (var i = 0; i < buttons.length; i++) {
-        row.push(buttons[i]);
+    function createInlineKeyboard(buttons, columns) {
+        columns = columns || 2;
+        var keyboard = [];
+        var row = [];
         
-        if (row.length === columns || i === buttons.length - 1) {
-            keyboard.push(row);
-            row = [];
+        for (var i = 0; i < buttons.length; i++) {
+            row.push(buttons[i]);
+            
+            if (row.length === columns || i === buttons.length - 1) {
+                keyboard.push(row);
+                row = [];
+            }
         }
+        
+        // OPRAVA: Vráť priamo pole, nie objekt s inline_keyboard
+        return keyboard;
     }
-    
-    return {
-        inline_keyboard: keyboard
-    };
-}
 
     // ==============================================
     // AKTUALIZÁCIA ZDROJOVÉHO ZÁZNAMU
