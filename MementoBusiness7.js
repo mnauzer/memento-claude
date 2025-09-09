@@ -38,9 +38,7 @@ var MementoBusiness = (function() {
         return _core;
     }
     
-    // ==============================================
     // ČASOVÉ VÝPOČTY
-    // ==============================================
     
     function calculateWorkHours(startTime, endTime) {
         var core = getCore();
@@ -96,7 +94,6 @@ var MementoBusiness = (function() {
         }
     }
  
-
     function formatEmployeeName(employeeEntry) {
         var core = getCore();
         var config = getConfig();
@@ -210,9 +207,7 @@ var MementoBusiness = (function() {
         }
     }
     
-    // ==============================================
     // MZDY A SADZBY
-    // ==============================================
     
     function getEmployeeWageForDate(employee, date) {
         try {
@@ -305,7 +300,75 @@ var MementoBusiness = (function() {
             return { wage: 0, hourlyRate: 0, overtime: 0 };
         }
     }
+   
+    function findValidSalary(entry, employee, date) {
+        var core = getCore();
+        var config = getConfig();
+        
+        try {
+            var employeeName = formatEmployeeName(employee);
+            core.addDebug(entry, "  🔍 Hľadám platnú sadzbu");
+            
+            var hodinovka = findValidHourlyRate(employee, date);
+            
+            if (!hodinovka || hodinovka <= 0) {
+                core.addError(entry, "Zamestnanec " + employeeName + " nemá platnú sadzbu", "business/findValidSalary");
+                return null;
+            }
+            
+            core.addDebug(entry, "  • Platná hodinovka: " + hodinovka + " €/h");
+            return hodinovka;
     
+            
+        } catch (error) {
+            core.addError(entry, error.toString(), "business/findValidSalary", error);
+            return null;
+        }
+    }
+
+    function findValidHourlyRate(employee, date) {
+        var core = getCore();
+        var config = getConfig();
+        
+        try {
+            if (!employee || !date) return null;
+            
+            var fields = config.fields.wages;
+            var libraryName = config.libraries.wages;
+            
+            // Získaj sadzby cez linksFrom
+            var rates = core.safeGetLinksFrom(employee, libraryName, fields.employee);
+            
+            if (!rates || rates.length === 0) {
+                return null;
+            }
+            
+            var validRate = null;
+            var latestValidFrom = null;
+            
+            // Nájdi najnovšiu platnú sadzbu
+            for (var i = 0; i < rates.length; i++) {
+                var rate = rates[i];
+                var validFrom = rate.field(fields.validFrom);
+                var hourlyRate = rate.field(fields.hourlyRate);
+                
+                if (validFrom && hourlyRate && moment(validFrom).isSameOrBefore(date)) {
+                    if (!latestValidFrom || moment(validFrom).isAfter(latestValidFrom)) {
+                        latestValidFrom = validFrom;
+                        validRate = hourlyRate;
+                    }
+                }
+            }
+            
+            return validRate;
+            
+        } catch (error) {
+            if (core) {
+                core.addError(entry(), "Chyba pri hľadaní sadzby: " + error.toString() + ", Line: " + error.lineNumber, "findValidHourlyRate", error);
+            }
+            return null;
+        }
+    }
     // ==============================================
     // ŠTATISTIKY
     // ==============================================
@@ -408,75 +471,6 @@ var MementoBusiness = (function() {
     // ==============================================
     // WAGE & RATE FUNCTIONS
     // ==============================================
-  
-    function findValidSalary(entry, employee, date) {
-        var core = getCore();
-        var config = getConfig();
-        
-        try {
-            var employeeName = formatEmployeeName(employee);
-            core.addDebug(entry, "  🔍 Hľadám platnú sadzbu");
-            
-            var hodinovka = findValidHourlyRate(employee, date);
-            
-            if (!hodinovka || hodinovka <= 0) {
-                core.addError(entry, "Zamestnanec " + employeeName + " nemá platnú sadzbu", "business/findValidSalary");
-                return null;
-            }
-            
-            core.addDebug(entry, "  • Platná hodinovka: " + hodinovka + " €/h");
-            return hodinovka;
-    
-            
-        } catch (error) {
-            core.addError(entry, error.toString(), "business/findValidSalary", error);
-            return null;
-        }
-    }
-
-    function findValidHourlyRate(employee, date) {
-        var core = getCore();
-        var config = getConfig();
-        
-        try {
-            if (!employee || !date) return null;
-            
-            var fields = config.fields.wages;
-            var libraryName = config.libraries.wages;
-            
-            // Získaj sadzby cez linksFrom
-            var rates = core.safeGetLinksFrom(employee, libraryName, fields.employee);
-            
-            if (!rates || rates.length === 0) {
-                return null;
-            }
-            
-            var validRate = null;
-            var latestValidFrom = null;
-            
-            // Nájdi najnovšiu platnú sadzbu
-            for (var i = 0; i < rates.length; i++) {
-                var rate = rates[i];
-                var validFrom = rate.field(fields.validFrom);
-                var hourlyRate = rate.field(fields.hourlyRate);
-                
-                if (validFrom && hourlyRate && moment(validFrom).isSameOrBefore(date)) {
-                    if (!latestValidFrom || moment(validFrom).isAfter(latestValidFrom)) {
-                        latestValidFrom = validFrom;
-                        validRate = hourlyRate;
-                    }
-                }
-            }
-            
-            return validRate;
-            
-        } catch (error) {
-            if (core) {
-                core.addError(entry(), "Chyba pri hľadaní sadzby: " + error.toString() + ", Line: " + error.lineNumber, "findValidHourlyRate", error);
-            }
-            return null;
-        }
-    }
 
     function findValidItemPrice(itemEntry, date) {
         var core = getCore();
@@ -519,6 +513,7 @@ var MementoBusiness = (function() {
             return null;
         }
     }
+
     function findValidWorkPrice(workEntry, date) {
         var core = getCore();
         var config = getConfig();
