@@ -86,7 +86,7 @@ var MementoTelegram = (function() {
      * @param {Object} options - Dodatočné parametre
      * @returns {Object} Výsledok operácie
      */
-    function sendTelegramMessage(chatId, text, options) {
+    function sendTelegramMessage(chatId, text, options, inlineKeyboard) {
         try {
             var core = getCore();
             var ai = getAI();
@@ -110,7 +110,7 @@ var MementoTelegram = (function() {
                 parse_mode: options.parseMode || "Markdown",
                 disable_web_page_preview: options.disablePreview || false,
                 disable_notification: options.silent || false,
-                reply_markup: options.inlineKeyboard
+                reply_markup: inlineKeyboard
             };
             
             // Thread ID pre odpoveď v téme
@@ -409,7 +409,7 @@ var MementoTelegram = (function() {
             core.addDebug(currentEntry, "  • Formátovanie: " + formatting);
             core.addDebug(currentEntry, "  • Tichá správa: " + (silent ? "Áno ✅" : "Nie ❌"));
             
-            var result = sendTelegramMessage(chatId, message, options);
+            var result = sendTelegramMessage(chatId, message, options, inlineKeyboard);
             
             if (result.success) {
                 core.addDebug(currentEntry, core.getIcon("success") + " Správa odoslaná, Message ID: " + result.messageId);
