@@ -41,7 +41,7 @@ var CONFIG = {
     // Referencie na centrálny config
     fields: {
         rideLog: centralConfig.fields.bookOfRides,
-        place: centralConfig.fields.places
+        place: centralConfig.fields.place
     },
     // Atribúty
     attributes: {
