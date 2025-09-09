@@ -552,8 +552,8 @@ function processHZS(workedHours) {
             // Nastav cenu ako atribút na HZS poli
             var hasHzsPrice = utils.safeGetAttribute(hzsRecord, CONFIG.hzsAttributes.price); 
             message(hasHzsPrice);
-            if (hasHzsPrice && hasHzsPrice != 0) {
-                hzsArray[0].setAttr(CONFIG.hzsAttributes.price, hzsPrice);
+            if (!hasHzsPrice) {
+                utils.safeSetAttribute(hzsField, CONFIG.hzsAttributes.price, hzsPrice);
                 utils.addDebug(currentEntry, "  ✅ Cena nastavená ako atribút: " + hzsPrice + " €");
             } else {
                 utils.addDebug(currentEntry, "  ✅ Cena hzs už nastavená: " + hasHzsPrice + " €");
