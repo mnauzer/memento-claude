@@ -811,7 +811,14 @@ function setEntryFields(employeeResult, workLinkResult, rideLogLinkResult, cashB
         utils.addDebug(currentEntry, "  • Na zákazkách: " + workLinkResult.workedOnOrders +" hodín");
         utils.addDebug(currentEntry, "  • Prestoje: " + workHoursDiff + " hodín");
         utils.addDebug(currentEntry, " Celkové výpočty úspešné", "success");
-        
+         
+         //var farba = "#FFFFFF"; // Biela - štandard
+        if (isHoliday) {
+            utils.setColor(currentEntry, "bg", "pastel blue")
+        } else if (isWeekend) {
+            utils.setColor(currentEntry, "bg", "pastel orange")
+        }
+
         return {
             success: true
         };
@@ -1208,7 +1215,7 @@ function isTransactionInLinks(transaction, linkedTransactions) {
  * @param {Object} linkedRecordsData - Objekt s údajmi z linkovaných záznamov
  * @returns {Object} {success: boolean, message: string}
  */
-function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsData) {
+function prepareNotificationInfoRecord(workTimeResult, employeeResult, linkedRecordsData) {
     try {
         var date = currentEntry.field(CONFIG.fields.attendance.date);
         var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
@@ -1404,7 +1411,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
         };
         
     } catch (error) {
-        utils.addError(currentEntry, error.toString(), "createTelegramInfoRecord", error);
+        utils.addError(currentEntry, error.toString(), "prepareNotificationInfoRecord", error);
         return {
             success: false,
             error: error.toString()
@@ -1412,134 +1419,134 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, linkedRecordsD
     }
 }
 
-function createTelegramMessage(){
-    try {
-        var libraryName = lib().title;
-        utils.addDebug(currentEntry, utils.getIcon("start") + " === " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
-        utils.addDebug(currentEntry, "Knižnica: " + libraryName);
+// function createTelegramMessage(){
+//     try {
+//         var libraryName = lib().title;
+//         utils.addDebug(currentEntry, utils.getIcon("start") + " === " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
+//         utils.addDebug(currentEntry, "Knižnica: " + libraryName);
         
-        // 1. Kontrola či máme info_telegram pole
-        var telegramMessage = utils.safeGet(currentEntry, CONFIG.fields.common.infoTelegram);
-        if (!telegramMessage) {
-            utils.addDebug(currentEntry, utils.getIcon("info") + " Pole info_telegram je prázdne - žiadna notifikácia");
-            return true;
-        }
+//         // 1. Kontrola či máme info_telegram pole
+//         var telegramMessage = utils.safeGet(currentEntry, CONFIG.fields.common.infoTelegram);
+//         if (!telegramMessage) {
+//             utils.addDebug(currentEntry, utils.getIcon("info") + " Pole info_telegram je prázdne - žiadna notifikácia");
+//             return true;
+//         }
         
-        // 2. Identifikácia knižnice
-        var libraryConfig = CONFIG.libraryMapping[libraryName];
-        if (!libraryConfig) {
-            utils.addDebug(currentEntry, utils.getIcon("info") + " Knižnica '" + libraryName + "' nie je nakonfigurovaná pre notifikácie");
-            return true;
-        }
+//         // 2. Identifikácia knižnice
+//         var libraryConfig = CONFIG.libraryMapping[libraryName];
+//         if (!libraryConfig) {
+//             utils.addDebug(currentEntry, utils.getIcon("info") + " Knižnica '" + libraryName + "' nie je nakonfigurovaná pre notifikácie");
+//             return true;
+//         }
         
-        // 3. Kontrola povolení
-        if (!checkPermissions(libraryConfig.permissionField)) {
-            utils.addDebug(currentEntry, utils.getIcon("info") + " Skupinové notifikácie sú vypnuté");
-            return true;
-        }
+//         // 3. Kontrola povolení
+//         if (!checkPermissions(libraryConfig.permissionField)) {
+//             utils.addDebug(currentEntry, utils.getIcon("info") + " Skupinové notifikácie sú vypnuté");
+//             return true;
+//         }
         
-        // 4. Získanie Telegram skupiny
-        var telegramGroup = utils.getTelegramGroup(libraryConfig.telegramGroupField);
-        if (!telegramGroup) {
-            utils.addDebug(currentEntry, utils.getIcon("warning") + " Telegram skupina nenájdená alebo neaktívna");
-            return true;
-        }
+//         // 4. Získanie Telegram skupiny
+//         var telegramGroup = utils.getTelegramGroup(libraryConfig.telegramGroupField);
+//         if (!telegramGroup) {
+//             utils.addDebug(currentEntry, utils.getIcon("warning") + " Telegram skupina nenájdená alebo neaktívna");
+//             return true;
+//         }
         
-        // 5. Cleanup starých notifikácií
-        var cleanupResult = utils.cleanupOldNotifications();
-        if (cleanupResult.deletedCount > 0) {
-            utils.addDebug(currentEntry, utils.getIcon("delete") + " Vymazaných " + cleanupResult.deletedCount + " starých notifikácií");
-        }
+//         // 5. Cleanup starých notifikácií
+//         var cleanupResult = utils.cleanupOldNotifications();
+//         if (cleanupResult.deletedCount > 0) {
+//             utils.addDebug(currentEntry, utils.getIcon("delete") + " Vymazaných " + cleanupResult.deletedCount + " starých notifikácií");
+//         }
         
-        // 6. Vytvorenie novej notifikácie
-        var notification = utils.createNotification({
-            message: telegramMessage,
-            messageType: libraryName,
-            telegramGroup: telegramGroup
-        });
+//         // 6. Vytvorenie novej notifikácie
+//         var notification = utils.createNotification({
+//             message: telegramMessage,
+//             messageType: libraryName,
+//             telegramGroup: telegramGroup
+//         });
         
-        if (!notification) {
-            utils.addError(currentEntry, "Nepodarilo sa vytvoriť notifikáciu", "main");
-            return false;
-        }
+//         if (!notification) {
+//             utils.addError(currentEntry, "Nepodarilo sa vytvoriť notifikáciu", "main");
+//             return false;
+//         }
         
-        // 7. Nalinkuj notifikáciu k záznamu
-        utils.linkNotification(notification);
+//         // 7. Nalinkuj notifikáciu k záznamu
+//         utils.linkNotification(notification);
         
-        utils.addDebug(currentEntry, utils.getIcon("success") + " Notifikácia vytvorená (ID: " + notification.field("ID") + ")");
-        utils.addDebug(currentEntry, utils.getIcon("success") + " === SCRIPT DOKONČENÝ ===");
+//         utils.addDebug(currentEntry, utils.getIcon("success") + " Notifikácia vytvorená (ID: " + notification.field("ID") + ")");
+//         utils.addDebug(currentEntry, utils.getIcon("success") + " === SCRIPT DOKONČENÝ ===");
         
-        return true;
+//         return true;
         
-    } catch (error) {
-        utils.addError(currentEntry, "Kritická chyba v hlavnej funkcii", "main", error);
-        return false;
-    }
-}
+//     } catch (error) {
+//         utils.addError(currentEntry, "Kritická chyba v hlavnej funkcii", "main", error);
+//         return false;
+//     }
+// }
 
-function sendTelegramMessage(notificationEntry) {
-    try {
+// function sendTelegramMessage(notificationEntry) {
+//     try {
         
-        // 1. Kontrola či je to nový záznam
-        if (!isNewRecord()) {
-            utils.addDebug(notificationEntry, "Nie je nový záznam - preskakujem");
-            return true;
-        }
+//         // 1. Kontrola či je to nový záznam
+//         if (!isNewRecord()) {
+//             utils.addDebug(notificationEntry, "Nie je nový záznam - preskakujem");
+//             return true;
+//         }
         
-        // 2. Kontrola statusu
-        var status = utils.safeGet(notificationEntry, CONFIG.fields.notifications.status);
-        if (status !== "Čaká") {
-            utils.addDebug(notificationEntry, "Status nie je 'Čaká' - preskakujem");
-            return true;
-        }
+//         // 2. Kontrola statusu
+//         var status = utils.safeGet(notificationEntry, CONFIG.fields.notifications.status);
+//         if (status !== "Čaká") {
+//             utils.addDebug(notificationEntry, "Status nie je 'Čaká' - preskakujem");
+//             return true;
+//         }
         
-        // 3. Získanie Telegram ID podľa adresáta
-        var telegramData = utils.getTelegramID(notificationEntry);
-        if (!telegramData.success) {
-            utils.addError(notificationEntry, "Nepodarilo sa získať Telegram údaje: " + telegramData.error, "main");
-            utils.updateStatus("Zlyhalo", telegramData.error);
-            return false;
-        }
+//         // 3. Získanie Telegram ID podľa adresáta
+//         var telegramData = utils.getTelegramID(notificationEntry);
+//         if (!telegramData.success) {
+//             utils.addError(notificationEntry, "Nepodarilo sa získať Telegram údaje: " + telegramData.error, "main");
+//             utils.updateStatus("Zlyhalo", telegramData.error);
+//             return false;
+//         }
         
-        utils.addDebug(notificationEntry, "Telegram údaje získané:");
-        utils.addDebug(notificationEntry, "  • Chat ID: " + telegramData.chatId);
-        if (telegramData.threadId) {
-            utils.addDebug(notificationEntry, "  • Thread ID: " + telegramData.threadId);
-        }
+//         utils.addDebug(notificationEntry, "Telegram údaje získané:");
+//         utils.addDebug(notificationEntry, "  • Chat ID: " + telegramData.chatId);
+//         if (telegramData.threadId) {
+//             utils.addDebug(notificationEntry, "  • Thread ID: " + telegramData.threadId);
+//         }
         
-        // 4. Príprava správy
-        var message = utils.safeGet(notificationEntry, CONFIG.fields.notifications.message);
-        if (!message) {
-            utils.addError(notificationEntry, "Správa je prázdna", "main");
-            utils.updateStatus("Zlyhalo", "Prázdna správa");
-            return false;
-        }
+//         // 4. Príprava správy
+//         var message = utils.safeGet(notificationEntry, CONFIG.fields.notifications.message);
+//         if (!message) {
+//             utils.addError(notificationEntry, "Správa je prázdna", "main");
+//             utils.updateStatus("Zlyhalo", "Prázdna správa");
+//             return false;
+//         }
         
-        // 5. Odoslanie na Telegram
-        var sendResult = utils.sendToTelegram(telegramData.chatId, message, telegramData.threadId);
+//         // 5. Odoslanie na Telegram
+//         var sendToTelegramResult = utils.sendToTelegram(telegramData.chatId, message, telegramData.threadId);
         
-        if (!sendResult.success) {
-            utils.addError(notificationEntry, "Odoslanie zlyhalo: " + sendResult.error, "main");
-            utils.updateStatus("Zlyhalo", sendResult.error);
-            return false;
-        }
+//         if (!sendResult.success) {
+//             utils.addError(notificationEntry, "Odoslanie zlyhalo: " + sendResult.error, "main");
+//             utils.updateStatus("Zlyhalo", sendResult.error);
+//             return false;
+//         }
         
-        // 6. Aktualizácia záznamu po úspešnom odoslaní
-        updateAfterSuccess(sendResult, telegramData);
+//         // 6. Aktualizácia záznamu po úspešnom odoslaní
+//         updateAfterSuccess(sendResult, telegramData);
         
-        // 7. Aktualizácia info poľa zdrojového záznamu
-        updateSourceEntryInfo(sendResult, telegramData);
+//         // 7. Aktualizácia info poľa zdrojového záznamu
+//         updateSourceEntryInfo(sendResult, telegramData);
         
-        utils.addDebug(notificationEntry, utils.getIcon("success") + " === NOTIFIKÁCIA ÚSPEŠNE ODOSLANÁ ===");
+//         utils.addDebug(notificationEntry, utils.getIcon("success") + " === NOTIFIKÁCIA ÚSPEŠNE ODOSLANÁ ===");
         
-        return true;
+//         return true;
         
-    } catch (error) {
-        utils.addError(notificationEntry, "Kritická chyba v hlavnej funkcii", "main", error);
-        updateStatus("Chyba", error.toString());
-        return false;
-    }
-}
+//     } catch (error) {
+//         utils.addError(notificationEntry, "Kritická chyba v hlavnej funkcii", "main", error);
+//         updateStatus("Chyba", error.toString());
+//         return false;
+//     }
+// }
 
 // ==============================================
 // FINÁLNY SÚHRN
@@ -1765,78 +1772,59 @@ function main() {
         var linkedData = collectLinkedRecordsData();
 
         // Potom zavolaj funkciu s novým parametrom
-        var telegramRecord = createTelegramInfoRecord(workTimeResult, employeeResult, linkedData);
-        steps.step9.success = telegramRecord.success;
-                if (steps.step9.success) {
-                    // Odstráň staré notifikácie pred vytvorením novej
-                    var existingNotifications = utils.getLinkedNotifications(currentEntry);
-                    if (existingNotifications.length > 0) {
-                        utils.addDebug(currentEntry, utils.getIcon("delete") + " Mažem " + existingNotifications.length + " existujúcich notifikácií");
-                        for (var i = 0; i < existingNotifications.length; i++) {
-                            utils.deleteNotificationAndTelegram(existingNotifications[i]);
-                        }
-                    }
-                    
-                    // Vytvor novú notifikáciu
-                    var newNotification = utils.createTelegramMessage(currentEntry);
-                    if (newNotification.success) {
-                        // Pridaj ikonu notifikácie
-                        if (entryStatus.indexOf("Telegram notifikácie") === -1) {
-                            entryStatus.push("Telegram notifikácie");
-                        }
-                        entryIcons += CONFIG.icons.notification;
-                        utils.addDebug(currentEntry, utils.getIcon("success") + " Záznam notifikácie úspešne vytvorený");
-                        utils.safeSet(currentEntry,CONFIG.fields.attendance.entryIcons, entryIcons)
-                        utils.safeSet(currentEntry,CONFIG.fields.attendance.entryStatus, entryStatus);
-                        // Odošli na Telegram
-                        // var inlineKeyboard = utils.createInlineKeyboard([
-                        //     {text: "✅ Potvrdiť", callback_data: "confirmed"}, 
-                        //     {text: "⚠️ Rozporovať", callback_data: "dispute"}
-                        // ]);
-                        // Pri vytváraní inline keyboard
-                        var recordId = currentEntry.field("ID");
-                        var recordDate = utils.formatDate(currentEntry.field(CONFIG.fields.date));
-                        var buttons = [{
-                                text: "✅ Potvrdiť",
-                                callback_data: "confirm_attendance_" + recordId
-                            },
-                            {
-                                text: "⚠️ Rozporovať", 
-                                callback_data: "dispute_attendance_" + recordId
-                            }
-                        ];
-
-                        // Vytvor inline keyboard (vráti pole, nie objekt)
-                        var inlineKeyboard = utils.createInlineKeyboard(buttons, 2);
-                        
-                        var sendResult = utils.sendNotificationEntry(newNotification.notification, inlineKeyboard);
-                        if (sendResult.success) {
-                            entryStatus.push("Telegram");
-                            entryIcons += CONFIG.icons.telegram;
-                            utils.addDebug(currentEntry, utils.getIcon("success") + " Telegram notifikácia úspešne odoslaná");
-                            utils.safeSet(currentEntry,CONFIG.fields.attendance.entryIcons, entryIcons);
-                            utils.safeSet(currentEntry,CONFIG.fields.attendance.entryStatus, entryStatus);
-                        } else {
-                            utils.addError(currentEntry, "Nepodarilo sa odoslať notifikáciu na Telegram", "step9");
-                        }
-                    } else {
-                        utils.addError(currentEntry, "Nepodarilo sa vytvoriť notifikáciu", "step9");
-                    }
+        var notificationRecord = prepareNotificationInfoRecord(workTimeResult, employeeResult, linkedData);
+        steps.step9.success = notificationRecord.success;
+        if (steps.step9.success) {
+            // Odstráň staré notifikácie pred vytvorením novej
+            var existingNotifications = utils.getLinkedNotifications(currentEntry);
+            if (existingNotifications.length > 0) {
+                utils.addDebug(currentEntry, utils.getIcon("delete") + " Mažem " + existingNotifications.length + " existujúcich notifikácií");
+                for (var i = 0; i < existingNotifications.length; i++) {
+                    utils.deleteNotificationAndTelegram(existingNotifications[i]);
                 }
-        
-        
-         //var farba = "#FFFFFF"; // Biela - štandard
-        if (isHoliday) {
-            utils.setColor(currentEntry, "bg", "pastel blue")
-        } else if (isWeekend) {
-            utils.setColor(currentEntry, "bg", "pastel orange")
+            }
+            
+            // Vytvor novú notifikáciu
+            var newNotification = utils.createTelegramMessage(currentEntry);
+            if (newNotification.success) {
+                // Pridaj ikonu notifikácie
+                entryStatus.push("Notifikácia");
+                entryIcons += CONFIG.icons.notification;
+                utils.addDebug(currentEntry, utils.getIcon("success") + " Záznam notifikácie úspešne vytvorený");
+                utils.safeSet(currentEntry,CONFIG.fields.attendance.entryIcons, entryIcons)
+                utils.safeSet(currentEntry,CONFIG.fields.attendance.entryStatus, entryStatus);
+                // Vytvor inline keyboard
+                var recordId = utils.safeGet(currentEntry, CONFIG.fields.common.id);
+                //var recordDate = utils.formatDate(currentEntry.field(CONFIG.fields.date));
+                var buttons = [{
+                    text: "✅ Potvrdiť",
+                    callback_data: "confirm_attendance_" + recordId
+                },
+                {
+                    text: "⚠️ Rozporovať", 
+                    callback_data: "dispute_attendance_" + recordId
+                }
+                ];
+                // Vytvor inline keyboard (vráti pole, nie objekt)
+                var inlineKeyboard = utils.createInlineKeyboard(buttons, 2);
+                // Odošli na Telegram
+                var sendToTelegramResult = utils.sendNotificationEntry(newNotification.notification, inlineKeyboard);
+
+                if (sendToTelegramResult.success) {
+                    entryStatus.push("Telegram");
+                    entryIcons += CONFIG.icons.telegram;
+                    utils.addDebug(currentEntry, utils.getIcon("success") + " Telegram notifikácia úspešne odoslaná");
+                    utils.safeSet(currentEntry,CONFIG.fields.attendance.entryIcons, entryIcons);
+                    utils.safeSet(currentEntry,CONFIG.fields.attendance.entryStatus, entryStatus);
+                } else {
+                    utils.addError(currentEntry, "Nepodarilo sa odoslať notifikáciu na Telegram", "step9");
+                }
+            } else {
+                utils.addError(currentEntry, "Nepodarilo sa vytvoriť notifikáciu", "step9");
+            }
         }
 
         return true;
-        // Finálny log
-        logFinalSummary(steps);
-
-        
     } catch (error) {
         utils.addError(currentEntry, "Kritická chyba v hlavnej funkcii", "main", error);
         message("❌ Kritická chyba! Line: " + error.lineNumber + ": " + error.toString());
