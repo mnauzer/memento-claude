@@ -21,7 +21,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Záznam prác Prepočet",
-    version: "8.1.2",
+    version: "8.1.3",
     
     // Referencie na centrálny config
     fields: {
@@ -552,8 +552,13 @@ function processHZS(workedHours) {
             // Nastav cenu ako atribút na HZS poli
             var hzsArray = currentEntry.field(CONFIG.fields.workRecord.hzs);
             if (hzsArray && hzsArray.length > 0 && hzsArray[0]) {
-                hzsArray[0].setAttr(CONFIG.hzsAttributes.price, hzsPrice);
-                utils.addDebug(currentEntry, "  ✅ Cena nastavená ako atribút: " + hzsPrice + " €");
+                var hasHzsPrice = utils.safeGetAttribute(hzsArray[0], CONFIG.hzsAttributes.price); 
+                if (hasHzsPrice && hasHzsPrice != 0) {
+                    hzsArray[0].setAttr(CONFIG.hzsAttributes.price, hzsPrice);
+                    utils.addDebug(currentEntry, "  ✅ Cena nastavená ako atribút: " + hzsPrice + " €");
+                } else {
+                    utils.addDebug(currentEntry, "  ✅ Cena hzs už nastavená: " + hasHzsPrice + " €");
+                }
             }
         }
         
