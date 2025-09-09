@@ -40,20 +40,9 @@ var CONFIG = {
     
     // Referencie na centrálny config
     fields: {
-        // Kniha jázd polia
-        start: "Štart",
-        zastavky: "Zastávky",
-        ciel: "Cieľ",
-        km: "Km",
-        casJazdy: "Čas jazdy",
-        casNaZastavkach: "Čas na zastávkach",
-        celkovyCas: "Celkový čas",
-        posadka: "Posádka",
-        sofer: "Šofér",
-        datum: "Dátum",
-        mzdy: "Mzdové náklady"
+        rideLog: centralConfig.fields.bookOfRides,
+        place: centralConfig.fields.places
     },
-    
     // Atribúty
     attributes: {
         trvanie: "trvanie",     
@@ -66,7 +55,7 @@ var CONFIG = {
     // Knižnice z centrálneho configu
     libraries: {
         sadzby: centralConfig.libraries.rates,
-        miesta: "Miesta",
+        miesta: centralConfig.libByName.places,
         zamestnanci: centralConfig.libraries.employees,
         defaults: centralConfig.libraries.defaults
     },
@@ -129,12 +118,12 @@ function extractGPSFromPlace(place) {
         return null;
     }
     
-    var miesto = place[0];
-    var gps = utils.safeGet(miesto, "GPS");
+    var place = place[0];
+    var gps = utils.safeGet(place, CONFIG.fields.place.gps);
     
     if (!gps) {
-        var nazov = utils.safeGet(miesto, "Názov", "Neznáme");
-        utils.addDebug(currentEntry, "  ⚠️ Miesto '" + nazov + "' nemá GPS súradnice");
+        var name = utils.safeGet(place, "Názov", "Neznáme");
+        utils.addDebug(currentEntry, "  ⚠️ Miesto '" + name + "' nemá GPS súradnice");
         return null;
     }
     
@@ -276,41 +265,41 @@ function calculateRoute() {
     
     try {
         // Získaj polia trasy
-        var start = utils.safeGetLinks(currentEntry, CONFIG.fields.start);
-        var zastavky = utils.safeGetLinks(currentEntry, CONFIG.fields.zastavky);
-        var ciel = utils.safeGetLinks(currentEntry, CONFIG.fields.ciel);
+        var start = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.start);
+        var stops = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.stops);
+        var destination = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.destination);
         
         utils.addDebug(currentEntry, "  🎯 Štart: " + (start.length > 0 ? "✓" : "✗"));
-        utils.addDebug(currentEntry, "  🛑 Zastávky: " + zastavky.length);
-        utils.addDebug(currentEntry, "  🏁 Cieľ: " + (ciel.length > 0 ? "✓" : "✗"));
+        utils.addDebug(currentEntry, "  🛑 Zastávky: " + stops.length);
+        utils.addDebug(currentEntry, "  🏁 Cieľ: " + (destination.length > 0 ? "✓" : "✗"));
         
-        if (start.length === 0 || ciel.length === 0) {
+        if (start.length === 0 || destination.length === 0) {
             utils.addError(currentEntry, "Chýba štart alebo cieľ", "calculateRoute");
             return result;
         }
         
         // Extrahuj GPS súradnice
         var startGPS = extractGPSFromPlace(start);
-        var cielGPS = extractGPSFromPlace(ciel);
+        var destinationGPS = extractGPSFromPlace(destination);
         
-        if (!startGPS || !cielGPS) {
+        if (!startGPS || !destinationGPS) {
             utils.addError(currentEntry, "Chýbajú GPS súradnice", "calculateRoute");
             return result;
         }
         
         // Vytvor zoznam všetkých bodov trasy
         var routePoints = [startGPS];
-        var zastavkyGPS = [];
+        var stopsGPS = [];
         
-        for (var i = 0; i < zastavky.length; i++) {
-            var gps = extractGPSFromPlace([zastavky[i]]);
+        for (var i = 0; i < stops.length; i++) {
+            var gps = extractGPSFromPlace([stops[i]]);
             if (gps) {
                 routePoints.push(gps);
-                zastavkyGPS.push(gps);
+                stopsGPS.push(gps);
             }
         }
         
-        routePoints.push(cielGPS);
+        routePoints.push(destinationGPS);
         
         utils.addDebug(currentEntry, "  📍 Celkom " + routePoints.length + " bodov na trase");
         
@@ -319,23 +308,23 @@ function calculateRoute() {
         var defaultZdrzanie = getDefaultZdrzanie();
         
         // Úseky cez zastávky
-        for (var j = 0; j < zastavky.length; j++) {
-            if (!zastavkyGPS[j]) continue;
+        for (var j = 0; j < stops.length; j++) {
+            if (!stopsGPS[j]) continue;
             
-            var segment = calculateSegment(currentPoint, zastavkyGPS[j], "Úsek " + (j+1));
+            var segment = calculateSegment(currentPoint, stopsGPS[j], "Úsek " + (j+1));
             
             if (segment.success) {
                 result.totalKm += segment.km;
                 result.casJazdy += segment.trvanie;
                 
                 // Nastav atribúty zastávky
-                zastavky[j].setAttr(CONFIG.attributes.km, Math.round(segment.km * 10) / 10);
-                zastavky[j].setAttr(CONFIG.attributes.trvanie, segment.trvanie);
+                stops[j].setAttr(CONFIG.attributes.km, Math.round(segment.km * 10) / 10);
+                stops[j].setAttr(CONFIG.attributes.trvanie, segment.trvanie);
                 
                 // Nastav zdržanie ak nie je nastavené
-                var existingZdrzanie = zastavky[j].attr(CONFIG.attributes.zdrzanie);
+                var existingZdrzanie = stops[j].attr(CONFIG.attributes.zdrzanie);
                 if (!existingZdrzanie || existingZdrzanie === 0) {
-                    zastavky[j].setAttr(CONFIG.attributes.zdrzanie, defaultZdrzanie);
+                    stops[j].setAttr(CONFIG.attributes.zdrzanie, defaultZdrzanie);
                     result.casNaZastavkach += defaultZdrzanie;
                     utils.addDebug(currentEntry, "    ⏱️ Nastavené default zdržanie: " + defaultZdrzanie + " h");
                 } else {
@@ -344,20 +333,20 @@ function calculateRoute() {
                     utils.addDebug(currentEntry, "    ⏱️ Existujúce zdržanie: " + zdrz + " h");
                 }
                 
-                currentPoint = zastavkyGPS[j];
+                currentPoint = stopsGPS[j];
             }
         }
         
         // Posledný úsek do cieľa
-        var lastSegment = calculateSegment(currentPoint, cielGPS, "Úsek do cieľa");
+        var lastSegment = calculateSegment(currentPoint, destinationGPS, "Úsek do cieľa");
         
         if (lastSegment.success) {
             result.totalKm += lastSegment.km;
             result.casJazdy += lastSegment.trvanie;
             
             // Nastav atribúty cieľa
-            ciel[0].setAttr(CONFIG.attributes.km, Math.round(lastSegment.km * 10) / 10);
-            ciel[0].setAttr(CONFIG.attributes.trvanie, lastSegment.trvanie);
+            destination[0].setAttr(CONFIG.attributes.km, Math.round(lastSegment.km * 10) / 10);
+            destination[0].setAttr(CONFIG.attributes.trvanie, lastSegment.trvanie);
         }
         
         // Vypočítaj celkový čas
@@ -370,10 +359,10 @@ function calculateRoute() {
         result.celkovyCas = Math.round(result.celkovyCas * 100) / 100;
         
         // Ulož do polí
-        utils.safeSet(currentEntry, CONFIG.fields.km, result.totalKm);
-        utils.safeSet(currentEntry, CONFIG.fields.casJazdy, result.casJazdy);
-        utils.safeSet(currentEntry, CONFIG.fields.casNaZastavkach, result.casNaZastavkach);
-        utils.safeSet(currentEntry, CONFIG.fields.celkovyCas, result.celkovyCas);
+        utils.safeSet(currentEntry, CONFIG.fields.rideLog.km, result.totalKm);
+        utils.safeSet(currentEntry, CONFIG.fields.rideLog.rideTime, result.casJazdy);
+        utils.safeSet(currentEntry, CONFIG.fields.rideLog.stopTime, result.casNaZastavkach);
+        utils.safeSet(currentEntry, CONFIG.fields.rideLog.totalTime, result.celkovyCas);
         
         utils.addDebug(currentEntry, "\n  📊 VÝSLEDKY:");
         utils.addDebug(currentEntry, "  • Vzdialenosť: " + result.totalKm + " km");
@@ -402,8 +391,8 @@ function processDriver() {
     };
     
     try {
-        var sofer = utils.safeGetLinks(currentEntry, CONFIG.fields.sofer);
-        var posadka = utils.safeGetLinks(currentEntry, CONFIG.fields.posadka);
+        var sofer = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.driver);
+        var posadka = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.crew);
         
         if (sofer.length === 0) {
             utils.addDebug(currentEntry, "  ℹ️ Žiadny šofér nebol zadaný");
@@ -429,7 +418,7 @@ function processDriver() {
         // Ak šofér nie je v posádke, pridaj ho
         if (!result.soferInPosadke) {
             posadka.push(soferObj);
-            utils.safeSet(currentEntry, CONFIG.fields.posadka, posadka);
+            utils.safeSet(currentEntry, CONFIG.fields.rideLog.crew, posadka);
             utils.addDebug(currentEntry, "  ➕ Šofér pridaný do posádky");
         }
         
@@ -455,9 +444,9 @@ function calculateWageCosts() {
     };
     
     try {
-        var posadka = utils.safeGetLinks(currentEntry, CONFIG.fields.posadka);
-        var datum = utils.safeGet(currentEntry, CONFIG.fields.datum, new Date());
-        var celkovyCas = utils.safeGet(currentEntry, CONFIG.fields.celkovyCas, 0);
+        var posadka = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.crew);
+        var datum = utils.safeGet(currentEntry, CONFIG.fields.rideLog.date, new Date());
+        var celkovyCas = utils.safeGet(currentEntry, CONFIG.fields.rideLog.totalTime, 0);
         
         if (posadka.length === 0) {
             utils.addDebug(currentEntry, "  ℹ️ Žiadna posádka");
@@ -509,7 +498,7 @@ function calculateWageCosts() {
         
         // Zaokrúhli a ulož celkové mzdy
         result.celkoveMzdy = Math.round(result.celkoveMzdy * 100) / 100;
-        utils.safeSet(currentEntry, CONFIG.fields.mzdy, result.celkoveMzdy);
+        utils.safeSet(currentEntry, CONFIG.fields.rideLog.wageCosts, result.celkoveMzdy);
         
         utils.addDebug(currentEntry, "\n  💰 CELKOVÉ MZDY: " + utils.formatMoney(result.celkoveMzdy));
         
