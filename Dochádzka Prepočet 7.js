@@ -26,7 +26,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Dochádzka Prepočet",
-    version: "7.4.3",  // Aktualizovaná verzia
+    version: "7.4.4",  // Aktualizovaná verzia
     
     // Referencie na centrálny config
     fields: {
