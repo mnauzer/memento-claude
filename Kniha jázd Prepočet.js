@@ -36,7 +36,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Kniha jázd Prepočet",
-    version: "8.0",
+    version: "8.0.1",
     
     // Referencie na centrálny config
     fields: {
