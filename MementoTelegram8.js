@@ -110,7 +110,7 @@ var MementoTelegram = (function() {
                 parse_mode: options.parseMode || "Markdown",
                 disable_web_page_preview: options.disablePreview || false,
                 disable_notification: options.silent || false,
-                reply_markup: options.inlineKeyboard
+                reply_markup: JSON.stringify(options.inlineKeyboard)  // DÔLEŽITÉ: JSON.stringify()
             };
             
             // Thread ID pre odpoveď v téme
@@ -1094,24 +1094,24 @@ var MementoTelegram = (function() {
      * @param {number} columns - Počet stĺpcov (default: 2)
      * @returns {Array} Inline keyboard array
      */
-    function createInlineKeyboard(buttons, columns) {
-        columns = columns || 2;
-        var keyboard = [];
-        var row = [];
+   function createInlineKeyboard(buttons, columns) {
+    columns = columns || 2;
+    var keyboard = [];
+    var row = [];
+    
+    for (var i = 0; i < buttons.length; i++) {
+        row.push(buttons[i]);
         
-        for (var i = 0; i < buttons.length; i++) {
-            row.push(buttons[i]);
-            
-            if (row.length === columns || i === buttons.length - 1) {
-                keyboard.push(row);
-                row = [];
-            }
+        if (row.length === columns || i === buttons.length - 1) {
+            keyboard.push(row);
+            row = [];
         }
-        
-        return {
-            inline_keyboard: keyboard
-        };
     }
+    
+    return {
+        inline_keyboard: keyboard
+    };
+}
 
     // ==============================================
     // AKTUALIZÁCIA ZDROJOVÉHO ZÁZNAMU

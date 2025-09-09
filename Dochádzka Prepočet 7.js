@@ -1793,10 +1793,26 @@ function main() {
                         //     {text: "✅ Potvrdiť", callback_data: "confirmed"}, 
                         //     {text: "⚠️ Rozporovať", callback_data: "dispute"}
                         // ]);
-                        var inlineKeyboard = [
-                            {text: "✅ Potvrdiť", callback_data: "confirmed"}, 
-                            {text: "⚠️ Rozporovať", callback_data: "dispute"}
-                        ];
+                        // Pri vytváraní inline keyboard
+                        var recordId = currentEntry.field("ID");
+                        var inlineKeyboard = utils.createInlineKeyboard([
+                            {
+                                text: "✅ Potvrdiť", 
+                                callback_data: JSON.stringify({
+                                    action: "confirmed",
+                                    record_id: recordId,
+                                    library: "dochádzka"
+                                })
+                            }, 
+                            {
+                                text: "⚠️ Rozporovať", 
+                                callback_data: JSON.stringify({
+                                    action: "dispute", 
+                                    record_id: recordId,
+                                    library: "dochádzka"
+                                })
+                            }
+                        ]);
                         var sendResult = utils.sendNotificationEntry(newNotification.notification, inlineKeyboard);
                         if (sendResult.success) {
                             entryStatus.push("Telegram");
