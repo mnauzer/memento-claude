@@ -498,7 +498,7 @@ var MementoConfig = (function() {
                 employee: "Zamestnanec", // linkToEntry Zamestnanci
                 distantce: "Vzdialenosť",
                 address: "Adresa",
-                GPS: "GPS",
+                gps: "GPS",
                 location: "Lokalita"
             },
             // Účty (Accounts)
