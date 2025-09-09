@@ -40,7 +40,7 @@ var CONFIG = {
     
     // Referencie na centrálny config
     fields: {
-        rideLog: centralConfig.fields.bookOfRides,
+        rideLog: centralConfig.fields.rideLog,
         place: centralConfig.fields.place
     },
     // Atribúty
@@ -55,7 +55,7 @@ var CONFIG = {
     // Knižnice z centrálneho configu
     libraries: {
         sadzby: centralConfig.libraries.rates,
-        miesta: centralConfig.libByName.places,
+        miesta: centralConfig.libraries.places,
         zamestnanci: centralConfig.libraries.employees,
         defaults: centralConfig.libraries.defaults
     },
