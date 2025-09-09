@@ -543,7 +543,7 @@ function processHZS(workedHours) {
         // Získaj cenu z HZS
         var hzsPrice = 0;
         if (hzsField && hzsField.length > 0) {
-            var hzsRecord = hzsField; // Prvý HZS záznam
+            var hzsRecord = hzsField[0]; // Prvý HZS záznam
             var currentDate = utils.safeGet(currentEntry, CONFIG.fields.workRecord.date);
             
             // Získaj platnú cenu z histórie
