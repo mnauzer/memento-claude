@@ -387,12 +387,12 @@ function processDriver() {
     
     var result = {
         success: false,
-        soferInPosadke: false
+        driverInCrew: false
     };
     
     try {
         var sofer = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.driver);
-        var posadka = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.crew);
+        var crew = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.crew);
         
         if (sofer.length === 0) {
             utils.addDebug(currentEntry, "  ℹ️ Žiadny šofér nebol zadaný");
@@ -400,25 +400,25 @@ function processDriver() {
             return result;
         }
         
-        var soferObj = sofer[0];
-        var soferNick = utils.safeGet(soferObj, "Nick", "");
+        var driverObj = sofer[0];
+        var driverNick = utils.safeGet(driverObj, "Nick", "");
         
-        utils.addDebug(currentEntry, "  👤 Šofér: " + soferNick);
+        utils.addDebug(currentEntry, "  👤 Šofér: " + driverNick);
         
         // Skontroluj či šofér nie je už v posádke
-        for (var i = 0; i < posadka.length; i++) {
-            var clenNick = utils.safeGet(posadka[i], "Nick", "");
-            if (clenNick === soferNick) {
-                result.soferInPosadke = true;
+        for (var i = 0; i < crew.length; i++) {
+            var clenNick = utils.safeGet(crew[i], "Nick", "");
+            if (clenNick === driverNick) {
+                result.driverInCrew = true;
                 utils.addDebug(currentEntry, "  ✅ Šofér už je v posádke");
                 break;
             }
         }
         
         // Ak šofér nie je v posádke, pridaj ho
-        if (!result.soferInPosadke) {
-            posadka.push(soferObj);
-            utils.safeSet(currentEntry, CONFIG.fields.rideLog.crew, posadka);
+        if (!result.driverInCrew) {
+            crew.push(driverObj);
+            utils.safeSet(currentEntry, CONFIG.fields.rideLog.crew, crew);
             utils.addDebug(currentEntry, "  ➕ Šofér pridaný do posádky");
         }
         
@@ -444,11 +444,11 @@ function calculateWageCosts() {
     };
     
     try {
-        var posadka = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.crew);
+        var crew = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.crew);
         var datum = utils.safeGet(currentEntry, CONFIG.fields.rideLog.date, new Date());
         var celkovyCas = utils.safeGet(currentEntry, CONFIG.fields.rideLog.totalTime, 0);
         
-        if (posadka.length === 0) {
+        if (crew.length === 0) {
             utils.addDebug(currentEntry, "  ℹ️ Žiadna posádka");
             result.success = true;
             return result;
@@ -460,15 +460,15 @@ function calculateWageCosts() {
             return result;
         }
         
-        utils.addDebug(currentEntry, "  👥 Posádka: " + posadka.length + " členov");
+        utils.addDebug(currentEntry, "  👥 Posádka: " + crew.length + " členov");
         utils.addDebug(currentEntry, "  ⏱️ Celkový čas: " + celkovyCas + " h");
         
         // Spracuj každého člena posádky
-        for (var i = 0; i < posadka.length; i++) {
-            var zamestnanec = posadka[i];
+        for (var i = 0; i < crew.length; i++) {
+            var zamestnanec = crew[i];
             var meno = utils.formatEmployeeName(zamestnanec);
             
-            utils.addDebug(currentEntry, "\n  [" + (i+1) + "/" + posadka.length + "] " + meno);
+            utils.addDebug(currentEntry, "\n  [" + (i+1) + "/" + crew.length + "] " + meno);
             
             // Získaj detaily zamestnanca s hodinovou sadzbou
             var empDetails = utils.getEmployeeDetails(zamestnanec, datum);
@@ -482,8 +482,8 @@ function calculateWageCosts() {
             var mzda = celkovyCas * hodinovka;
             
             // Nastav atribúty na zamestnancovi
-            posadka[i].setAttr(CONFIG.attributes.hodinovka, hodinovka);
-            posadka[i].setAttr(CONFIG.attributes.dennaMzda, Math.round(mzda * 100) / 100);
+            crew[i].setAttr(CONFIG.attributes.hodinovka, hodinovka);
+            crew[i].setAttr(CONFIG.attributes.dennaMzda, Math.round(mzda * 100) / 100);
             
             result.celkoveMzdy += mzda;
             result.detaily.push({
