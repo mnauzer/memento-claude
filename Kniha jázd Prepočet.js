@@ -114,11 +114,10 @@ function getDefaultZdrzanie() {
  * Extrahuje GPS súradnice z poľa miesta
  */
 function extractGPSFromPlace(place) {
-    if (!place || place.length === 0) {
+    if (!place) {
         return null;
     }
     
-    var place = place[0];
     var gps = utils.safeGet(place, CONFIG.fields.place.gps);
     
     if (!gps) {
@@ -279,8 +278,8 @@ function calculateRoute() {
         }
         
         // Extrahuj GPS súradnice
-        var startGPS = extractGPSFromPlace(start);
-        var destinationGPS = extractGPSFromPlace(destination);
+        var startGPS = extractGPSFromPlace(start[0]);
+        var destinationGPS = extractGPSFromPlace(destination[0]);
         
         if (!startGPS || !destinationGPS) {
             utils.addError(currentEntry, "Chýbajú GPS súradnice", "calculateRoute");

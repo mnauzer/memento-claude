@@ -583,7 +583,7 @@ var MementoTelegram = (function() {
             
             if (groupOrTopic && groupOrTopic.length > 0) {
                 var telegramGroup = groupOrTopic[0];
-                silent = core.safeGet(telegramGroup, config.fields.telegramGroups.silentMessage || "Tichá správa", false);
+                silent = core.safeGet(telegramGroup, config.fields.telegramGroups.silentMessage || "Tichá správa", true);
             }
             
             var options = {
