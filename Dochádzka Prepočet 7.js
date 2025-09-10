@@ -812,6 +812,8 @@ function setEntryFields(employeeResult, workLinkResult, rideLogLinkResult, cashB
         utils.addDebug(currentEntry, "  • Prestoje: " + workHoursDiff + " hodín");
         utils.addDebug(currentEntry, " Celkové výpočty úspešné", "success");
          
+        var isHoliday = utils.isHoliday(validationResult.date);
+        var isWeekend = utils.isWeekend(validationResult.date);
          //var farba = "#FFFFFF"; // Biela - štandard
         if (isHoliday) {
             utils.setColor(currentEntry, "bg", "pastel blue")
@@ -1686,8 +1688,7 @@ function main() {
 
         // KROK 2: Výpočet pracovného času
         utils.addDebug(currentEntry, " KROK 2: Výpočet pracovnej doby", "update");
-        var isHoliday = utils.isHoliday(validationResult.date);
-        var isWeekend = utils.isWeekend(validationResult.date);
+        
         var workTimeResult = calculateWorkTime(validationResult.arrival,validationResult.departure);    
         if (!workTimeResult.success) {
             utils.addError(currentEntry, "Výpočet času zlyhal: " + workTimeResult.error, CONFIG.scriptName);
