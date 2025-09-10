@@ -66,7 +66,7 @@ var CONFIG = {
     // Knižnice z centrálneho configu
     libraries: {
         sadzby: centralConfig.libraries.rates,
-        miesta: "Miesta",
+        miesta: "",
         zamestnanci: centralConfig.libraries.employees,
         defaults: centralConfig.libraries.defaults
     },
