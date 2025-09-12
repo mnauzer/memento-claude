@@ -310,9 +310,10 @@ function calculateRoute() {
     
     try {
         // Získaj polia trasy
-        var start = currentEntry.field(CONFIG.fields.start);
-        var zastavky = currentEntry.field(CONFIG.fields.zastavky);
-        var ciel = currentEntry.field(CONFIG.fields.ciel);
+
+        var start = utils.safeGetLinks(currentEntry, CONFIG.fields.start);
+        var zastavky = utils.safeGetLinks(currentEntry, CONFIG.fields.zastavky);
+        var ciel = utils.safeGetLinks(currentEntry, CONFIG.fields.ciel);
         
         utils.addDebug(currentEntry, "  🎯 Štart: " + (start && start.length > 0 ? "✓" : "✗"));
         utils.addDebug(currentEntry, "  🛑 Zastávky: " + (zastavky ? zastavky.length : 0));
@@ -324,8 +325,8 @@ function calculateRoute() {
         }
         
         // Extrahuj GPS súradnice
-        var startGPS = extractGPSFromPlace(start);
-        var cielGPS = extractGPSFromPlace(ciel);
+        var startGPS = extractGPSFromPlace(start[0]);
+        var cielGPS = extractGPSFromPlace(ciel[0]);
         
         if (!startGPS || !cielGPS) {
             utils.addError(currentEntry, "Chýbajú GPS súradnice pre štart alebo cieľ", "calculateRoute");
@@ -339,7 +340,7 @@ function calculateRoute() {
         // Úseky cez zastávky
         if (zastavky && zastavky.length > 0) {
             for (var j = 0; j < zastavky.length; j++) {
-                var gps = extractGPSFromPlace([zastavky[j]]);
+                var gps = extractGPSFromPlace(zastavky[j]);
                 if (!gps) {
                     utils.addDebug(currentEntry, "  ⚠️ Zastávka " + (j+1) + " nemá GPS");
                     continue;
@@ -657,6 +658,16 @@ function main() {
         utils.addDebug(currentEntry, "MementoUtils verzia: " + utils.version);
         utils.addDebug(currentEntry, "Čas spustenia: " + utils.formatDate(moment()));
         
+        // Test HTTP funkcionality
+        try {
+            var testHttp = http();
+            if (testHttp) {
+                utils.addDebug(currentEntry, "✅ HTTP funkcia dostupná v Memento");
+            }
+        } catch (httpError) {
+            utils.addDebug(currentEntry, "❌ HTTP funkcia chyba: " + httpError);
+        }
+        
         // Kroky prepočtu
         var steps = {
             step1: { success: false, name: "Výpočet trasy" },
@@ -692,6 +703,8 @@ function main() {
                 msg += "💰 Mzdové náklady: " + utils.formatMoney(wageResult.celkoveMzdy);
             }
             message(msg);
+        } else {
+            message("⚠️ Prepočet dokončený s chybami\n\nPozrite Debug Log pre detaily.");
         }
         
         return true;
@@ -707,5 +720,11 @@ function main() {
 // SPUSTENIE SCRIPTU
 // ==============================================
 
-main();
-            
+// Spustenie hlavnej funkcie
+var result = main();
+
+// Ak hlavná funkcia zlyhala, zruš uloženie
+if (!result) {
+    utils.addError(currentEntry, "Script zlyhal - zrušené uloženie", "main");
+    cancel();
+}
