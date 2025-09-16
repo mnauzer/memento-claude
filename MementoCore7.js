@@ -493,6 +493,27 @@ var MementoCore = (function() {
         }
     }
 
+    function convertHoursToDuration(hours) {
+    // Konvertuj hodiny na milisekundy pre Duration typ
+    // Duration v Memento = milisekundy
+    return Math.round(hours * 60 * 60 * 1000);
+    }
+
+    function convertDurationToHours(duration) {
+        // Konvertuj Duration (milisekundy) na hodiny
+        if (!duration || isNaN(duration)) {
+            return 0;
+        }
+        return duration / (60 * 60 * 1000);
+    }
+
+    function convertHoursToTimeString(hours) {
+        // Konvertuj hodiny na HH:MM formát
+        var totalMinutes = Math.round(hours * 60);
+        var h = Math.floor(totalMinutes / 60);
+        var m = totalMinutes % 60;
+        return h.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0');
+    }
     function validateRequiredFields(entry, requiredFields) {
         try {
             if (!entry || !requiredFields || !Array.isArray(requiredFields)) {
@@ -1050,6 +1071,9 @@ function setColorByCondition(entry, condition) {
         parseTimeToMinutes: parseTimeToMinutes,
         roundTimeToQuarter: roundTimeToQuarter,
         parseTimeInput: parseTimeInput,
+        convertDurationToHours: convertDurationToHours,
+        convertHoursToDuration: convertHoursToDuration,
+        convertHoursToTimeString: convertHoursToTimeString,
         
         //roundToQuarter: roundToQuarter,
         //roundToQuarterHour: roundToQuarterHour,
