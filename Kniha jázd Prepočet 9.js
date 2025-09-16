@@ -32,6 +32,7 @@ var CONFIG = {
     
     // Referencie na centrálny config
     fields: {
+        place: centralConfig.fields.place,
         start: "Štart",
         zastavky: "Zastávky",
         ciel: "Cieľ", 
@@ -63,11 +64,6 @@ var CONFIG = {
         defaults: centralConfig.libraries.defaults
     },
     
-    // Názvy polí v knižniciach
-    miestalFields: {
-        gps: "GPS",
-        nazov: "Názov"
-    },
     
     sadzbyFields: {
         zamestnanec: "Zamestnanec",
@@ -135,7 +131,7 @@ function extractGPSFromPlace(place) {
     }
     
     var miesto = place[0];
-    var nazov = utils.safeGet(miesto, CONFIG.miestalFields.nazov, "Neznáme");
+    var nazov = utils.safeGet(miesto, CONFIG.fields.place.name, "Neznáme");
     
     utils.addDebug(currentEntry, "  📍 Spracovávam miesto: " + nazov);
     
@@ -143,7 +139,7 @@ function extractGPSFromPlace(place) {
     var gpsLocation = null;
     
     try {
-        gpsLocation = miesto.field(CONFIG.miestalFields.gps);
+        gpsLocation = miesto.field(CONFIG.fields.place.gps);
     } catch (e) {
         utils.addDebug(currentEntry, "  ⚠️ Chyba pri získavaní GPS poľa: " + e);
         return null;
