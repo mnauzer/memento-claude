@@ -130,8 +130,7 @@ function extractGPSFromPlace(place) {
         return null;
     }
     
-    var miesto = place[0];
-    var nazov = utils.safeGet(miesto, CONFIG.fields.place.name, "Neznáme");
+    var nazov = utils.safeGet(place, CONFIG.fields.place.name, "Nez náme");
     
     utils.addDebug(currentEntry, "  📍 Spracovávam miesto: " + nazov);
     
@@ -139,7 +138,7 @@ function extractGPSFromPlace(place) {
     var gpsLocation = null;
     
     try {
-        gpsLocation = miesto.field(CONFIG.fields.place.gps);
+        gpsLocation = utils.safeGet(place, CONFIG.fields.place.gps);
     } catch (e) {
         utils.addDebug(currentEntry, "  ⚠️ Chyba pri získavaní GPS poľa: " + e);
         return null;
