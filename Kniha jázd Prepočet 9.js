@@ -32,6 +32,7 @@ var CONFIG = {
     
     // Referencie na centrálny config
     fields: {
+        defaultZdrzanie: centralConfig.fields.defaults.defaultZdrzanie,
         place: centralConfig.fields.place,
         start: "Štart",
         zastavky: "Zastávky",
@@ -107,9 +108,10 @@ function getDefaultZdrzanie() {
         
         var defaultsEntries = defaultsLib.entries();
         if (defaultsEntries.length > 0) {
-            var defaultZdrz = defaultsEntries[0].field("Default zdržanie");
+            var defaultZdrz = defaultsEntries[0].field(CONFIG.fields.defaultZdrzanie);
             
             if (defaultZdrz !== null && defaultZdrz !== undefined) {
+                utils.addDebug("  📋 Našiel default zdržanie Duration: " + defaultZdrz + " ms");
                 return utils.convertDurationToHours(defaultZdrz);
             }
         }
