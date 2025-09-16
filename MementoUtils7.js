@@ -168,7 +168,9 @@ var MementoUtils = (function() {
         roundToQuarterHour: lazyCall('core', 'roundToQuarterHour'),
         roundTimeToQuarter: lazyCall('core', 'roundTimeToQuarter'),
         parseTimeInput: lazyCall('core', 'parseTimeInput'),
-
+        convertDurationToHours: lazyCall('core', 'convertDurationToHours'),
+        convertHoursToDuration: lazyCall('core', 'convertHoursToDuration'),
+        convertHoursToTimeString: lazyCall('core', 'convertHoursToTimeString'),
         
         // Validácia
         validateRequiredFields: lazyCall('core', 'validateRequiredFields'),
