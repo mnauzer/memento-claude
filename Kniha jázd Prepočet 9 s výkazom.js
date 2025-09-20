@@ -59,11 +59,11 @@ var CONFIG = {
     
     // Knižnice
     libraries: {
-        sadzby: centralConfig.libraries.business.rates,
+        sadzby: centralConfig.libraries.rates,
         miesta: "Miesta",
-        zamestnanci: centralConfig.libraries.business.employees,
-        defaults: centralConfig.libraries.core.defaults,
-        vozidla: centralConfig.libraries.business.vehicles
+        zamestnanci: centralConfig.libraries.employees,
+        defaults: centralConfig.libraries.defaults,
+        vozidla: centralConfig.libraries.vehicles
     },
     
     // Názvy polí v knižniciach
