@@ -884,7 +884,7 @@ function updateRideReportAttributesProportional(rideReport, routeResult, wageRes
         dopravaPole[index].setAttr("km", km);
         dopravaPole[index].setAttr("čas jazdy", casJazdy);
         dopravaPole[index].setAttr("mzdové náklady", mzdy);
-        dopravaPole[index].setAttr("počet zákaziek", zakaziekCount);
+        //dopravaPole[index].setAttr("počet zákaziek", zakaziekCount);
         
         utils.addDebug(currentEntry, "    ✅ Atribúty aktualizované (pomerné):");
         utils.addDebug(currentEntry, "      • Popis: " + popisJazdy);
