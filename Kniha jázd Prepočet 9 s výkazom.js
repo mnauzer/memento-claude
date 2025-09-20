@@ -757,7 +757,7 @@ function synchronizeRideReport(routeResult, wageResult) {
         
         if (existingReports && existingReports.length > 0) {
             rideReport = existingReports[0];
-            utils.addDebug(currentEntry, "  " + utils.getIcon("update") + " Existujúci výkaz nájdený");
+            utils.addDebug(currentEntry, "  ✅ Existujúci výkaz nájdený");
             result.action = "update";
         } else {
             // Vytvor nový výkaz
@@ -824,12 +824,12 @@ function createNewRideReport(zakazkaObj, datum, zakazkaName) {
         
         utils.safeSet(rideReport, "info", info);
         
-        utils.addDebug(currentEntry, "  " + utils.getIcon("create") + " Nový výkaz vytvorený");
+        utils.addDebug(currentEntry, "  ✅ Nový výkaz vytvorený");
         
         return rideReport;
         
     } catch (error) {
-        utils.addError(currentEntry, "Chyba pri vytváraní výkazu: " + error.toString(), "createNewRideReport", error);
+        utils.addError(currentEntry, error.toString(), "createNewRideReport", error);
         return null;
     }
 }
