@@ -1,12 +1,13 @@
 // ==============================================
 // MEMENTO DATABASE - KNIHA JÁZD (ROUTE CALCULATION & PAYROLL)
-// Verzia: 9.0 | Dátum: December 2024 | Autor: ASISTANTO
+// Verzia: 10.1 | Dátum: December 2024 | Autor: ASISTANTO
 // Knižnica: Kniha jázd | Trigger: Before Save
 // ==============================================
 // 📋 FUNKCIA:
 //    - Automatický prepočet vzdialenosti, času jazdy a miezd posádky
 //    - Výpočet trasy pomocou OSRM API s fallback na vzdušnú vzdialenosť
 //    - Automatické nastavenie default zdržania na zastávkach
+//    - Synchronizácia Cieľa -> Stanovište vozidla
 //    - Integrácia s MementoUtils ekosystémom
 // ==============================================
 // 🔧 POUŽÍVA:
@@ -28,7 +29,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Kniha jázd Prepočet",
-    version: "9.0",
+    version: "10.1",
     
     // Referencie na centrálny config
     fields: {
@@ -43,6 +44,7 @@ var CONFIG = {
         sofer: "Šofér",
         datum: "Dátum",
         mzdy: "Mzdové náklady",
+        vozidlo: "Vozidlo",
         info: centralConfig.fields.common.info
     },
     
@@ -60,7 +62,8 @@ var CONFIG = {
         sadzby: centralConfig.libraries.business.rates,
         miesta: "Miesta",
         zamestnanci: centralConfig.libraries.business.employees,
-        defaults: centralConfig.libraries.core.defaults
+        defaults: centralConfig.libraries.core.defaults,
+        vozidla: centralConfig.libraries.business.vehicles
     },
     
     // Názvy polí v knižniciach
@@ -78,6 +81,11 @@ var CONFIG = {
     zamestnancilFields: {
         meno: "Meno",
         nick: "Nick"
+    },
+    
+    vozidlaFields: {
+        stanoviste: "Stanovište",
+        nazov: "Názov"
     },
     
     // OSRM API nastavenia
@@ -200,105 +208,133 @@ function calculateAirDistance(point1, point2) {
     var lat2 = toRadians(point2.lat);
 
     var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2);
+            Math.cos(lat1) * Math.cos(lat2) * 
+            Math.sin(dLon/2) * Math.sin(dLon/2);
     var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    var d = R * c; // Vzdialenosť v km
     
-    return R * c;
+    return d;
 }
 
-function toRadians(degrees) {
-    return degrees * (Math.PI / 180);
+function toRadians(deg) {
+    return deg * (Math.PI / 180);
 }
 
 /**
- * Volá OSRM API pre výpočet trasy
+ * Vypočíta segment trasy pomocou OSRM alebo fallback
  */
-function callOSRMRoute(points) {
+function calculateSegment(start, end, segmentName) {
+    var result = {
+        success: false,
+        km: 0,
+        trvanie: 0,
+        metoda: "none"
+    };
+    
     try {
-        if (!points || points.length < 2) {
-            return null;
+        utils.addDebug(currentEntry, "\n  🛣️ " + segmentName);
+        
+        if (!start || !end) {
+            utils.addDebug(currentEntry, "    ❌ Chýbajú súradnice");
+            return result;
         }
         
-        // Vytvor URL s koordinátmi
-        var coordinates = "";
-        for (var i = 0; i < points.length; i++) {
-            if (i > 0) coordinates += ";";
-            coordinates += points[i].lon + "," + points[i].lat;
+        // Pokus o OSRM API
+        result = calculateOSRMRoute(start, end);
+        
+        if (result.success) {
+            utils.addDebug(currentEntry, "    ✅ OSRM: " + result.km + " km, " + result.trvanie + " h");
+            result.metoda = "OSRM";
+        } else {
+            // Fallback na vzdušnú vzdialenosť
+            var airDistance = calculateAirDistance(start, end);
+            var roadFactor = 1.4; // Empirický koeficient pre cestnú vzdialenosť
+            var avgSpeed = 50; // Priemerná rýchlosť v km/h
+            
+            result.km = Math.round(airDistance * roadFactor * 10) / 10;
+            result.trvanie = Math.round((result.km / avgSpeed) * 100) / 100;
+            result.success = true;
+            result.metoda = "Vzdušná čiara";
+            
+            utils.addDebug(currentEntry, "    📐 Vzdušná vzdialenosť: " + result.km + " km, " + result.trvanie + " h");
         }
         
-        var url = CONFIG.osrm.baseUrl + coordinates + "?overview=false&steps=false";
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri výpočte segmentu: " + error.toString(), "calculateSegment");
+    }
+    
+    return result;
+}
+
+/**
+ * Volanie OSRM API pre výpočet trasy
+ */
+function calculateOSRMRoute(start, end) {
+    var result = {
+        success: false,
+        km: 0,
+        trvanie: 0
+    };
+    
+    try {
+        if (!http) {
+            utils.addDebug(currentEntry, "    ❌ HTTP funkcia nie je dostupná");
+            return result;
+        }
         
-        utils.addDebug(currentEntry, "  🌐 OSRM API volanie pre " + points.length + " bodov");
+        var url = CONFIG.osrm.baseUrl + start.lon + "," + start.lat + ";" + 
+                  end.lon + "," + end.lat + "?overview=false";
         
-        var response = utils.httpRequest("GET", url, null, {}, {
-            timeout: CONFIG.osrm.requestTimeout
-        });
+        utils.addDebug(currentEntry, "    🌐 OSRM API volanie...");
         
-        if (response && response.code === 200) {
-            var data = JSON.parse(response.body);
-            if (data.routes && data.routes.length > 0) {
-                var route = data.routes[0];
-                return {
-                    distance: route.distance / 1000, // prevod na km
-                    duration: route.duration / 3600, // prevod na hodiny
-                    success: true
-                };
+        var retries = 0;
+        var response = null;
+        
+        while (retries < CONFIG.osrm.maxRetries && !response) {
+            try {
+                var httpClient = http();
+                httpClient.headers({
+                    "Accept": "application/json"
+                });
+                
+                response = httpClient.get(url);
+                
+                if (response.code === 200) {
+                    var data = JSON.parse(response.body);
+                    
+                    if (data.routes && data.routes.length > 0) {
+                        var route = data.routes[0];
+                        result.km = Math.round(route.distance / 100) / 10; // Metre na km
+                        result.trvanie = Math.round(route.duration / 36) / 100; // Sekundy na hodiny
+                        result.success = true;
+                    }
+                } else {
+                    utils.addDebug(currentEntry, "    ⚠️ OSRM odpoveď: " + response.code);
+                    retries++;
+                }
+                
+            } catch (httpError) {
+                utils.addDebug(currentEntry, "    ⚠️ HTTP chyba (pokus " + (retries + 1) + "): " + httpError);
+                retries++;
             }
         }
         
-        utils.addDebug(currentEntry, "  ⚠️ OSRM API nevrátilo trasu");
-        return null;
-        
     } catch (error) {
-        utils.addError(currentEntry, "OSRM API chyba: " + error.toString(), "callOSRMRoute", error);
-        return null;
-    }
-}
-
-/**
- * Vypočíta vzdialenosť a čas pre úsek trasy
- */
-function calculateSegment(fromPoint, toPoint, segmentName) {
-    var result = {
-        km: 0,
-        trvanie: 0,
-        success: false,
-        method: "none"
-    };
-    
-    utils.addDebug(currentEntry, "  📏 Počítam " + segmentName);
-    
-    // 1. Skús OSRM API
-    var osrmResult = callOSRMRoute([fromPoint, toPoint]);
-    
-    if (osrmResult && osrmResult.success) {
-        result.km = osrmResult.distance;
-        result.trvanie = osrmResult.duration;
-        result.success = true;
-        result.method = "OSRM";
-        utils.addDebug(currentEntry, "    ✅ OSRM: " + result.km.toFixed(2) + " km, " + result.trvanie.toFixed(2) + " h");
-    } else {
-        // 2. Fallback na vzdušnú vzdialenosť
-        var airDistance = calculateAirDistance(fromPoint, toPoint);
-        result.km = airDistance * 1.3; // koeficient pre cestnú vzdialenosť
-        result.trvanie = result.km / 50; // priemerná rýchlosť 50 km/h
-        result.success = true;
-        result.method = "Vzdušná";
-        utils.addDebug(currentEntry, "    📐 Vzdušná: " + result.km.toFixed(2) + " km, " + result.trvanie.toFixed(2) + " h");
+        utils.addDebug(currentEntry, "    ❌ OSRM API chyba: " + error.toString());
     }
     
     return result;
 }
 
 // ==============================================
-// HLAVNÉ FUNKCIE VÝPOČTU
+// HLAVNÉ FUNKCIE PREPOČTU
 // ==============================================
 
 /**
- * KROK 1: Výpočet trasy s atribútmi
+ * KROK 1: Výpočet trasy
  */
 function calculateRoute() {
-    utils.addDebug(currentEntry, "📏 === KROK 1: VÝPOČET TRASY ===");
+    utils.addDebug(currentEntry, "\n📍 === KROK 1: VÝPOČET TRASY ===");
     
     var result = {
         success: false,
@@ -309,12 +345,12 @@ function calculateRoute() {
     };
     
     try {
-        // Získaj polia trasy
+        // Získaj body trasy
         var start = currentEntry.field(CONFIG.fields.start);
         var zastavky = currentEntry.field(CONFIG.fields.zastavky);
         var ciel = currentEntry.field(CONFIG.fields.ciel);
         
-        utils.addDebug(currentEntry, "  🎯 Štart: " + (start && start.length > 0 ? "✓" : "✗"));
+        utils.addDebug(currentEntry, "  🏁 Štart: " + (start && start.length > 0 ? "✓" : "✗"));
         utils.addDebug(currentEntry, "  🛑 Zastávky: " + (zastavky ? zastavky.length : 0));
         utils.addDebug(currentEntry, "  🏁 Cieľ: " + (ciel && ciel.length > 0 ? "✓" : "✗"));
         
@@ -563,9 +599,106 @@ function calculateWageCosts() {
 }
 
 /**
+ * KROK 4: Synchronizácia Cieľa do Stanovišťa vozidla
+ */
+function synchronizeVehicleLocation() {
+    utils.addDebug(currentEntry, "\n🚐 === KROK 4: SYNCHRONIZÁCIA STANOVIŠŤA VOZIDLA ===");
+    
+    var result = {
+        success: false,
+        message: ""
+    };
+    
+    try {
+        // Získaj vozidlo z aktuálneho záznamu
+        var vozidloField = currentEntry.field(CONFIG.fields.vozidlo);
+        if (!vozidloField || vozidloField.length === 0) {
+            utils.addDebug(currentEntry, "  ℹ️ Žiadne vozidlo - preskakujem synchronizáciu");
+            result.success = true;
+            return result;
+        }
+        
+        var vozidlo = vozidloField[0];
+        var vozidloNazov = utils.safeGet(vozidlo, CONFIG.vozidlaFields.nazov, "N/A");
+        utils.addDebug(currentEntry, "  🚗 Vozidlo: " + vozidloNazov);
+        
+        // Získaj cieľ z aktuálneho záznamu
+        var cielField = currentEntry.field(CONFIG.fields.ciel);
+        if (!cielField || cielField.length === 0) {
+            utils.addDebug(currentEntry, "  ⚠️ Žiadny cieľ - nemôžem synchronizovať");
+            result.message = "Žiadny cieľ";
+            result.success = true;
+            return result;
+        }
+        
+        var cielMiesto = cielField[0];
+        var cielNazov = utils.safeGet(cielMiesto, CONFIG.miestalFields.nazov, "N/A");
+        
+        // Získaj aktuálne stanovište vozidla
+        var aktualneStanoviste = vozidlo.field(CONFIG.vozidlaFields.stanoviste);
+        var aktualneStanovisteNazov = "žiadne";
+        
+        if (aktualneStanoviste && aktualneStanoviste.length > 0) {
+            aktualneStanovisteNazov = utils.safeGet(aktualneStanoviste[0], CONFIG.miestalFields.nazov, "N/A");
+        }
+        
+        utils.addDebug(currentEntry, "  📍 Aktuálne stanovište: " + aktualneStanovisteNazov);
+        utils.addDebug(currentEntry, "  🏁 Cieľ jazdy: " + cielNazov);
+        
+        // Skontroluj či je potrebná zmena
+        if (aktualneStanoviste && aktualneStanoviste.length > 0) {
+            var aktualneId = aktualneStanoviste[0].id;
+            var cielId = cielMiesto.id;
+            
+            if (aktualneId === cielId) {
+                utils.addDebug(currentEntry, "  ✅ Stanovište už je nastavené na cieľ");
+                result.message = "Už synchronizované";
+                result.success = true;
+                return result;
+            }
+        }
+        
+        // Aktualizuj stanovište vozidla
+        try {
+            vozidlo.set(CONFIG.vozidlaFields.stanoviste, [cielMiesto]);
+            utils.addDebug(currentEntry, "  ✅ Stanovište vozidla aktualizované: " + aktualneStanovisteNazov + " → " + cielNazov);
+            
+            // Pridaj info do vozidla
+            var existingInfo = utils.safeGet(vozidlo, CONFIG.fields.info, "");
+            var updateInfo = "\n🔄 STANOVIŠTE AKTUALIZOVANÉ: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
+            updateInfo += "• Z: " + aktualneStanovisteNazov + "\n";
+            updateInfo += "• Na: " + cielNazov + "\n";
+            updateInfo += "• Kniha jázd #" + currentEntry.field("ID") + "\n";
+            updateInfo += "• Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
+            
+            // Obmedz dĺžku info poľa
+            var newInfo = existingInfo + updateInfo;
+            if (newInfo.length > 5000) {
+                newInfo = "... (skrátené) ...\n" + newInfo.substring(newInfo.length - 4900);
+            }
+            
+            vozidlo.set(CONFIG.fields.info, newInfo);
+            
+            result.message = "Stanovište aktualizované: " + cielNazov;
+            result.success = true;
+            
+        } catch (updateError) {
+            utils.addError(currentEntry, "Chyba pri aktualizácii stanovišťa: " + updateError.toString(), "synchronizeVehicleLocation");
+            result.message = "Chyba aktualizácie";
+        }
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "synchronizeVehicleLocation", error);
+        result.message = "Kritická chyba";
+    }
+    
+    return result;
+}
+
+/**
  * Vytvorí info záznam s detailmi o jazde
  */
-function createInfoRecord(routeResult, wageResult) {
+function createInfoRecord(routeResult, wageResult, vehicleResult) {
     try {
         var info = "";
         
@@ -592,6 +725,12 @@ function createInfoRecord(routeResult, wageResult) {
             info += "\n💰 CELKOVÉ MZDOVÉ NÁKLADY: " + utils.formatMoney(wageResult.celkoveMzdy) + "\n";
         }
         
+        // Vozidlo info
+        if (vehicleResult && vehicleResult.success && vehicleResult.message !== "Žiadne vozidlo") {
+            info += "\n🚐 VOZIDLO:\n";
+            info += "• " + vehicleResult.message + "\n";
+        }
+        
         info += "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
         info += "Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
         info += "Vygenerované: " + utils.formatDate(moment());
@@ -608,122 +747,7 @@ function createInfoRecord(routeResult, wageResult) {
 }
 
 // ==============================================
-// FINÁLNY SÚHRN
-// ==============================================
-
-function logFinalSummary(steps) {
-    try {
-        utils.addDebug(currentEntry, "\n📊 === FINÁLNY SÚHRN ===");
-        
-        var allSuccess = true;
-        for (var step in steps) {
-            var status = steps[step].success ? "✅" : "❌";
-            utils.addDebug(currentEntry, status + " " + steps[step].name);
-            if (!steps[step].success) allSuccess = false;
-        }
-        
-        if (allSuccess) {
-            utils.addDebug(currentEntry, "\n🎉 === VŠETKY KROKY ÚSPEŠNÉ ===");
-        } else {
-            utils.addDebug(currentEntry, "\n⚠️ === NIEKTORÉ KROKY ZLYHALI ===");
-        }
-        
-        utils.addDebug(currentEntry, "⏱️ Čas ukončenia: " + moment().format("HH:mm:ss"));
-        utils.addDebug(currentEntry, "📋 === KONIEC " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
-        
-    } catch (error) {
-        utils.addError(currentEntry, error.toString(), "logFinalSummary", error);
-    }
-}
-
-// ==============================================
-// HLAVNÁ FUNKCIA
-// ==============================================
-
-function main() {
-    try {
-        // Kontrola závislostí
-        var depCheck = utils.checkDependencies(['config', 'core', 'business']);
-        if (!depCheck.success) {
-            utils.addError(currentEntry, "Chýbajú potrebné moduly: " + depCheck.missing.join(", "), "main");
-            message("❌ Chýbajú potrebné moduly!\n\n" + depCheck.missing.join(", "));
-            return false;
-        }
-        
-        // Vyčisti logy
-        utils.clearLogs(currentEntry, true);
-        
-        utils.addDebug(currentEntry, "🚀 === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
-        utils.addDebug(currentEntry, "MementoUtils verzia: " + utils.version);
-        utils.addDebug(currentEntry, "Čas spustenia: " + utils.formatDate(moment()));
-        
-        // Test HTTP funkcionality
-        try {
-            var testHttp = http();
-            if (testHttp) {
-                utils.addDebug(currentEntry, "✅ HTTP funkcia dostupná v Memento");
-            }
-        } catch (httpError) {
-            utils.addDebug(currentEntry, "❌ HTTP funkcia chyba: " + httpError);
-        }
-        
-        // Kroky prepočtu
-        var steps = {
-            step1: { success: false, name: "Výpočet trasy" },
-            step2: { success: false, name: "Spracovanie šoféra" },
-            step3: { success: false, name: "Výpočet mzdových nákladov" },
-            step4: { success: false, name: "Vytvorenie info záznamu" },
-            step5: { success: false, name: "Synchronizácia výkazu jázd" }
-        };
-        };
-        
-        // KROK 1: Výpočet trasy
-        var routeResult = calculateRoute();
-        steps.step1.success = routeResult.success;
-        
-        // KROK 2: Spracovanie šoféra
-        var driverResult = processDriver();
-        steps.step2.success = driverResult.success;
-        
-        // KROK 3: Výpočet mzdových nákladov
-        var wageResult = calculateWageCosts();
-        steps.step3.success = wageResult.success;
-        
-        // KROK 4: Vytvorenie info záznamu
-        steps.step4.success = createInfoRecord(routeResult, wageResult);
-        
-        // KROK 5: Synchronizácia výkazu jázd
-        utils.addDebug(currentEntry, "\n📊 === KROK 5: SYNCHRONIZÁCIA VÝKAZU JÁZD ===");
-        var vykazResult = synchronizeRideReport(routeResult, wageResult);
-        steps.step5.success = vykazResult.success;
-        
-        // Finálny súhrn
-        logFinalSummary(steps);
-        
-        // Ak všetko prebehlo v poriadku
-        if (steps.step1.success) {
-            var msg = "✅ Prepočet dokončený\n\n";
-            msg += "📏 Vzdialenosť: " + routeResult.totalKm + " km\n";
-            msg += "⏱️ Celkový čas: " + routeResult.celkovyCas + " h\n";
-            if (wageResult.success && wageResult.celkoveMzdy > 0) {
-                msg += "💰 Mzdové náklady: " + utils.formatMoney(wageResult.celkoveMzdy);
-            }
-            message(msg);
-        } else {
-            message("⚠️ Prepočet dokončený s chybami\n\nPozrite Debug Log pre detaily.");
-        }
-        
-        return true;
-        
-    } catch (error) {
-        utils.addError(currentEntry, error.toString(), "main", error);
-        message("❌ Kritická chyba!\n\nPozrite Error Log pre detaily.");
-        return false;
-    }
-}
-
-// ==============================================
-// VÝKAZ JÁZD - NOVÉ FUNKCIE
+// VÝKAZ JÁZD - FUNKCIE
 // ==============================================
 
 /**
@@ -980,6 +1004,128 @@ function updateRideReportInfo(rideReport) {
         
     } catch (error) {
         utils.addError(currentEntry, "Chyba pri aktualizácii info poľa: " + error.toString(), "updateRideReportInfo", error);
+    }
+}
+
+// ==============================================
+// FINÁLNY SÚHRN
+// ==============================================
+
+function logFinalSummary(steps) {
+    try {
+        utils.addDebug(currentEntry, "\n📊 === FINÁLNY SÚHRN ===");
+        
+        var allSuccess = true;
+        for (var step in steps) {
+            var status = steps[step].success ? "✅" : "❌";
+            utils.addDebug(currentEntry, status + " " + steps[step].name);
+            if (!steps[step].success) allSuccess = false;
+        }
+        
+        if (allSuccess) {
+            utils.addDebug(currentEntry, "\n🎉 === VŠETKY KROKY ÚSPEŠNÉ ===");
+        } else {
+            utils.addDebug(currentEntry, "\n⚠️ === NIEKTORÉ KROKY ZLYHALI ===");
+        }
+        
+        utils.addDebug(currentEntry, "⏱️ Čas ukončenia: " + moment().format("HH:mm:ss"));
+        utils.addDebug(currentEntry, "📋 === KONIEC " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "logFinalSummary", error);
+    }
+}
+
+// ==============================================
+// HLAVNÁ FUNKCIA
+// ==============================================
+
+function main() {
+    try {
+        // Kontrola závislostí
+        var depCheck = utils.checkDependencies(['config', 'core', 'business']);
+        if (!depCheck.success) {
+            utils.addError(currentEntry, "Chýbajú potrebné moduly: " + depCheck.missing.join(", "), "main");
+            message("❌ Chýbajú potrebné moduly!\n\n" + depCheck.missing.join(", "));
+            return false;
+        }
+        
+        // Vyčisti logy
+        utils.clearLogs(currentEntry, true);
+        
+        utils.addDebug(currentEntry, "🚀 === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
+        utils.addDebug(currentEntry, "MementoUtils verzia: " + utils.version);
+        utils.addDebug(currentEntry, "Čas spustenia: " + utils.formatDate(moment()));
+        
+        // Test HTTP funkcionality
+        try {
+            var testHttp = http();
+            if (testHttp) {
+                utils.addDebug(currentEntry, "✅ HTTP funkcia dostupná v Memento");
+            }
+        } catch (httpError) {
+            utils.addDebug(currentEntry, "❌ HTTP funkcia chyba: " + httpError);
+        }
+        
+        // Kroky prepočtu
+        var steps = {
+            step1: { success: false, name: "Výpočet trasy" },
+            step2: { success: false, name: "Spracovanie šoféra" },
+            step3: { success: false, name: "Výpočet mzdových nákladov" },
+            step4: { success: false, name: "Synchronizácia stanovišťa vozidla" },
+            step5: { success: false, name: "Vytvorenie info záznamu" },
+            step6: { success: false, name: "Synchronizácia výkazu jázd" }
+        };
+        
+        // KROK 1: Výpočet trasy
+        var routeResult = calculateRoute();
+        steps.step1.success = routeResult.success;
+        
+        // KROK 2: Spracovanie šoféra
+        var driverResult = processDriver();
+        steps.step2.success = driverResult.success;
+        
+        // KROK 3: Výpočet mzdových nákladov
+        var wageResult = calculateWageCosts();
+        steps.step3.success = wageResult.success;
+        
+        // KROK 4: Synchronizácia stanovišťa vozidla
+        var vehicleResult = synchronizeVehicleLocation();
+        steps.step4.success = vehicleResult.success;
+        
+        // KROK 5: Vytvorenie info záznamu
+        steps.step5.success = createInfoRecord(routeResult, wageResult, vehicleResult);
+        
+        // KROK 6: Synchronizácia výkazu jázd
+        utils.addDebug(currentEntry, "\n📊 === KROK 6: SYNCHRONIZÁCIA VÝKAZU JÁZD ===");
+        var vykazResult = synchronizeRideReport(routeResult, wageResult);
+        steps.step6.success = vykazResult.success;
+        
+        // Finálny súhrn
+        logFinalSummary(steps);
+        
+        // Ak všetko prebehlo v poriadku
+        if (steps.step1.success) {
+            var msg = "✅ Prepočet dokončený\n\n";
+            msg += "📏 Vzdialenosť: " + routeResult.totalKm + " km\n";
+            msg += "⏱️ Celkový čas: " + routeResult.celkovyCas + " h\n";
+            if (wageResult.success && wageResult.celkoveMzdy > 0) {
+                msg += "💰 Mzdové náklady: " + utils.formatMoney(wageResult.celkoveMzdy) + "\n";
+            }
+            if (vehicleResult.success && vehicleResult.message !== "Žiadne vozidlo") {
+                msg += "🚐 " + vehicleResult.message;
+            }
+            message(msg);
+        } else {
+            message("⚠️ Prepočet dokončený s chybami\n\nPozrite Debug Log pre detaily.");
+        }
+        
+        return true;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "main", error);
+        message("❌ Kritická chyba!\n\nPozrite Error Log pre detaily.");
+        return false;
     }
 }
 
