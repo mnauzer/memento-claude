@@ -59,11 +59,11 @@ var CONFIG = {
     
     // Knižnice
     libraries: {
-        sadzby: centralConfig.libraries.rates,
+        sadzby: centralConfig.libraries.business.rates,
         miesta: "Miesta",
-        zamestnanci: centralConfig.libraries.employees,
-        defaults: centralConfig.libraries.defaults,
-        vozidla: centralConfig.libraries.vehicles
+        zamestnanci: centralConfig.libraries.business.employees,
+        defaults: centralConfig.libraries.core.defaults,
+        vozidla: centralConfig.libraries.business.vehicles
     },
     
     // Názvy polí v knižniciach
@@ -751,67 +751,153 @@ function createInfoRecord(routeResult, wageResult, vehicleResult) {
 // ==============================================
 
 /**
- * Synchronizuje alebo vytvorí výkaz jázd
+ * Synchronizuje alebo vytvorí výkazy jázd pre všetky zákazky
  */
 function synchronizeRideReport(routeResult, wageResult) {
     var result = {
         success: false,
-        rideReport: null,
-        action: "none"
+        rideReports: [],
+        processedCount: 0,
+        createdCount: 0,
+        updatedCount: 0,
+        actions: []
     };
     
     try {
-        var zakazka = currentEntry.field("Zákazky");
+        var zakazky = currentEntry.field("Zákazky");
         var datum = utils.safeGet(currentEntry, CONFIG.fields.datum, new Date());
         
-        if (!zakazka || zakazka.length === 0) {
+        if (!zakazky || zakazky.length === 0) {
             utils.addDebug(currentEntry, "  ℹ️ Žiadna zákazka - preskakujem výkaz");
             result.success = true;
             return result;
         }
         
-        var zakazkaObj = zakazka[0];
-        var zakazkaName = utils.safeGet(zakazkaObj, "Názov", "N/A");
+        utils.addDebug(currentEntry, "  📦 Počet zákaziek: " + zakazky.length);
         
-        utils.addDebug(currentEntry, "  🔍 Hľadám výkaz jázd pre zákazku: " + zakazkaName);
-        
-        // Nájdi existujúci výkaz
-        var existingReports = zakazkaObj.linksFrom("Výkaz dopravy", "Zákazka");
-        var rideReport = null;
-        
-        if (existingReports && existingReports.length > 0) {
-            rideReport = existingReports[0];
-            utils.addDebug(currentEntry, "  ✅ Existujúci výkaz nájdený");
-            result.action = "update";
-        } else {
-            // Vytvor nový výkaz
-            rideReport = createNewRideReport(zakazkaObj, datum, zakazkaName);
+        // Spracuj každú zákazku
+        for (var i = 0; i < zakazky.length; i++) {
+            var zakazkaObj = zakazky[i];
+            var zakazkaName = utils.safeGet(zakazkaObj, "Názov", "N/A");
+            
+            utils.addDebug(currentEntry, "\n  [" + (i + 1) + "/" + zakazky.length + "] Spracovávam zákazku: " + zakazkaName);
+            
+            // Nájdi existujúci výkaz
+            var existingReports = zakazkaObj.linksFrom("Výkaz dopravy", "Zákazka");
+            var rideReport = null;
+            var action = "none";
+            
+            if (existingReports && existingReports.length > 0) {
+                rideReport = existingReports[0];
+                utils.addDebug(currentEntry, "    ✅ Existujúci výkaz nájdený");
+                action = "update";
+                result.updatedCount++;
+            } else {
+                // Vytvor nový výkaz
+                rideReport = createNewRideReport(zakazkaObj, datum, zakazkaName);
+                if (rideReport) {
+                    action = "create";
+                    result.createdCount++;
+                    utils.addDebug(currentEntry, "    ✨ Nový výkaz vytvorený");
+                }
+            }
+            
             if (rideReport) {
-                result.action = "create";
+                // Pre viacero zákaziek musíme rozdeliť náklady
+                var zakaziekCount = zakazky.length;
+                var pomerneNaklady = {
+                    km: routeResult.totalKm / zakaziekCount,
+                    casJazdy: routeResult.celkovyCas / zakaziekCount,
+                    mzdy: wageResult.celkoveMzdy / zakaziekCount
+                };
+                
+                // Aktualizuj link na aktuálny záznam
+                linkCurrentRecordToReport(rideReport);
+                
+                // Aktualizuj atribúty s pomernými hodnotami
+                updateRideReportAttributesProportional(rideReport, routeResult, wageResult, zakaziekCount, i);
+                
+                // Aktualizuj info pole
+                updateRideReportInfo(rideReport);
+                
+                result.rideReports.push(rideReport);
+                result.actions.push({
+                    zakazka: zakazkaName,
+                    action: action
+                });
+                result.processedCount++;
+                
+                utils.addDebug(currentEntry, "    ✅ Výkaz " + (action === "create" ? "vytvorený" : "aktualizovaný"));
             }
         }
         
-        if (rideReport) {
-            // Aktualizuj link na aktuálny záznam
-            linkCurrentRecordToReport(rideReport);
-            
-            // Aktualizuj atribúty
-            updateRideReportAttributes(rideReport, routeResult, wageResult);
-            
-            // Aktualizuj info pole
-            updateRideReportInfo(rideReport);
-            
-            result.rideReport = rideReport;
-            result.success = true;
-            
-            utils.addDebug(currentEntry, "  ✅ Výkaz jázd " + (result.action === "create" ? "vytvorený" : "aktualizovaný"));
-        }
+        result.success = result.processedCount > 0;
+        
+        // Záverečné zhrnutie
+        utils.addDebug(currentEntry, "\n  📊 SÚHRN VÝKAZOV:");
+        utils.addDebug(currentEntry, "  • Spracovaných: " + result.processedCount + "/" + zakazky.length);
+        utils.addDebug(currentEntry, "  • Vytvorených: " + result.createdCount);
+        utils.addDebug(currentEntry, "  • Aktualizovaných: " + result.updatedCount);
         
     } catch (error) {
-        utils.addError(currentEntry, "Chyba pri synchronizácii výkazu jázd: " + error.toString(), "synchronizeRideReport", error);
+        utils.addError(currentEntry, "Chyba pri synchronizácii výkazov jázd: " + error.toString(), "synchronizeRideReport", error);
     }
     
     return result;
+}
+
+/**
+ * Aktualizuje atribúty na výkaze s pomerným rozdelením
+ */
+function updateRideReportAttributesProportional(rideReport, routeResult, wageResult, zakaziekCount, zakazkaIndex) {
+    try {
+        var dopravaPole = rideReport.field("Doprava");
+        if (!dopravaPole || dopravaPole.length === 0) return;
+        
+        // Nájdi index aktuálneho záznamu
+        var index = -1;
+        for (var i = 0; i < dopravaPole.length; i++) {
+            if (dopravaPole[i].id === currentEntry.id) {
+                index = i;
+                break;
+            }
+        }
+        
+        if (index === -1) {
+            utils.addDebug(currentEntry, "    ⚠️ Záznam nenájdený vo výkaze");
+            return;
+        }
+        
+        // Vypočítaj pomerné hodnoty
+        var popisJazdy = utils.safeGet(currentEntry, "Popis jazdy", "");
+        var km = Math.round((routeResult.totalKm / zakaziekCount) * 10) / 10;
+        var casJazdy = Math.round((routeResult.celkovyCas / zakaziekCount) * 100) / 100;
+        var mzdy = Math.round((wageResult.celkoveMzdy / zakaziekCount) * 100) / 100;
+        
+        // Ak je viac zákaziek, pridaj info do popisu
+        if (zakaziekCount > 1) {
+            popisJazdy += " [1/" + zakaziekCount + "]";
+        }
+        
+        // Atribúty pre výkaz dopravy
+        dopravaPole[index].setAttr("popis jazdy", popisJazdy);
+        dopravaPole[index].setAttr("km", km);
+        dopravaPole[index].setAttr("čas jazdy", casJazdy);
+        dopravaPole[index].setAttr("mzdové náklady", mzdy);
+        dopravaPole[index].setAttr("počet zákaziek", zakaziekCount);
+        
+        utils.addDebug(currentEntry, "    ✅ Atribúty aktualizované (pomerné):");
+        utils.addDebug(currentEntry, "      • Popis: " + popisJazdy);
+        utils.addDebug(currentEntry, "      • Km: " + km + " (z " + routeResult.totalKm + ")");
+        utils.addDebug(currentEntry, "      • Čas: " + casJazdy + " h (z " + routeResult.celkovyCas + ")");
+        utils.addDebug(currentEntry, "      • Mzdy: " + utils.formatMoney(mzdy) + " (z " + utils.formatMoney(wageResult.celkoveMzdy) + ")");
+        
+        // Prepočítaj celkový súčet výkazu
+        recalculateRideReportTotals(rideReport);
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri aktualizácii atribútov: " + error.toString(), "updateRideReportAttributesProportional", error);
+    }
 }
 
 /**
@@ -1113,7 +1199,12 @@ function main() {
                 msg += "💰 Mzdové náklady: " + utils.formatMoney(wageResult.celkoveMzdy) + "\n";
             }
             if (vehicleResult.success && vehicleResult.message !== "Žiadne vozidlo") {
-                msg += "🚐 " + vehicleResult.message;
+                msg += "🚐 " + vehicleResult.message + "\n";
+            }
+            if (vykazResult.success && vykazResult.processedCount > 0) {
+                msg += "📊 Výkazy: " + vykazResult.processedCount + " (" + 
+                       vykazResult.createdCount + " nových, " + 
+                       vykazResult.updatedCount + " aktualizovaných)";
             }
             message(msg);
         } else {
