@@ -972,7 +972,7 @@ function linkCurrentRecordToReport(rideReport) {
         }
         
         // Nastav spätný link
-        utils.safeSet(currentEntry, "Výkaz dopravy", [rideReport]);
+        //utils.safeSet(currentEntry, "Výkaz dopravy", [rideReport]);
         
     } catch (error) {
         utils.addError(currentEntry, "Chyba pri prepájaní záznamu: " + error.toString(), "linkCurrentRecordToReport", error);

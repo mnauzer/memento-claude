@@ -150,7 +150,7 @@ var MementoBusiness = (function() {
             
             // Získaj mzdové údaje ak je zadaný dátum
             if (date) {
-                var wageData = getEmployeeWageForDate(employee, date);
+                var wageData = findValidSalary(employee, date);
                 if (wageData) {
                     details.hourlyRate = wageData.hourlyRate;
                     details.rateType = wageData.rateType;
