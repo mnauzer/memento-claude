@@ -125,6 +125,7 @@ var MementoBusiness = (function() {
         try {
             var config = getConfig();
             var core = getCore();
+            var currentEntry = entry();
             
             // Ak je to string (nick), nájdi zamestnanca
             if (typeof employee === 'string') {
@@ -150,7 +151,8 @@ var MementoBusiness = (function() {
             
             // Získaj mzdové údaje ak je zadaný dátum
             if (date) {
-                var wageData = findValidSalary(employee, date);
+                var wageData = findValidSalary(currentEntry, employee, date);
+
                 if (wageData) {
                     details.hourlyRate = wageData.hourlyRate;
                     details.rateType = wageData.rateType;
