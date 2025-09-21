@@ -112,6 +112,7 @@ var CONFIG = {
                 }
             }
             
+            utils.addDebug("  📋 Nenašiel default zdržanie, použijem: " + CONFIG.settings.defaultZdrzanie + " ms");
             return CONFIG.settings.defaultZdrzanie;
             
         } catch (error) {
