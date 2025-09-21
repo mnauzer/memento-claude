@@ -76,14 +76,7 @@ var CONFIG = {
         meno: "Meno",
         nick: "Nick"
     },
-    
-    // OSRM API nastavenia
-    osrm: {
-        maxRetries: 3,
-        baseUrl: "https://router.project-osrm.org/route/v1/driving/",
-        requestTimeout: 5000
-    },
-    
+     
     // Business pravidlá
     settings: {
         roundToQuarterHour: false,
@@ -124,169 +117,6 @@ function getDefaultZdrzanie() {
     }
 }
 
-/**
- * Extrahuje GPS súradnice z poľa miesta
- */
-function extractGPSFromPlace(place) {
-    if (!place || place.length === 0) {
-        return null;
-    }
-    
-    var nazov = utils.safeGet(place, CONFIG.fields.place.name, "Nez náme");
-    
-    utils.addDebug(currentEntry, "  📍 Spracovávam miesto: " + nazov);
-    
-    // Získaj GPS pole - JSGeolocation objekt
-    var gpsLocation = null;
-    
-    try {
-        gpsLocation = utils.safeGet(place, CONFIG.fields.place.gps);
-    } catch (e) {
-        utils.addDebug(currentEntry, "  ⚠️ Chyba pri získavaní GPS poľa: " + e);
-        return null;
-    }
-    
-    if (!gpsLocation) {
-        utils.addDebug(currentEntry, "  ⚠️ Miesto '" + nazov + "' nemá GPS súradnice");
-        return null;
-    }
-    
-    var lat = null;
-    var lon = null;
-    
-    try {
-        // JSGeolocation objekt má properties lat a lng
-        lat = gpsLocation.lat;
-        lon = gpsLocation.lng;
-        
-        // Debug informácie
-        if (gpsLocation.address) {
-            utils.addDebug(currentEntry, "    Adresa: " + gpsLocation.address);
-        }
-        utils.addDebug(currentEntry, "    Súradnice: " + lat + ", " + lon);
-        
-    } catch (error) {
-        utils.addError(currentEntry, "Chyba pri čítaní GPS objektu: " + error.toString(), "extractGPSFromPlace", error);
-        return null;
-    }
-    
-    // Validácia GPS súradníc
-    if (lat !== null && lon !== null && !isNaN(lat) && !isNaN(lon)) {
-        // Základná validácia rozsahu
-        if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
-            utils.addDebug(currentEntry, "  ✅ GPS úspešne extrahované: " + lat + ", " + lon);
-            return { lat: lat, lon: lon };
-        } else {
-            utils.addDebug(currentEntry, "  ❌ GPS súradnice mimo platného rozsahu: " + lat + ", " + lon);
-        }
-    } else {
-        utils.addDebug(currentEntry, "  ❌ Neplatné GPS súradnice");
-    }
-    
-    return null;
-}
-
-/**
- * Vypočíta vzdušnú vzdialenosť medzi dvoma bodmi (Haversine formula)
- */
-function calculateAirDistance(point1, point2) {
-    var R = 6371; // Polomer Zeme v km
-    var dLat = toRadians(point2.lat - point1.lat);
-    var dLon = toRadians(point2.lon - point1.lon);
-    var lat1 = toRadians(point1.lat);
-    var lat2 = toRadians(point2.lat);
-
-    var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2);
-    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    
-    return R * c;
-}
-
-function toRadians(degrees) {
-    return degrees * (Math.PI / 180);
-}
-
-/**
- * Volá OSRM API pre výpočet trasy
- */
-function callOSRMRoute(points) {
-    try {
-        if (!points || points.length < 2) {
-            return null;
-        }
-        
-        // Vytvor URL s koordinátmi
-        var coordinates = "";
-        for (var i = 0; i < points.length; i++) {
-            if (i > 0) coordinates += ";";
-            coordinates += points[i].lon + "," + points[i].lat;
-        }
-        
-        var url = CONFIG.osrm.baseUrl + coordinates + "?overview=false&steps=false";
-        
-        utils.addDebug(currentEntry, "  🌐 OSRM API volanie pre " + points.length + " bodov");
-        
-        var response = utils.httpRequest("GET", url, null, {}, {
-            timeout: CONFIG.osrm.requestTimeout
-        });
-        
-        if (response && response.code === 200) {
-            var data = JSON.parse(response.body);
-            if (data.routes && data.routes.length > 0) {
-                var route = data.routes[0];
-                return {
-                    distance: route.distance / 1000, // prevod na km
-                    duration: route.duration / 3600, // prevod na hodiny
-                    success: true
-                };
-            }
-        }
-        
-        utils.addDebug(currentEntry, "  ⚠️ OSRM API nevrátilo trasu");
-        return null;
-        
-    } catch (error) {
-        utils.addError(currentEntry, "OSRM API chyba: " + error.toString(), "callOSRMRoute", error);
-        return null;
-    }
-}
-
-/**
- * Vypočíta vzdialenosť a čas pre úsek trasy
- */
-function calculateSegment(fromPoint, toPoint, segmentName) {
-    var result = {
-        km: 0,
-        trvanie: 0,
-        success: false,
-        method: "none"
-    };
-    
-    utils.addDebug(currentEntry, "  📏 Počítam " + segmentName);
-    
-    // 1. Skús OSRM API
-    var osrmResult = callOSRMRoute([fromPoint, toPoint]);
-    
-    if (osrmResult && osrmResult.success) {
-        result.km = osrmResult.distance;
-        result.trvanie = osrmResult.duration;
-        result.success = true;
-        result.method = "OSRM";
-        utils.addDebug(currentEntry, "    ✅ OSRM: " + result.km.toFixed(2) + " km, " + result.trvanie.toFixed(2) + " h");
-    } else {
-        // 2. Fallback na vzdušnú vzdialenosť
-        var airDistance = calculateAirDistance(fromPoint, toPoint);
-        result.km = airDistance * 1.3; // koeficient pre cestnú vzdialenosť
-        result.trvanie = result.km / 50; // priemerná rýchlosť 50 km/h
-        result.success = true;
-        result.method = "Vzdušná";
-        utils.addDebug(currentEntry, "    📐 Vzdušná: " + result.km.toFixed(2) + " km, " + result.trvanie.toFixed(2) + " h");
-    }
-    
-    return result;
-}
-
 // ==============================================
 // HLAVNÉ FUNKCIE VÝPOČTU
 // ==============================================
@@ -322,8 +152,8 @@ function calculateRoute() {
         }
         
         // Extrahuj GPS súradnice
-        var startGPS = extractGPSFromPlace(start[0]);
-        var cielGPS = extractGPSFromPlace(ciel[0]);
+        var startGPS = utils.extractGPSFromPlace(start[0]);
+        var cielGPS = utils.extractGPSFromPlace(ciel[0]);
         
         if (!startGPS || !cielGPS) {
             utils.addError(currentEntry, "Chýbajú GPS súradnice pre štart alebo cieľ", "calculateRoute");
@@ -337,13 +167,13 @@ function calculateRoute() {
         // Úseky cez zastávky
         if (zastavky && zastavky.length > 0) {
             for (var j = 0; j < zastavky.length; j++) {
-                var gps = extractGPSFromPlace(zastavky[j]);
+                var gps = utils.extractGPSFromPlace(zastavky[j]);
                 if (!gps) {
                     utils.addDebug(currentEntry, "  ⚠️ Zastávka " + (j+1) + " nemá GPS");
                     continue;
                 }
                 
-                var segment = calculateSegment(currentPoint, gps, "Úsek " + (j+1));
+                var segment = utils.calculateSegment(currentPoint, gps, "Úsek " + (j+1));
                 
                 if (segment.success) {
                     result.totalKm += segment.km;
@@ -379,7 +209,7 @@ function calculateRoute() {
         }
         
         // Posledný úsek do cieľa
-        var lastSegment = calculateSegment(currentPoint, cielGPS, "Úsek do cieľa");
+        var lastSegment = utils.calculateSegment(currentPoint, cielGPS, "Úsek do cieľa");
         
         if (lastSegment.success) {
             result.totalKm += lastSegment.km;
@@ -555,6 +385,239 @@ function calculateWageCosts() {
         
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "calculateWageCosts", error);
+    }
+    
+    return result;
+}
+
+/**
+ * KROK 4: Synchronizácia Cieľa do Stanovišťa vozidla
+ */
+function synchronizeVehicleLocation() {
+    utils.addDebug(currentEntry, "\n🚐 === KROK 4: SYNCHRONIZÁCIA STANOVIŠŤA VOZIDLA ===");
+    
+    var result = {
+        success: false,
+        message: ""
+    };
+    
+    try {
+        // Získaj vozidlo z aktuálneho záznamu
+        var vozidloField = currentEntry.field(CONFIG.fields.vozidlo);
+        if (!vozidloField || vozidloField.length === 0) {
+            utils.addDebug(currentEntry, "  ℹ️ Žiadne vozidlo - preskakujem synchronizáciu");
+            result.success = true;
+            return result;
+        }
+        
+        var vozidlo = vozidloField[0];
+        var vozidloNazov = utils.safeGet(vozidlo, CONFIG.vozidlaFields.nazov, "N/A");
+        utils.addDebug(currentEntry, "  🚗 Vozidlo: " + vozidloNazov);
+        
+        // Získaj cieľ z aktuálneho záznamu
+        var cielField = currentEntry.field(CONFIG.fields.ciel);
+        if (!cielField || cielField.length === 0) {
+            utils.addDebug(currentEntry, "  ⚠️ Žiadny cieľ - nemôžem synchronizovať");
+            result.message = "Žiadny cieľ";
+            result.success = true;
+            return result;
+        }
+        
+        var cielMiesto = cielField[0];
+        var cielNazov = utils.safeGet(cielMiesto, CONFIG.miestalFields.nazov, "N/A");
+        
+        // Získaj aktuálne stanovište vozidla
+        var aktualneStanoviste = vozidlo.field(CONFIG.vozidlaFields.stanoviste);
+        var aktualneStanovisteNazov = "žiadne";
+        
+        if (aktualneStanoviste && aktualneStanoviste.length > 0) {
+            aktualneStanovisteNazov = utils.safeGet(aktualneStanoviste[0], CONFIG.miestalFields.nazov, "N/A");
+        }
+        
+        utils.addDebug(currentEntry, "  📍 Aktuálne stanovište: " + aktualneStanovisteNazov);
+        utils.addDebug(currentEntry, "  🏁 Cieľ jazdy: " + cielNazov);
+        
+        // Skontroluj či je potrebná zmena
+        if (aktualneStanoviste && aktualneStanoviste.length > 0) {
+            var aktualneId = aktualneStanoviste[0].id;
+            var cielId = cielMiesto.id;
+            
+            if (aktualneId === cielId) {
+                utils.addDebug(currentEntry, "  ✅ Stanovište už je nastavené na cieľ");
+                result.message = "Už synchronizované";
+                result.success = true;
+                return result;
+            }
+        }
+        
+        // Aktualizuj stanovište vozidla
+        try {
+            vozidlo.set(CONFIG.vozidlaFields.stanoviste, [cielMiesto]);
+            utils.addDebug(currentEntry, "  ✅ Stanovište vozidla aktualizované: " + aktualneStanovisteNazov + " → " + cielNazov);
+            
+            // Pridaj info do vozidla
+            var existingInfo = utils.safeGet(vozidlo, CONFIG.fields.info, "");
+            var updateInfo = "\n🔄 STANOVIŠTE AKTUALIZOVANÉ: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
+            updateInfo += "• Z: " + aktualneStanovisteNazov + "\n";
+            updateInfo += "• Na: " + cielNazov + "\n";
+            updateInfo += "• Kniha jázd #" + currentEntry.field("ID") + "\n";
+            updateInfo += "• Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
+            
+            // Obmedz dĺžku info poľa
+            var newInfo = existingInfo + updateInfo;
+            if (newInfo.length > 5000) {
+                newInfo = "... (skrátené) ...\n" + newInfo.substring(newInfo.length - 4900);
+            }
+            
+            vozidlo.set(CONFIG.fields.info, newInfo);
+            
+            result.message = "Stanovište aktualizované: " + cielNazov;
+            result.success = true;
+            
+        } catch (updateError) {
+            utils.addError(currentEntry, "Chyba pri aktualizácii stanovišťa: " + updateError.toString(), "synchronizeVehicleLocation");
+            result.message = "Chyba aktualizácie";
+        }
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "synchronizeVehicleLocation", error);
+        result.message = "Kritická chyba";
+    }
+    
+    return result;
+}
+
+/**
+ * KROK 5: Auto-linkovanie zákaziek zo zastávok
+ */
+function autoLinkCustomersFromStops() {
+    utils.addDebug(currentEntry, "\n🔗 === KROK 5: AUTO-LINKOVANIE ZÁKAZIEK ZO ZASTÁVOK ===");
+    
+    var result = {
+        success: false,
+        linkedCount: 0,
+        uniqueCustomers: 0,
+        processedStops: 0,
+        customersWithCounts: {}
+    };
+    
+    try {
+        var zastavky = currentEntry.field(CONFIG.fields.zastavky);
+        var existingZakazky = currentEntry.field(CONFIG.fields.zakazky) || [];
+        var datum = utils.safeGet(currentEntry, CONFIG.fields.datum, new Date());
+        
+        if (!zastavky || zastavky.length === 0) {
+            utils.addDebug(currentEntry, "  ℹ️ Žiadne zastávky - preskakujem auto-linkovanie");
+            result.success = true;
+            return result;
+        }
+        
+        utils.addDebug(currentEntry, "  📍 Počet zastávok: " + zastavky.length);
+        utils.addDebug(currentEntry, "  📅 Dátum záznamu: " + utils.formatDate(datum));
+        
+        // Objekt pre ukladanie unikátnych zákaziek
+        var unikatneZakazky = {}; // cislo_zakazky → zákazka objekt
+        var countZakaziek = {}; // cislo_zakazky → počet výskytov
+        
+        // Spracuj každú zastávku
+        for (var i = 0; i < zastavky.length; i++) {
+            var zastavka = zastavky[i];
+            if (!zastavka) continue;
+            
+            var nazovMiesta = utils.safeGet(zastavka, CONFIG.miestalFields.nazov, "Neznáme");
+            utils.addDebug(currentEntry, "\n  [" + (i + 1) + "/" + zastavky.length + "] Zastávka: " + nazovMiesta);
+            
+            // Kontrola checkbox "Zákazka"
+            var jeZakazka = false;
+            try {
+                var checkboxValue = zastavka.field(CONFIG.miestalFields.jeZakazka);
+                jeZakazka = (checkboxValue === true);
+                utils.addDebug(currentEntry, "    🔍 Checkbox 'Zákazka': " + (jeZakazka ? "✅ TRUE" : "❌ FALSE"));
+            } catch (checkboxError) {
+                utils.addDebug(currentEntry, "    ⚠️ Chyba pri čítaní checkbox: " + checkboxError);
+            }
+            
+            if (!jeZakazka) {
+                utils.addDebug(currentEntry, "    ⏭️ Preskakujem - nie je označená ako zákazka");
+                continue;
+            }
+            
+            result.processedStops++;
+            
+            // Nájdi zákazky pre toto miesto pomocou linksFrom
+            try {
+                var zakazky = zastavka.linksFrom(CONFIG.libraries.zakazky || "Zákazky", CONFIG.zakazkyFields.miesto);
+                
+                if (!zakazky || zakazky.length === 0) {
+                    utils.addDebug(currentEntry, "    ❌ Žiadne zákazky nenájdené pre toto miesto");
+                    continue;
+                }
+                
+                utils.addDebug(currentEntry, "    🔗 LinksFrom našiel: " + zakazky.length + " zákaziek");
+                
+                // Vyber najlepšiu zákazku
+                var vybranaZakazka = najdiNajnovsieZakazku(zakazky, datum);
+                
+                if (!vybranaZakazka) {
+                    utils.addDebug(currentEntry, "    ❌ Nepodarilo sa vybrať zákazku");
+                    continue;
+                }
+                
+                var zakazkaInfo = getZakazkaInfo(vybranaZakazka);
+                utils.addDebug(currentEntry, "    ✅ Vybraná zákazka: " + zakazkaInfo.display);
+                
+                // Použij číslo zákazky ako identifikátor (alebo názov ako fallback)
+                var identifikator = zakazkaInfo.cislo ? zakazkaInfo.cislo.toString() : zakazkaInfo.nazov;
+                
+                // Pridaj do kolekcie
+                if (!unikatneZakazky[identifikator]) {
+                    unikatneZakazky[identifikator] = vybranaZakazka;
+                    countZakaziek[identifikator] = 1;
+                    utils.addDebug(currentEntry, "    ➕ Nová zákazka pridaná");
+                } else {
+                    countZakaziek[identifikator]++;
+                    utils.addDebug(currentEntry, "    📊 Zvýšený počet na: " + countZakaziek[identifikator]);
+                }
+                
+                result.linkedCount++;
+                
+            } catch (linksFromError) {
+                utils.addError(currentEntry, "LinksFrom zlyhalo: " + linksFromError.toString(), "autoLinkCustomers");
+            }
+        }
+        
+        // Vytvor pole zákaziek
+        var zakazkyArray = [];
+        for (var id in unikatneZakazky) {
+            zakazkyArray.push(unikatneZakazky[id]);
+        }
+        
+        result.uniqueCustomers = zakazkyArray.length;
+        result.customersWithCounts = countZakaziek;
+        
+        // Skombiuj s existujúcimi zákazkami
+        var kombinovaneZakazky = kombinujZakazky(existingZakazky, zakazkyArray);
+        
+        utils.addDebug(currentEntry, "\n  📊 SÚHRN AUTO-LINKOVANIA:");
+        utils.addDebug(currentEntry, "  • Spracovaných zastávok so zákazkami: " + result.processedStops);
+        utils.addDebug(currentEntry, "  • Celkovo linkovaných: " + result.linkedCount);
+        utils.addDebug(currentEntry, "  • Unikátnych zákaziek: " + result.uniqueCustomers);
+        utils.addDebug(currentEntry, "  • Existujúce zákazky: " + existingZakazky.length);
+        utils.addDebug(currentEntry, "  • Finálny počet zákaziek: " + kombinovaneZakazky.length);
+        
+        // Nastav zákazky
+        if (kombinovaneZakazky.length > 0) {
+            utils.safeSet(currentEntry, CONFIG.fields.zakazky, kombinovaneZakazky);
+            utils.addDebug(currentEntry, "  ✅ Zákazky úspešne nastavené");
+            
+            // Nastav atribúty s počtom výskytov
+            nastavAtributyPoctu(kombinovaneZakazky, countZakaziek);
+        }
+        
+        result.success = true;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "autoLinkCustomersFromStops", error);
     }
     
     return result;
