@@ -432,7 +432,7 @@ var CONFIG = {
             var aktualneStanovisteNazov = "žiadne";
             
             if (aktualneStanoviste && aktualneStanoviste.length > 0) {
-                aktualneStanovisteNazov = utils.safeGet(aktualneStanoviste[0], CONFIG.fields.place.name "N/A");
+                aktualneStanovisteNazov = utils.safeGet(aktualneStanoviste[0], CONFIG.fields.place.name, "N/A");
             }
             
             utils.addDebug(currentEntry, "  📍 Aktuálne stanovište: " + aktualneStanovisteNazov);
