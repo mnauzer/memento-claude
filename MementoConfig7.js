@@ -228,7 +228,6 @@ var MementoConfig = (function() {
                 machinesReportTotal: "Výkaz strojov celkom", // real number, súčet strojov z výkazu strojov
                 transportTotal: "Doprava", // real number, súčet dopravy z výkazu dopravy
                 transportReportTotal: "Výkaz dopravy celkom", // real number, súčet dopravy z výkazu dopravy
-                otherCosts: "Ostatné náklady", // real number, súčet ostatných nákladov z výkazu prác
                 totalBilled: "Suma celkom", // real number, súčet všetkých vyfakturovaných položiek z vystavených faktúr
 
 
