@@ -37,6 +37,7 @@ var CONFIG = {
         rideLog: centralConfig.fields.rideLog,
         rideReport: centralConfig.fields.rideReport,
         vehicle: centralConfig.fields.vehicle,
+        common: centralConfig.fields.common,
         start: "Štart",
         zastavky: "Zastávky",
         ciel: "Cieľ", 
@@ -457,7 +458,7 @@ var CONFIG = {
                 utils.addDebug(currentEntry, "  ✅ Stanovište vozidla aktualizované: " + aktualneStanovisteNazov + " → " + cielNazov);
                 
                 // Pridaj info do vozidla
-                var existingInfo = utils.safeGet(vozidlo, CONFIG.fields.info, "");
+                var existingInfo = utils.safeGet(vozidlo, CONFIG.fields.common.info, "");
                 var updateInfo = "\n🔄 STANOVIŠTE AKTUALIZOVANÉ: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
                 updateInfo += "• Z: " + aktualneStanovisteNazov + "\n";
                 updateInfo += "• Na: " + cielNazov + "\n";
@@ -470,7 +471,7 @@ var CONFIG = {
                     newInfo = "... (skrátené) ...\n" + newInfo.substring(newInfo.length - 4900);
                 }
                 
-                vozidlo.set(CONFIG.fields.info, newInfo);
+                vozidlo.set(CONFIG.fields.common.info, newInfo);
                 
                 result.message = "Stanovište aktualizované: " + cielNazov;
                 result.success = true;
@@ -1002,7 +1003,7 @@ var CONFIG = {
      */
     function updateRideReportInfo(rideReport) {
         try {
-            var existingInfo = utils.safeGet(rideReport, "info", "");
+            var existingInfo = utils.safeGet(rideReport, CONFIG.fields.common.info, "");
             
             // Pridaj informáciu o aktualizácii
             var updateInfo = "\n\n🔄 AKTUALIZOVANÉ: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
