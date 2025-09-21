@@ -1088,8 +1088,9 @@ function main() {
             step2: { success: false, name: "Spracovanie šoféra" },
             step3: { success: false, name: "Výpočet mzdových nákladov" },
             step4: { success: false, name: "Synchronizácia stanovišťa vozidla" },
-            step5: { success: false, name: "Vytvorenie info záznamu" },
-            step6: { success: false, name: "Synchronizácia výkazu jázd" }
+            step5: { success: false, name: "Linkovanie zákaziek" },
+            step6: { success: false, name: "Vytvorenie info záznamu" },
+            step7: { success: false, name: "Synchronizácia výkazu jázd" }
         };
         
         // KROK 1: Výpočet trasy
@@ -1108,13 +1109,16 @@ function main() {
         var vehicleResult = synchronizeVehicleLocation();
         steps.step4.success = vehicleResult.success;
         
-        // KROK 5: Vytvorenie info záznamu
-        steps.step5.success = createInfoRecord(routeResult, wageResult, vehicleResult);
+        // KROK 5: Linkovanie zákaziek
+        steps.step5.success = autoLinkCustomersFromStops();
+   
+        // KROK 6: Vytvorenie info záznamu
+        steps.step6.success = createInfoRecord(routeResult, wageResult, vehicleResult);
         
-        // KROK 6: Synchronizácia výkazu jázd
+        // KROK 7: Synchronizácia výkazu jázd
         utils.addDebug(currentEntry, "\n📊 === KROK 6: SYNCHRONIZÁCIA VÝKAZU JÁZD ===");
         var vykazResult = synchronizeRideReport(routeResult, wageResult);
-        steps.step6.success = vykazResult.success;
+        steps.step7.success = vykazResult.success;
         
         // Finálny súhrn
         logFinalSummary(steps);
