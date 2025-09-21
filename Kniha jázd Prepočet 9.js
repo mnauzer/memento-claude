@@ -218,8 +218,8 @@ var CONFIG = {
                 
                 // Nastav atribúty cieľa
                 try {
-                    ciel[0].setAttr(CONFIG.attributes.rideLogs.km, Math.round(lastSegment.km * 10) / 10);
-                    ciel[0].setAttr(CONFIG.attributes.rideLogs.duration, lastSegment.trvanie);
+                    ciel[0].setAttr(CONFIG.attributes.rideLogStops.km, Math.round(lastSegment.km * 10) / 10);
+                    ciel[0].setAttr(CONFIG.attributes.rideLogStops.duration, lastSegment.trvanie);
                 } catch (attrError) {
                     utils.addError(currentEntry, "Chyba pri nastavovaní atribútov cieľa: " + attrError.toString(), "calculateRoute");
                 }
@@ -416,7 +416,7 @@ var CONFIG = {
             utils.addDebug(currentEntry, "  🚗 Vozidlo: " + vozidloNazov);
             
             // Získaj cieľ z aktuálneho záznamu
-            var cielField = currentEntry.field(CONFIG.fields.ridelog.destination);
+            var cielField = currentEntry.field(CONFIG.fields.rideLog.destination);
             if (!cielField || cielField.length === 0) {
                 utils.addDebug(currentEntry, "  ⚠️ Žiadny cieľ - nemôžem synchronizovať");
                 result.message = "Žiadny cieľ";
