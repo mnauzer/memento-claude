@@ -66,7 +66,7 @@ var MementoGPS = (function() {
         var result = {
             success: false,
             km: 0,
-            trvanie: 0
+            duration: 0
         };
         
         try {
@@ -98,7 +98,7 @@ var MementoGPS = (function() {
                         if (data.routes && data.routes.length > 0) {
                             var route = data.routes[0];
                             result.km = Math.round(route.distance / 100) / 10; // Metre na km
-                            result.trvanie = Math.round(route.duration / 36) / 100; // Sekundy na hodiny
+                            result.duration = Math.round(route.duration / 36) / 100; // Sekundy na hodiny
                             result.success = true;
                         }
                     } else {
@@ -129,7 +129,7 @@ var MementoGPS = (function() {
         var result = {
             success: false,
             km: 0,
-            trvanie: 0,
+            duration: 0,
             metoda: "none"
         };
         
@@ -145,7 +145,7 @@ var MementoGPS = (function() {
             result = calculateOSRMRoute(start, end);
             
             if (result.success) {
-                core.addDebug(currentEntry, "    ✅ OSRM: " + result.km + " km, " + result.trvanie + " h");
+                core.addDebug(currentEntry, "    ✅ OSRM: " + result.km + " km, " + result.duration + " h");
                 result.metoda = "OSRM";
             } else {
                 // Fallback na vzdušnú vzdialenosť
@@ -154,11 +154,11 @@ var MementoGPS = (function() {
                 var avgSpeed = 50; // Priemerná rýchlosť v km/h
                 
                 result.km = Math.round(airDistance * roadFactor * 10) / 10;
-                result.trvanie = Math.round((result.km / avgSpeed) * 100) / 100;
+                result.duration = Math.round((result.km / avgSpeed) * 100) / 100;
                 result.success = true;
                 result.metoda = "Vzdušná čiara";
                 
-                core.addDebug(currentEntry, "    📐 Vzdušná vzdialenosť: " + result.km + " km, " + result.trvanie + " h");
+                core.addDebug(currentEntry, "    📐 Vzdušná vzdialenosť: " + result.km + " km, " + result.duration + " h");
             }
             
         } catch (error) {

@@ -107,7 +107,7 @@ var CONFIG = {
                 var defaultZdrz = defaultsEntries[0].field(CONFIG.fields.defaultZdrzanie);
                 
                 if (defaultZdrz !== null && defaultZdrz !== undefined) {
-                    utils.addDebug("  📋 Našiel default zdržanie Duration: " + defaultZdrz + " ms");
+                    utils.addDebug("  📋 Našiel default zdržanie: " + defaultZdrz + " ms");
                     return utils.convertDurationToHours(defaultZdrz);
                 }
             }
@@ -180,12 +180,12 @@ var CONFIG = {
                     
                     if (segment.success) {
                         result.totalKm += segment.km;
-                        result.casJazdy += segment.trvanie;
+                        result.casJazdy += segment.duration;
                         
                         // Nastav atribúty zastávky
                         try {
                             zastavky[j].setAttr(CONFIG.attributes.rideLogStops.km, Math.round(segment.km * 10) / 10);
-                            zastavky[j].setAttr(CONFIG.attributes.rideLogStops.duration, segment.trvanie);
+                            zastavky[j].setAttr(CONFIG.attributes.rideLogStops.duration, segment.duration);
                             
                             // Nastav zdržanie ak nie je nastavené
                             var existingZdrzanie = zastavky[j].attr(CONFIG.attributes.rideLogStops.delay);
@@ -216,12 +216,12 @@ var CONFIG = {
             
             if (lastSegment.success) {
                 result.totalKm += lastSegment.km;
-                result.casJazdy += lastSegment.trvanie;
+                result.casJazdy += lastSegment.duration;
                 
                 // Nastav atribúty cieľa
                 try {
                     ciel[0].setAttr(CONFIG.attributes.rideLogStops.km, Math.round(lastSegment.km * 10) / 10);
-                    ciel[0].setAttr(CONFIG.attributes.rideLogStops.duration, lastSegment.trvanie);
+                    ciel[0].setAttr(CONFIG.attributes.rideLogStops.duration, lastSegment.duration);
                 } catch (attrError) {
                     utils.addError(currentEntry, "Chyba pri nastavovaní atribútov cieľa: " + attrError.toString(), "calculateRoute");
                 }
@@ -493,7 +493,7 @@ var CONFIG = {
     /**
      * KROK 5: Auto-linkovanie zákaziek zo zastávok
      */
-    function autoLinkCustomersFromStops() {
+    function autoLinkOrdersFromStops() {
         utils.addDebug(currentEntry, "\n🔗 === KROK 5: AUTO-LINKOVANIE ZÁKAZIEK ZO ZASTÁVOK ===");
         
         var result = {
@@ -620,7 +620,7 @@ var CONFIG = {
             result.success = true;
             
         } catch (error) {
-            utils.addError(currentEntry, error.toString(), "autoLinkCustomersFromStops", error);
+            utils.addError(currentEntry, error.toString(), "autoLinkOrdersFromStops", error);
         }
         
         return result;
@@ -1259,7 +1259,7 @@ function main() {
         steps.step4.success = vehicleResult.success;
         
         // KROK 5: Linkovanie zákaziek
-        steps.step5.success = autoLinkCustomersFromStops();
+        steps.step5.success = autoLinkOrdersFromStops();
    
         // KROK 6: Vytvorenie info záznamu
         steps.step6.success = createInfoRecord(routeResult, wageResult, vehicleResult);
