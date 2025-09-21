@@ -38,6 +38,7 @@ var CONFIG = {
         rideReport: centralConfig.fields.rideReport,
         vehicle: centralConfig.fields.vehicle,
         common: centralConfig.fields.common,
+        order: centralConfig.fields.order,
         start: "Štart",
         zastavky: "Zastávky",
         ciel: "Cieľ", 
@@ -268,8 +269,8 @@ var CONFIG = {
         };
         
         try {
-            var sofer = currentEntry.field(CONFIG.fields.sofer);
-            var posadka = currentEntry.field(CONFIG.fields.posadka) || [];
+            var sofer = currentEntry.field(CONFIG.fields.rideLog.driver);
+            var posadka = currentEntry.field(CONFIG.fields.rideLog.crew) || [];
             
             if (!sofer || sofer.length === 0) {
                 utils.addDebug(currentEntry, "  ℹ️ Žiadny šofér nebol zadaný");
@@ -548,7 +549,7 @@ var CONFIG = {
                 
                 // Nájdi zákazky pre toto miesto pomocou linksFrom
                 try {
-                    var zakazky = zastavka.linksFrom(CONFIG.libraries.zakazky || "Zákazky", CONFIG.zakazkyFields.miesto);
+                    var zakazky = zastavka.linksFrom(CONFIG.libraries.zakazky || "Zákazky", CONFIG.fields.order.name);
                     
                     if (!zakazky || zakazky.length === 0) {
                         utils.addDebug(currentEntry, "    ❌ Žiadne zákazky nenájdené pre toto miesto");
@@ -625,6 +626,153 @@ var CONFIG = {
         return result;
     }
 
+    /**
+     * Pomocná funkcia - získa info o zákazke
+     */
+    function getZakazkaInfo(zakazkaEntry) {
+        if (!zakazkaEntry) return { cislo: null, nazov: "null zákazka", display: "null zákazka" };
+        
+        var cislo = null;
+        var nazov = "Bez názvu";
+        
+        try {
+            cislo = zakazkaEntry.field(CONFIG.fields.order.number);
+        } catch (error) {
+            // Ignoruj
+        }
+        
+        try {
+            var tempNazov = zakazkaEntry.field(CONFIG.fields.order.name);
+            if (tempNazov) {
+                nazov = tempNazov;
+            }
+        } catch (error) {
+            // Ignoruj
+        }
+        
+        var display = cislo ? "#" + cislo + " " + nazov : nazov;
+        
+        return {
+            cislo: cislo,
+            nazov: nazov,
+            display: display
+        };
+    }
+
+    /**
+     * Pomocná funkcia - nájde najnovšiu platnú zákazku
+     */
+    function najdiNajnovsieZakazku(zakazky, datumZaznamu) {
+        if (!zakazky || zakazky.length === 0) return null;
+        
+        if (zakazky.length === 1) return zakazky[0];
+        
+        // Ak je viac zákaziek, vyber najnovšiu platnú k dátumu
+        var najlepsiaZakazka = null;
+        var najnovsiDatum = null;
+        
+        for (var i = 0; i < zakazky.length; i++) {
+            var zakazka = zakazky[i];
+            if (!zakazka) continue;
+            
+            try {
+                var datumZakazky = zakazka.field(CONFIG.fields.order.date);
+                
+                // Kontrola platnosti k dátumu
+                var jePlatna = false;
+                if (!datumZakazky) {
+                    jePlatna = true; // Zákazky bez dátumu sú vždy platné
+                } else if (!datumZaznamu) {
+                    jePlatna = true; // Ak záznam nemá dátum, akceptuj všetky
+                } else {
+                    jePlatna = (datumZakazky <= datumZaznamu);
+                }
+                
+                if (jePlatna) {
+                    if (!najlepsiaZakazka || 
+                        (datumZakazky && (!najnovsiDatum || datumZakazky > najnovsiDatum))) {
+                        najlepsiaZakazka = zakazka;
+                        najnovsiDatum = datumZakazky;
+                    }
+                }
+            } catch (error) {
+                // Ignoruj chybné zákazky
+            }
+        }
+        
+        return najlepsiaZakazka || zakazky[0]; // Fallback na prvú zákazku
+    }
+
+    /**
+     * Pomocná funkcia - kombinuje existujúce a nové zákazky
+     */
+    function kombinujZakazky(existujuce, nove) {
+        var kombinovane = [];
+        var idSet = {};
+        
+        // Pridaj existujúce
+        for (var i = 0; i < existujuce.length; i++) {
+            var zakazka = existujuce[i];
+            if (!zakazka) continue;
+            
+            var info = getZakazkaInfo(zakazka);
+            var id = info.cislo ? info.cislo.toString() : info.nazov;
+            
+            if (!idSet[id]) {
+                kombinovane.push(zakazka);
+                idSet[id] = true;
+            }
+        }
+        
+        // Pridaj nové
+        for (var j = 0; j < nove.length; j++) {
+            var zakazka = nove[j];
+            if (!zakazka) continue;
+            
+            var info = getZakazkaInfo(zakazka);
+            var id = info.cislo ? info.cislo.toString() : info.nazov;
+            
+            if (!idSet[id]) {
+                kombinovane.push(zakazka);
+                idSet[id] = true;
+            }
+        }
+        
+        return kombinovane;
+    }
+
+    /**
+     * Pomocná funkcia - nastaví atribúty počtu pre zákazky
+     */
+    function nastavAtributyPoctu(zakazky, countZakaziek) {
+        try {
+            utils.addDebug(currentEntry, "\n  🔢 NASTAVOVANIE ATRIBÚTOV POČTU:");
+            
+            // Znovu načítaj Link to Entry pole
+            var linknuteZakazky = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.orders);
+            if (!linknuteZakazky) return;
+            
+            for (var i = 0; i < linknuteZakazky.length; i++) {
+                var zakazkaObj = linknuteZakazky[i];
+                var info = getZakazkaInfo(zakazkaObj);
+                var identifikator = info.cislo ? info.cislo.toString() : info.nazov;
+                var pocet = countZakaziek[identifikator] || 0;
+                
+                if (pocet > 0) {
+                    try {
+                        // Nastav atribút počet
+                        linknuteZakazky[i].setAttr("počet", pocet);
+                        utils.addDebug(currentEntry, "    ✅ " + info.display + " → počet = " + pocet);
+                    } catch (attrError) {
+                        utils.addDebug(currentEntry, "    ❌ Chyba pri nastavovaní atribútu: " + attrError);
+                    }
+                }
+            }
+            
+        } catch (error) {
+            utils.addError(currentEntry, "Chyba pri nastavovaní atribútov: " + error.toString(), "nastavAtributyPoctu");
+        }
+    }
    /**
      * Vytvorí info záznam s detailmi o jazde
      */
