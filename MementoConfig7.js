@@ -212,7 +212,7 @@ var MementoConfig = (function() {
                 price: "Cena"
             },
             // Zákazky polia
-            orders: {
+            order: {
                 state: "Stav", // singleChoice: Čakajúca, Čakjaúca (klient), Prebieha, Ukončená
                 paymentState: "Stav platby", // singleChoice: Nevyúčtovaná, Čiastočne vyúčtovaná, Vyúčtovaná, Zaplatená, Stornovaná
                 orderCalculationType: "Typ zákazky", // options: Hodinovka, Položky, Externá, Reklamácia
@@ -564,7 +564,7 @@ var MementoConfig = (function() {
                 address: "Adresa",
                 gps: "GPS",
                 location: "Lokalita",
-                isOrder: "Je zákazka" // checkbox
+                isOrder: "Zákazka" // checkbox
             },
             // Účty (Accounts)
             account: {
