@@ -34,6 +34,7 @@ var CONFIG = {
     fields: {
         defaultZdrzanie: centralConfig.fields.defaults.defaultZdrzanie,
         place: centralConfig.fields.place,
+        rideLog: centralConfig.fields.rideLog,
         start: "Štart",
         zastavky: "Zastávky",
         ciel: "Cieľ", 
@@ -135,9 +136,9 @@ function calculateRoute() {
     try {
         // Získaj polia trasy
 
-        var start = utils.safeGetLinks(currentEntry, CONFIG.fields.start);
-        var zastavky = utils.safeGetLinks(currentEntry, CONFIG.fields.zastavky);
-        var ciel = utils.safeGetLinks(currentEntry, CONFIG.fields.ciel);
+        var start = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.start);
+        var zastavky = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.stops);
+        var ciel = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.destination);
         
         utils.addDebug(currentEntry, "  🎯 Štart: " + (start && start.length > 0 ? "✓" : "✗"));
         utils.addDebug(currentEntry, "  🛑 Zastávky: " + (zastavky ? zastavky.length : 0));

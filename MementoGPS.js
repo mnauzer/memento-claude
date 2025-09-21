@@ -181,7 +181,6 @@ var MementoGPS = (function() {
             return null;
         }
         
-        var place = place[0];
         var nazov = utils.safeGet(place, config.fields.place.name, "Neznáme");
         
         core.addDebug(currentEntry, "  📍 Spracovávam miesto: " + nazov);
