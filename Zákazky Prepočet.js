@@ -204,7 +204,7 @@ function collectLinkedRecordsData() {
         utils.addDebug(currentEntry, "  🔍 Hľadám linkované záznamy...");
         
         // DOCHÁDZKA - linksFrom
-        var attendanceRecords = currentEntry.linksFrom(CONFIG.libraries.attendance, CONFIG.fields.workRecord.customer);
+        var attendanceRecords = currentEntry.linksFrom(CONFIG.libraries.attendance, CONFIG.fields.workRecord.order);
         if (attendanceRecords && attendanceRecords.length > 0) {
             data.attendance.records = attendanceRecords;
             data.attendance.totalDays = attendanceRecords.length;
@@ -223,7 +223,7 @@ function collectLinkedRecordsData() {
         utils.addDebug(currentEntry, "    • Dochádzka: " + data.attendance.records.length + " záznamov");
         
         // ZÁZNAM PRÁC - linksFrom
-        var workRecords = currentEntry.linksFrom(CONFIG.libraries.workRecords, CONFIG.fields.workRecord.customer);
+        var workRecords = currentEntry.linksFrom(CONFIG.libraries.workRecords, CONFIG.fields.workRecord.order);
         if (workRecords && workRecords.length > 0) {
             data.workRecords.records = workRecords;
             
@@ -572,11 +572,12 @@ function saveCalculatedValues(linkedData, costs, revenue, profit) {
         utils.safeSet(currentEntry, CONFIG.fields.order.transportWageCosts, linkedData.rideLog.totalWageCosts);
         
         // Výnosy a vyúčtovanie
-        utils.safeSet(currentEntry, CONFIG.fields.order.workHoursTotal, linkedData.workRecords.totalHours);
-        utils.safeSet(currentEntry, CONFIG.fields.order.workReportTotal, revenue.workRevenue);
-        utils.safeSet(currentEntry, CONFIG.fields.order.transportTotal, revenue.transportRevenue);
+        utils.safeSet(currentEntry, CONFIG.fields.order.workHZSTotal, linkedData.workRecords.totalHzsSum);
+        utils.safeSet(currentEntry, CONFIG.fields.order.workReportTotal, linkedData.workReports.totalSum);
+        utils.safeSet(currentEntry, CONFIG.fields.order.transportTotal, linkedData.rideLog.totalKm);
         utils.safeSet(currentEntry, CONFIG.fields.order.transportReportTotal, revenue.transportRevenue);
         utils.safeSet(currentEntry, CONFIG.fields.order.totalBilled, revenue.totalBilled);
+        utils.safeSet(currentEntry, CONFIG.fields.order.otherTotal, linkedData.cashBook.totalExpenses);
         
         // DPH
         if (CONFIG.settings.calculateVAT) {

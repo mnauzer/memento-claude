@@ -236,7 +236,7 @@ var MementoConfig = (function() {
                 transportHours: "Hodiny v aute", // real number, súčet hodín z knihy jázd
                 // vyúčtovanie
                  //práce
-                workHoursTotal: "Práce", // real number, súčet odpracovaných hodín zo záznamu prác
+                workHZSTotal: "Práce", // real number, súčet odpracovaných hodín zo záznamu prác
                 workReportTotal: "Výkaz prác celkom", // real number, súčet HZS z výkazu prác
                 materialTotal: "Materiál", // real number, súčet materiálu z výkazu materiálu
                 materialsReportTotal: "Výkaz materiálu celkom", // real number, súčet materiálu z výkazu materiálu  
@@ -244,6 +244,7 @@ var MementoConfig = (function() {
                 machinesReportTotal: "Výkaz strojov celkom", // real number, súčet strojov z výkazu strojov
                 transportTotal: "Doprava", // real number, súčet dopravy z výkazu dopravy
                 transportReportTotal: "Výkaz dopravy celkom", // real number, súčet dopravy z výkazu dopravy
+                otherTotal: "Iné výdavky", // real number, súčet ostatných nákladov z výkazu prác
                 totalBilled: "Suma celkom", // real number, súčet všetkých vyfakturovaných položiek z vystavených faktúr
 
 
@@ -254,7 +255,7 @@ var MementoConfig = (function() {
                 machineryCosts: "Náklady stroje", // real number, súčet nákladov na stroje z výkazu strojov
                 otherCosts: "Náklady ostatné", // real number, súčet ostatných nákladov z výkazu prác
                 totalCosts: "Náklady celkom", // real number, súčet všetkých nákladov
-                transportVat: "Odovod DPH doprava", // real number, súčet DPH na dopravu z knihy jázd
+                transportVat: "Odvod DPH doprava", // real number, súčet DPH na dopravu z knihy jázd
                 materialVat: "Odvod DPH materiál", // real number, súčet DPH na materiál z výkazu materiálu
                 workVat: "Odvod DPH práca", // real number, súčet DPH na práce z výkazu prác    
                 machineryVat: "Odvod DPH stroje", // real number, súčet DPH na stroje z výkazu strojov
@@ -296,7 +297,7 @@ var MementoConfig = (function() {
             // Záznam práce polia
             workRecord: {
                 date: "Dátum",
-                customer: "Zákazka",
+                order: "Zákazka",
                 employees: "Zamestnanci",
                 hzs: "Hodinová zúčtovacia sadzba",
                 workReport: "Výkaz prác",
