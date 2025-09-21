@@ -36,6 +36,7 @@ var CONFIG = {
         place: centralConfig.fields.place,
         rideLog: centralConfig.fields.rideLog,
         rideReport: centralConfig.fields.rideReport,
+        vehicle: centralConfig.fields.vehicle,
         start: "Štart",
         zastavky: "Zastávky",
         ciel: "Cieľ", 
@@ -403,7 +404,7 @@ var CONFIG = {
         
         try {
             // Získaj vozidlo z aktuálneho záznamu
-            var vozidloField = currentEntry.field(CONFIG.fields.vozidlo);
+            var vozidloField = currentEntry.field(CONFIG.fields.rideLog.vehicle);
             if (!vozidloField || vozidloField.length === 0) {
                 utils.addDebug(currentEntry, "  ℹ️ Žiadne vozidlo - preskakujem synchronizáciu");
                 result.success = true;
@@ -411,11 +412,11 @@ var CONFIG = {
             }
             
             var vozidlo = vozidloField[0];
-            var vozidloNazov = utils.safeGet(vozidlo, CONFIG.vozidlaFields.nazov, "N/A");
+            var vozidloNazov = utils.safeGet(vozidlo, CONFIG.fields.vehicle.name, "N/A");
             utils.addDebug(currentEntry, "  🚗 Vozidlo: " + vozidloNazov);
             
             // Získaj cieľ z aktuálneho záznamu
-            var cielField = currentEntry.field(CONFIG.fields.ciel);
+            var cielField = currentEntry.field(CONFIG.fields.ridelog.destination);
             if (!cielField || cielField.length === 0) {
                 utils.addDebug(currentEntry, "  ⚠️ Žiadny cieľ - nemôžem synchronizovať");
                 result.message = "Žiadny cieľ";
@@ -424,14 +425,14 @@ var CONFIG = {
             }
             
             var cielMiesto = cielField[0];
-            var cielNazov = utils.safeGet(cielMiesto, CONFIG.miestalFields.nazov, "N/A");
+            var cielNazov = utils.safeGet(cielMiesto, CONFIG.fields.place.name, "N/A");
             
             // Získaj aktuálne stanovište vozidla
-            var aktualneStanoviste = vozidlo.field(CONFIG.vozidlaFields.stanoviste);
+            var aktualneStanoviste = vozidlo.field(CONFIG.fields.vehicle.parkingBase);
             var aktualneStanovisteNazov = "žiadne";
             
             if (aktualneStanoviste && aktualneStanoviste.length > 0) {
-                aktualneStanovisteNazov = utils.safeGet(aktualneStanoviste[0], CONFIG.miestalFields.nazov, "N/A");
+                aktualneStanovisteNazov = utils.safeGet(aktualneStanoviste[0], CONFIG.fields.place.name "N/A");
             }
             
             utils.addDebug(currentEntry, "  📍 Aktuálne stanovište: " + aktualneStanovisteNazov);
@@ -452,7 +453,7 @@ var CONFIG = {
             
             // Aktualizuj stanovište vozidla
             try {
-                vozidlo.set(CONFIG.vozidlaFields.stanoviste, [cielMiesto]);
+                vozidlo.set(CONFIG.fields.vehicle.parkingBase, [cielMiesto]);
                 utils.addDebug(currentEntry, "  ✅ Stanovište vozidla aktualizované: " + aktualneStanovisteNazov + " → " + cielNazov);
                 
                 // Pridaj info do vozidla
@@ -502,9 +503,9 @@ var CONFIG = {
         };
         
         try {
-            var zastavky = currentEntry.field(CONFIG.fields.zastavky);
-            var existingZakazky = currentEntry.field(CONFIG.fields.zakazky) || [];
-            var datum = utils.safeGet(currentEntry, CONFIG.fields.datum, new Date());
+            var zastavky = currentEntry.field(CONFIG.fields.rideLog.stops);
+            var existingZakazky = currentEntry.field(CONFIG.fields.rideLog.orders) || [];
+            var datum = utils.safeGet(currentEntry, CONFIG.fields.rideLog.date, new Date());
             
             if (!zastavky || zastavky.length === 0) {
                 utils.addDebug(currentEntry, "  ℹ️ Žiadne zastávky - preskakujem auto-linkovanie");
@@ -524,13 +525,13 @@ var CONFIG = {
                 var zastavka = zastavky[i];
                 if (!zastavka) continue;
                 
-                var nazovMiesta = utils.safeGet(zastavka, CONFIG.miestalFields.nazov, "Neznáme");
+                var nazovMiesta = utils.safeGet(zastavka, CONFIG.fields.place.name, "Neznáme");
                 utils.addDebug(currentEntry, "\n  [" + (i + 1) + "/" + zastavky.length + "] Zastávka: " + nazovMiesta);
                 
                 // Kontrola checkbox "Zákazka"
                 var jeZakazka = false;
                 try {
-                    var checkboxValue = zastavka.field(CONFIG.miestalFields.jeZakazka);
+                    var checkboxValue = zastavka.field(CONFIG.fields.place.isOrder);
                     jeZakazka = (checkboxValue === true);
                     utils.addDebug(currentEntry, "    🔍 Checkbox 'Zákazka': " + (jeZakazka ? "✅ TRUE" : "❌ FALSE"));
                 } catch (checkboxError) {

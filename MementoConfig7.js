@@ -562,7 +562,8 @@ var MementoConfig = (function() {
                 distantce: "Vzdialenosť",
                 address: "Adresa",
                 gps: "GPS",
-                location: "Lokalita"
+                location: "Lokalita",
+                isOrder: "Je zákazka" // checkbox
             },
             // Účty (Accounts)
             account: {
