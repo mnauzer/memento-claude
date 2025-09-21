@@ -346,14 +346,14 @@ function calculateWageCosts() {
             utils.addDebug(currentEntry, "\n  [" + (i+1) + "/" + posadka.length + "] " + meno);
             
             // Získaj detaily zamestnanca s hodinovou sadzbou
-            var empDetails = utils.getEmployeeDetails(zamestnanec, datum);
+            var hourlyRate = utils.findValidSalary(currentEntry, zamestnanec, datum);
             
-            if (!empDetails || !empDetails.hourlyRate || empDetails.hourlyRate <= 0) {
+            if (!hourlyRate  || hourlyRate <= 0) {
                 utils.addError(currentEntry, "Zamestnanec " + meno + " nemá platnú sadzbu", "calculateWageCosts");
                 continue;
             }
             
-            var hodinovka = empDetails.hourlyRate;
+            var hodinovka = hourlyRate;
             var mzda = celkovyCas * hodinovka;
             
             // Nastav atribúty na zamestnancovi
