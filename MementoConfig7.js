@@ -101,7 +101,7 @@ var MementoConfig = (function() {
             // Evidencia pomocné
             workReport: "Výkaz prác",
             materialsReport: "Výkaz materiálu",
-            transportReport: "Výkaz dopravy",
+            rideReport: "Výkaz dopravy",
             machinesReport: "Výkaz strojov",
             
             priceList: "Cenník prác",
@@ -177,7 +177,7 @@ var MementoConfig = (function() {
                 vehicle: "Vozidlo",
                 driver: "Šofér",
                 crew: "Posádka",
-                customers: "Zákazky",
+                orders: "Zákazky",
                 rate: "Sadzba za km",
                 km: "Km",
                 wageCosts: "Mzdové náklady",
@@ -188,6 +188,21 @@ var MementoConfig = (function() {
                 destination: "Cieľ",
                 stops: "Zastávky",
                 trasa: ""
+
+            },
+            rideReport: {   
+                date: "Dátum",
+                state: "Stav", // singleChoice: Čakajúce, Prebieha, Ukončené, Vyúčtované, Zaplatené
+                number: "Číslo", // text unique
+                description: "Popis", // text
+                reportType: "Typ výkazu", // options: % zo zákazky, Pevná suma, Cena za km, Počet jazd x paušál
+                priceCalculation: "Ceny počítať", // singleChoice: Z cenovej ponuky, z cenníka
+                order: "Zákazka", // linkToEntry Zákazky
+                kmTotal: "Km celkom", // real number, súčet km z výkazu dopravy 
+                hoursTotal: "Hodiny celkom", // real number, súčet hodín z výkazu dopravy
+                rideCount: "Počet jázd", // integer, počet záznamov z výkazu dopravy
+                wageCostsTotal: "Mzdové náklady celkom", // real number, súčet mzdových nákladov z výkazu dopravy
+                sum: "Suma celkom", // real number
 
             },
             workPrices: {
@@ -646,7 +661,8 @@ var MementoConfig = (function() {
             rideLogStops: {
                 km: "km",
                 duration: "trvanie",
-                delay: "zdržanie"
+                delay: "zdržanie",
+                description: "popis jazdy"
             },
             // Vozidlá atribúty (v Knihe jázd)
                         
@@ -667,6 +683,14 @@ var MementoConfig = (function() {
                 duration: "trvanie",
                 delay: "zdržanie",
                 crew: "posádka"
+            },
+            rideReport: {
+                km: "km",
+                description: "popis jazdy",
+                wageCosts: "mzdové náklady",
+                rideTime: "čas jazdy",
+                stopTime: "čas na zastávkach",
+                totalTime: "celkový čas"
             }
         },
         
