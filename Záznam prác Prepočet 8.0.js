@@ -183,7 +183,7 @@ function validateInputData() {
         var startTime = utils.safeGet(currentEntry, CONFIG.fields.startTime);
         var endTime = utils.safeGet(currentEntry, CONFIG.fields.endTime);
         var employees = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.employees);
-        var customer = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.customer);
+        var customer = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.order);
         
         // Kontroly
         var missingFields = [];
@@ -913,9 +913,9 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult) {
             infoMessage += "  • Suma HZS: " + utils.formatMoney(hzsResult.sum) + "\n\n";
         }
         
-        var customer = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.customer);
-        if (customer && customer.length > 0) {
-            infoMessage += "📦 Zákazka: " + utils.safeGet(customer[0], "Názov", "N/A") + "\n";
+        var order = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.order);
+        if (order && order.length > 0) {
+            infoMessage += "📦 Zákazka: " + utils.safeGet(order[0], "Názov", "N/A") + "\n";
         }
         
         var workDescription = utils.safeGet(currentEntry, CONFIG.fields.workRecord.workDescription);
@@ -982,7 +982,7 @@ function createTelegramInfoRecord(workTimeResult, employeeResult, hzsResult) {
             telegramInfo += "• Suma HZS: <b>" + utils.formatMoney(hzsResult.sum) + "</b>\n\n";
         }
         
-        var customer = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.customer);
+        var customer = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.order);
         if (customer && customer.length > 0) {
             telegramInfo += "📦 <b>Zákazka:</b> " + utils.safeGet(customer[0], "Názov", "N/A") + "\n";
         }
