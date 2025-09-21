@@ -636,13 +636,13 @@ var CONFIG = {
         var nazov = "Bez názvu";
         
         try {
-            cislo = zakazkaEntry.field(CONFIG.fields.order.number);
+            cislo = utils.safeGet(zakazkaEntry, CONFIG.fields.order.number);
         } catch (error) {
             // Ignoruj
         }
         
         try {
-            var tempNazov = zakazkaEntry.field(CONFIG.fields.order.name);
+            var tempNazov = utils.safeGet(zakazkaEntry, CONFIG.fields.order.name);
             if (tempNazov) {
                 nazov = tempNazov;
             }
@@ -663,6 +663,7 @@ var CONFIG = {
      * Pomocná funkcia - nájde najnovšiu platnú zákazku
      */
     function najdiNajnovsieZakazku(zakazky, datumZaznamu) {
+        var currentEntry = entry();
         if (!zakazky || zakazky.length === 0) return null;
         
         if (zakazky.length === 1) return zakazky[0];
@@ -676,7 +677,7 @@ var CONFIG = {
             if (!zakazka) continue;
             
             try {
-                var datumZakazky = zakazka.field(CONFIG.fields.order.date);
+                var datumZakazky = utils.safeGet(zakazka, CONFIG.fields.order.startDate);
                 
                 // Kontrola platnosti k dátumu
                 var jePlatna = false;
@@ -690,7 +691,7 @@ var CONFIG = {
                 
                 if (jePlatna) {
                     if (!najlepsiaZakazka || 
-                        (datumZakazky && (!najnovsiDatum || datumZakazky > najnovsiDatum))) {
+                        (datumZakazky && (!najnovsiDatum || datumZakazky >= najnovsiDatum))) {
                         najlepsiaZakazka = zakazka;
                         najnovsiDatum = datumZakazky;
                     }
