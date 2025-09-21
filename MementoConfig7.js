@@ -159,7 +159,7 @@ var MementoConfig = (function() {
                 infoTelegram: "info_telegram",    // NOVÉ
                 notifications: "Notifikácie",     // NOVÉ - link field
             },
-            // Kniha jázd
+            // Kniha jázd polia
             rideLog: {
                 zastavky: "Zastávky", 
                 ciel: "Cieľ",
@@ -190,6 +190,7 @@ var MementoConfig = (function() {
                 trasa: ""
 
             },
+            // Výkaz dopravy polia
             rideReport: {   
                 date: "Dátum",
                 state: "Stav", // singleChoice: Čakajúce, Prebieha, Ukončené, Vyúčtované, Zaplatené
@@ -206,6 +207,7 @@ var MementoConfig = (function() {
                 ride: "Jazda", // linkToEntry Kniha jázd
 
             },
+            // ceny prác polia
             workPrices: {
                 work: "Práca",  // Pole ktoré odkazuje späť na HZS
                 validFrom: "Platnosť od",
@@ -221,6 +223,7 @@ var MementoConfig = (function() {
                 name: "Názov", // text
                 description: "Popis zákazky", // text
                 place: "Miesto", // linkToEntry Miesta
+                quote: "Cenová ponuka", // linkToEntry Cenové ponuky
                 date: "Dátum",    
                 startDate: "Dátum začatia",
                 endDate: "Dátum ukončenia",
@@ -233,7 +236,7 @@ var MementoConfig = (function() {
                 km: "Najazdené km", // real number, súčet km z knihy jázd
                 transportCounts: "Počet jázd", // integer, počet záznamov z knihy jázd
                 transportWageCosts: "Mzdy v aute", // real number, súčet nákladov na dopravu z knihy jázd
-                transportHours: "Hodiny v aute", // real number, súčet hodín z knihy jázd
+                transportHours: "Najazdený čas", // real number, súčet hodín z knihy jázd
                 // vyúčtovanie
                  //práce
                 workHZSTotal: "Práce", // real number, súčet odpracovaných hodín zo záznamu prác
@@ -244,7 +247,7 @@ var MementoConfig = (function() {
                 machinesReportTotal: "Výkaz strojov celkom", // real number, súčet strojov z výkazu strojov
                 transportTotal: "Doprava", // real number, súčet dopravy z výkazu dopravy
                 transportReportTotal: "Výkaz dopravy celkom", // real number, súčet dopravy z výkazu dopravy
-                otherTotal: "Iné výdavky", // real number, súčet ostatných nákladov z výkazu prác
+                otherTotal: "Subdodávky", // real number, súčet ostatných nákladov z výkazu prác
                 totalBilled: "Suma celkom", // real number, súčet všetkých vyfakturovaných položiek z vystavených faktúr
 
 
@@ -262,6 +265,28 @@ var MementoConfig = (function() {
                 otherVat: "Odvod DPH ostatné", // real number, súčet DPH na ostatné z výkazu prác
                 vatRate: "Sadzba DPH", // text, z knižnice ASISTANTO Defaults
                 telegramGroup: "Telegram skupina" // linkToEntry Telegram Groups
+            },
+            // Cenové ponuky polia
+            quote: {
+                state: "Stav", // singleChoice: Návrh, Odoslaná, Schválená, Zamietnutá, Stornovaná  
+                number: "Číslo", // text unique
+                name: "Názov", // text
+                description: "Popis cenovej ponuky", // text
+                date: "Dátum",
+                validUntil: "Platnosť do", // date
+                place: "Miesto realizácie", // linkToEntry Miesta
+                customer: "Klient", // linkToEntry Klienti
+                type: "Typ cenovej ponuky", // options: Hodinovka, Položky, Externá,
+                rideCalculation: "Účtovanie dopravy", // singleChoice: Paušál, Km, % zo zákazky, Pevná cena, Neúčtovať
+                fixRidePrice: "Pevná cena dopravy", // real number
+                rateRidePrice: "Doprava %", // real number % decimal 
+                kmRidePrice: "Cena za km", // linkToEntry Cenník prác
+                flatRateRidePrice: "Paušál dopravy", // linkToEntry Cenník prác
+                total: "Suma celkom", // real number, súčet všetkých položiek
+                priceCalculation: "Ceny počítať", // singleChoice: Z cenovej ponuky, z cenníka
+                
+                workHZS: "Hodinová zúčtovacia sadzba", // real number
+
             },
             // Dochádzka polia
             attendance: {
@@ -553,6 +578,7 @@ var MementoConfig = (function() {
                 kmDriven: "Najazdené",
                 consumptionRate: "Spotreba"
             },
+            // Miesto
             place: {
                 category: "Kategória", // singleChoice: Klient, Dodávateľ, Partner, Zamestnanec, Iné
                 active: "Aktívny", // checkbox
@@ -611,11 +637,13 @@ var MementoConfig = (function() {
                 vatRate: "sadzba DPH", // singleChoice: základná, znížená, nulová
                 vatRateValue: "DPH%"
             },
+            // sadzby DPH
             vatRates: {
                 validFrom: "Platnosť od",
                 standard: "základná",
                 reduced: "znížená"
             }, 
+            // Stroje (Mechanizácia)
             machine: {
                 type: "Typ", // singleChoice: Stroj, Technika, Ručné náradie, Príslušenstvo
                 status: "status", // options: vlastné, externé, požičovňa
