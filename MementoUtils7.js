@@ -87,7 +87,7 @@ var MementoUtils = (function() {
         loadModule('ai');
         loadModule('telegram');
         loadModule('business');
-        loadAllModules('gps')
+        loadModule('gps');
     }
     
     /**
