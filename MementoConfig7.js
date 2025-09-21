@@ -259,7 +259,7 @@ var MementoConfig = (function() {
                 workVat: "Odvod DPH práca", // real number, súčet DPH na práce z výkazu prác    
                 machineryVat: "Odvod DPH stroje", // real number, súčet DPH na stroje z výkazu strojov
                 otherVat: "Odvod DPH ostatné", // real number, súčet DPH na ostatné z výkazu prác
-
+                vatRate: "Sadzba DPH", // text, z knižnice ASISTANTO Defaults
                 telegramGroup: "Telegram skupina" // linkToEntry Telegram Groups
             },
             // Dochádzka polia
