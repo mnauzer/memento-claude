@@ -845,11 +845,11 @@ var CONFIG = {
             var rideReport = reportLib.create({});
             
             // Nastav základné polia
-            utils.safeSet(rideReport, CONFIG.field.rideReport.date, datum);
-            utils.safeSet(rideReport, CONFIG.field.rideReport.number, "VD-" + moment(datum).format("YYYYMMDD"));
-            utils.safeSet(rideReport, CONFIG.field.rideReport.description, "Výkaz dopravy - " + zakazkaName);
-            utils.safeSet(rideReport, CONFIG.field.rideReport.reportType, "% zo zákazky");
-            utils.safeSet(rideReport, CONFIG.field.rideReport.order, [zakazkaObj]);
+            utils.safeSet(rideReport, CONFIG.fields.rideReport.date, datum);
+            utils.safeSet(rideReport, CONFIG.fields.rideReport.number, "VD-" + moment(datum).format("YYYYMMDD"));
+            utils.safeSet(rideReport, CONFIG.fields.rideReport.description, "Výkaz dopravy - " + zakazkaName);
+            utils.safeSet(rideReport, CONFIG.fields.rideReport.reportType, "% zo zákazky");
+            utils.safeSet(rideReport, CONFIG.fields.rideReport.order, [zakazkaObj]);
             
             // Info záznam
             var info = "📋 AUTOMATICKY VYTVORENÝ VÝKAZ DOPRAVY\n";
@@ -878,7 +878,7 @@ var CONFIG = {
      */
     function linkCurrentRecordToReport(rideReport) {
         try {
-            var dopravaPole = rideReport.field("Doprava");
+            var dopravaPole = rideReport.field(CONFIG.fields.rideReport.ride) || [];
             if (!dopravaPole) {
                 dopravaPole = [];
             }
@@ -894,7 +894,7 @@ var CONFIG = {
             
             if (!isLinked) {
                 dopravaPole.push(currentEntry);
-                rideReport.set("Doprava", dopravaPole);
+                rideReport.set(CONFIG.fields.rideLog.ride, dopravaPole);
                 utils.addDebug(currentEntry, "  🔗 Záznam prepojený s výkazom");
             } else {
                 utils.addDebug(currentEntry, "  ✅ Záznam už je prepojený");
@@ -913,7 +913,7 @@ var CONFIG = {
      */
     function updateRideReportAttributes(rideReport, routeResult, wageResult) {
         try {
-            var dopravaPole = rideReport.field("Doprava");
+            var dopravaPole = rideReport.field(CONFIG.fields.rideReport.ride);
             if (!dopravaPole || dopravaPole.length === 0) return;
             
             // Nájdi index aktuálneho záznamu
@@ -931,7 +931,7 @@ var CONFIG = {
             }
             
             // Nastav atribúty
-            var popisJazdy = utils.safeGet(currentEntry, "Popis jazdy", "");
+            var popisJazdy = utils.safeGet(currentEntry, CONFIG.fields.rideLog.rideDescription, "");
             var km = routeResult.totalKm;
             var casJazdy = routeResult.celkovyCas;
             var mzdy = wageResult.celkoveMzdy;
@@ -961,7 +961,7 @@ var CONFIG = {
      */
     function recalculateRideReportTotals(rideReport) {
         try {
-            var dopravaPole = rideReport.field("Doprava");
+            var dopravaPole = rideReport.field(CONFIG.fields.rideReport.ride);
             if (!dopravaPole) return;
             
             var totalKm = 0;
@@ -971,9 +971,9 @@ var CONFIG = {
             
             // Spočítaj všetky záznamy
             for (var i = 0; i < dopravaPole.length; i++) {
-                var km = dopravaPole[i].attr("km") || 0;
-                var cas = dopravaPole[i].attr("čas jazdy") || 0;
-                var mzdy = dopravaPole[i].attr("mzdové náklady") || 0;
+                var km = dopravaPole[i].attr(CONFIG.attributes.rideReport.km) || 0;
+                var cas = dopravaPole[i].attr(CONFIG.attributes.rideReport.rideTime) || 0;
+                var mzdy = dopravaPole[i].attr(CONFIG.attributes.rideReport.wageCosts) || 0;
                 
                 totalKm += km;
                 totalHours += cas;

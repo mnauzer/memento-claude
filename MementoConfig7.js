@@ -203,6 +203,7 @@ var MementoConfig = (function() {
                 rideCount: "Počet jázd", // integer, počet záznamov z výkazu dopravy
                 wageCostsTotal: "Mzdové náklady celkom", // real number, súčet mzdových nákladov z výkazu dopravy
                 sum: "Suma celkom", // real number
+                ride: "Jazda", // linkToEntry Kniha jázd
 
             },
             workPrices: {
