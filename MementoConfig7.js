@@ -195,8 +195,57 @@ var MementoConfig = (function() {
                 validFrom: "Platnosť od",
                 price: "Cena"
             },
+            // Zákazky polia
             orders: {
-                telegramGroup: "Telegram skupina"
+                state: "Stav", // singleChoice: Čakajúca, Čakjaúca (klient), Prebieha, Ukončená
+                paymentState: "Stav platby", // singleChoice: Nevyúčtovaná, Čiastočne vyúčtovaná, Vyúčtovaná, Zaplatená, Stornovaná
+                orderCalculationType: "Typ zákazky", // options: Hodinovka, Položky, Externá, Reklamácia
+                orderWorkType: "Typ práce (výber)", // singleChoice: Realizácia, Údržba, Servis AZS, Iné
+                number: "Číslo", // text unique
+                name: "Názov", // text
+                description: "Popis zákazky", // text
+                place: "Miesto", // linkToEntry Miesta
+                date: "Dátum",    
+                startDate: "Dátum začatia",
+                endDate: "Dátum ukončenia",
+                budget: "Rozpočet", // real number
+                spent: "Spotrebované", // real number
+                remaining: "Zostatok", // real number, budget - spent
+                daysCount: "Počet dní", // integer, endDate - startDate
+                hoursCount: "Odpracovaných hodín", // real number, súčet odpracovaných hodín z dennej dochádzky
+                wageCosts: "Mzdy", // real number, súčet mzdových nákladov z dennej dochádzky
+                km: "Najazdené km", // real number, súčet km z knihy jázd
+                transportCounts: "Počet jázd", // integer, počet záznamov z knihy jázd
+                transportWageCosts: "Mzdy v aute", // real number, súčet nákladov na dopravu z knihy jázd
+                transportHours: "Hodiny v aute", // real number, súčet hodín z knihy jázd
+                // vyúčtovanie
+                 //práce
+                workHoursTotal: "Práce", // real number, súčet odpracovaných hodín zo záznamu prác
+                workReportTotal: "Výkaz prác celkom", // real number, súčet HZS z výkazu prác
+                materialTotal: "Materiál", // real number, súčet materiálu z výkazu materiálu
+                materialsReportTotal: "Výkaz materiálu celkom", // real number, súčet materiálu z výkazu materiálu  
+                machineryTotal: "Stroje", // real number, súčet strojov z výkazu strojov
+                machinesReportTotal: "Výkaz strojov celkom", // real number, súčet strojov z výkazu strojov
+                transportTotal: "Doprava", // real number, súčet dopravy z výkazu dopravy
+                transportReportTotal: "Výkaz dopravy celkom", // real number, súčet dopravy z výkazu dopravy
+                otherCosts: "Ostatné náklady", // real number, súčet ostatných nákladov z výkazu prác
+                totalBilled: "Suma celkom", // real number, súčet všetkých vyfakturovaných položiek z vystavených faktúr
+
+
+                // náklady
+                transportCosts: "Náklady doprava", // real number, súčet nákladov na dopravu z knihy jázd
+                materialCosts: "Náklady materiál", // real number, súčet nákladov na materiál z výkazu materiálu
+                workCosts: "Náklady práce", // real number, súčet nákladov na práce z výkazu prác
+                machineryCosts: "Náklady stroje", // real number, súčet nákladov na stroje z výkazu strojov
+                otherCosts: "Náklady ostatné", // real number, súčet ostatných nákladov z výkazu prác
+                totalCosts: "Náklady celkom", // real number, súčet všetkých nákladov
+                transportVat: "Odovod DPH doprava", // real number, súčet DPH na dopravu z knihy jázd
+                materialVat: "Odvod DPH materiál", // real number, súčet DPH na materiál z výkazu materiálu
+                workVat: "Odvod DPH práca", // real number, súčet DPH na práce z výkazu prác    
+                machineryVat: "Odvod DPH stroje", // real number, súčet DPH na stroje z výkazu strojov
+                otherVat: "Odvod DPH ostatné", // real number, súčet DPH na ostatné z výkazu prác
+
+                telegramGroup: "Telegram skupina" // linkToEntry Telegram Groups
             },
             // Dochádzka polia
             attendance: {

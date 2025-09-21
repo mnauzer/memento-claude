@@ -29,7 +29,9 @@ var MementoUtils = (function() {
         core: null,
         ai: null,
         telegram: null,
-        business: null
+        business: null,
+        gps: null
+
     };
     
     /**
@@ -67,6 +69,12 @@ var MementoUtils = (function() {
                     modules.business = MementoBusiness;
                 }
                 break;
+
+            case 'gps':
+                if (!modules.gps && typeof MementoGPS !== 'undefined') {
+                    modules.gps = MementoGPS;
+                }
+                break;
         }
     }
     
@@ -79,6 +87,7 @@ var MementoUtils = (function() {
         loadModule('ai');
         loadModule('telegram');
         loadModule('business');
+        loadAllModules('gps')
     }
     
     /**
@@ -261,6 +270,18 @@ var MementoUtils = (function() {
         findValidWorkPrice: lazyCall('business', 'findValidWorkPrice'),
         findValidItemPrice: lazyCall('business', 'findValidItemPrice'),
         processEmployees: lazyCall('business', 'processEmployees'),
+
+        // === GPS FUNKCIE (ak je modul dostupný) ===
+        calculateOSRMRoute: lazyCall('gps', 'calculateOSRMRoute'),
+        calculateSegment: lazyCall('gps', 'calculateSegment'),
+        calculateAirDistance: lazyCall('gps', 'calculateAirDistance'),
+        calculateTotalRoute: lazyCall('gps', 'calculateTotalRoute'),
+        extractGPSFromPlace: lazyCall('gps', 'extractGPSFromPlace'),    
+        toRadians: lazyCall('gps', 'toRadians'),
+        
+        
+        // === CORE - FARBY (ak je modul dostupný) ===
+
         
         // Funkcie pre farby
         setColor: lazyCall('core', 'setColor'),

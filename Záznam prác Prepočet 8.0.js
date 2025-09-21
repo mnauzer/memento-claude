@@ -51,7 +51,7 @@ var CONFIG = {
     
     // Lokálne nastavenia
     settings: {
-        roundToQuarterHour: false,
+        roundToQuarterHour: true,
         defaultCurrency: "€"
     },
     
