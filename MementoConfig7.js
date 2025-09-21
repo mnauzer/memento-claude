@@ -639,6 +639,16 @@ var MementoConfig = (function() {
                 billedRate: "účtovaná sadzba",
                 totalPrice: "cena celkom"
             },
+            rideLogCrew: {
+                hourlyRate: "hodinovka",
+                wage: "mzda",
+            },
+            rideLogStops: {
+                km: "km",
+                duration: "trvanie",
+                delay: "zdržanie"
+            },
+            // Vozidlá atribúty (v Knihe jázd)
                         
             // HZS atribúty
             hzs: {

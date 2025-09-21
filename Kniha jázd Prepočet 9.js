@@ -50,11 +50,8 @@ var CONFIG = {
     
     // Atribúty
     attributes: {
-        trvanie: "trvanie",
-        zdrzanie: "zdržanie",  
-        km: "km",
-        hodinovka: "hodinovka",
-        dennaMzda: "denná mzda"
+        rideLogCrew: centralConfig.attributes.rideLogCrew,
+        ridelLogStops: centralConfig.attributes.rideLogStops,
     },
     
     // Knižnice
@@ -181,15 +178,15 @@ function calculateRoute() {
                     
                     // Nastav atribúty zastávky
                     try {
-                        zastavky[j].setAttr(CONFIG.attributes.km, Math.round(segment.km * 10) / 10);
-                        zastavky[j].setAttr(CONFIG.attributes.trvanie, segment.trvanie);
+                        zastavky[j].setAttr(CONFIG.attributes.rideLogStops.km, Math.round(segment.km * 10) / 10);
+                        zastavky[j].setAttr(CONFIG.attributes.rideLogStops.duration, segment.trvanie);
                         
                         // Nastav zdržanie ak nie je nastavené
-                        var existingZdrzanie = zastavky[j].attr(CONFIG.attributes.zdrzanie);
+                        var existingZdrzanie = zastavky[j].attr(CONFIG.attributes.rideLogStops.delay);
                         var zdrz = 0;
                         
                         if (!existingZdrzanie || existingZdrzanie === 0) {
-                            zastavky[j].setAttr(CONFIG.attributes.zdrzanie, defaultZdrzanie);
+                            zastavky[j].setAttr(CONFIG.attributes.rideLogStops.delay, defaultZdrzanie);
                             zdrz = defaultZdrzanie;
                             utils.addDebug(currentEntry, "    ⏱️ Nastavené default zdržanie: " + defaultZdrzanie + " h");
                         } else {
@@ -358,8 +355,8 @@ function calculateWageCosts() {
             
             // Nastav atribúty na zamestnancovi
             try {
-                posadka[i].setAttr(CONFIG.attributes.hodinovka, hodinovka);
-                posadka[i].setAttr(CONFIG.attributes.dennaMzda, Math.round(mzda * 100) / 100);
+                posadka[i].setAttr(CONFIG.attributes.rideLogCrew.hourlyRate, hodinovka);
+                posadka[i].setAttr(CONFIG.attributes.rideLogCrew.wage, Math.round(mzda * 100) / 100);
             } catch (attrError) {
                 utils.addDebug(currentEntry, "    ⚠️ Nepodarilo sa nastaviť atribúty: " + attrError);
             }
