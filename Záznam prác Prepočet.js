@@ -613,7 +613,6 @@ function processHZS(workedHours) {
 function processMachines() {
     try {
         var machineryField = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.machinery);
-        utils.addDebug(currentEntry, "  🔍 Debug Mechanizácie: " + (machineryField ? "dĺžka=" + machineryField.length + ", typ=" + typeof machineryField : "null"));
         var usedMachines = {
             success: false,
             count: machineryField ? machineryField.length : 0,

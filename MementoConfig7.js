@@ -14,7 +14,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.2",
+        version: "7.0.5",
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -246,32 +246,42 @@ var MementoConfig = (function() {
                 transportCounts: "Počet jázd", // integer, počet záznamov z knihy jázd
                 transportWageCosts: "Mzdy v aute", // real number, súčet nákladov na dopravu z knihy jázd
                 transportHours: "Najazdený čas", // real number, súčet hodín z knihy jázd
-                // vyúčtovanie
-                 //práce
-                workHZSTotal: "Práce", // real number, súčet odpracovaných hodín zo záznamu prác
-                workReportTotal: "Výkaz prác celkom", // real number, súčet HZS z výkazu prác
-                materialTotal: "Materiál", // real number, súčet materiálu z výkazu materiálu
-                materialsReportTotal: "Výkaz materiálu celkom", // real number, súčet materiálu z výkazu materiálu  
-                machineryTotal: "Stroje", // real number, súčet strojov z výkazu strojov
-                machinesReportTotal: "Výkaz strojov celkom", // real number, súčet strojov z výkazu strojov
-                transportTotal: "Doprava", // real number, súčet dopravy z výkazu dopravy
-                transportReportTotal: "Výkaz dopravy celkom", // real number, súčet dopravy z výkazu dopravy
-                otherTotal: "Subdodávky", // real number, súčet ostatných nákladov z výkazu prác
-                totalBilled: "Suma celkom", // real number, súčet všetkých vyfakturovaných položiek z vystavených faktúr
+                // VÝNOSY - Fakturácia zákazníkovi
+                revenueWork: "Práce", // real number, fakturované práce bez DPH
+                revenueWorkVat: "DPH práce", // real number, DPH z prác
+                revenueMaterial: "Materiál", // real number, fakturovaný materiál bez DPH
+                revenueMaterialVat: "DPH materiál", // real number, DPH z materiálu
+                revenueMachinery: "Stroje", // real number, fakturované stroje bez DPH
+                revenueMachineryVat: "DPH stroje", // real number, DPH zo strojov
+                revenueTransport: "Doprava", // real number, fakturovaná doprava bez DPH
+                revenueTransportVat: "DPH doprava", // real number, DPH z dopravy
+                revenueSubcontractors: "Subdodávky", // real number, fakturované subdodávky bez DPH
+                revenueSubcontractorsVat: "DPH subdodávky", // real number, DPH zo subdodávok
+                revenueOther: "Ostatné", // real number, ostatné fakturované položky bez DPH
+                revenueOtherVat: "DPH ostatné", // real number, DPH z ostatných položiek
+                revenueTotal: "Suma celkom", // real number, celková fakturovaná suma bez DPH
+                revenueTotalVat: "DPH celkom", // real number, celkové DPH
 
+                // NÁKLADY - Naše náklady a odvody
+                costWork: "Náklady práce", // real number, naše náklady na práce
+                costWorkVatDeduction: "Odpočet DPH práce", // real number, odpočet DPH z nákladov na práce
+                costMaterial: "Náklady materiál", // real number, naše náklady na materiál
+                costMaterialVatDeduction: "Odpočet DPH materiál", // real number, odpočet DPH z materiálu
+                costMachinery: "Náklady stroje", // real number, naše náklady na stroje
+                costMachineryVatDeduction: "Odpočet DPH stroje", // real number, odpočet DPH zo strojov
+                costTransport: "Náklady doprava", // real number, naše náklady na dopravu
+                costTransportVatDeduction: "Odpočet DPH doprava", // real number, odpočet DPH z dopravy
+                costSubcontractors: "Náklady subdodávky", // real number, naše náklady na subdodávky
+                costSubcontractorsVatDeduction: "Odpočet DPH subdodávky", // real number, odpočet DPH zo subdodávok
+                costOther: "Náklady ostatné", // real number, ostatné náklady
+                costOtherVatDeduction: "Odpočet DPH ostatné", // real number, odpočet DPH z ostatných nákladov
+                costTotal: "Náklady celkom", // real number, celkové náklady
+                otherExpenses: "Iné výdavky", // real number, dodatočné výdavky
 
-                // náklady
-                transportCosts: "Náklady doprava", // real number, súčet nákladov na dopravu z knihy jázd
-                materialCosts: "Náklady materiál", // real number, súčet nákladov na materiál z výkazu materiálu
-                workCosts: "Náklady práce", // real number, súčet nákladov na práce z výkazu prác
-                machineryCosts: "Náklady stroje", // real number, súčet nákladov na stroje z výkazu strojov
-                otherCosts: "Náklady ostatné", // real number, súčet ostatných nákladov z výkazu prác
-                totalCosts: "Náklady celkom", // real number, súčet všetkých nákladov
-                transportVat: "Odvod DPH doprava", // real number, súčet DPH na dopravu z knihy jázd
-                materialVat: "Odvod DPH materiál", // real number, súčet DPH na materiál z výkazu materiálu
-                workVat: "Odvod DPH práca", // real number, súčet DPH na práce z výkazu prác    
-                machineryVat: "Odvod DPH stroje", // real number, súčet DPH na stroje z výkazu strojov
-                otherVat: "Odvod DPH ostatné", // real number, súčet DPH na ostatné z výkazu prác
+                // PRIRÁŽKY - Percentuálne prirážky na náklady
+                subcontractorMarkup: "Prirážka subdodávky", // real number, percentuálna prirážka na subdodávky
+                otherMarkup: "Prirážka ostatné", // real number, percentuálna prirážka na ostatné náklady
+
                 vatRate: "Sadzba DPH", // text, z knižnice ASISTANTO Defaults
                 telegramGroup: "Telegram skupina" // linkToEntry Telegram Groups
             },
@@ -590,7 +600,8 @@ var MementoConfig = (function() {
                 parkingBase: "Stanovište", // linkToEntry Miesta, default miesto kde parkuje vozidlo
                 odometerValue: "Stav tachometra",
                 kmDriven: "Najazdené",
-                consumptionRate: "Spotreba"
+                consumptionRate: "Spotreba",
+                costRate: "Nákladová cena" // real number, nákladová cena za km
             },
             // Miesto
             place: {

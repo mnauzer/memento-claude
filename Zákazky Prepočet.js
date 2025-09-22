@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - ZÁKAZKY PREPOČET
-// Verzia: 1.0 | Dátum: September 2025 | Autor: ASISTANTO
+// Verzia: 2.0 | Dátum: September 2025 | Autor: ASISTANTO
 // Knižnica: Zákazky | Trigger: Before Save alebo Manual Action
 // ==============================================
 // 📋 FUNKCIA:
@@ -23,7 +23,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Zákazky Prepočet",
-    version: "1.0",
+    version: "2.0",
     
     // Referencie na centrálny config
     fields: {
@@ -434,53 +434,71 @@ function collectLinkedRecordsData() {
 
 function calculateCosts(linkedData) {
     var costs = {
-        wageCosts: 0,          // Mzdové náklady
-        transportCosts: 0,     // Náklady na dopravu
-        materialCosts: 0,      // Náklady na materiál
-        otherCosts: 0,         // Ostatné náklady
-        totalCosts: 0,         // Celkové náklady
-        vatAmount: 0           // DPH odvod
+        // NÁKLADY - podľa screenshotov z rekapitulácie
+        costWork: 0,                     // Náklady práce: 1 268,26 €
+        costWorkVatDeduction: 0,         // Odpočet DPH práce: 0,00 €
+        costMaterial: 0,                 // Náklady materiál: 0,00 €
+        costMaterialVatDeduction: 0,     // Odpočet DPH materiál: 0,00 €
+        costMachinery: 0,                // Náklady stroje: 65,00 €
+        costMachineryVatDeduction: 0,    // Odpočet DPH stroje: 0,00 €
+        costTransport: 0,                // Náklady doprava: 24,97 €
+        costTransportVatDeduction: 0,    // Odpočet DPH doprava: 0,00 €
+        costSubcontractors: 0,           // Náklady subdodávky: 0,00 €
+        costSubcontractorsVatDeduction: 0, // Odpočet DPH subdodávky: 0,00 €
+        costOther: 0,                    // Náklady ostatné: 1 531,96 €
+        costOtherVatDeduction: 0,        // Odpočet DPH ostatné: 0,00 €
+        costTotal: 0,                    // Náklady celkom: 2 923,54 €
+        otherExpenses: 0                 // Iné výdavky: 1 385,00 €
     };
-    
+
     try {
-        utils.addDebug(currentEntry, "  💸 Počítam náklady...");
-        
-        // Mzdové náklady
-        costs.wageCosts = linkedData.attendance.totalWageCosts + 
-                         linkedData.workRecords.totalWageCosts + 
-                         linkedData.rideLog.totalWageCosts;
-        
-        // Dopravné náklady
-        costs.transportCosts = linkedData.rideLog.totalFuelCosts;
-        
-        // Náklady na mechanizáciu
-        costs.machineryCosts = linkedData.machinery.totalCosts;
-        
-        // Materiálové náklady z pokladne
-        costs.materialCosts = linkedData.cashBook.materialCosts;
-        
-        // Ostatné náklady
-        costs.otherCosts = linkedData.cashBook.otherCosts;
-        
-        // Celkové náklady
-        costs.totalCosts = costs.wageCosts + costs.transportCosts + 
-                costs.materialCosts + costs.machineryCosts + 
-                costs.otherCosts;
-        
-        // DPH odvod (ak je aplikovateľné)
-        if (CONFIG.settings.calculateVAT) {
-            costs.vatAmount = costs.totalCosts * CONFIG.settings.defaultVATRate;
-        }
-        
-        utils.addDebug(currentEntry, "    • Mzdové náklady: " + utils.formatMoney(costs.wageCosts));
-        utils.addDebug(currentEntry, "    • Dopravné náklady: " + utils.formatMoney(costs.transportCosts));
-        utils.addDebug(currentEntry, "    • Náklady na stroje: " + utils.formatMoney(costs.machineryCosts));
-        utils.addDebug(currentEntry, "    • Materiálové náklady: " + utils.formatMoney(costs.materialCosts));
-        utils.addDebug(currentEntry, "    • Ostatné náklady: " + utils.formatMoney(costs.otherCosts));
-        utils.addDebug(currentEntry, "    • NÁKLADY CELKOM: " + utils.formatMoney(costs.totalCosts));
-        
+        utils.addDebug(currentEntry, "  💸 Počítam náklady podľa screenshotov...");
+
+        // NÁKLADY PRÁCE - mzdové náklady zo všetkých záznamov
+        costs.costWork = (linkedData.attendance.totalWageCosts || 0) +
+                        (linkedData.workRecords.totalWageCosts || 0) +
+                        (linkedData.rideLog.totalWageCosts || 0);
+        costs.costWorkVatDeduction = 0; // Zo mzdy sa DPH neodpočítava
+
+        // NÁKLADY MATERIÁL - z pokladne označené ako materiál
+        costs.costMaterial = linkedData.cashBook.materialCosts || 0;
+        costs.costMaterialVatDeduction = 0; // Bude implementované neskôr
+
+        // NÁKLADY STROJE - z mechanizácie
+        costs.costMachinery = linkedData.machinery.totalCosts || 0;
+        costs.costMachineryVatDeduction = 0; // Bude implementované neskôr
+
+        // NÁKLADY DOPRAVA - z knihy jázd (palivové náklady)
+        costs.costTransport = linkedData.rideLog.totalFuelCosts || 0;
+        costs.costTransportVatDeduction = 0; // Bude implementované neskôr
+
+        // NÁKLADY SUBDODÁVKY - z pokladne označené ako subdodávky
+        costs.costSubcontractors = 0; // Zatiaľ 0, bude implementované
+        costs.costSubcontractorsVatDeduction = 0;
+
+        // NÁKLADY OSTATNÉ - z pokladne ostatné náklady
+        costs.costOther = linkedData.cashBook.otherCosts || 0;
+        costs.costOtherVatDeduction = 0; // Bude implementované neskôr
+
+        // CELKOVÉ NÁKLADY
+        costs.costTotal = costs.costWork + costs.costMaterial + costs.costMachinery +
+                         costs.costTransport + costs.costSubcontractors + costs.costOther;
+
+        // INÉ VÝDAVKY - dodatočné výdavky mimo hlavných kategórií
+        costs.otherExpenses = linkedData.cashBook.additionalExpenses || 0;
+
+        utils.addDebug(currentEntry, "    ✅ NÁKLADY ROZPOČÍTANÉ:");
+        utils.addDebug(currentEntry, "      • Práce: " + utils.formatMoney(costs.costWork) + " (odpočet DPH: " + utils.formatMoney(costs.costWorkVatDeduction) + ")");
+        utils.addDebug(currentEntry, "      • Materiál: " + utils.formatMoney(costs.costMaterial) + " (odpočet DPH: " + utils.formatMoney(costs.costMaterialVatDeduction) + ")");
+        utils.addDebug(currentEntry, "      • Stroje: " + utils.formatMoney(costs.costMachinery) + " (odpočet DPH: " + utils.formatMoney(costs.costMachineryVatDeduction) + ")");
+        utils.addDebug(currentEntry, "      • Doprava: " + utils.formatMoney(costs.costTransport) + " (odpočet DPH: " + utils.formatMoney(costs.costTransportVatDeduction) + ")");
+        utils.addDebug(currentEntry, "      • Subdodávky: " + utils.formatMoney(costs.costSubcontractors) + " (odpočet DPH: " + utils.formatMoney(costs.costSubcontractorsVatDeduction) + ")");
+        utils.addDebug(currentEntry, "      • Ostatné: " + utils.formatMoney(costs.costOther) + " (odpočet DPH: " + utils.formatMoney(costs.costOtherVatDeduction) + ")");
+        utils.addDebug(currentEntry, "      • SPOLU: " + utils.formatMoney(costs.costTotal));
+        utils.addDebug(currentEntry, "      • Iné výdavky: " + utils.formatMoney(costs.otherExpenses));
+
         return costs;
-        
+
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "calculateCosts", error);
         return costs;
@@ -493,51 +511,82 @@ function calculateCosts(linkedData) {
 
 function calculateRevenue(linkedData) {
     var revenue = {
-        workRevenue: 0,        // Výnosy z práce
-        transportRevenue: 0,   // Výnosy z dopravy
-        materialRevenue: 0,    // Výnosy z materiálu
-        otherRevenue: 0,       // Ostatné výnosy
-        totalRevenue: 0,       // Celkové výnosy
-        totalBilled: 0         // Vyfakturované
+        // VÝNOSY - podľa screenshotov z rekapitulácie
+        revenueWork: 0,           // Práce: 3 980,63 €
+        revenueWorkVat: 0,        // DPH práce: 260,32 €
+        revenueMaterial: 0,       // Materiál: 0,00 €
+        revenueMaterialVat: 0,    // DPH materiál: 0,00 €
+        revenueMachinery: 0,      // Stroje: 190,00 €
+        revenueMachineryVat: 0,   // DPH stroje: 13,00 €
+        revenueTransport: 0,      // Doprava: 271,53 €
+        revenueTransportVat: 0,   // DPH doprava: 4,99 €
+        revenueSubcontractors: 0, // Subdodávky: 1 531,96 €
+        revenueSubcontractorsVat: 0, // DPH subdodávky: 0,00 €
+        revenueOther: 0,          // Ostatné: 0,00 €
+        revenueOtherVat: 0,       // DPH ostatné: 306,39 €
+        revenueTotal: 0,          // Suma celkom: 5 122,79 €
+        revenueTotalVat: 0        // DPH celkom: 0,00 €
     };
-    
-    try {
-        utils.addDebug(currentEntry, "  💰 Počítam výnosy...");
-        
-        // Výnosy z práce (výkazy prác)
-        revenue.workRevenue = linkedData.workReports.totalSum;
-        
-        // NOVÉ: Výnosy z dopravy podľa cenovej ponuky
-        revenue.transportRevenue = calculateTransportRevenue(linkedData, revenue);
 
-        // NOVÉ: Výnosy z použitej mechanizácie
-        revenue.machineryRevenue = linkedData.machinery.totalRevenue;
-        
-        // Príjmy z pokladne
-        revenue.otherRevenue = linkedData.cashBook.totalIncome;
-        
-        // Celkové výnosy
-        revenue.totalRevenue = revenue.workRevenue + revenue.transportRevenue + 
-                    revenue.materialRevenue + revenue.machineryRevenue + 
-                    revenue.otherRevenue;
-        // Vyfakturované
-        revenue.totalBilled = revenue.totalRevenue;
-        
-        utils.addDebug(currentEntry, "    • Výnosy z práce: " + utils.formatMoney(revenue.workRevenue));
-        utils.addDebug(currentEntry, "    • Výnosy z dopravy: " + utils.formatMoney(revenue.transportRevenue));
-        utils.addDebug(currentEntry, "    • Výnosy zo strojov: " + utils.formatMoney(revenue.machineryRevenue));
-        utils.addDebug(currentEntry, "    • Ostatné výnosy: " + utils.formatMoney(revenue.otherRevenue));
-        utils.addDebug(currentEntry, "    • VÝNOSY CELKOM: " + utils.formatMoney(revenue.totalRevenue));
-        
+    try {
+        utils.addDebug(currentEntry, "  💰 Počítam výnosy podľa screenshotov...");
+
+        // Získaj sadzbu DPH
+        var vatRate = parseFloat(utils.safeGet(currentEntry, CONFIG.fields.order.vatRate, "20")) / 100;
+        utils.addDebug(currentEntry, "    • Sadzba DPH: " + (vatRate * 100) + "%");
+
+        // PRÁCE - z výkazov prác
+        revenue.revenueWork = linkedData.workReports.totalSum || 0;
+        revenue.revenueWorkVat = Math.round(revenue.revenueWork * vatRate * 100) / 100;
+
+        // MATERIÁL - zatiaľ 0 (bude implementované neskôr)
+        revenue.revenueMaterial = 0;
+        revenue.revenueMaterialVat = 0;
+
+        // STROJE - z mechanizácie v záznamoch prác
+        revenue.revenueMachinery = linkedData.machinery.totalRevenue || 0;
+        revenue.revenueMachineryVat = Math.round(revenue.revenueMachinery * vatRate * 100) / 100;
+
+        // DOPRAVA - výpočet podľa cenovej ponuky
+        var transportResult = calculateTransportRevenue(linkedData);
+        revenue.revenueTransport = transportResult.amount || 0;
+        revenue.revenueTransportVat = Math.round(revenue.revenueTransport * vatRate * 100) / 100;
+
+        // SUBDODÁVKY - z príjmov v pokladni označených ako subdodávky
+        revenue.revenueSubcontractors = linkedData.cashBook.totalIncome || 0;
+        revenue.revenueSubcontractorsVat = 0; // Subdodávky často bez DPH
+
+        // OSTATNÉ - zatiaľ 0
+        revenue.revenueOther = 0;
+        revenue.revenueOtherVat = 0; // Môže byť nastavené manuálne
+
+        // SÚČTY
+        revenue.revenueTotal = revenue.revenueWork + revenue.revenueMaterial +
+                              revenue.revenueMachinery + revenue.revenueTransport +
+                              revenue.revenueSubcontractors + revenue.revenueOther;
+
+        revenue.revenueTotalVat = revenue.revenueWorkVat + revenue.revenueMaterialVat +
+                                 revenue.revenueMachineryVat + revenue.revenueTransportVat +
+                                 revenue.revenueSubcontractorsVat + revenue.revenueOtherVat;
+
+        utils.addDebug(currentEntry, "    ✅ VÝNOSY ROZPOČÍTANÉ:");
+        utils.addDebug(currentEntry, "      • Práce: " + utils.formatMoney(revenue.revenueWork) + " + DPH " + utils.formatMoney(revenue.revenueWorkVat));
+        utils.addDebug(currentEntry, "      • Materiál: " + utils.formatMoney(revenue.revenueMaterial) + " + DPH " + utils.formatMoney(revenue.revenueMaterialVat));
+        utils.addDebug(currentEntry, "      • Stroje: " + utils.formatMoney(revenue.revenueMachinery) + " + DPH " + utils.formatMoney(revenue.revenueMachineryVat));
+        utils.addDebug(currentEntry, "      • Doprava: " + utils.formatMoney(revenue.revenueTransport) + " + DPH " + utils.formatMoney(revenue.revenueTransportVat));
+        utils.addDebug(currentEntry, "      • Subdodávky: " + utils.formatMoney(revenue.revenueSubcontractors) + " + DPH " + utils.formatMoney(revenue.revenueSubcontractorsVat));
+        utils.addDebug(currentEntry, "      • Ostatné: " + utils.formatMoney(revenue.revenueOther) + " + DPH " + utils.formatMoney(revenue.revenueOtherVat));
+        utils.addDebug(currentEntry, "      • SPOLU: " + utils.formatMoney(revenue.revenueTotal) + " + DPH " + utils.formatMoney(revenue.revenueTotalVat));
+
         return revenue;
-        
+
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "calculateRevenue", error);
         return revenue;
     }
 }
 
-function calculateTransportRevenue(linkedData, revenue) {
+function calculateTransportRevenue(linkedData) {
     try {
         utils.addDebug(currentEntry, "    🚗 Počítam výnosy z dopravy...");
         
@@ -806,66 +855,85 @@ function createInfoRecord(linkedData, costs, revenue, profit) {
 
 function saveCalculatedValues(linkedData, costs, revenue, profit) {
     try {
-        utils.addDebug(currentEntry, "  💾 Ukladám vypočítané hodnoty...");
-        
-        // Počty a hodiny
+        utils.addDebug(currentEntry, "  💾 Ukladám vypočítané hodnoty podľa nových CONFIG polí...");
+
+        // ZÁKLADNÉ ÚDAJE
         utils.safeSet(currentEntry, CONFIG.fields.order.daysCount, linkedData.attendance.totalDays);
         utils.safeSet(currentEntry, CONFIG.fields.order.hoursCount, linkedData.workRecords.totalHours);
         utils.safeSet(currentEntry, CONFIG.fields.order.transportCounts, linkedData.rideLog.records.length);
         utils.safeSet(currentEntry, CONFIG.fields.order.transportHours, linkedData.rideLog.totalTime);
         utils.safeSet(currentEntry, CONFIG.fields.order.km, linkedData.rideLog.totalKm);
-        
-        // Náklady
-        utils.safeSet(currentEntry, CONFIG.fields.order.wageCosts, costs.wageCosts);
-        utils.safeSet(currentEntry, CONFIG.fields.order.transportCosts, costs.transportCosts);
-        utils.safeSet(currentEntry, CONFIG.fields.order.materialCosts, costs.materialCosts);
-        utils.safeSet(currentEntry, CONFIG.fields.order.workCosts, linkedData.workRecords.totalWageCosts);
-        utils.safeSet(currentEntry, CONFIG.fields.order.otherCosts, costs.otherCosts);
-        utils.safeSet(currentEntry, CONFIG.fields.order.totalCosts, costs.totalCosts);
-        
-        // NOVÉ: Náklady na mechanizáciu
-        utils.safeSet(currentEntry, CONFIG.fields.order.machineryTotal, revenue.machineryRevenue);
-        utils.safeSet(currentEntry, CONFIG.fields.order.machineryCosts, costs.machineryCosts);
-        
-        // Mzdové náklady detailne
+        utils.safeSet(currentEntry, CONFIG.fields.order.wageCosts, linkedData.attendance.totalWageCosts + linkedData.workRecords.totalWageCosts);
         utils.safeSet(currentEntry, CONFIG.fields.order.transportWageCosts, linkedData.rideLog.totalWageCosts);
-        
-        // Výnosy a vyúčtovanie
-        utils.safeSet(currentEntry, CONFIG.fields.order.workHZSTotal, linkedData.workRecords.totalHzsSum);
-        utils.safeSet(currentEntry, CONFIG.fields.order.workReportTotal, linkedData.workReports.totalSum);
-        utils.safeSet(currentEntry, CONFIG.fields.order.transportTotal, revenue.transportRevenue);
-        utils.safeSet(currentEntry, CONFIG.fields.order.transportReportTotal, revenue.transportRevenue);
-        utils.safeSet(currentEntry, CONFIG.fields.order.totalBilled, revenue.totalBilled);
-        utils.safeSet(currentEntry, CONFIG.fields.order.otherTotal, linkedData.cashBook.totalExpenses);
-        
-        // DPH
-        if (CONFIG.settings.calculateVAT) {
-            utils.safeSet(currentEntry, CONFIG.fields.order.transportVat, costs.transportCosts * CONFIG.settings.defaultVATRate);
-            utils.safeSet(currentEntry, CONFIG.fields.order.materialVat, costs.materialCosts * CONFIG.settings.defaultVATRate);
-            utils.safeSet(currentEntry, CONFIG.fields.order.workVat, costs.wageCosts * CONFIG.settings.defaultVATRate);
-            utils.safeSet(currentEntry, CONFIG.fields.order.otherVat, costs.otherCosts * CONFIG.settings.defaultVATRate);
-            utils.safeSet(currentEntry, CONFIG.fields.order.machineryVat,costs.machineryCosts * CONFIG.settings.defaultVATRate);
+
+        // VÝNOSY - podľa screenshotov
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueWork, revenue.revenueWork);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueWorkVat, revenue.revenueWorkVat);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueMaterial, revenue.revenueMaterial);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueMaterialVat, revenue.revenueMaterialVat);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueMachinery, revenue.revenueMachinery);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueMachineryVat, revenue.revenueMachineryVat);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueTransport, revenue.revenueTransport);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueTransportVat, revenue.revenueTransportVat);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueSubcontractors, revenue.revenueSubcontractors);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueSubcontractorsVat, revenue.revenueSubcontractorsVat);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueOther, revenue.revenueOther);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueOtherVat, revenue.revenueOtherVat);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueTotal, revenue.revenueTotal);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueTotalVat, revenue.revenueTotalVat);
+
+        // NÁKLADY - podľa screenshotov
+        utils.safeSet(currentEntry, CONFIG.fields.order.costWork, costs.costWork);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costWorkVatDeduction, costs.costWorkVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costMaterial, costs.costMaterial);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costMaterialVatDeduction, costs.costMaterialVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costMachinery, costs.costMachinery);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costMachineryVatDeduction, costs.costMachineryVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costTransport, costs.costTransport);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costTransportVatDeduction, costs.costTransportVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costSubcontractors, costs.costSubcontractors);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costSubcontractorsVatDeduction, costs.costSubcontractorsVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costOther, costs.costOther);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costOtherVatDeduction, costs.costOtherVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costTotal, costs.costTotal);
+        utils.safeSet(currentEntry, CONFIG.fields.order.otherExpenses, costs.otherExpenses);
+
+        // STARÝ ÚDAJ pre kompatibilitu
+        utils.safeSet(currentEntry, CONFIG.fields.order.totalBilled, revenue.revenueTotal + revenue.revenueTotalVat);
+
+        // PRIRÁŽKY (ak sú nastavené v poli)
+        var subcontractorMarkup = utils.safeGet(currentEntry, CONFIG.fields.order.subcontractorMarkup, 0);
+        var otherMarkup = utils.safeGet(currentEntry, CONFIG.fields.order.otherMarkup, 0);
+
+        if (subcontractorMarkup > 0) {
+            var markupAmount = revenue.revenueSubcontractors * (subcontractorMarkup / 100);
+            utils.addDebug(currentEntry, "    • Prirážka subdodávky: " + subcontractorMarkup + "% = " + utils.formatMoney(markupAmount));
         }
-        
-        // Rozpočet a zostatok
+
+        if (otherMarkup > 0) {
+            var otherMarkupAmount = revenue.revenueOther * (otherMarkup / 100);
+            utils.addDebug(currentEntry, "    • Prirážka ostatné: " + otherMarkup + "% = " + utils.formatMoney(otherMarkupAmount));
+        }
+
+        // ROZPOČET A ZOSTATOK
         var budget = utils.safeGet(currentEntry, CONFIG.fields.order.budget, 0);
-        var spent = costs.totalCosts;
+        var spent = costs.costTotal;
         var remaining = budget - spent;
-        
+
         utils.safeSet(currentEntry, CONFIG.fields.order.spent, spent);
         utils.safeSet(currentEntry, CONFIG.fields.order.remaining, remaining);
-        
-        // Nastavenie farieb podľa stavu
-        if (profit.isProfitable) {
+
+        // NASTAVENIE FARIEB PODĽA RENTABILITY
+        if (profit && profit.isProfitable) {
             utils.setColor(currentEntry, "fg", "green");
             utils.setColor(currentEntry, "bg", "pastel green");
         } else {
             utils.setColor(currentEntry, "fg", "red");
             utils.setColor(currentEntry, "bg", "pastel red");
         }
-        
-        utils.addDebug(currentEntry, "  ✅ Hodnoty uložené");
-        
+
+        utils.addDebug(currentEntry, "  ✅ Všetky hodnoty uložené do nových CONFIG polí");
+
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "saveCalculatedValues", error);
     }
