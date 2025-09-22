@@ -675,7 +675,7 @@ function processMachines() {
 
                 var totalPrice = 0;
 
-                if (!hasMachinePrice || hasMachinePrice === 0) {
+                if (!hasMachinePrice || hasMachinePrice == 0) {
                     // vypočítaj sumu za tento stroj
                   
                     if (calculationType === "mth") {
