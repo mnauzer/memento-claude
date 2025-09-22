@@ -616,7 +616,7 @@ function processMachines() {
                 var machine = machineryField[i];
                 var machineName = utils.safeGet(machine, CONFIG.fields.machine.name, "Neznámy stroj") 
                 + " " + utils.safeGet(machine, CONFIG.fields.machine.description, "");
-                utils.addDebug(currentEntry, "  " + utils.getIcon("heavy_machine") + " Spracovanie stroja: " + machineName);
+                utils.addDebug(currentEntry, " 🚜 Spracovanie stroja: " + machineName);
                 machineName = machineName.trim();
                 // Získaj platnú cenu z histórie
                 var currentDate = utils.safeGet(currentEntry, CONFIG.fields.workRecord.date);
