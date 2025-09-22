@@ -629,39 +629,44 @@ function processMachines() {
                     utils.addDebug(currentEntry, "  ✅ Nastavený atribút mth: " + machinePrice.priceMth + " €");
                     utils.addDebug(currentEntry, "  ✅ Nastavený atribút paušál: " + machinePrice.flatRate + " €");
                     // vypočítaj sumu za tento stroj
-                    var calculationType = utils.safeGet(machine, CONFIG.attributes.workRecordMachines.calculationType, "mth");
-                    message("Typ výpočtu: " + calculationType);
+                    var calculationType = utils.safeGet(machine, CONFIG.attributes.workRecordMachines.calculationType);
                     var totalPrice = 0;
+                    var usedMth = utils.safeGetAttribute(machine, CONFIG.attributes.workRecordMachines.usedMth, 1);
                     if (calculationType === "mth") {
-                        var usedMth = utils.safeGetAttribute(machine, CONFIG.attributes.workRecordMachines.usedMth, 1);
+                        utils.addDebug(currentEntry, "  ⚠️ Účtujem motohodiny: " + usedMth + " mth" + " × " + machinePrice.priceMth + " €/mth");
+                        utils.safeSetAttribute(machine, CONFIG.attributes.workRecordMachines.usedMth, usedMth);
                         totalPrice = machinePrice.priceMth * usedMth;
                     } else if (calculationType === "paušál") {
+                        utils.addDebug(currentEntry, "  ⚠️ Účtujem paušál: " + machinePrice.flatRate + " €");
                         totalPrice = machinePrice.flatRate;
                     } else { 
-                        utils.addDebug(currentEntry, "  ⚠️ Neznámy typ výpočtu: " + calculationType + ", predpokladám 'mth'");
+                        utils.addDebug(currentEntry, "  ⚠️ Nezadaný typ účtovania: " + calculationType + ", počítam 'mth'");
+                        utils.safeSetAttribute(machine, CONFIG.attributes.workRecordMachines.calculationType, "mth");
                         totalPrice = machinePrice.priceMth * usedMth;
                     }
-                    
-                    usedMachines.sum += totalPrice;
-                    usedMachines.count += 1;
-                    usedMachines.machines.push({
-                        machine: {
-                            name: machineName,
-                            id: machine.id,
-                            usedMth: usedMth,
-                            calculationType: calculationType,
-                            priceMth: machinePrice.priceMth,
-                            flatRate: machinePrice.flatRate,
-                            totalPrice: totalPrice
-                        }
-                    }),
                     utils.safeSetAttribute(machine, CONFIG.attributes.workRecordMachines.totalPrice, totalPrice);
                     utils.addDebug(currentEntry, "  ✅ Nastavený atribút účtovanej ceny: " + machinePrice.totalPrice + " €");
+                    
+                   
                 } else {
-                    utils.addDebug(currentEntry, "  ✅ Cena atríbútu ceny je už nastavená: " + hasMachinePrice + " €");
+                    utils.addDebug(currentEntry, "  ✅ Cena atribútu ceny je už nastavená: " + hasMachinePrice + " €");
                     utils.addDebug(currentEntry, "  - ak je potrebné prepočítať túto cenu, vymaž hodnotu a ulož záznam...");
                 }
-            }
+                usedMachines.sum += totalPrice;
+                usedMachines.count += 1;
+                usedMachines.machines.push({
+                    machine: {
+                        name: machineName,
+                        id: machine.id,
+                        usedMth: usedMth,
+                        calculationType: calculationType,
+                        priceMth: machinePrice.priceMth,
+                        flatRate: machinePrice.flatRate,
+                        totalPrice: totalPrice
+                    }
+                });
+                usedMachines.success = true;
+                utils.addDebug(currentEntry, "  • Cena za stroje: " + totalPrice + " €");    
         }
         
         // Vypočítaj sumu
