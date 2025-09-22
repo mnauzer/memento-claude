@@ -28,6 +28,7 @@ var CONFIG = {
     // Referencie na centrálny config
     fields: {
         order: centralConfig.fields.order,
+        quote: centralConfig.fields.quote,
         attendance: centralConfig.fields.attendance,
         workRecord: centralConfig.fields.workRecord,
         rideLog: centralConfig.fields.rideLog,
