@@ -638,9 +638,6 @@ function processMachines() {
         };
         // Debug: Porovnaj rôzne spôsoby prístupu k mechanizáciám
         var machineryArray = currentEntry.field(CONFIG.fields.workRecord.machinery);
-        utils.addDebug(currentEntry, "  🔍 currentEntry.field(): " + (machineryArray ? "dĺžka=" + machineryArray.length : "null"));
-        utils.addDebug(currentEntry, "  🔍 safeGetLinks(): " + (machineryField ? "dĺžka=" + machineryField.length : "null"));
-        utils.addDebug(currentEntry, "  🔍 Sú to tie isté objekty? " + (machineryArray === machineryField));
 
         if (machineryField && machineryField.length > 0) {
             for (var i = 0; i < machineryField.length; i++) {
@@ -654,69 +651,33 @@ function processMachines() {
                 var currentDate = utils.safeGet(currentEntry, CONFIG.fields.workRecord.date);
                 machinePrice = utils.findValidMachinePrice(machine, currentDate);
 
-                // Kontrola či sa našla platná cena
-                if (!machinePrice) {
-                    utils.addDebug(currentEntry, "  ⚠️ Funkcia findValidMachinePrice vrátila null pre stroj: " + machineName);
-                    machinePrice = { priceMth: 0, flatRate: 0 };
-                } else if (machinePrice.priceMth === 0 && machinePrice.flatRate === 0) {
-                    utils.addDebug(currentEntry, "  ⚠️ Nájdené ceny sú nulové pre stroj: " + machineName);
-                } else {
-                    utils.addDebug(currentEntry, "  ✅ Nájdené platné ceny pre stroj: " + machineName);
-                    utils.addDebug(currentEntry, "    • Cena mth: " + machinePrice.priceMth + " €");
-                    utils.addDebug(currentEntry, "    • Paušál: " + machinePrice.flatRate + " €");
-                }
-
                 // Pracuj s atribútmi priamo na machine objekte (ako v processHZS)
                 var hasMachinePrice = 0;
                 var calculationType = null;
                 var usedMth = 1;
-
+                
                 // Čítaj atribúty z currentEntry objektu (správny prístup)
                 if (machineryArray && machineryArray.length > i && machineryArray[i]) {
                     try {
-                        utils.addDebug(currentEntry, "  🔍 Čítam atribúty z currentEntry mechanizácie[" + i + "] (ako processEmployees)...");
-
+                        
                         hasMachinePrice = machineryArray[i].attr(CONFIG.machinesAttributes.totalPrice) || 0;
-                        utils.addDebug(currentEntry, "    ✅ totalPrice prečítané: " + hasMachinePrice);
-
                         calculationType = machineryArray[i].attr(CONFIG.machinesAttributes.calculationType);
-                        utils.addDebug(currentEntry, "    ✅ calculationType prečítané: " + calculationType);
-
                         // Ak je calculationType null, nastav default hodnotu
                         if (!calculationType || calculationType === null) {
                             calculationType = "mth"; // default hodnota
                             utils.addDebug(currentEntry, "    ⚠️ calculationType bol null, nastavujem default: mth");
                         }
-
                         usedMth = machineryArray[i].attr(CONFIG.machinesAttributes.usedMth) || 1;
-                        utils.addDebug(currentEntry, "    ✅ usedMth prečítané: " + usedMth);
                     } catch (error) {
                         utils.addError(currentEntry, "Chyba pri čítaní atribútov z currentEntry: " + error.toString(), "processMachines");
                     }
-                } else {
-                    utils.addDebug(currentEntry, "  ⚠️ Mechanizácia[" + i + "] neexistuje v currentEntry.field()");
-                    utils.addDebug(currentEntry, "    • machineryArray existuje: " + (machineryArray !== null));
-                    utils.addDebug(currentEntry, "    • machineryArray.length: " + (machineryArray ? machineryArray.length : "null"));
-                    utils.addDebug(currentEntry, "    • index i: " + i);
-                }
+                }            
 
-                utils.addDebug(currentEntry, "  🔍 Debug atribúty pred úpravou:");
-                utils.addDebug(currentEntry, "    • machine ID: " + (machine.field ? machine.field("ID") : "N/A"));
-                utils.addDebug(currentEntry, "    • hasMachinePrice: " + hasMachinePrice);
-                utils.addDebug(currentEntry, "    • calculationType: " + calculationType);
-                utils.addDebug(currentEntry, "    • usedMth: " + usedMth);
-;
                 var totalPrice = 0;
 
                 if (!hasMachinePrice || hasMachinePrice === 0) {
                     // vypočítaj sumu za tento stroj
-                    utils.addDebug(currentEntry, "  🔍 Kontrolujem typ účtovania:");
-                    utils.addDebug(currentEntry, "    • calculationType: '" + calculationType + "'");
-                    utils.addDebug(currentEntry, "    • typeof: " + typeof calculationType);
-                    utils.addDebug(currentEntry, "    • === 'mth': " + (calculationType === "mth"));
-                    utils.addDebug(currentEntry, "    • === 'paušál': " + (calculationType === "paušál"));
-                    utils.addDebug(currentEntry, "    • Budem počítať podľa: " + calculationType);
-
+                  
                     if (calculationType === "mth") {
                         utils.addDebug(currentEntry, "  • Účtujem motohodiny: " + usedMth + " mth" + " × " + machinePrice.priceMth + " €/mth");
                         machineryArray[i].setAttr( CONFIG.machinesAttributes.usedMth, usedMth);
@@ -725,7 +686,7 @@ function processMachines() {
                         
                     } else if (calculationType === "paušál") {
                         utils.addDebug(currentEntry, "  • Účtujem paušál: " + machinePrice.flatRate + " €");
-                        machineryArray[i].setAttr( CONFIG.machinesAttributes.flatRate, machinePrice.flatRate);
+                        //machineryArray[i].setAttr( CONFIG.machinesAttributes.flatRate, machinePrice.flatRate);
                         totalPrice = machinePrice.flatRate;
                     } else {
                         utils.addDebug(currentEntry, "  ⚠️ Nezadaný typ účtovania: '" + calculationType + "', nastavujem 'mth'");
@@ -735,46 +696,12 @@ function processMachines() {
                         totalPrice = machinePrice.priceMth * usedMth;
                     }
 
-                    // Nastav atribúty pomocou utils.safeSetAttribute (ako processEmployees)
-                    if (machineryArray && machineryArray.length > i && machineryArray[i]) {
-                        utils.addDebug(currentEntry, "  🔧 Nastavujem atribúty pomocou utils.safeSetAttribute...");
-
-                        //utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.calculationType, calculationType);
-                        //machineryArray[i].setAttr( CONFIG.machinesAttributes.calculationType, calculationType);
-                        utils.addDebug(currentEntry, "    ✅ calculationType nastavené");
-
-                        //utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.priceMth, machinePrice.priceMth);
-                        utils.addDebug(currentEntry, "    ✅ priceMth nastavené");
-
-                        //utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.flatRate, machinePrice.flatRate);
-                        utils.addDebug(currentEntry, "    ✅ flatRate nastavené");
-
-                        //utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.usedMth, usedMth);
-                        utils.addDebug(currentEntry, "    ✅ usedMth nastavené");
-
-                        //utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.totalPrice, totalPrice);
+                 
 
                         machineryArray[i].setAttr( CONFIG.machinesAttributes.totalPrice, totalPrice);
                         utils.addDebug(currentEntry, "    ✅ totalPrice nastavené");
-                    } else {
-                        utils.addError(currentEntry, "Nepodarilo sa získať mechanizáciu[" + i + "] z currentEntry", "processMachines");
-                    }
+                 
 
-                    utils.addDebug(currentEntry, "  ✅ Nastavené atribúty mechanizácie:");
-                    utils.addDebug(currentEntry, "    • Typ účtovania: " + calculationType);
-                    utils.addDebug(currentEntry, "    • Cena mth: " + machinePrice.priceMth + " €");
-                    utils.addDebug(currentEntry, "    • Paušál: " + machinePrice.flatRate + " €");
-                    utils.addDebug(currentEntry, "    • Použité mth: " + usedMth);
-                    utils.addDebug(currentEntry, "    • Celková cena: " + totalPrice + " €");
-
-                    // Overenie či sa atribúty skutočne nastavili
-                    if (machineryArray && machineryArray.length > i && machineryArray[i]) {
-                        utils.addDebug(currentEntry, "  🔍 Debug atribúty po úprave:");
-                        utils.addDebug(currentEntry, "    • attr(totalPrice): " + machineryArray[i].attr(CONFIG.machinesAttributes.totalPrice));
-                        utils.addDebug(currentEntry, "    • attr(calculationType): " + machineryArray[i].attr(CONFIG.machinesAttributes.calculationType));
-                        utils.addDebug(currentEntry, "    • attr(priceMth): " + machineryArray[i].attr(CONFIG.machinesAttributes.priceMth));
-                        utils.addDebug(currentEntry, "    • attr(usedMth): " + machineryArray[i].attr(CONFIG.machinesAttributes.usedMth));
-                    }
                 } else {
                     utils.addDebug(currentEntry, "  ✅ Cena atribútu ceny je už nastavená: " + hasMachinePrice + " €");
                     utils.addDebug(currentEntry, "  • ak je potrebné prepočítať túto cenu, vymaž hodnotu a ulož záznam...");
