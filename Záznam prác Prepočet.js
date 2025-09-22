@@ -614,34 +614,34 @@ function processMachines() {
         if (machineryField && machineryField.length > 0) {
             for (var i = 0; i < machineryField.length; i++) {
                 var machine = machineryField[i];
-                var machineName = utils.safeGet(machine, CONFIG.fields.machine.name, "Neznámy stroj");
+                var machineName = utils.safeGet(machine, CONFIG.fields.machine.name, "Neznámy stroj") 
+                + " " + utils.safeGet(machine, CONFIG.fields.machine.description, "");
                 utils.addDebug(currentEntry, "  " + utils.getIcon("heavy_machine") + " Spracovanie stroja: " + machineName);
-
+                machineName = machineName.trim();
                 // Získaj platnú cenu z histórie
                 var currentDate = utils.safeGet(currentEntry, CONFIG.fields.workRecord.date);
                 machinePrice = utils.findValidMachinePrice(machine, currentDate);
                 
                 var hasMachinePrice = machine.attr(CONFIG.attributes.workRecordMachines.totalPrice); 
 
-                if (!hasMachinePrice) {
-                    machine.setAttr(CONFIG.attributes.workRecordMachines.priceMth, machinePrice.priceMth);
-                    machine.setAttr(CONFIG.attributes.workRecordMachines.flatRate, machinePrice.flatRate);
-                    
-                    utils.addDebug(currentEntry, "  • Nastavený atribút mth: " + machinePrice.priceMth + " €");
-                    utils.addDebug(currentEntry, "  • Nastavený atribút paušál: " + machinePrice.flatRate + " €");
+                if (!hasMachinePrice) {                    
                     // vypočítaj sumu za tento stroj
                     var calculationType = machine.attr(CONFIG.attributes.workRecordMachines.calculationType);
                     message("Typ účtovania stroja " + machineName + ": " + calculationType);
                     var totalPrice = 0;
                     message("Cena stroja " + machineName + ": " + machinePrice.priceMth + " €/mth, paušál: " + machinePrice.flatRate + " €");
-
+                    
                     var usedMth = machine.attr(CONFIG.attributes.workRecordMachines.usedMth);
                     if (calculationType === "mth") {
                         utils.addDebug(currentEntry, "  • Účtujem motohodiny: " + usedMth + " mth" + " × " + machinePrice.priceMth + " €/mth");
+                        machine.setAttr(CONFIG.attributes.workRecordMachines.priceMth, machinePrice.priceMth);
+                        utils.addDebug(currentEntry, "  • Nastavený atribút mth: " + machinePrice.priceMth + " €");
                         machine.setAttr(CONFIG.attributes.workRecordMachines.usedMth, usedMth || 1);
                         totalPrice = machinePrice.priceMth * usedMth;
                     } else if (calculationType === "paušál") {
                         utils.addDebug(currentEntry, "  • Účtujem paušál: " + machinePrice.flatRate + " €");
+                        machine.setAttr(CONFIG.attributes.workRecordMachines.flatRate, machinePrice.flatRate);
+                        utils.addDebug(currentEntry, "  • Nastavený atribút paušál: " + machinePrice.flatRate + " €");
                         totalPrice = machinePrice.flatRate;
                     } else { 
                         utils.addDebug(currentEntry, "  ⚠️ Nezadaný typ účtovania: " + calculationType + ", počítam 'mth'");
@@ -671,17 +671,17 @@ function processMachines() {
                 });
                 usedMachines.success = true;
                 utils.addDebug(currentEntry, "  • Cena za stroje: " + totalPrice + " €");    
-        }
-        
-        // Vypočítaj sumu
-        utils.safeSet(currentEntry, CONFIG.fields.workRecord.machinesSum, usedMachines.total);
-        
-        utils.addDebug(currentEntry, "  " + utils.getIcon("rate") + " Suma za stroje: " + usedMachines.total + "€");
-        utils.addDebug(currentEntry, "  " + utils.getIcon("machine_use") + " Použítých strojov: " + usedMachines.count);
-        
-        return usedMachines;
-                
-    } 
+            }
+            
+            // Vypočítaj sumu
+            utils.safeSet(currentEntry, CONFIG.fields.workRecord.machinesSum, usedMachines.total);
+            
+            utils.addDebug(currentEntry, "  " + utils.getIcon("rate") + " Suma za stroje: " + usedMachines.total + "€");
+            utils.addDebug(currentEntry, "  " + utils.getIcon("machine_use") + " Použítých strojov: " + usedMachines.count);
+            
+            return usedMachines;
+                    
+        } 
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "processMachines", error);
         return usedMachines;
