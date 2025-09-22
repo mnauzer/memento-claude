@@ -558,15 +558,14 @@ function processHZS(workedHours) {
         if (hzsField && hzsField.length > 0) {
             var hzsRecord = hzsField[0]; // Prvý HZS záznam
             var currentDate = utils.safeGet(currentEntry, CONFIG.fields.workRecord.date);
-            message(hzsRecord.field("Názov"))
+            
             // Získaj platnú cenu z histórie
             hzsPrice = utils.findValidWorkPrice(hzsRecord, currentDate);
             
             // Nastav cenu ako atribút na HZS poli
             var hasHzsPrice = utils.safeGetAttribute(hzsRecord, CONFIG.attributes.workRecordHzs.price); 
-            message(hasHzsPrice);
             if (!hasHzsPrice) {
-                utils.safeSetAttribute(hzsField, CONFIG.attributes.workRecordHzs.price, hzsPrice);
+                utils.safeSetAttribute(hzsRecord, CONFIG.attributes.workRecordHzs.price, hzsPrice);
                 utils.addDebug(currentEntry, "  ✅ Cena nastavená ako atribút: " + hzsPrice + " €");
             } else {
                 utils.addDebug(currentEntry, "  ✅ Cena hzs už nastavená: " + hasHzsPrice + " €");
@@ -617,21 +616,21 @@ function processMachines() {
 
                 // Získaj platnú cenu z histórie
                 var currentDate = utils.safeGet(currentEntry, CONFIG.fields.workRecord.date);
-                machineUsePrice = utils.findValidMachinePrice(machineRecord, currentDate);
+                machineUsePrice = utils.findValidMachinePrice(machine, currentDate);
                 
                 // Nastav cenu ako atribút na HZS poli
-                var hasMachineUsePrice = utils.safeGetAttribute(machineRecord, CONFIG.attributes.workRecordMachines.totalPrice); 
+                var hasMachineUsePrice = utils.safeGetAttribute(machine, CONFIG.attributes.workRecordMachines.totalPrice); 
 
                 if (!hasMachineUsePrice) {
-                    utils.safeSetAttribute(machineryField, CONFIG.attributes.workRecordMachines.priceMth, machineUsePrice.priceMth);
-                    utils.safeSetAttribute(machineryField, CONFIG.attributes.workRecordMachines.flatRate, machineUsePrice.flatRate);
+                    utils.safeSetAttribute(machine, CONFIG.attributes.workRecordMachines.priceMth, machineUsePrice.priceMth);
+                    utils.safeSetAttribute(machine, CONFIG.attributes.workRecordMachines.flatRate, machineUsePrice.flatRate);
                     
                     utils.addDebug(currentEntry, "  ✅ Cena nastavená ako atribút: " + machineUsePrice + " €");
                     // vypočítaj sumu za tento stroj
-                    var calculationType = utils.safeGet(machineRecord, CONFIG.attributes.workRecordMachines.calculationType, "mth");
+                    var calculationType = utils.safeGet(machine, CONFIG.attributes.workRecordMachines.calculationType, "mth");
                     var totalPrice = 0;
                     if (calculationType === "mth") {
-                        var usedMth = utils.safeGetAttribute(machineryField, CONFIG.attributes.workRecordMachines.usedMth, 0);
+                        var usedMth = utils.safeGetAttribute(machine, CONFIG.attributes.workRecordMachines.usedMth, 0);
                         totalPrice = machineUsePrice.priceMth * usedMth;
                     } else if (calculationType === "paušál") {
                         totalPrice = machineUsePrice.flatRate;
@@ -653,7 +652,7 @@ function processMachines() {
                             totalPrice: totalPrice
                         }
                     }),
-                    utils.safeSetAttribute(machineryField, CONFIG.attributes.workRecordMachines.totalPrice, totalPrice);
+                    utils.safeSetAttribute(machine, CONFIG.attributes.workRecordMachines.totalPrice, totalPrice);
                 } else {
                     utils.addDebug(currentEntry, "  ✅ Cena použitie stroja už nastavená: " + hasMachineUsePrice + " €");
                 }
