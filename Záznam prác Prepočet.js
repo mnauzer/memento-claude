@@ -21,7 +21,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Záznam prác Prepočet",
-    version: "8.1.5",
+    version: "8.1.6",
     
     // Referencie na centrálny config
     fields: {
