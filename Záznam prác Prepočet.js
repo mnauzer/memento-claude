@@ -722,6 +722,7 @@ function processMachines() {
                     if (calculationType === "mth") {
                         utils.addDebug(currentEntry, "  • Účtujem motohodiny: " + usedMth + " mth" + " × " + machinePrice.priceMth + " €/mth");
                         totalPrice = machinePrice.priceMth * usedMth;
+
                     } else if (calculationType === "paušál") {
                         utils.addDebug(currentEntry, "  • Účtujem paušál: " + machinePrice.flatRate + " €");
                         totalPrice = machinePrice.flatRate;
@@ -740,7 +741,7 @@ function processMachines() {
                         utils.addDebug(currentEntry, "    ✅ calculationType nastavené");
 
                         //utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.priceMth, machinePrice.priceMth);
-                        machineryArray[i].setAttr( CONFIG.machinesAttributes.priceMth, priceMth);
+                        machineryArray[i].setAttr( CONFIG.machinesAttributes.priceMth, machinePrice.priceMth);
                         utils.addDebug(currentEntry, "    ✅ priceMth nastavené");
 
                         //utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.flatRate, machinePrice.flatRate);
