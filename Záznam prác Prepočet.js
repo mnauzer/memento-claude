@@ -566,9 +566,10 @@ function processHZS(workedHours) {
             var hasHzsPrice = utils.safeGetAttribute(hzsRecord, CONFIG.attributes.workRecordHzs.price); 
             if (!hasHzsPrice) {
                 utils.safeSetAttribute(hzsRecord, CONFIG.attributes.workRecordHzs.price, hzsPrice);
-                utils.addDebug(currentEntry, "  ✅ Cena nastavená ako atribút: " + hzsPrice + " €");
+                utils.addDebug(currentEntry, "  ✅ Nastavený atribút ceny HZS: " + hzsPrice + " €");
             } else {
-                utils.addDebug(currentEntry, "  ✅ Cena hzs už nastavená: " + hasHzsPrice + " €");
+                utils.addDebug(currentEntry, "  ✅ Atribút ceny hzs už nastavený: " + hasHzsPrice + " €");
+                utils.addDebug(currentEntry, "  - ak je potrebné prepočítať túto cenu, vymaž hodnotu a ulož záznam...");
             }
         }
         
@@ -629,6 +630,7 @@ function processMachines() {
                     utils.addDebug(currentEntry, "  ✅ Nastavený atribút paušál: " + machinePrice.flatRate + " €");
                     // vypočítaj sumu za tento stroj
                     var calculationType = utils.safeGet(machine, CONFIG.attributes.workRecordMachines.calculationType, "mth");
+                    message("Typ výpočtu: " + calculationType);
                     var totalPrice = 0;
                     if (calculationType === "mth") {
                         var usedMth = utils.safeGetAttribute(machine, CONFIG.attributes.workRecordMachines.usedMth, 1);
@@ -654,7 +656,7 @@ function processMachines() {
                         }
                     }),
                     utils.safeSetAttribute(machine, CONFIG.attributes.workRecordMachines.totalPrice, totalPrice);
-                    utils.addDebug(currentEntry, "  ✅ Nastavený atribút ceny: " + machinePrice.totalPrice + " €");
+                    utils.addDebug(currentEntry, "  ✅ Nastavený atribút účtovanej ceny: " + machinePrice.totalPrice + " €");
                 } else {
                     utils.addDebug(currentEntry, "  ✅ Cena atríbútu ceny je už nastavená: " + hasMachinePrice + " €");
                     utils.addDebug(currentEntry, "  - ak je potrebné prepočítať túto cenu, vymaž hodnotu a ulož záznam...");
