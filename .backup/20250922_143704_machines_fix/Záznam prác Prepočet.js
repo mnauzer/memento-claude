@@ -505,20 +505,14 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
     }
 }
 
-function calculateTotals(employeeResult, hzsResult, machinesResult) {
+function calculateTotals(employeeResult, hzsResult) {
     try {
         // Ulož celkové hodnoty
         utils.safeSet(currentEntry, CONFIG.fields.workRecord.employeeCount, employeeResult.pocetPracovnikov);
         utils.safeSet(currentEntry, CONFIG.fields.workRecord.workedHours, employeeResult.odpracovaneTotal);
         utils.safeSet(currentEntry, CONFIG.fields.workRecord.wageCosts, employeeResult.celkoveMzdy);
         utils.safeSet(currentEntry, CONFIG.fields.workRecord.hzsSum, hzsResult.sum);
-
-        // Ulož sumu strojov ak existuje
-        if (machinesResult && machinesResult.total) {
-            utils.safeSet(currentEntry, CONFIG.fields.workRecord.machinesSum, machinesResult.total);
-            utils.addDebug(currentEntry, "  • Suma strojov: " + utils.formatMoney(machinesResult.total));
-        }
-
+        
         utils.addDebug(currentEntry, "  • Počet zamestnancov: " + employeeResult.pocetPracovnikov);
         utils.addDebug(currentEntry, "  • Pracovná doba: " + employeeResult.pracovnaDoba + " hodín");
         utils.addDebug(currentEntry, "  • Odpracované spolu: " + employeeResult.odpracovaneTotal + " hodín");
@@ -527,9 +521,9 @@ function calculateTotals(employeeResult, hzsResult, machinesResult) {
         utils.addDebug(currentEntry, "  • Suma HZS: " + utils.formatMoney(hzsResult.sum));
 
         utils.addDebug(currentEntry, " Celkové výpočty úspešné", "success");
-
+        
         return true;
-
+        
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "calculateTotals", error);
         return false;
@@ -654,7 +648,7 @@ function processMachines() {
                         totalPrice = machinePrice.priceMth * usedMth;
                     }
                     machine.setAttr(CONFIG.attributes.workRecordMachines.totalPrice, totalPrice);
-                    utils.addDebug(currentEntry, "  ✅ Nastavený atribút účtovanej ceny: " + totalPrice + " €");
+                    utils.addDebug(currentEntry, "  ✅ Nastavený atribút účtovanej ceny: " + machinePrice.totalPrice + " €");
                     
                    
                 } else {
@@ -678,13 +672,12 @@ function processMachines() {
                 utils.addDebug(currentEntry, "  • Cena za stroje: " + totalPrice + " €");    
             }
             
-            // Vypočítaj sumu a ulož do poľa
+            // Vypočítaj sumu
             utils.safeSet(currentEntry, CONFIG.fields.workRecord.machinesSum, usedMachines.total);
-            utils.addDebug(currentEntry, "  ✅ Uložená suma strojov do poľa: " + usedMachines.total + " €");
-
+            
             utils.addDebug(currentEntry, "  " + utils.getIcon("rate") + " Suma za stroje: " + usedMachines.total + "€");
             utils.addDebug(currentEntry, "  " + utils.getIcon("machine_use") + " Použítých strojov: " + usedMachines.count);
-
+            
             return usedMachines;
                     
         } 
