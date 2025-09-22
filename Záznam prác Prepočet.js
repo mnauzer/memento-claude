@@ -751,9 +751,9 @@ function processMachines() {
                         //machineryArray[i].setAttr( CONFIG.machinesAttributes.usedMth, usedMth);
                         utils.addDebug(currentEntry, "    ✅ usedMth nastavené");
 
-                        //utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.totalPrice, totalPrice);
+                        utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.totalPrice, totalPrice);
 
-                        machineryArray[i].setAttr( CONFIG.machinesAttributes.totalPrice, totalPrice);
+                        //machineryArray[i].setAttr( CONFIG.machinesAttributes.totalPrice, totalPrice);
                         utils.addDebug(currentEntry, "    ✅ totalPrice nastavené");
                     } else {
                         utils.addError(currentEntry, "Nepodarilo sa získať mechanizáciu[" + i + "] z currentEntry", "processMachines");
