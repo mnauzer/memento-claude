@@ -736,19 +736,19 @@ function processMachines() {
                         utils.addDebug(currentEntry, "  🔧 Nastavujem atribúty pomocou utils.safeSetAttribute...");
 
                         //utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.calculationType, calculationType);
-                        machineryArray[i].setAttr( CONFIG.machinesAttributes.calculationType, calculationType);
+                        //machineryArray[i].setAttr( CONFIG.machinesAttributes.calculationType, calculationType);
                         utils.addDebug(currentEntry, "    ✅ calculationType nastavené");
 
                         //utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.priceMth, machinePrice.priceMth);
-                        machineryArray[i].setAttr( CONFIG.machinesAttributes.priceMth, priceMth);
+                        //machineryArray[i].setAttr( CONFIG.machinesAttributes.priceMth, priceMth);
                         utils.addDebug(currentEntry, "    ✅ priceMth nastavené");
 
                         //utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.flatRate, machinePrice.flatRate);
-                        machineryArray[i].setAttr( CONFIG.machinesAttributes.flatRate, flatRate);
+                        //machineryArray[i].setAttr( CONFIG.machinesAttributes.flatRate, flatRate);
                         utils.addDebug(currentEntry, "    ✅ flatRate nastavené");
 
                         //utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.usedMth, usedMth);
-                        machineryArray[i].setAttr( CONFIG.machinesAttributes.usedMth, usedMth);
+                        //machineryArray[i].setAttr( CONFIG.machinesAttributes.usedMth, usedMth);
                         utils.addDebug(currentEntry, "    ✅ usedMth nastavené");
 
                         //utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.totalPrice, totalPrice);
