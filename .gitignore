@@ -1,0 +1,19 @@
+# Screenshots a dokumentácia
+screenshots/
+
+# Skryté adresáre a súbory
+.*/
+
+# Záložné súbory
+.backup/
+
+# Dočasné súbory
+*.tmp
+*.temp
+
+# Log súbory
+*.log
+
+# Systémové súbory
+.DS_Store
+Thumbs.db
