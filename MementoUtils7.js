@@ -269,6 +269,7 @@ var MementoUtils = (function() {
         showProcessingSummary: lazyCall('business', 'showProcessingSummary'),
         findValidWorkPrice: lazyCall('business', 'findValidWorkPrice'),
         findValidItemPrice: lazyCall('business', 'findValidItemPrice'),
+        findValidMachinePrice: lazyCall('business', 'findValidMachinePrice'),
         processEmployees: lazyCall('business', 'processEmployees'),
 
         // === GPS FUNKCIE (ak je modul dostupný) ===

@@ -111,6 +111,7 @@ var MementoConfig = (function() {
             workPrices: "ceny prác",
             materialPrices: "ceny materiálu",
             wages: "sadzby zamestnancov",
+            machinePrices: "ceny mechanizácie",
             
             // Systémové knižnice
             defaults: "ASISTANTO Defaults",
@@ -213,6 +214,14 @@ var MementoConfig = (function() {
                 validFrom: "Platnosť od",
                 price: "Cena"
             },
+            // ceny strojov polia
+            machinePrice: {
+                machine: "Mechanizácia",  // Pole ktoré odkazuje späť na Mechanizáciu
+                validFrom: "Platnosť od",
+                priceMth: "Cena mth",
+                flatRate: "Cena paušál"
+            },
+
             // Zákazky polia
             order: {
                 state: "Stav", // singleChoice: Čakajúca, Čakjaúca (klient), Prebieha, Ukončená
@@ -403,6 +412,7 @@ var MementoConfig = (function() {
             defaults: {
                 // Kniha jázd
                 defaultZdrzanie: "Default zdržanie",
+
                 // Main
                 date: "Dátum",
                 companyName: "Názov firmy",
@@ -415,7 +425,8 @@ var MementoConfig = (function() {
                 accountingYear: "Účtovný rok",
                 workTimeFrom: "Pracovný čas od",
                 workTimeTo: "Pracovný čas do",
-                defaultHzs: "Predvolená HZS",
+                // Strana záznam prác
+                defaultHzs: "Default HZS",
                 
                 // Telegram nastavenia
                 telegramEnabled: "Povoliť Telegram správy",
@@ -683,8 +694,8 @@ var MementoConfig = (function() {
             },
             workRecordMachines: {
                 calcultationType: "účtovanie", // options: paušál, mth 
-                mth: "mth", // motohodiny
-                rate: "sadzba", // cena za motohodinu - doplní sa z cenníka mechanizácie
+                usedMth: "mth", // motohodiny
+                priceMth: "sadzba", // cena za motohodinu - doplní sa z cenníka mechanizácie
                 flatRate: "paušál", // cena za celoddenné použitie stroja - doplní sa z cenníka mechanizácie
                 totalPrice: "účtovaná suma" // suma ktorá sa účtuje za použitie stroja buď podľa motohodín alebo paušálu
             },
@@ -942,6 +953,12 @@ var MementoConfig = (function() {
             parking: "🅿️",           // Parkovanie
             breakdown: "⚠️",          // Porucha (rovnaké ako warning - OK!)
 
+            machine: "🏗️",             // Stroj
+            tool: "🛠️",                // Náradie (rovnaké ako service - OK!
+            heavy_machine: "🚜",       // Ťažký stroj)
+            light_machine: "🧰",       // Ľahký stro
+            accessory: "🔩",           // Príslušenstvo
+            machine_use: "⚙️",        // Použitie stroja (rovnaké ako inProgress - OK!)
             // ═══════════════════════════════════════════════════════════════
             // POČASIE (kombinované emoji sú skvelé!)
             // ═══════════════════════════════════════════════════════════════
