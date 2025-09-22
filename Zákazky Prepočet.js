@@ -401,8 +401,8 @@ function calculateRevenue(linkedData) {
         // Výnosy z práce (výkazy prác)
         revenue.workRevenue = linkedData.workReports.totalSum;
         
-        // Výnosy z dopravy (výkazy dopravy)
-        revenue.transportRevenue = linkedData.rideReports.totalSum;
+        // NOVÉ: Výnosy z dopravy podľa cenovej ponuky
+        revenue.transportRevenue = calculateTransportRevenue(linkedData, revenue);
         
         // Príjmy z pokladne
         revenue.otherRevenue = linkedData.cashBook.totalIncome;
@@ -411,8 +411,8 @@ function calculateRevenue(linkedData) {
         revenue.totalRevenue = revenue.workRevenue + revenue.transportRevenue + 
                               revenue.materialRevenue + revenue.otherRevenue;
         
-        // Vyfakturované (TODO: pridať po implementácii faktúr)
-        revenue.totalBilled = revenue.totalRevenue; // Zatiaľ rovnaké ako výnosy
+        // Vyfakturované
+        revenue.totalBilled = revenue.totalRevenue;
         
         utils.addDebug(currentEntry, "    • Výnosy z práce: " + utils.formatMoney(revenue.workRevenue));
         utils.addDebug(currentEntry, "    • Výnosy z dopravy: " + utils.formatMoney(revenue.transportRevenue));
