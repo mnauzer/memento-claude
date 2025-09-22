@@ -519,6 +519,8 @@ var MementoBusiness = (function() {
     function findValidMachinePrice(machineEntry, date) {
         var core = getCore();
         var config = getConfig();
+        var currentEntry = entry();
+        core.addDebug(currentEntry, "  🔍 Hľadám platnú cenu mechanizácie");
         var validPrice = {
             priceMth: 0,
             flatRate: 0,
