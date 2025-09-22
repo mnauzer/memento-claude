@@ -705,10 +705,8 @@ function processMachines() {
                 utils.addDebug(currentEntry, "    • hasMachinePrice: " + hasMachinePrice);
                 utils.addDebug(currentEntry, "    • calculationType: " + calculationType);
                 utils.addDebug(currentEntry, "    • usedMth: " + usedMth);
-
-                message("Typ účtovania stroja " + machineName + ": " + calculationType);
+;
                 var totalPrice = 0;
-                message("Cena stroja " + machineName + ": " + machinePrice.priceMth + " €/mth, paušál: " + machinePrice.flatRate + " €");
 
                 if (!hasMachinePrice || hasMachinePrice === 0) {
                     // vypočítaj sumu za tento stroj
@@ -721,14 +719,19 @@ function processMachines() {
 
                     if (calculationType === "mth") {
                         utils.addDebug(currentEntry, "  • Účtujem motohodiny: " + usedMth + " mth" + " × " + machinePrice.priceMth + " €/mth");
+                        machineryArray[i].setAttr( CONFIG.machinesAttributes.usedMth, usedMth);
+                        machineryArray[i].setAttr( CONFIG.machinesAttributes.priceMth, machinePrice.priceMth);
                         totalPrice = machinePrice.priceMth * usedMth;
-
+                        
                     } else if (calculationType === "paušál") {
                         utils.addDebug(currentEntry, "  • Účtujem paušál: " + machinePrice.flatRate + " €");
+                        machineryArray[i].setAttr( CONFIG.machinesAttributes.flatRate, machinePrice.flatRate);
                         totalPrice = machinePrice.flatRate;
                     } else {
                         utils.addDebug(currentEntry, "  ⚠️ Nezadaný typ účtovania: '" + calculationType + "', nastavujem 'mth'");
                         calculationType = "mth";
+                        machineryArray[i].setAttr( CONFIG.machinesAttributes.usedMth, usedMth);
+                        machineryArray[i].setAttr( CONFIG.machinesAttributes.priceMth, machinePrice.priceMth);
                         totalPrice = machinePrice.priceMth * usedMth;
                     }
 
@@ -741,15 +744,12 @@ function processMachines() {
                         utils.addDebug(currentEntry, "    ✅ calculationType nastavené");
 
                         //utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.priceMth, machinePrice.priceMth);
-                        machineryArray[i].setAttr( CONFIG.machinesAttributes.priceMth, machinePrice.priceMth);
                         utils.addDebug(currentEntry, "    ✅ priceMth nastavené");
 
                         //utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.flatRate, machinePrice.flatRate);
-                        //machineryArray[i].setAttr( CONFIG.machinesAttributes.flatRate, flatRate);
                         utils.addDebug(currentEntry, "    ✅ flatRate nastavené");
 
                         //utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.usedMth, usedMth);
-                        //machineryArray[i].setAttr( CONFIG.machinesAttributes.usedMth, usedMth);
                         utils.addDebug(currentEntry, "    ✅ usedMth nastavené");
 
                         //utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.totalPrice, totalPrice);
