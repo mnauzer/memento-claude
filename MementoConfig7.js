@@ -341,6 +341,7 @@ var MementoConfig = (function() {
                 workedHours: "Odpracované",
                 wageCosts: "Mzdové náklady",
                 hzsSum: "Suma HZS",
+                machinesSum: "Suma stroje",
                 startTime: "Od",
                 endTime: "Do",
                 machinery: "Mechanizácia", // linkToEntry Mechanizácia
