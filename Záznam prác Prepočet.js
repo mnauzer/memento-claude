@@ -94,7 +94,7 @@ function main() {
     try {
         utils.addDebug(currentEntry, utils.getIcon("start") + " === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
         utils.addDebug(currentEntry, "Čas spustenia: " + utils.formatDate(moment()));
-        
+        utils.clearLogs(currentEntry, true);
         // Kroky prepočtu
         var steps = {
             step1: { success: false, name: "Načítanie a validácia dát" },
@@ -633,7 +633,7 @@ function processMachines() {
                     message("Typ účtovania stroja " + machineName + ": " + calculationType);
                     var totalPrice = 0;
                     message("Cena stroja " + machineName + ": " + machinePrice.priceMth + " €/mth, paušál: " + machinePrice.flatRate + " €");
-                    
+
                     var usedMth = utils.safeGetAttribute(machine, CONFIG.attributes.workRecordMachines.usedMth, 1);
                     if (calculationType === "mth") {
                         utils.addDebug(currentEntry, "  • Účtujem motohodiny: " + usedMth + " mth" + " × " + machinePrice.priceMth + " €/mth");
