@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - ZÁKAZKY PREPOČET
-// Verzia: 2.0 | Dátum: September 2025 | Autor: ASISTANTO
+// Verzia: 2.1 | Dátum: September 2025 | Autor: ASISTANTO
 // Knižnica: Zákazky | Trigger: Before Save alebo Manual Action
 // ==============================================
 // 📋 FUNKCIA:
@@ -23,7 +23,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Zákazky Prepočet",
-    version: "2.0",
+    version: "2.1",
     
     // Referencie na centrálny config
     fields: {
@@ -41,11 +41,19 @@ var CONFIG = {
     
     libraries: centralConfig.libraries,
     icons: centralConfig.icons,
-    
+
     // Lokálne nastavenia pre tento script
     settings: {
         calculateVAT: true,
-        defaultVATRate: 0.20 // 20% DPH
+        defaultVATRate: 0.20 // 20% DPH (fallback)
+    },
+
+    // Knižnice pre DPH
+    vatRatesLibrary: "sadzby dph",
+    vatRatesFields: {
+        validFrom: "Platnosť od",
+        standard: "základná",
+        reduced: "znížená"
     }
 };
 
@@ -154,6 +162,68 @@ function validateOrderData() {
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "validateOrderData", error);
         return { success: false, error: error.toString() };
+    }
+}
+
+// ==============================================
+// ZÍSKANIE SADZBY DPH
+// ==============================================
+
+function getValidVatRate(orderDate) {
+    try {
+        utils.addDebug(currentEntry, "  🧮 Hľadám platnú sadzbu DPH k dátumu " + utils.formatDate(orderDate) + "...");
+
+        // Získanie knižnice sadzieb DPH
+        var vatRatesLib = libByName(CONFIG.vatRatesLibrary);
+        if (!vatRatesLib) {
+            utils.addDebug(currentEntry, "  ⚠️ Knižnica '" + CONFIG.vatRatesLibrary + "' nenájdená, používam default 20%");
+            return { success: true, rate: 0.20 };
+        }
+
+        // Získanie všetkých sadzieb
+        var allRates = vatRatesLib.entries();
+        if (!allRates || allRates.length === 0) {
+            utils.addDebug(currentEntry, "  ⚠️ Žiadne sadzby v knižnici, používam default 20%");
+            return { success: true, rate: 0.20 };
+        }
+
+        // Filtrovanie platných sadzieb k dátumu
+        var validRates = [];
+        for (var i = 0; i < allRates.length; i++) {
+            var rateEntry = allRates[i];
+            var validFrom = utils.safeGet(rateEntry, CONFIG.vatRatesFields.validFrom);
+
+            if (validFrom && new Date(validFrom) <= new Date(orderDate)) {
+                validRates.push({
+                    entry: rateEntry,
+                    validFrom: validFrom,
+                    standard: parseFloat(utils.safeGet(rateEntry, CONFIG.vatRatesFields.standard, 20)) / 100
+                });
+            }
+        }
+
+        if (validRates.length === 0) {
+            utils.addDebug(currentEntry, "  ⚠️ Žiadna platná sadzba k dátumu, používam default 20%");
+            return { success: true, rate: 0.20 };
+        }
+
+        // Zoradenie podľa dátumu (najnovšia platná)
+        validRates.sort(function(a, b) {
+            return new Date(b.validFrom) - new Date(a.validFrom);
+        });
+
+        var selectedRate = validRates[0];
+        utils.addDebug(currentEntry, "    ✅ Nájdená platná sadzba: " + (selectedRate.standard * 100) + "% (od " + utils.formatDate(selectedRate.validFrom) + ")");
+
+        return {
+            success: true,
+            rate: selectedRate.standard,
+            validFrom: selectedRate.validFrom
+        };
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri získavaní sadzby DPH: " + error.toString(), "getValidVatRate");
+        return { success: true, rate: 0.20 }; // Fallback
     }
 }
 
@@ -434,67 +504,80 @@ function collectLinkedRecordsData() {
 
 function calculateCosts(linkedData) {
     var costs = {
-        // NÁKLADY - podľa screenshotov z rekapitulácie
-        costWork: 0,                     // Náklady práce: 1 268,26 €
-        costWorkVatDeduction: 0,         // Odpočet DPH práce: 0,00 €
-        costMaterial: 0,                 // Náklady materiál: 0,00 €
-        costMaterialVatDeduction: 0,     // Odpočet DPH materiál: 0,00 €
-        costMachinery: 0,                // Náklady stroje: 65,00 €
-        costMachineryVatDeduction: 0,    // Odpočet DPH stroje: 0,00 €
-        costTransport: 0,                // Náklady doprava: 24,97 €
-        costTransportVatDeduction: 0,    // Odpočet DPH doprava: 0,00 €
-        costSubcontractors: 0,           // Náklady subdodávky: 0,00 €
-        costSubcontractorsVatDeduction: 0, // Odpočet DPH subdodávky: 0,00 €
-        costOther: 0,                    // Náklady ostatné: 1 531,96 €
-        costOtherVatDeduction: 0,        // Odpočet DPH ostatné: 0,00 €
-        costTotal: 0,                    // Náklady celkom: 2 923,54 €
-        otherExpenses: 0                 // Iné výdavky: 1 385,00 €
+        // NÁKLADY - podľa presných požiadaviek
+        costWork: 0,                     // Náklady práce - hodnota ako v poli Mzdy
+        costWorkVatDeduction: 0,         // Odpočet DPH práce - 0 (zo mzdy sa neodpočítava)
+        costMaterial: 0,                 // Náklady materiál - pripravené na implementáciu
+        costMaterialVatDeduction: 0,     // Odpočet DPH materiál - pripravené na implementáciu
+        costMachinery: 0,                // Náklady stroje - z pokladne Požičovné stroja
+        costMachineryVatDeduction: 0,    // Odpočet DPH stroje - z pokladne DPH
+        costTransport: 0,                // Náklady doprava - pripravené
+        costTransportVatDeduction: 0,    // Odpočet DPH doprava - pripravené
+        costSubcontractors: 0,           // Náklady subdodávky - z pokladne Subdodávky
+        costSubcontractorsVatDeduction: 0, // Odpočet DPH subdodávky - z pokladne DPH
+        costOther: 0,                    // Náklady ostatné - z pokladne ostatné
+        costOtherVatDeduction: 0,        // Odpočet DPH ostatné - z pokladne DPH
+        costTotal: 0,                    // Náklady celkom
+        costTotalVatDeduction: 0,        // Odpočet DPH celkom
+        otherExpenses: 0                 // Iné výdavky
     };
 
     try {
-        utils.addDebug(currentEntry, "  💸 Počítam náklady podľa screenshotov...");
+        utils.addDebug(currentEntry, "  💸 Počítam náklady podľa nových požiadaviek...");
 
-        // NÁKLADY PRÁCE - mzdové náklady zo všetkých záznamov
-        costs.costWork = (linkedData.attendance.totalWageCosts || 0) +
-                        (linkedData.workRecords.totalWageCosts || 0) +
-                        (linkedData.rideLog.totalWageCosts || 0);
+        // 1. NÁKLADY PRÁCE - hodnota ako v poli Mzdy (neskôr sa dorobí výpočet odvodov)
+        utils.addDebug(currentEntry, "    👷 Počítam náklady práce...");
+        costs.costWork = utils.safeGet(currentEntry, CONFIG.fields.order.wageCosts, 0);
         costs.costWorkVatDeduction = 0; // Zo mzdy sa DPH neodpočítava
+        utils.addDebug(currentEntry, "      • Mzdy celkom: " + utils.formatMoney(costs.costWork));
 
-        // NÁKLADY MATERIÁL - z pokladne označené ako materiál
-        costs.costMaterial = linkedData.cashBook.materialCosts || 0;
-        costs.costMaterialVatDeduction = 0; // Bude implementované neskôr
+        // 2. NÁKLADY STROJE - z pokladne Prevádzková réžia = Požičovné stroja
+        utils.addDebug(currentEntry, "    🚜 Počítam náklady strojov...");
+        var machineryCostData = calculateMachineryCosts();
+        costs.costMachinery = machineryCostData.amount;
+        costs.costMachineryVatDeduction = machineryCostData.vatDeduction;
 
-        // NÁKLADY STROJE - z mechanizácie
-        costs.costMachinery = linkedData.machinery.totalCosts || 0;
-        costs.costMachineryVatDeduction = 0; // Bude implementované neskôr
+        // 3. NÁKLADY SUBDODÁVKY - z pokladne Účel výdaja = Subdodávky
+        utils.addDebug(currentEntry, "    🏗️ Počítam náklady subdodávok...");
+        var subcontractorCostData = calculateSubcontractorCosts();
+        costs.costSubcontractors = subcontractorCostData.amount;
+        costs.costSubcontractorsVatDeduction = subcontractorCostData.vatDeduction;
 
-        // NÁKLADY DOPRAVA - z knihy jázd (palivové náklady)
-        costs.costTransport = linkedData.rideLog.totalFuelCosts || 0;
-        costs.costTransportVatDeduction = 0; // Bude implementované neskôr
+        // 4. NÁKLADY OSTATNÉ - z pokladne Účel výdaja = Ostatné
+        utils.addDebug(currentEntry, "    📦 Počítam ostatné náklady...");
+        var otherCostData = calculateOtherCosts();
+        costs.costOther = otherCostData.amount;
+        costs.costOtherVatDeduction = otherCostData.vatDeduction;
 
-        // NÁKLADY SUBDODÁVKY - z pokladne označené ako subdodávky
-        costs.costSubcontractors = 0; // Zatiaľ 0, bude implementované
-        costs.costSubcontractorsVatDeduction = 0;
+        // 5. NÁKLADY MATERIÁL - pripravené na neskoršiu implementáciu
+        var materialCostData = calculateMaterialCosts();
+        costs.costMaterial = materialCostData.amount;
+        costs.costMaterialVatDeduction = materialCostData.vatDeduction;
 
-        // NÁKLADY OSTATNÉ - z pokladne ostatné náklady
-        costs.costOther = linkedData.cashBook.otherCosts || 0;
-        costs.costOtherVatDeduction = 0; // Bude implementované neskôr
+        // 6. NÁKLADY DOPRAVA - pripravené na neskoršiu implementáciu
+        var transportCostData = calculateTransportCosts();
+        costs.costTransport = transportCostData.amount;
+        costs.costTransportVatDeduction = transportCostData.vatDeduction;
 
-        // CELKOVÉ NÁKLADY
+        // CELKOVÉ SÚČTY
         costs.costTotal = costs.costWork + costs.costMaterial + costs.costMachinery +
                          costs.costTransport + costs.costSubcontractors + costs.costOther;
 
-        // INÉ VÝDAVKY - dodatočné výdavky mimo hlavných kategórií
-        costs.otherExpenses = linkedData.cashBook.additionalExpenses || 0;
+        costs.costTotalVatDeduction = costs.costWorkVatDeduction + costs.costMaterialVatDeduction +
+                                     costs.costMachineryVatDeduction + costs.costTransportVatDeduction +
+                                     costs.costSubcontractorsVatDeduction + costs.costOtherVatDeduction;
 
-        utils.addDebug(currentEntry, "    ✅ NÁKLADY ROZPOČÍTANÉ:");
+        // INÉ VÝDAVKY - dodatočné výdavky (môžu byť zadané manuálne)
+        costs.otherExpenses = 0; // Zatiaľ 0, môže byť doplnené
+
+        utils.addDebug(currentEntry, "    ✅ NÁKLADY FINÁLNE:");
         utils.addDebug(currentEntry, "      • Práce: " + utils.formatMoney(costs.costWork) + " (odpočet DPH: " + utils.formatMoney(costs.costWorkVatDeduction) + ")");
         utils.addDebug(currentEntry, "      • Materiál: " + utils.formatMoney(costs.costMaterial) + " (odpočet DPH: " + utils.formatMoney(costs.costMaterialVatDeduction) + ")");
         utils.addDebug(currentEntry, "      • Stroje: " + utils.formatMoney(costs.costMachinery) + " (odpočet DPH: " + utils.formatMoney(costs.costMachineryVatDeduction) + ")");
         utils.addDebug(currentEntry, "      • Doprava: " + utils.formatMoney(costs.costTransport) + " (odpočet DPH: " + utils.formatMoney(costs.costTransportVatDeduction) + ")");
         utils.addDebug(currentEntry, "      • Subdodávky: " + utils.formatMoney(costs.costSubcontractors) + " (odpočet DPH: " + utils.formatMoney(costs.costSubcontractorsVatDeduction) + ")");
         utils.addDebug(currentEntry, "      • Ostatné: " + utils.formatMoney(costs.costOther) + " (odpočet DPH: " + utils.formatMoney(costs.costOtherVatDeduction) + ")");
-        utils.addDebug(currentEntry, "      • SPOLU: " + utils.formatMoney(costs.costTotal));
+        utils.addDebug(currentEntry, "      • SPOLU: " + utils.formatMoney(costs.costTotal) + " (odpočet DPH: " + utils.formatMoney(costs.costTotalVatDeduction) + ")");
         utils.addDebug(currentEntry, "      • Iné výdavky: " + utils.formatMoney(costs.otherExpenses));
 
         return costs;
@@ -506,59 +589,235 @@ function calculateCosts(linkedData) {
 }
 
 // ==============================================
+// POMOCNÉ FUNKCIE PRE VÝPOČET NÁKLADOV
+// ==============================================
+
+function calculateMachineryCosts() {
+    try {
+        utils.addDebug(currentEntry, "      🔍 Hľadám náklady strojov v pokladni...");
+
+        var amount = 0;
+        var vatDeduction = 0;
+
+        // Prejdi záznamy linksFrom Pokladňa/Zákazka where Prevádzková réžia = Požičovné stroja
+        var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.order.order);
+        if (cashBookRecords && cashBookRecords.length > 0) {
+            for (var i = 0; i < cashBookRecords.length; i++) {
+                var cashRecord = cashBookRecords[i];
+                var operatingCost = utils.safeGet(cashRecord, "Prevádzková réžia", "");
+
+                if (operatingCost === "Požičovné stroja") {
+                    var suma = utils.safeGet(cashRecord, "Suma", 0);
+                    var dph = utils.safeGet(cashRecord, "DPH", 0);
+
+                    amount += suma;
+                    vatDeduction += dph;
+
+                    utils.addDebug(currentEntry, "        • Záznam #" + cashRecord.field("ID") + ": " + utils.formatMoney(suma) + " (DPH: " + utils.formatMoney(dph) + ")");
+                }
+            }
+        }
+
+        return {
+            amount: Math.round(amount * 100) / 100,
+            vatDeduction: Math.round(vatDeduction * 100) / 100
+        };
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri výpočte nákladov strojov: " + error.toString(), "calculateMachineryCosts");
+        return { amount: 0, vatDeduction: 0 };
+    }
+}
+
+function calculateSubcontractorCosts() {
+    try {
+        utils.addDebug(currentEntry, "      🔍 Hľadám náklady subdodávok v pokladni...");
+
+        var amount = 0;
+        var vatDeduction = 0;
+
+        // Prejdi záznamy linksFrom Pokladňa/Zákazka where Účel výdaja = Subdodávky
+        var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.order.order);
+        if (cashBookRecords && cashBookRecords.length > 0) {
+            for (var i = 0; i < cashBookRecords.length; i++) {
+                var cashRecord = cashBookRecords[i];
+                var purpose = utils.safeGet(cashRecord, "Účel výdaja", "");
+
+                if (purpose === "Subdodávky") {
+                    var suma = utils.safeGet(cashRecord, "Suma", 0);
+                    var dph = utils.safeGet(cashRecord, "DPH", 0);
+
+                    amount += suma;
+                    vatDeduction += dph;
+
+                    utils.addDebug(currentEntry, "        • Záznam #" + cashRecord.field("ID") + ": " + utils.formatMoney(suma) + " (DPH: " + utils.formatMoney(dph) + ")");
+                }
+            }
+        }
+
+        return {
+            amount: Math.round(amount * 100) / 100,
+            vatDeduction: Math.round(vatDeduction * 100) / 100
+        };
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri výpočte nákladov subdodávok: " + error.toString(), "calculateSubcontractorCosts");
+        return { amount: 0, vatDeduction: 0 };
+    }
+}
+
+function calculateOtherCosts() {
+    try {
+        utils.addDebug(currentEntry, "      🔍 Hľadám ostatné náklady v pokladni...");
+
+        var amount = 0;
+        var vatDeduction = 0;
+
+        // Prejdi záznamy linksFrom Pokladňa/Zákazka where Účel výdaja = Ostatné
+        var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.order.order);
+        if (cashBookRecords && cashBookRecords.length > 0) {
+            for (var i = 0; i < cashBookRecords.length; i++) {
+                var cashRecord = cashBookRecords[i];
+                var purpose = utils.safeGet(cashRecord, "Účel výdaja", "");
+
+                if (purpose === "Ostatné") {
+                    var suma = utils.safeGet(cashRecord, "Suma", 0);
+                    var dph = utils.safeGet(cashRecord, "DPH", 0);
+
+                    amount += suma;
+                    vatDeduction += dph;
+
+                    utils.addDebug(currentEntry, "        • Záznam #" + cashRecord.field("ID") + ": " + utils.formatMoney(suma) + " (DPH: " + utils.formatMoney(dph) + ")");
+                }
+            }
+        }
+
+        return {
+            amount: Math.round(amount * 100) / 100,
+            vatDeduction: Math.round(vatDeduction * 100) / 100
+        };
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri výpočte ostatných nákladov: " + error.toString(), "calculateOtherCosts");
+        return { amount: 0, vatDeduction: 0 };
+    }
+}
+
+function calculateMaterialCosts() {
+    try {
+        utils.addDebug(currentEntry, "      📦 Materiál náklady - pripravené na neskoršiu implementáciu...");
+
+        // Pripravené na neskoršiu implementáciu
+        return {
+            amount: 0,
+            vatDeduction: 0
+        };
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri výpočte nákladov materiálu: " + error.toString(), "calculateMaterialCosts");
+        return { amount: 0, vatDeduction: 0 };
+    }
+}
+
+function calculateTransportCosts() {
+    try {
+        utils.addDebug(currentEntry, "      🚗 Doprava náklady - pripravené na neskoršiu implementáciu...");
+
+        // Pripravené na neskoršiu implementáciu
+        return {
+            amount: 0,
+            vatDeduction: 0
+        };
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri výpočte nákladov dopravy: " + error.toString(), "calculateTransportCosts");
+        return { amount: 0, vatDeduction: 0 };
+    }
+}
+
+// ==============================================
 // VÝPOČET VÝNOSOV
 // ==============================================
 
 function calculateRevenue(linkedData) {
     var revenue = {
-        // VÝNOSY - podľa screenshotov z rekapitulácie
-        revenueWork: 0,           // Práce: 3 980,63 €
-        revenueWorkVat: 0,        // DPH práce: 260,32 €
-        revenueMaterial: 0,       // Materiál: 0,00 €
-        revenueMaterialVat: 0,    // DPH materiál: 0,00 €
-        revenueMachinery: 0,      // Stroje: 190,00 €
-        revenueMachineryVat: 0,   // DPH stroje: 13,00 €
-        revenueTransport: 0,      // Doprava: 271,53 €
-        revenueTransportVat: 0,   // DPH doprava: 4,99 €
-        revenueSubcontractors: 0, // Subdodávky: 1 531,96 €
-        revenueSubcontractorsVat: 0, // DPH subdodávky: 0,00 €
-        revenueOther: 0,          // Ostatné: 0,00 €
-        revenueOtherVat: 0,       // DPH ostatné: 306,39 €
-        revenueTotal: 0,          // Suma celkom: 5 122,79 €
-        revenueTotalVat: 0        // DPH celkom: 0,00 €
+        // VÝNOSY - podľa presných požiadaviek
+        revenueWork: 0,           // Práce - sum poľa Suma HZS všetkých linksFrom Záznam prác/Zákazka
+        revenueWorkVat: 0,        // DPH práce - vypočítané z revenueWork
+        revenueMaterial: 0,       // Materiál - pripravené na neskoršiu implementáciu
+        revenueMaterialVat: 0,    // DPH materiál - pripravené na neskoršiu implementáciu
+        revenueMachinery: 0,      // Stroje - sum poľa Suma Stroje všetkých linksFrom Záznam prác/Zákazka
+        revenueMachineryVat: 0,   // DPH stroje - vypočítané z revenueMachinery
+        revenueTransport: 0,      // Doprava - podľa nastavenia v Cenovej ponuke
+        revenueTransportVat: 0,   // DPH doprava - vypočítané z revenueTransport
+        revenueSubcontractors: 0, // Subdodávky - z pokladne + prirážka
+        revenueSubcontractorsVat: 0, // DPH subdodávky - vypočítané
+        revenueOther: 0,          // Ostatné - z pokladne + prirážka
+        revenueOtherVat: 0,       // DPH ostatné - vypočítané
+        revenueTotal: 0,          // Suma celkom
+        revenueTotalVat: 0        // DPH celkom
     };
 
     try {
-        utils.addDebug(currentEntry, "  💰 Počítam výnosy podľa screenshotov...");
+        utils.addDebug(currentEntry, "  💰 Počítam výnosy podľa nových požiadaviek...");
 
-        // Získaj sadzbu DPH
-        var vatRate = parseFloat(utils.safeGet(currentEntry, CONFIG.fields.order.vatRate, "20")) / 100;
-        utils.addDebug(currentEntry, "    • Sadzba DPH: " + (vatRate * 100) + "%");
+        // Získaj sadzbu DPH z knižnice
+        var orderDate = utils.safeGet(currentEntry, CONFIG.fields.order.startDate) ||
+                       utils.safeGet(currentEntry, CONFIG.fields.order.date) ||
+                       new Date();
+        var vatRateResult = getValidVatRate(orderDate);
+        var vatRate = vatRateResult.rate;
 
-        // PRÁCE - z výkazov prác
-        revenue.revenueWork = linkedData.workReports.totalSum || 0;
+        utils.addDebug(currentEntry, "    • Použitá sadzba DPH: " + (vatRate * 100) + "%");
+
+        // 1. PRÁCE - sum poľa Suma HZS všetkých linksFrom Záznam prác/Zákazka
+        utils.addDebug(currentEntry, "    🔨 Počítam výnosy z prác...");
+        revenue.revenueWork = 0;
+        if (linkedData.workRecords && linkedData.workRecords.records) {
+            for (var i = 0; i < linkedData.workRecords.records.length; i++) {
+                var workRecord = linkedData.workRecords.records[i];
+                var hzsSum = utils.safeGet(workRecord, CONFIG.fields.workRecord.hzsSum, 0);
+                revenue.revenueWork += hzsSum;
+                utils.addDebug(currentEntry, "      • Záznam #" + workRecord.field("ID") + ": " + utils.formatMoney(hzsSum));
+            }
+        }
         revenue.revenueWorkVat = Math.round(revenue.revenueWork * vatRate * 100) / 100;
 
-        // MATERIÁL - zatiaľ 0 (bude implementované neskôr)
-        revenue.revenueMaterial = 0;
-        revenue.revenueMaterialVat = 0;
-
-        // STROJE - z mechanizácie v záznamoch prác
-        revenue.revenueMachinery = linkedData.machinery.totalRevenue || 0;
+        // 2. STROJE - sum poľa Suma Stroje všetkých linksFrom Záznam prác/Zákazka
+        utils.addDebug(currentEntry, "    🚜 Počítam výnosy zo strojov...");
+        revenue.revenueMachinery = 0;
+        if (linkedData.workRecords && linkedData.workRecords.records) {
+            for (var j = 0; j < linkedData.workRecords.records.length; j++) {
+                var workRec = linkedData.workRecords.records[j];
+                var machinesSum = utils.safeGet(workRec, CONFIG.fields.workRecord.machinesSum, 0);
+                revenue.revenueMachinery += machinesSum;
+                utils.addDebug(currentEntry, "      • Záznam #" + workRec.field("ID") + ": " + utils.formatMoney(machinesSum));
+            }
+        }
         revenue.revenueMachineryVat = Math.round(revenue.revenueMachinery * vatRate * 100) / 100;
 
-        // DOPRAVA - výpočet podľa cenovej ponuky
+        // 3. DOPRAVA - podľa nastavenia v Cenovej ponuke
+        utils.addDebug(currentEntry, "    🚗 Počítam výnosy z dopravy...");
         var transportResult = calculateTransportRevenue(linkedData);
         revenue.revenueTransport = transportResult.amount || 0;
         revenue.revenueTransportVat = Math.round(revenue.revenueTransport * vatRate * 100) / 100;
 
-        // SUBDODÁVKY - z príjmov v pokladni označených ako subdodávky
-        revenue.revenueSubcontractors = linkedData.cashBook.totalIncome || 0;
-        revenue.revenueSubcontractorsVat = 0; // Subdodávky často bez DPH
+        // 4. SUBDODÁVKY - z pokladne + prirážka
+        utils.addDebug(currentEntry, "    🏗️ Počítam výnosy zo subdodávok...");
+        var subcontractorData = calculateSubcontractorRevenue(linkedData, vatRate);
+        revenue.revenueSubcontractors = subcontractorData.amount;
+        revenue.revenueSubcontractorsVat = subcontractorData.vat;
 
-        // OSTATNÉ - zatiaľ 0
-        revenue.revenueOther = 0;
-        revenue.revenueOtherVat = 0; // Môže byť nastavené manuálne
+        // 5. OSTATNÉ - z pokladne + prirážka
+        utils.addDebug(currentEntry, "    📦 Počítam ostatné výnosy...");
+        var otherData = calculateOtherRevenue(linkedData, vatRate);
+        revenue.revenueOther = otherData.amount;
+        revenue.revenueOtherVat = otherData.vat;
+
+        // 6. MATERIÁL - pripravené na neskoršiu implementáciu
+        var materialData = calculateMaterialRevenue(linkedData, vatRate);
+        revenue.revenueMaterial = materialData.amount;
+        revenue.revenueMaterialVat = materialData.vat;
 
         // SÚČTY
         revenue.revenueTotal = revenue.revenueWork + revenue.revenueMaterial +
@@ -569,7 +828,7 @@ function calculateRevenue(linkedData) {
                                  revenue.revenueMachineryVat + revenue.revenueTransportVat +
                                  revenue.revenueSubcontractorsVat + revenue.revenueOtherVat;
 
-        utils.addDebug(currentEntry, "    ✅ VÝNOSY ROZPOČÍTANÉ:");
+        utils.addDebug(currentEntry, "    ✅ VÝNOSY FINÁLNE:");
         utils.addDebug(currentEntry, "      • Práce: " + utils.formatMoney(revenue.revenueWork) + " + DPH " + utils.formatMoney(revenue.revenueWorkVat));
         utils.addDebug(currentEntry, "      • Materiál: " + utils.formatMoney(revenue.revenueMaterial) + " + DPH " + utils.formatMoney(revenue.revenueMaterialVat));
         utils.addDebug(currentEntry, "      • Stroje: " + utils.formatMoney(revenue.revenueMachinery) + " + DPH " + utils.formatMoney(revenue.revenueMachineryVat));
@@ -583,6 +842,120 @@ function calculateRevenue(linkedData) {
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "calculateRevenue", error);
         return revenue;
+    }
+}
+
+// ==============================================
+// POMOCNÉ FUNKCIE PRE VÝPOČET VÝNOSOV
+// ==============================================
+
+function calculateSubcontractorRevenue(linkedData, vatRate) {
+    try {
+        utils.addDebug(currentEntry, "      🔍 Hľadám subdodávky v pokladni...");
+
+        var amount = 0;
+        var baseAmount = 0;
+
+        // Prejdi záznamy linksFrom Pokladňa/Zákazka where Účel výdaja = Subdodávky
+        var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.order.order);
+        if (cashBookRecords && cashBookRecords.length > 0) {
+            for (var i = 0; i < cashBookRecords.length; i++) {
+                var cashRecord = cashBookRecords[i];
+                var purpose = utils.safeGet(cashRecord, "Účel výdaja", "");
+
+                if (purpose === "Subdodávky") {
+                    var suma = utils.safeGet(cashRecord, "Suma", 0);
+                    baseAmount += suma;
+                    utils.addDebug(currentEntry, "        • Záznam #" + cashRecord.field("ID") + ": " + utils.formatMoney(suma));
+                }
+            }
+        }
+
+        // Pripočítaj prirážku
+        var markupPercent = utils.safeGet(currentEntry, CONFIG.fields.order.subcontractorMarkup, 0);
+        var markupAmount = baseAmount * (markupPercent / 100);
+        amount = baseAmount + markupAmount;
+
+        if (markupPercent > 0) {
+            utils.addDebug(currentEntry, "        • Prirážka " + markupPercent + "%: " + utils.formatMoney(markupAmount));
+        }
+
+        var vat = Math.round(amount * vatRate * 100) / 100;
+
+        return {
+            amount: Math.round(amount * 100) / 100,
+            vat: vat,
+            baseAmount: baseAmount,
+            markupAmount: markupAmount
+        };
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri výpočte subdodávok: " + error.toString(), "calculateSubcontractorRevenue");
+        return { amount: 0, vat: 0, baseAmount: 0, markupAmount: 0 };
+    }
+}
+
+function calculateOtherRevenue(linkedData, vatRate) {
+    try {
+        utils.addDebug(currentEntry, "      🔍 Hľadám ostatné výnosy v pokladni...");
+
+        var amount = 0;
+        var baseAmount = 0;
+
+        // Prejdi záznamy linksFrom Pokladňa/Zákazka where Účel výdaja = Ostatné
+        var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.order.order);
+        if (cashBookRecords && cashBookRecords.length > 0) {
+            for (var i = 0; i < cashBookRecords.length; i++) {
+                var cashRecord = cashBookRecords[i];
+                var purpose = utils.safeGet(cashRecord, "Účel výdaja", "");
+
+                if (purpose === "Ostatné") {
+                    var suma = utils.safeGet(cashRecord, "Suma", 0);
+                    baseAmount += suma;
+                    utils.addDebug(currentEntry, "        • Záznam #" + cashRecord.field("ID") + ": " + utils.formatMoney(suma));
+                }
+            }
+        }
+
+        // Pripočítaj prirážku
+        var markupPercent = utils.safeGet(currentEntry, CONFIG.fields.order.otherMarkup, 0);
+        var markupAmount = baseAmount * (markupPercent / 100);
+        amount = baseAmount + markupAmount;
+
+        if (markupPercent > 0) {
+            utils.addDebug(currentEntry, "        • Prirážka " + markupPercent + "%: " + utils.formatMoney(markupAmount));
+        }
+
+        var vat = Math.round(amount * vatRate * 100) / 100;
+
+        return {
+            amount: Math.round(amount * 100) / 100,
+            vat: vat,
+            baseAmount: baseAmount,
+            markupAmount: markupAmount
+        };
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri výpočte ostatných výnosov: " + error.toString(), "calculateOtherRevenue");
+        return { amount: 0, vat: 0, baseAmount: 0, markupAmount: 0 };
+    }
+}
+
+function calculateMaterialRevenue(linkedData, vatRate) {
+    try {
+        utils.addDebug(currentEntry, "      📦 Materiál - pripravené na neskoršiu implementáciu...");
+
+        // Pripravené na neskoršiu implementáciu
+        return {
+            amount: 0,
+            vat: 0,
+            baseAmount: 0,
+            markupAmount: 0
+        };
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri výpočte materiálu: " + error.toString(), "calculateMaterialRevenue");
+        return { amount: 0, vat: 0, baseAmount: 0, markupAmount: 0 };
     }
 }
 
@@ -896,6 +1269,7 @@ function saveCalculatedValues(linkedData, costs, revenue, profit) {
         utils.safeSet(currentEntry, CONFIG.fields.order.costOther, costs.costOther);
         utils.safeSet(currentEntry, CONFIG.fields.order.costOtherVatDeduction, costs.costOtherVatDeduction);
         utils.safeSet(currentEntry, CONFIG.fields.order.costTotal, costs.costTotal);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costTotalVatDeduction, costs.costTotalVatDeduction);
         utils.safeSet(currentEntry, CONFIG.fields.order.otherExpenses, costs.otherExpenses);
 
         // STARÝ ÚDAJ pre kompatibilitu
