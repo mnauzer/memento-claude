@@ -335,7 +335,7 @@ var MementoConfig = (function() {
                 startTime: "Od",
                 endTime: "Do",
                 machinery: "Mechanizácia", // linkToEntry Mechanizácia
-                sumMachinery: "Suma Stroje", // real number, účtovaná suma záznamov mechanizácie
+                sumMachineryUsage: "Použitie mechanizácie", // linkToEntry Výkaz strojov                
             },
             // Výkaz prác polia
             workReport: {
@@ -1038,8 +1038,8 @@ var MementoConfig = (function() {
             vault: "🏦🔐"            // Trezor
         }
 
-    };
-    
+    }
+};
     // === POMOCNÉ FUNKCIE ===
     
     /**
