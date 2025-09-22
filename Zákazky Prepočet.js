@@ -29,7 +29,6 @@ var CONFIG = {
     fields: {
         order: centralConfig.fields.order,
         quote: centralConfig.fields.quote,
-        attendance: centralConfig.fields.attendance,
         workRecord: centralConfig.fields.workRecord,
         rideLog: centralConfig.fields.rideLog,
         rideReport: centralConfig.fields.rideReport,
@@ -233,13 +232,6 @@ function getValidVatRate(orderDate) {
 
 function collectLinkedRecordsData() {
     var data = {
-        attendance: {
-            records: [],
-            totalDays: 0,
-            totalHours: 0,
-            totalWageCosts: 0,
-            totalDowntime: 0
-        },
         workRecords: {
             records: [],
             totalHours: 0,
@@ -279,25 +271,6 @@ function collectLinkedRecordsData() {
     
     try {
         utils.addDebug(currentEntry, "  🔍 Hľadám linkované záznamy...");
-        
-        // DOCHÁDZKA - linksFrom
-        var attendanceRecords = currentEntry.linksFrom(CONFIG.libraries.attendance, CONFIG.fields.workRecord.order);
-        if (attendanceRecords && attendanceRecords.length > 0) {
-            data.attendance.records = attendanceRecords;
-            data.attendance.totalDays = attendanceRecords.length;
-            
-            for (var i = 0; i < attendanceRecords.length; i++) {
-                var att = attendanceRecords[i];
-                var hours = utils.safeGet(att, CONFIG.fields.attendance.workedHours, 0);
-                var wageCosts = utils.safeGet(att, CONFIG.fields.attendance.wageCosts, 0);
-                var downtime = utils.safeGet(att, CONFIG.fields.attendance.downTime, 0);
-                
-                data.attendance.totalHours += hours;
-                data.attendance.totalWageCosts += wageCosts;
-                data.attendance.totalDowntime += downtime;
-            }
-        }
-        utils.addDebug(currentEntry, "    • Dochádzka: " + data.attendance.records.length + " záznamov");
         
         // ZÁZNAM PRÁC - linksFrom
         var workRecords = currentEntry.linksFrom(CONFIG.libraries.workRecords, CONFIG.fields.workRecord.order);
@@ -643,6 +616,8 @@ function calculateSubcontractorCosts() {
 
         // Prejdi záznamy linksFrom Pokladňa/Zákazka where Účel výdaja = Subdodávky
         var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.order.order);
+        utils.addDebug(currentEntry, "        • Počet záznamov v pokladni (náklady subdodávky): " + (cashBookRecords ? cashBookRecords.length : 0));
+
         if (cashBookRecords && cashBookRecords.length > 0) {
             for (var i = 0; i < cashBookRecords.length; i++) {
                 var cashRecord = cashBookRecords[i];
@@ -873,6 +848,8 @@ function calculateSubcontractorRevenue(linkedData, vatRate) {
 
         // Prejdi záznamy linksFrom Pokladňa/Zákazka where Účel výdaja = Subdodávky
         var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.order.order);
+        utils.addDebug(currentEntry, "        • Počet záznamov v pokladni (výnosy subdodávky): " + (cashBookRecords ? cashBookRecords.length : 0));
+
         if (cashBookRecords && cashBookRecords.length > 0) {
             for (var i = 0; i < cashBookRecords.length; i++) {
                 var cashRecord = cashBookRecords[i];
@@ -1194,9 +1171,7 @@ function createInfoRecord(linkedData, costs, revenue, profit) {
         // Súhrn práce
         info += "👷 PRÁCA\n";
         info += "─────────────────────────────\n";
-        info += "• Dní: " + linkedData.attendance.totalDays + "\n";
         info += "• Odpracované hodiny: " + linkedData.workRecords.totalHours.toFixed(2) + " h\n";
-        info += "• Prestoje: " + linkedData.attendance.totalDowntime.toFixed(2) + " h\n";
         info += "• Mzdové náklady: " + utils.formatMoney(costs.wageCosts) + "\n\n";
         
         // Súhrn dopravy
@@ -1256,12 +1231,11 @@ function saveCalculatedValues(linkedData, costs, revenue, profit) {
         utils.addDebug(currentEntry, "  💾 Ukladám vypočítané hodnoty podľa nových CONFIG polí...");
 
         // ZÁKLADNÉ ÚDAJE
-        utils.safeSet(currentEntry, CONFIG.fields.order.daysCount, linkedData.attendance.totalDays);
         utils.safeSet(currentEntry, CONFIG.fields.order.hoursCount, linkedData.workRecords.totalHours);
         utils.safeSet(currentEntry, CONFIG.fields.order.transportCounts, linkedData.rideLog.records.length);
         utils.safeSet(currentEntry, CONFIG.fields.order.transportHours, linkedData.rideLog.totalTime);
         utils.safeSet(currentEntry, CONFIG.fields.order.km, linkedData.rideLog.totalKm);
-        utils.safeSet(currentEntry, CONFIG.fields.order.wageCosts, linkedData.attendance.totalWageCosts + linkedData.workRecords.totalWageCosts);
+        utils.safeSet(currentEntry, CONFIG.fields.order.wageCosts, linkedData.workRecords.totalWageCosts);
         utils.safeSet(currentEntry, CONFIG.fields.order.transportWageCosts, linkedData.rideLog.totalWageCosts);
 
         // VÝNOSY - podľa screenshotov
