@@ -629,7 +629,7 @@ function processMachines() {
                     utils.addDebug(currentEntry, "  • Nastavený atribút mth: " + machinePrice.priceMth + " €");
                     utils.addDebug(currentEntry, "  • Nastavený atribút paušál: " + machinePrice.flatRate + " €");
                     // vypočítaj sumu za tento stroj
-                    var calculationType = utils.safeGet(machine, CONFIG.attributes.workRecordMachines.calculationType);
+                    var calculationType = utils.safeGetAttribute(machine, CONFIG.attributes.workRecordMachines.calculationType);
                     message("Typ účtovania stroja " + machineName + ": " + calculationType);
                     var totalPrice = 0;
                     message("Cena stroja " + machineName + ": " + machinePrice.priceMth + " €/mth, paušál: " + machinePrice.flatRate + " €");
