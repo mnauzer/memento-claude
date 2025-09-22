@@ -21,7 +21,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Záznam prác Prepočet",
-    version: "8.1.4",
+    version: "8.1.5",
     
     // Referencie na centrálny config
     fields: {
@@ -623,14 +623,13 @@ function processMachines() {
                 machinePrice = utils.findValidMachinePrice(machine, currentDate);
                 
                 var hasMachinePrice = machine.attr(CONFIG.attributes.workRecordMachines.totalPrice); 
-
+                var calculationType = machine.attr(CONFIG.attributes.workRecordMachines.calculationType);
+                message("Typ účtovania stroja " + machineName + ": " + calculationType);
+                var totalPrice = 0;
+                message("Cena stroja " + machineName + ": " + machinePrice.priceMth + " €/mth, paušál: " + machinePrice.flatRate + " €");
+                
                 if (!hasMachinePrice || hasMachinePrice === 0) {                    
                     // vypočítaj sumu za tento stroj
-                    var calculationType = machine.attr(CONFIG.attributes.workRecordMachines.calculationType);
-                    message("Typ účtovania stroja " + machineName + ": " + calculationType);
-                    var totalPrice = 0;
-                    message("Cena stroja " + machineName + ": " + machinePrice.priceMth + " €/mth, paušál: " + machinePrice.flatRate + " €");
-                    
                     var usedMth = machine.attr(CONFIG.attributes.workRecordMachines.usedMth);
                     if (calculationType === "mth") {
                         utils.addDebug(currentEntry, "  • Účtujem motohodiny: " + usedMth + " mth" + " × " + machinePrice.priceMth + " €/mth");
