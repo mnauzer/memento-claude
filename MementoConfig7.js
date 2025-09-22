@@ -679,6 +679,14 @@ var MementoConfig = (function() {
             workRecordHzs: {
                 price: "cena",
             },
+            workRecordMachines: {
+                calcultationType: "účtovanie", // options: paušál, mth 
+                mth: "mth", // motohodiny
+                rate: "sadzba", // cena za motohodinu - doplní sa z cenníka mechanizácie
+                flatRate: "paušál", // cena za celoddenné použitie stroja - doplní sa z cenníka mechanizácie
+                totalPrice: "účtovaná suma" // suma ktorá sa účtuje za použitie stroja buď podľa motohodín alebo paušálu
+            },
+            workRecordMaterials: {
             workReport: {
                 workDescription: "vykonané práce",
                 hoursCount: "počet hodín",
