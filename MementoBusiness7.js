@@ -534,6 +534,7 @@ var MementoBusiness = (function() {
             var prices = core.safeGetLinksFrom(machineEntry, libraryName, fields.machine);
             
             if (!prices || prices.length === 0) {
+                core.addDebug(currentEntry, "  🔍 Nepodarilo sa nájsť žiadne ceny");
                 return null;
             }
           
