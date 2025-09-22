@@ -14,7 +14,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.5",
+        version: "7.0.6",
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -277,6 +277,9 @@ var MementoConfig = (function() {
                 costOtherVatDeduction: "Odpočet DPH ostatné", // real number, odpočet DPH z ostatných nákladov
                 costTotal: "Náklady celkom", // real number, celkové náklady
                 otherExpenses: "Iné výdavky", // real number, dodatočné výdavky
+
+                // CELKOVÉ ODPOČTY DPH
+                costTotalVatDeduction: "Odpočet DPH celkom", // real number, celkový odpočet DPH z nákladov
 
                 // PRIRÁŽKY - Percentuálne prirážky na náklady
                 subcontractorMarkup: "Prirážka subdodávky", // real number, percentuálna prirážka na subdodávky
