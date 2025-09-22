@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - ZÁZNAM PRÁC PREPOČET
-// Verzia: 8.1 | Dátum: 31.08.2025 | Autor: ASISTANTO
+// Verzia: 8 | Dátum: september 2025 | Autor: ASISTANTO
 // Knižnica: Záznam práce | Trigger: Before Save
 // ==============================================
 // ✅ REFAKTOROVANÉ v8.1:
@@ -9,6 +9,8 @@
 //    - Pridané info_telegram pole
 //    - Zachovaná kompletná funkcionalita
 // ==============================================
+
+const { use } = require("react");
 
 // ==============================================
 // INICIALIZÁCIA
@@ -21,7 +23,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Záznam prác Prepočet",
-    version: "8.1.3",
+    version: "8.1.4",
     
     // Referencie na centrálny config
     fields: {
@@ -39,12 +41,15 @@ var CONFIG = {
         wageCosts: centralConfig.fields.workRecord.wageCosts || "Mzdové náklady",
         hzsSum: centralConfig.fields.workRecord.hzsSum || "Suma HZS",
         info: centralConfig.fields.common.info,
-        infoTelegram: centralConfig.fields.common.infoTelegram || "info_telegram"
+        infoTelegram: centralConfig.fields.common.infoTelegram || "info_telegram",
+        defaults: centralConfig.fields.defaults,
+        machine: centralConfig.fields.machine,
     },
-    attributes: centralConfig.attributes.workRecordEmployees || {
-        workedHours: "odpracované",
-        hourlyRate: "hodinovka", 
-        wageCosts: "mzdové náklady"
+    attributes:{ 
+        workRecordHzs: centralConfig.attributes.workRecordHzs,
+        workRecordEmployees: centralConfig.attributes.workRecordEmployees,
+        workRecordMachines: centralConfig.attributes.workRecordMachines,
+
     },
     libraries: centralConfig.libraries,
     icons: centralConfig.icons,
@@ -98,9 +103,10 @@ function main() {
             step2: { success: false, name: "Výpočet pracovnej doby" },
             step3: { success: false, name: "Spracovanie zamestnancov" },
             step4: { success: false, name: "Spracovanie HZS" },
-            step5: { success: false, name: "Celkové výpočty" },
-            step6: { success: false, name: "Synchronizácia výkazu prác" },
-            step7: { success: false, name: "Vytvorenie info záznamov" }
+            step5: { success: false, name: "Spracovanie strojov" },
+            step6: { success: false, name: "Celkové výpočty" },
+            step7: { success: false, name: "Synchronizácia výkazu prác" },
+            step8: { success: false, name: "Vytvorenie info záznamov" }
         };
 
         // Krok 1: Validácia vstupných dát
@@ -133,22 +139,28 @@ function main() {
         var hzsResult = processHZS(employeeResult.odpracovaneTotal);
         steps.step4.success = hzsResult.success;
 
-         // KROK 5: Celkové výpočty
-        utils.addDebug(currentEntry, " KROK 5: Celkové výpočty", "calculation");
-        if (employeeResult.success && hzsResult.success) {
-            steps.step5.success = calculateTotals(employeeResult, hzsResult);
-        }
+        // Krok 5: Spracovanie Strojov
+        utils.addDebug(currentEntry, utils.getIcon("money") + " KROK 5: Spracovanie strojov");
+        var machinesResult = processMachines();
+        steps.step5.success = machinesResult.success;
 
-        // Krok 6: Synchronizácia výkazu prác
+
+         // KROK 6: Celkové výpočty
+        utils.addDebug(currentEntry, " KROK 6: Celkové výpočty", "calculation");
+        if (employeeResult.success && hzsResult.success) {
+            steps.step6.success = calculateTotals(employeeResult, hzsResult, machinesResult);
+        }
+// TODO Pridať výkaz strojov
+        // Krok 7: Synchronizácia výkazu prác
         if (validationResult.hasCustomer) {
             utils.addDebug(currentEntry, utils.getIcon("update") + " KROK 6: Synchronizácia výkazu prác");
-            steps.step6.success = synchronizeWorkReport(validationResult.customer, validationResult.date, employeeResult.odpracovaneTotal, hzsResult.price);
+            steps.step7.success = synchronizeWorkReport(validationResult.customer, validationResult.date, employeeResult.odpracovaneTotal, hzsResult.price);
        
         }
         
-        // Krok 7: Vytvorenie info záznamov
-        utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 7: Vytvorenie info záznamov");
-        steps.step7.success = createInfoRecord(workTimeResult, employeeResult, hzsResult);
+        // Krok 8: Vytvorenie info záznamov
+        utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 8: Vytvorenie info záznamov");
+        steps.step8.success = createInfoRecord(workTimeResult, employeeResult, hzsResult);
         createTelegramInfoRecord(workTimeResult, employeeResult, hzsResult);
         
         utils.addDebug(currentEntry, utils.getIcon("success") + " === PREPOČET DOKONČENÝ ===");
@@ -462,15 +474,18 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
         
         if (zamArray && zamArray.length > index && zamArray[index]) {
             // Nastav atribúty pomocou .attr() metódy
-            zamArray[index].setAttr(CONFIG.attributes.workedHours, pracovnaDobaHodiny);
-            zamArray[index].setAttr(CONFIG.attributes.hourlyRate, hodinovka);
+            //zamArray[index].setAttr(CONFIG.attributes.workRecordEmployees.workedHours, pracovnaDobaHodiny);
+            //zamArray[index].setAttr(CONFIG.attributes.workRecordEmployees.hourlyRate, hodinovka);
+            utils.safeSetAttribute(zamArray[index], CONFIG.attributes.workRecordEmployees.hourlyRate, hodinovka);
+            utils.safeSetAttribute(zamArray[index], CONFIG.attributes.workRecordEmployees.workedHours, pracovnaDobaHodiny);
             
             // Vypočítaj dennú mzdu
             var dennaMzda = (pracovnaDobaHodiny * hodinovka );
             dennaMzda = Math.round(dennaMzda * 100) / 100;
             
             // Nastav dennú mzdu
-            zamArray[index].setAttr(CONFIG.attributes.wageCosts, dennaMzda);
+            //zamArray[index].setAttr(CONFIG.attributes.workRecordEmployees.wageCosts, dennaMzda);
+            utils.safeSetAttribute(zamArray[index], CONFIG.attributes.workRecordEmployees.wageCosts, dennaMzda);
             
             utils.addDebug(currentEntry, "  • Mzdové náklady: " + dennaMzda + " €");
             utils.addDebug(currentEntry, "Spracované úspešne", "success");
@@ -536,7 +551,7 @@ function processHZS(workedHours) {
             var defaultHZS = getDefaultHZS();
             if (defaultHZS) {
                 utils.safeSet(currentEntry, CONFIG.fields.workRecord.hzs, defaultHZS);
-                hzsField = currentEntry.field(CONFIG.fields.workRecord.hzs);
+                hzsField = utils.safeGet(currentEntry, CONFIG.fields.workRecord.hzs);
             }
         }
         
@@ -550,10 +565,10 @@ function processHZS(workedHours) {
             hzsPrice = utils.findValidWorkPrice(hzsRecord, currentDate);
             
             // Nastav cenu ako atribút na HZS poli
-            var hasHzsPrice = utils.safeGetAttribute(hzsRecord, CONFIG.hzsAttributes.price); 
+            var hasHzsPrice = utils.safeGetAttribute(hzsRecord, CONFIG.attributes.workRecordHzs.price); 
             message(hasHzsPrice);
             if (!hasHzsPrice) {
-                utils.safeSetAttribute(hzsField, CONFIG.hzsAttributes.price, hzsPrice);
+                utils.safeSetAttribute(hzsField, CONFIG.attributes.workRecordHzs.price, hzsPrice);
                 utils.addDebug(currentEntry, "  ✅ Cena nastavená ako atribút: " + hzsPrice + " €");
             } else {
                 utils.addDebug(currentEntry, "  ✅ Cena hzs už nastavená: " + hasHzsPrice + " €");
@@ -575,6 +590,89 @@ function processHZS(workedHours) {
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "processHZS", error);
         return { success: false, price: 0, sum: 0 };
+    }
+}
+function processMachines() {
+    try {
+        var machineryField = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.machinery);
+        var usedMachines = {
+            success: false,
+            count: 0,
+            total: 0,
+            machines: []
+        };
+        // Ak nie je HZS, skús default
+        if (!machineryField || machineryField.length === 0) {
+            utils.addDebug(currentEntry, "  ℹ️ Žiadne stroje ani mechanizácia dnes neboli použité...");
+        }
+        
+        // Získaj cenu za stroje
+        var machineUsePrice = {
+            priceMth: 0,
+            flatRate: 0,            
+        };
+        if (machineryField && machineryField.length > 0) {
+            for (var i = 0; i < machineryField.length; i++) {
+                var machine = machineryField[i];
+                var machineName = utils.safeGet(machine, CONFIG.fields.machine.name, "Neznámy stroj");
+                utils.addDebug(currentEntry, "  " + utils.getIcon("heavy_machine") + " Spracovanie stroja: " + machineName);
+
+                // Získaj platnú cenu z histórie
+                var currentDate = utils.safeGet(currentEntry, CONFIG.fields.workRecord.date);
+                machineUsePrice = utils.findValidMachinePrice(machineRecord, currentDate);
+                
+                // Nastav cenu ako atribút na HZS poli
+                var hasMachineUsePrice = utils.safeGetAttribute(machineRecord, CONFIG.attributes.workRecordMachines.totalPrice); 
+
+                if (!hasMachineUsePrice) {
+                    utils.safeSetAttribute(machineryField, CONFIG.attributes.workRecordMachines.priceMth, machineUsePrice.priceMth);
+                    utils.safeSetAttribute(machineryField, CONFIG.attributes.workRecordMachines.flatRate, machineUsePrice.flatRate);
+                    
+                    utils.addDebug(currentEntry, "  ✅ Cena nastavená ako atribút: " + machineUsePrice + " €");
+                    // vypočítaj sumu za tento stroj
+                    var calculationType = utils.safeGet(machineRecord, CONFIG.attributes.workRecordMachines.calculationType, "mth");
+                    var totalPrice = 0;
+                    if (calculationType === "mth") {
+                        var usedMth = utils.safeGetAttribute(machineryField, CONFIG.attributes.workRecordMachines.usedMth, 0);
+                        totalPrice = machineUsePrice.priceMth * usedMth;
+                    } else if (calculationType === "paušál") {
+                        totalPrice = machineUsePrice.flatRate;
+                    } else {
+                        utils.addDebug(currentEntry, "  ⚠️ Neznámy typ výpočtu: " + calculationType + ", predpokladám 'paušál'");
+                        totalPrice = machineUsePrice.flatRate;
+                    }
+                    
+                    usedMachines.sum += totalPrice;
+                    usedMachines.count += 1;
+                    usedMachines.machines.push({
+                        machine: {
+                            name: machineName,
+                            id: machine.id,
+                            usedMth: usedMth,
+                            calculationType: calculationType,
+                            priceMth: machineUsePrice.priceMth,
+                            flatRate: machineUsePrice.flatRate,
+                            totalPrice: totalPrice
+                        }
+                    }),
+                    utils.safeSetAttribute(machineryField, CONFIG.attributes.workRecordMachines.totalPrice, totalPrice);
+                } else {
+                    utils.addDebug(currentEntry, "  ✅ Cena použitie stroja už nastavená: " + hasMachineUsePrice + " €");
+                }
+            }
+        }
+        
+        // Vypočítaj sumu
+        utils.safeSet(currentEntry, CONFIG.fields.hzsSum, usedMachinesSum);
+        
+        utils.addDebug(currentEntry, "  " + utils.getIcon("rate") + " Suma za stroje: " + usedMachines.total + "€");
+        utils.addDebug(currentEntry, "  " + utils.getIcon("machine_use") + " Použítých strojov: " + usedMachines.count);
+        
+        return usedMachines;
+                
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "processMachines", error);
+        return usedMachines;
     }
 }
 
@@ -651,7 +749,7 @@ function getDefaultHZS() {
         
         var defaults = defaultsLib.entries();
         if (defaults && defaults.length > 0) {
-            var defaultHZS = utils.safeGet(defaults[0], "Default HZS");
+            var defaultHZS = utils.safeGet(defaults[0], CONFIG.fields.defaults.defaultHZS);
             
             if (defaultHZS && defaultHZS.length > 0) {
                 utils.addDebug(currentEntry, "  " + utils.getIcon("link") + " Default HZS nájdené");

@@ -516,6 +516,52 @@ var MementoBusiness = (function() {
         }
     }
 
+    function findValidMachinePrice(machineEntry, date) {
+        var core = getCore();
+        var config = getConfig();
+        var validPrice = {
+            priceMth: 0,
+            flatRate: 0,
+        };
+        
+        try {
+            if (!machineEntry || !date) return null;
+            
+            var fields = config.fields.machinePrice;
+            var libraryName = config.libraries.machinePrices;
+            var prices = core.safeGetLinksFrom(machineEntry, libraryName, fields.machine);
+            
+            if (!prices || prices.length === 0) {
+                return null;
+            }
+          
+            var latestValidFrom = null;
+            
+            // Nájdi najnovšiu platnú cenu
+            for (var i = 0; i < prices.length; i++) {
+                var price = prices[i];
+                var validFrom = core.safeGet(price, fields.validFrom);
+                
+                if (validFrom && price && moment(validFrom).isSameOrBefore(date)) {
+                    if (!latestValidFrom || moment(validFrom).isAfter(latestValidFrom)) {
+                        latestValidFrom = validFrom;
+                        validPrice.priceMth = core.safeGet(price, fields.priceMth, 0);
+                        validPrice.flatRate = core.safeGet(price, fields.flatRate, 0);
+                    }
+                }
+            }
+            
+            return validPrice;
+            
+        } catch (error) {
+            if (core) {
+                core.addError(entry(), "Chyba pri hľadaní ceny: " + error.toString() + ", Line: " + error.lineNumber, "findValidMachinePrice", error);
+
+            }
+            return null;
+        }
+    }
+
     function findValidWorkPrice(workEntry, date) {
         var core = getCore();
         var config = getConfig();
@@ -811,10 +857,9 @@ var MementoBusiness = (function() {
         //processEmployee: processEmployee,
         processEmployees: processEmployees,
 
-        // Práce
+        // hľadanie cien
         findValidWorkPrice: findValidWorkPrice,
-        
-        // Sklad
+        findValidMachinePrice: findValidMachinePrice,
         findValidItemPrice: findValidItemPrice,
         
         // Štatistiky
