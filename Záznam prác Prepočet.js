@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - ZÁZNAM PRÁC PREPOČET
-// Verzia: 8.1 | Dátum: september 2025 | Autor: ASISTANTO
+// Verzia: 8.1.7 | Dátum: september 2025 | Autor: ASISTANTO
 // Knižnica: Záznam práce | Trigger: Before Save
 // ==============================================
 // ✅ REFAKTOROVANÉ v8.1:
@@ -61,6 +61,22 @@ var CONFIG = {
     // Mapovanie pre HZS atribúty
     hzsAttributes: centralConfig.attributes.hzs || {
         price: "cena"
+    },
+
+    // Mapovanie pre mechanizácie atribúty
+    machinesAttributes: {
+        calculationType: "účtovanie", // options: paušál, mth
+        usedMth: "mth", // motohodiny
+        priceMth: "sadzba", // cena za motohodinu
+        flatRate: "paušál", // paušálna cena
+        totalPrice: "účtovaná suma" // celková účtovaná suma
+    },
+
+    // Mapovanie pre zamestnanci atribúty
+    employeesAttributes: {
+        hourlyRate: "hodinovka",
+        workedHours: "odpracované",
+        wageCosts: "mzdové náklady"
     },
     
     // Mapovanie pre výkaz prác
@@ -471,19 +487,16 @@ function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
         var zamArray = currentEntry.field(CONFIG.fields.workRecord.employees);
         
         if (zamArray && zamArray.length > index && zamArray[index]) {
-            // Nastav atribúty pomocou .attr() metódy
-            //zamArray[index].setAttr(CONFIG.attributes.workRecordEmployees.workedHours, pracovnaDobaHodiny);
-            //zamArray[index].setAttr(CONFIG.attributes.workRecordEmployees.hourlyRate, hodinovka);
-            utils.safeSetAttribute(zamArray[index], CONFIG.attributes.workRecordEmployees.hourlyRate, hodinovka);
-            utils.safeSetAttribute(zamArray[index], CONFIG.attributes.workRecordEmployees.workedHours, pracovnaDobaHodiny);
-            
+            // Nastav atribúty pomocou utils.safeSetAttribute
+            utils.safeSetAttribute(zamArray[index], CONFIG.employeesAttributes.hourlyRate, hodinovka);
+            utils.safeSetAttribute(zamArray[index], CONFIG.employeesAttributes.workedHours, pracovnaDobaHodiny);
+
             // Vypočítaj dennú mzdu
             var dennaMzda = (pracovnaDobaHodiny * hodinovka );
             dennaMzda = Math.round(dennaMzda * 100) / 100;
-            
+
             // Nastav dennú mzdu
-            //zamArray[index].setAttr(CONFIG.attributes.workRecordEmployees.wageCosts, dennaMzda);
-            utils.safeSetAttribute(zamArray[index], CONFIG.attributes.workRecordEmployees.wageCosts, dennaMzda);
+            utils.safeSetAttribute(zamArray[index], CONFIG.employeesAttributes.wageCosts, dennaMzda);
             
             utils.addDebug(currentEntry, "  • Mzdové náklady: " + dennaMzda + " €");
             utils.addDebug(currentEntry, "Spracované úspešne", "success");
@@ -658,15 +671,15 @@ function processMachines() {
                 var calculationType = null;
                 var usedMth = 1;
 
-                // Čítaj atribúty z currentEntry (ako processEmployees)
+                // Čítaj atribúty z currentEntry objektu (správny prístup)
                 if (machineryArray && machineryArray.length > i && machineryArray[i]) {
                     try {
                         utils.addDebug(currentEntry, "  🔍 Čítam atribúty z currentEntry mechanizácie[" + i + "] (ako processEmployees)...");
 
-                        hasMachinePrice = machineryArray[i].attr(CONFIG.attributes.workRecordMachines.totalPrice) || 0;
+                        hasMachinePrice = machineryArray[i].attr(CONFIG.machinesAttributes.totalPrice) || 0;
                         utils.addDebug(currentEntry, "    ✅ totalPrice prečítané: " + hasMachinePrice);
 
-                        calculationType = machineryArray[i].attr(CONFIG.attributes.workRecordMachines.calculationType);
+                        calculationType = machineryArray[i].attr(CONFIG.machinesAttributes.calculationType);
                         utils.addDebug(currentEntry, "    ✅ calculationType prečítané: " + calculationType);
 
                         // Ak je calculationType null, nastav default hodnotu
@@ -675,13 +688,16 @@ function processMachines() {
                             utils.addDebug(currentEntry, "    ⚠️ calculationType bol null, nastavujem default: mth");
                         }
 
-                        usedMth = machineryArray[i].attr(CONFIG.attributes.workRecordMachines.usedMth) || 1;
+                        usedMth = machineryArray[i].attr(CONFIG.machinesAttributes.usedMth) || 1;
                         utils.addDebug(currentEntry, "    ✅ usedMth prečítané: " + usedMth);
                     } catch (error) {
                         utils.addError(currentEntry, "Chyba pri čítaní atribútov z currentEntry: " + error.toString(), "processMachines");
                     }
                 } else {
-                    utils.addDebug(currentEntry, "  ⚠️ Mechanizácia[" + i + "] neexistuje v currentEntry");
+                    utils.addDebug(currentEntry, "  ⚠️ Mechanizácia[" + i + "] neexistuje v currentEntry.field()");
+                    utils.addDebug(currentEntry, "    • machineryArray existuje: " + (machineryArray !== null));
+                    utils.addDebug(currentEntry, "    • machineryArray.length: " + (machineryArray ? machineryArray.length : "null"));
+                    utils.addDebug(currentEntry, "    • index i: " + i);
                 }
 
                 utils.addDebug(currentEntry, "  🔍 Debug atribúty pred úpravou:");
@@ -719,19 +735,19 @@ function processMachines() {
                     if (machineryArray && machineryArray.length > i && machineryArray[i]) {
                         utils.addDebug(currentEntry, "  🔧 Nastavujem atribúty pomocou utils.safeSetAttribute...");
 
-                        utils.safeSetAttribute(machineryArray[i], CONFIG.attributes.workRecordMachines.calculationType, calculationType);
+                        utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.calculationType, calculationType);
                         utils.addDebug(currentEntry, "    ✅ calculationType nastavené");
 
-                        utils.safeSetAttribute(machineryArray[i], CONFIG.attributes.workRecordMachines.priceMth, machinePrice.priceMth);
+                        utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.priceMth, machinePrice.priceMth);
                         utils.addDebug(currentEntry, "    ✅ priceMth nastavené");
 
-                        utils.safeSetAttribute(machineryArray[i], CONFIG.attributes.workRecordMachines.flatRate, machinePrice.flatRate);
+                        utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.flatRate, machinePrice.flatRate);
                         utils.addDebug(currentEntry, "    ✅ flatRate nastavené");
 
-                        utils.safeSetAttribute(machineryArray[i], CONFIG.attributes.workRecordMachines.usedMth, usedMth);
+                        utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.usedMth, usedMth);
                         utils.addDebug(currentEntry, "    ✅ usedMth nastavené");
 
-                        utils.safeSetAttribute(machineryArray[i], CONFIG.attributes.workRecordMachines.totalPrice, totalPrice);
+                        utils.safeSetAttribute(machineryArray[i], CONFIG.machinesAttributes.totalPrice, totalPrice);
                         utils.addDebug(currentEntry, "    ✅ totalPrice nastavené");
                     } else {
                         utils.addError(currentEntry, "Nepodarilo sa získať mechanizáciu[" + i + "] z currentEntry", "processMachines");
@@ -744,12 +760,13 @@ function processMachines() {
                     utils.addDebug(currentEntry, "    • Použité mth: " + usedMth);
                     utils.addDebug(currentEntry, "    • Celková cena: " + totalPrice + " €");
 
-                    // Overenie či sa atribúty skutočne nastavili (z currentEntry.field())
+                    // Overenie či sa atribúty skutočne nastavili
                     if (machineryArray && machineryArray.length > i && machineryArray[i]) {
                         utils.addDebug(currentEntry, "  🔍 Debug atribúty po úprave:");
-                        utils.addDebug(currentEntry, "    • currentEntry.field().attr(totalPrice): " + machineryArray[i].attr(CONFIG.attributes.workRecordMachines.totalPrice));
-                        utils.addDebug(currentEntry, "    • currentEntry.field().attr(calculationType): " + machineryArray[i].attr(CONFIG.attributes.workRecordMachines.calculationType));
-                        utils.addDebug(currentEntry, "    • currentEntry.field().attr(priceMth): " + machineryArray[i].attr(CONFIG.attributes.workRecordMachines.priceMth));
+                        utils.addDebug(currentEntry, "    • attr(totalPrice): " + machineryArray[i].attr(CONFIG.machinesAttributes.totalPrice));
+                        utils.addDebug(currentEntry, "    • attr(calculationType): " + machineryArray[i].attr(CONFIG.machinesAttributes.calculationType));
+                        utils.addDebug(currentEntry, "    • attr(priceMth): " + machineryArray[i].attr(CONFIG.machinesAttributes.priceMth));
+                        utils.addDebug(currentEntry, "    • attr(usedMth): " + machineryArray[i].attr(CONFIG.machinesAttributes.usedMth));
                     }
                 } else {
                     utils.addDebug(currentEntry, "  ✅ Cena atribútu ceny je už nastavená: " + hasMachinePrice + " €");
@@ -1004,8 +1021,6 @@ function updateWorkReportAttributes(workReport, index, workedHours, hzsPrice) {
         // Získaj aktuálne údaje
         var workDescription = utils.safeGet(currentEntry, CONFIG.fields.workRecord.workDescription, "");
         var totalPrice = Math.round(workedHours * hzsPrice * 100) / 100;
-        var date = utils.safeGet(currentEntry, CONFIG.fields.workRecord.date);
-        var employees = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.employees);
         
         // Nastav/aktualizuj všetky atribúty
         vykazArray[index].setAttr(CONFIG.vykazAttributes.workDescription, workDescription);
