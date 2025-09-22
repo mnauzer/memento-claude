@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - ZÁKAZKY PREPOČET
-// Verzia: 2.1 | Dátum: September 2025 | Autor: ASISTANTO
+// Verzia: 2.2 | Dátum: September 2025 | Autor: ASISTANTO
 // Knižnica: Zákazky | Trigger: Before Save alebo Manual Action
 // ==============================================
 // 📋 FUNKCIA:
@@ -23,7 +23,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Zákazky Prepočet",
-    version: "2.1",
+    version: "2.2",
     
     // Referencie na centrálny config
     fields: {
@@ -606,7 +606,12 @@ function calculateMachineryCosts() {
                 var cashRecord = cashBookRecords[i];
                 var operatingCost = utils.safeGet(cashRecord, "Prevádzková réžia", "");
 
-                if (operatingCost === "Požičovné stroja") {
+                // Debug: hodnoty pre porovnanie
+                utils.addDebug(currentEntry, "        ◦ Debug Prevádzková réžia: '" + operatingCost + "' (typ: " + typeof operatingCost + ", dĺžka: " + operatingCost.length + ")");
+
+                // Použijem trim() a porovnanie bez ohľadu na veľkosť písmen pre istotu
+                var trimmedOperatingCost = (operatingCost || "").toString().trim();
+                if (trimmedOperatingCost === "Požičovné stroja") {
                     var suma = utils.safeGet(cashRecord, "Suma", 0);
                     var dph = utils.safeGet(cashRecord, "DPH", 0);
 
@@ -643,7 +648,12 @@ function calculateSubcontractorCosts() {
                 var cashRecord = cashBookRecords[i];
                 var purpose = utils.safeGet(cashRecord, "Účel výdaja", "");
 
-                if (purpose === "Subdodávky") {
+                // Debug: hodnoty pre porovnanie
+                utils.addDebug(currentEntry, "        ◦ Debug Účel výdaja (subdodávky): '" + purpose + "' (typ: " + typeof purpose + ", dĺžka: " + purpose.length + ")");
+
+                // Použijem trim() pre istotu
+                var trimmedPurpose = (purpose || "").toString().trim();
+                if (trimmedPurpose === "Subdodávky") {
                     var suma = utils.safeGet(cashRecord, "Suma", 0);
                     var dph = utils.safeGet(cashRecord, "DPH", 0);
 
@@ -680,7 +690,12 @@ function calculateOtherCosts() {
                 var cashRecord = cashBookRecords[i];
                 var purpose = utils.safeGet(cashRecord, "Účel výdaja", "");
 
-                if (purpose === "Ostatné") {
+                // Debug: hodnoty pre porovnanie
+                utils.addDebug(currentEntry, "        ◦ Debug Účel výdaja (ostatné): '" + purpose + "' (typ: " + typeof purpose + ", dĺžka: " + purpose.length + ")");
+
+                // Použijem trim() pre istotu
+                var trimmedPurpose = (purpose || "").toString().trim();
+                if (trimmedPurpose === "Ostatné") {
                     var suma = utils.safeGet(cashRecord, "Suma", 0);
                     var dph = utils.safeGet(cashRecord, "DPH", 0);
 
@@ -863,7 +878,12 @@ function calculateSubcontractorRevenue(linkedData, vatRate) {
                 var cashRecord = cashBookRecords[i];
                 var purpose = utils.safeGet(cashRecord, "Účel výdaja", "");
 
-                if (purpose === "Subdodávky") {
+                // Debug: hodnoty pre porovnanie
+                utils.addDebug(currentEntry, "        ◦ Debug Účel výdaja (subdodávky výnosy): '" + purpose + "' (typ: " + typeof purpose + ", dĺžka: " + purpose.length + ")");
+
+                // Použijem trim() pre istotu
+                var trimmedPurpose = (purpose || "").toString().trim();
+                if (trimmedPurpose === "Subdodávky") {
                     var suma = utils.safeGet(cashRecord, "Suma", 0);
                     baseAmount += suma;
                     utils.addDebug(currentEntry, "        • Záznam #" + cashRecord.field("ID") + ": " + utils.formatMoney(suma));
@@ -909,7 +929,12 @@ function calculateOtherRevenue(linkedData, vatRate) {
                 var cashRecord = cashBookRecords[i];
                 var purpose = utils.safeGet(cashRecord, "Účel výdaja", "");
 
-                if (purpose === "Ostatné") {
+                // Debug: hodnoty pre porovnanie
+                utils.addDebug(currentEntry, "        ◦ Debug Účel výdaja (ostatné výnosy): '" + purpose + "' (typ: " + typeof purpose + ", dĺžka: " + purpose.length + ")");
+
+                // Použijem trim() pre istotu
+                var trimmedPurpose = (purpose || "").toString().trim();
+                if (trimmedPurpose === "Ostatné") {
                     var suma = utils.safeGet(cashRecord, "Suma", 0);
                     baseAmount += suma;
                     utils.addDebug(currentEntry, "        • Záznam #" + cashRecord.field("ID") + ": " + utils.formatMoney(suma));
