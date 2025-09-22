@@ -604,7 +604,7 @@ function processMachines() {
         }
         
         // Získaj cenu za stroje
-        var machineUsePrice = {
+        var machinePrice = {
             priceMth: 0,
             flatRate: 0,            
         };
@@ -616,27 +616,28 @@ function processMachines() {
 
                 // Získaj platnú cenu z histórie
                 var currentDate = utils.safeGet(currentEntry, CONFIG.fields.workRecord.date);
-                machineUsePrice = utils.findValidMachinePrice(machine, currentDate);
+                machinePrice = utils.findValidMachinePrice(machine, currentDate);
                 
                 // Nastav cenu ako atribút na HZS poli
-                var hasMachineUsePrice = utils.safeGetAttribute(machine, CONFIG.attributes.workRecordMachines.totalPrice); 
+                var hasMachinePrice = utils.safeGetAttribute(machine, CONFIG.attributes.workRecordMachines.totalPrice); 
 
-                if (!hasMachineUsePrice) {
-                    utils.safeSetAttribute(machine, CONFIG.attributes.workRecordMachines.priceMth, machineUsePrice.priceMth);
-                    utils.safeSetAttribute(machine, CONFIG.attributes.workRecordMachines.flatRate, machineUsePrice.flatRate);
+                if (!hasMachinePrice) {
+                    utils.safeSetAttribute(machine, CONFIG.attributes.workRecordMachines.priceMth, machinePrice.priceMth);
+                    utils.safeSetAttribute(machine, CONFIG.attributes.workRecordMachines.flatRate, machinePrice.flatRate);
                     
-                    utils.addDebug(currentEntry, "  ✅ Cena nastavená ako atribút: " + machineUsePrice + " €");
+                    utils.addDebug(currentEntry, "  ✅ Nastavený atribút mth: " + machinePrice.priceMth + " €");
+                    utils.addDebug(currentEntry, "  ✅ Nastavený atribút paušál: " + machinePrice.flatRate + " €");
                     // vypočítaj sumu za tento stroj
                     var calculationType = utils.safeGet(machine, CONFIG.attributes.workRecordMachines.calculationType, "mth");
                     var totalPrice = 0;
                     if (calculationType === "mth") {
-                        var usedMth = utils.safeGetAttribute(machine, CONFIG.attributes.workRecordMachines.usedMth, 0);
-                        totalPrice = machineUsePrice.priceMth * usedMth;
+                        var usedMth = utils.safeGetAttribute(machine, CONFIG.attributes.workRecordMachines.usedMth, 1);
+                        totalPrice = machinePrice.priceMth * usedMth;
                     } else if (calculationType === "paušál") {
-                        totalPrice = machineUsePrice.flatRate;
-                    } else {
-                        utils.addDebug(currentEntry, "  ⚠️ Neznámy typ výpočtu: " + calculationType + ", predpokladám 'paušál'");
-                        totalPrice = machineUsePrice.flatRate;
+                        totalPrice = machinePrice.flatRate;
+                    } else { 
+                        utils.addDebug(currentEntry, "  ⚠️ Neznámy typ výpočtu: " + calculationType + ", predpokladám 'mth'");
+                        totalPrice = machinePrice.priceMth * usedMth;
                     }
                     
                     usedMachines.sum += totalPrice;
@@ -647,14 +648,16 @@ function processMachines() {
                             id: machine.id,
                             usedMth: usedMth,
                             calculationType: calculationType,
-                            priceMth: machineUsePrice.priceMth,
-                            flatRate: machineUsePrice.flatRate,
+                            priceMth: machinePrice.priceMth,
+                            flatRate: machinePrice.flatRate,
                             totalPrice: totalPrice
                         }
                     }),
                     utils.safeSetAttribute(machine, CONFIG.attributes.workRecordMachines.totalPrice, totalPrice);
+                    utils.addDebug(currentEntry, "  ✅ Nastavený atribút ceny: " + machinePrice.totalPrice + " €");
                 } else {
-                    utils.addDebug(currentEntry, "  ✅ Cena použitie stroja už nastavená: " + hasMachineUsePrice + " €");
+                    utils.addDebug(currentEntry, "  ✅ Cena atríbútu ceny je už nastavená: " + hasMachinePrice + " €");
+                    utils.addDebug(currentEntry, "  - ak je potrebné prepočítať túto cenu, vymaž hodnotu a ulož záznam...");
                 }
             }
         }
