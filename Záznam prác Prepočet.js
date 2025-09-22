@@ -624,7 +624,7 @@ function processMachines() {
                 
                 var hasMachinePrice = machine.attr(CONFIG.attributes.workRecordMachines.totalPrice); 
 
-                if (!hasMachinePrice) {                    
+                if (!hasMachinePrice || hasMachinePrice === 0) {                    
                     // vypočítaj sumu za tento stroj
                     var calculationType = machine.attr(CONFIG.attributes.workRecordMachines.calculationType);
                     message("Typ účtovania stroja " + machineName + ": " + calculationType);
