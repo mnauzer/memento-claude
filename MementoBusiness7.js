@@ -517,18 +517,16 @@ var MementoBusiness = (function() {
     }
 
     function findValidMachinePrice(machineEntry, date) {
-        var core = getCore();
-        var config = getConfig();
-        var currentEntry = entry();
-        core.addDebug(currentEntry, "  🔍 Hľadám platnú cenu mechanizácie");
-        var validPrice = {
-            priceMth: 0,
-            flatRate: 0,
-        };
-        
         try {
             if (!machineEntry || !date) return null;
-            
+            var core = getCore();
+            var config = getConfig();
+            var currentEntry = entry();
+            core.addDebug(currentEntry, "  🔍 Hľadám platnú cenu mechanizácie");
+            var validPrice = {
+                priceMth: 0,
+                flatRate: 0,
+            };
             var fields = config.fields.machinePrice;
             var libraryName = config.libraries.machinePrices;
             var prices = core.safeGetLinksFrom(machineEntry, libraryName, fields.machine);
