@@ -35,7 +35,8 @@ var CONFIG = {
         rideReport: centralConfig.fields.rideReport,
         workReport: centralConfig.fields.workReport,
         cashBook: centralConfig.fields.cashBook,
-        common: centralConfig.fields.common
+        common: centralConfig.fields.common,
+        machine: centralConfig.fields.machine
     },
     
     libraries: centralConfig.libraries,
@@ -198,6 +199,11 @@ function collectLinkedRecordsData() {
             records: [],
             totalSum: 0,
             totalKm: 0
+        },
+        machinery: {
+            records: [],
+            totalRevenue: 0,    // Výnosy z mechanizácie
+            totalCosts: 0       // Náklady na mechanizáciu
         }
     };
     
@@ -241,6 +247,100 @@ function collectLinkedRecordsData() {
         }
         utils.addDebug(currentEntry, "    • Záznam prác: " + data.workRecords.records.length + " záznamov");
         
+        // MECHANIZÁCIA - výnosy
+        // Prejdi všetky záznamy práce a hľadaj pole Mechanizácia
+        if (data.workRecords.records.length > 0) {
+            utils.addDebug(currentEntry, "  🚜 Hľadám mechanizáciu v záznamoch práce...");
+            
+            for (var wr = 0; wr < data.workRecords.records.length; wr++) {
+                var workRec = data.workRecords.records[wr];
+                
+                // Skús rôzne názvy poľa pre mechanizáciu
+                var machineryField = utils.safeGetLinks(workRec, "Mechanizácia") || 
+                                    utils.safeGetLinks(workRec, "Stroje") ||
+                                    utils.safeGetLinks(workRec, "Stroj");
+                
+                if (machineryField && machineryField.length > 0) {
+                    utils.addDebug(currentEntry, "    • Nájdená mechanizácia v zázname #" + workRec.field("ID"));
+                    
+                    for (var m = 0; m < machineryField.length; m++) {
+                        var machine = machineryField[m];
+                        
+                        // Získaj účtovanú sumu z atribútu
+                        var billedAmount = 0;
+                        try {
+                            billedAmount = machine.attr(CONFIG.attributes.workRecordMachines.totalPrice) || 0;
+                        } catch (e) {
+                            // Skús alternatívne spôsoby
+                            billedAmount = machine.attr("účtovaná suma") || 0;
+                        }
+                        
+                        if (billedAmount > 0) {
+                            data.machinery.totalRevenue += billedAmount;
+                            data.machinery.records.push({
+                                machine: utils.safeGet(machine, "Názov", "Neznámy stroj"),
+                                workRecord: workRec.field("ID"),
+                                amount: billedAmount
+                            });
+                            
+                            utils.addDebug(currentEntry, "      • " + utils.safeGet(machine, "Názov", "Stroj") + 
+                                        ": " + utils.formatMoney(billedAmount));
+                        }
+                    }
+                }
+            }
+        }
+
+        // MECHANIZÁCIA - náklady z pokladne
+        utils.addDebug(currentEntry, "  🚜 Hľadám náklady na mechanizáciu v pokladni...");
+
+        // Pre každý záznam práce nájdi súvisiace pokladničné doklady
+        for (var wr2 = 0; wr2 < data.workRecords.records.length; wr2++) {
+            var workRecord = data.workRecords.records[wr2];
+            var workDate = utils.safeGet(workRecord, CONFIG.fields.workRecord.date);
+            
+            // Získaj všetky stroje použité v tomto zázname
+            var machines = utils.safeGetLinks(workRecord, "Mechanizácia") || 
+                        utils.safeGetLinks(workRecord, "Stroje") ||
+                        utils.safeGetLinks(workRecord, "Stroj");
+            
+            if (machines && machines.length > 0) {
+                for (var mc = 0; mc < machines.length; mc++) {
+                    var machineObj = machines[mc];
+                    
+                    // Hľadaj pokladničné doklady pre tento stroj
+                    var machineCashRecords = machineObj.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.cashBook.tool);
+                    
+                    if (machineCashRecords && machineCashRecords.length > 0) {
+                        for (var cr = 0; cr < machineCashRecords.length; cr++) {
+                            var cashRec = machineCashRecords[cr];
+                            var cashDate = utils.safeGet(cashRec, CONFIG.fields.cashBook.date);
+                            var cashOrder = utils.safeGetLinks(cashRec, CONFIG.fields.cashBook.customer)[0];
+                            
+                            // Kontrola či je rovnaký dátum alebo rovnaká zákazka
+                            var sameDate = moment(cashDate).format("YYYY-MM-DD") === moment(workDate).format("YYYY-MM-DD");
+                            var sameOrder = cashOrder && cashOrder.field("ID") === currentEntry.field("ID");
+                            
+                            if (sameDate || sameOrder) {
+                                var transactionType = utils.safeGet(cashRec, CONFIG.fields.cashBook.transactionType);
+                                
+                                if (transactionType === "Výdavok") {
+                                    var amount = utils.safeGet(cashRec, CONFIG.fields.cashBook.sum, 0);
+                                    data.machinery.totalCosts += amount;
+                                    
+                                    utils.addDebug(currentEntry, "    • Náklad na " + utils.safeGet(machineObj, "Názov", "stroj") + 
+                                                ": " + utils.formatMoney(amount) + " (Pokladňa #" + cashRec.field("ID") + ")");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        utils.addDebug(currentEntry, "    • Mechanizácia výnosy: " + utils.formatMoney(data.machinery.totalRevenue));
+        utils.addDebug(currentEntry, "    • Mechanizácia náklady: " + utils.formatMoney(data.machinery.totalCosts));
+
         // KNIHA JÁZD - linksFrom
         var rideLogRecords = currentEntry.linksFrom(CONFIG.libraries.rideLog, CONFIG.fields.rideLog.orders);
         if (rideLogRecords && rideLogRecords.length > 0) {
@@ -353,6 +453,9 @@ function calculateCosts(linkedData) {
         // Dopravné náklady
         costs.transportCosts = linkedData.rideLog.totalFuelCosts;
         
+        // Náklady na mechanizáciu
+        costs.machineryCosts = linkedData.machinery.totalCosts;
+        
         // Materiálové náklady z pokladne
         costs.materialCosts = linkedData.cashBook.materialCosts;
         
@@ -361,7 +464,8 @@ function calculateCosts(linkedData) {
         
         // Celkové náklady
         costs.totalCosts = costs.wageCosts + costs.transportCosts + 
-                          costs.materialCosts + costs.otherCosts;
+                costs.materialCosts + costs.machineryCosts + 
+                costs.otherCosts;
         
         // DPH odvod (ak je aplikovateľné)
         if (CONFIG.settings.calculateVAT) {
@@ -370,6 +474,7 @@ function calculateCosts(linkedData) {
         
         utils.addDebug(currentEntry, "    • Mzdové náklady: " + utils.formatMoney(costs.wageCosts));
         utils.addDebug(currentEntry, "    • Dopravné náklady: " + utils.formatMoney(costs.transportCosts));
+        utils.addDebug(currentEntry, "    • Náklady na stroje: " + utils.formatMoney(costs.machineryCosts));
         utils.addDebug(currentEntry, "    • Materiálové náklady: " + utils.formatMoney(costs.materialCosts));
         utils.addDebug(currentEntry, "    • Ostatné náklady: " + utils.formatMoney(costs.otherCosts));
         utils.addDebug(currentEntry, "    • NÁKLADY CELKOM: " + utils.formatMoney(costs.totalCosts));
@@ -404,19 +509,23 @@ function calculateRevenue(linkedData) {
         
         // NOVÉ: Výnosy z dopravy podľa cenovej ponuky
         revenue.transportRevenue = calculateTransportRevenue(linkedData, revenue);
+
+        // NOVÉ: Výnosy z použitej mechanizácie
+        revenue.machineryRevenue = linkedData.machinery.totalRevenue;
         
         // Príjmy z pokladne
         revenue.otherRevenue = linkedData.cashBook.totalIncome;
         
         // Celkové výnosy
         revenue.totalRevenue = revenue.workRevenue + revenue.transportRevenue + 
-                              revenue.materialRevenue + revenue.otherRevenue;
-        
+                    revenue.materialRevenue + revenue.machineryRevenue + 
+                    revenue.otherRevenue;
         // Vyfakturované
         revenue.totalBilled = revenue.totalRevenue;
         
         utils.addDebug(currentEntry, "    • Výnosy z práce: " + utils.formatMoney(revenue.workRevenue));
         utils.addDebug(currentEntry, "    • Výnosy z dopravy: " + utils.formatMoney(revenue.transportRevenue));
+        utils.addDebug(currentEntry, "    • Výnosy zo strojov: " + utils.formatMoney(revenue.machineryRevenue));
         utils.addDebug(currentEntry, "    • Ostatné výnosy: " + utils.formatMoney(revenue.otherRevenue));
         utils.addDebug(currentEntry, "    • VÝNOSY CELKOM: " + utils.formatMoney(revenue.totalRevenue));
         
@@ -656,6 +765,7 @@ function createInfoRecord(linkedData, costs, revenue, profit) {
         info += "─────────────────────────────\n";
         info += "• Mzdy: " + utils.formatMoney(costs.wageCosts) + "\n";
         info += "• Doprava: " + utils.formatMoney(costs.transportCosts) + "\n";
+        info += "• Stroje: " + utils.formatMoney(costs.machineryCosts) + "\n";
         info += "• Materiál: " + utils.formatMoney(costs.materialCosts) + "\n";
         info += "• Ostatné: " + utils.formatMoney(costs.otherCosts) + "\n";
         info += "• CELKOM: " + utils.formatMoney(costs.totalCosts) + "\n\n";
@@ -665,6 +775,7 @@ function createInfoRecord(linkedData, costs, revenue, profit) {
         info += "─────────────────────────────\n";
         info += "• Práce: " + utils.formatMoney(revenue.workRevenue) + "\n";
         info += "• Doprava: " + utils.formatMoney(revenue.transportRevenue) + "\n";
+        info += "• Stroje: " + utils.formatMoney(revenue.machineryRevenue) + "\n";
         info += "• Ostatné: " + utils.formatMoney(revenue.otherRevenue) + "\n";
         info += "• CELKOM: " + utils.formatMoney(revenue.totalRevenue) + "\n\n";
         
@@ -712,6 +823,10 @@ function saveCalculatedValues(linkedData, costs, revenue, profit) {
         utils.safeSet(currentEntry, CONFIG.fields.order.otherCosts, costs.otherCosts);
         utils.safeSet(currentEntry, CONFIG.fields.order.totalCosts, costs.totalCosts);
         
+        // NOVÉ: Náklady na mechanizáciu
+        utils.safeSet(currentEntry, CONFIG.fields.order.machineryTotal, revenue.machineryRevenue);
+        utils.safeSet(currentEntry, CONFIG.fields.order.machineryCosts, costs.machineryCosts);
+        
         // Mzdové náklady detailne
         utils.safeSet(currentEntry, CONFIG.fields.order.transportWageCosts, linkedData.rideLog.totalWageCosts);
         
@@ -729,6 +844,7 @@ function saveCalculatedValues(linkedData, costs, revenue, profit) {
             utils.safeSet(currentEntry, CONFIG.fields.order.materialVat, costs.materialCosts * CONFIG.settings.defaultVATRate);
             utils.safeSet(currentEntry, CONFIG.fields.order.workVat, costs.wageCosts * CONFIG.settings.defaultVATRate);
             utils.safeSet(currentEntry, CONFIG.fields.order.otherVat, costs.otherCosts * CONFIG.settings.defaultVATRate);
+            utils.safeSet(currentEntry, CONFIG.fields.order.machineryVat,costs.machineryCosts * CONFIG.settings.defaultVATRate);
         }
         
         // Rozpočet a zostatok
