@@ -648,9 +648,26 @@ function processMachines() {
                 }
 
                 // Pracuj s atribútmi priamo na machine objekte (ako v processHZS)
-                var hasMachinePrice = machine.attr(CONFIG.attributes.workRecordMachines.totalPrice) || 0;
-                var calculationType = machine.attr(CONFIG.attributes.workRecordMachines.calculationType);
-                var usedMth = machine.attr(CONFIG.attributes.workRecordMachines.usedMth) || 1;
+                var hasMachinePrice = 0;
+                var calculationType = null;
+                var usedMth = 1;
+
+                try {
+                    utils.addDebug(currentEntry, "  🔍 Pokúšam sa čítať atribúty z mechanizácie...");
+                    utils.addDebug(currentEntry, "  🔍 CONFIG.attributes.workRecordMachines: " + JSON.stringify(CONFIG.attributes.workRecordMachines));
+
+                    hasMachinePrice = machine.attr(CONFIG.attributes.workRecordMachines.totalPrice) || 0;
+                    utils.addDebug(currentEntry, "    ✅ totalPrice prečítané: " + hasMachinePrice);
+
+                    calculationType = machine.attr(CONFIG.attributes.workRecordMachines.calculationType);
+                    utils.addDebug(currentEntry, "    ✅ calculationType prečítané: " + calculationType);
+
+                    usedMth = machine.attr(CONFIG.attributes.workRecordMachines.usedMth) || 1;
+                    utils.addDebug(currentEntry, "    ✅ usedMth prečítané: " + usedMth);
+                } catch (error) {
+                    utils.addError(currentEntry, "Chyba pri čítaní atribútov mechanizácie: " + error.toString(), "processMachines");
+                    utils.addDebug(currentEntry, "  ⚠️ Používam default hodnoty pre atribúty");
+                }
 
                 utils.addDebug(currentEntry, "  🔍 Debug atribúty pred úpravou:");
                 utils.addDebug(currentEntry, "    • machine ID: " + (machine.field ? machine.field("ID") : "N/A"));
@@ -677,11 +694,26 @@ function processMachines() {
                     }
 
                     // Nastav atribúty priamo na machine objekte (ako v processHZS)
-                    machine.setAttr(CONFIG.attributes.workRecordMachines.calculationType, calculationType);
-                    machine.setAttr(CONFIG.attributes.workRecordMachines.priceMth, machinePrice.priceMth);
-                    machine.setAttr(CONFIG.attributes.workRecordMachines.flatRate, machinePrice.flatRate);
-                    machine.setAttr(CONFIG.attributes.workRecordMachines.usedMth, usedMth);
-                    machine.setAttr(CONFIG.attributes.workRecordMachines.totalPrice, totalPrice);
+                    try {
+                        utils.addDebug(currentEntry, "  🔧 Nastavujem atribúty mechanizácie...");
+                        machine.setAttr(CONFIG.attributes.workRecordMachines.calculationType, calculationType);
+                        utils.addDebug(currentEntry, "    ✅ calculationType nastavené");
+
+                        machine.setAttr(CONFIG.attributes.workRecordMachines.priceMth, machinePrice.priceMth);
+                        utils.addDebug(currentEntry, "    ✅ priceMth nastavené");
+
+                        machine.setAttr(CONFIG.attributes.workRecordMachines.flatRate, machinePrice.flatRate);
+                        utils.addDebug(currentEntry, "    ✅ flatRate nastavené");
+
+                        machine.setAttr(CONFIG.attributes.workRecordMachines.usedMth, usedMth);
+                        utils.addDebug(currentEntry, "    ✅ usedMth nastavené");
+
+                        machine.setAttr(CONFIG.attributes.workRecordMachines.totalPrice, totalPrice);
+                        utils.addDebug(currentEntry, "    ✅ totalPrice nastavené");
+                    } catch (error) {
+                        utils.addError(currentEntry, "Chyba pri nastavovaní atribútov mechanizácie: " + error.toString(), "processMachines");
+                        utils.addDebug(currentEntry, "  ⚠️ Pokračujem napriek chybe pri nastavovaní atribútov");
+                    }
 
                     utils.addDebug(currentEntry, "  ✅ Nastavené atribúty mechanizácie:");
                     utils.addDebug(currentEntry, "    • Typ účtovania: " + calculationType);
