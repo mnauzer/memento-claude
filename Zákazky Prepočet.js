@@ -427,6 +427,149 @@ function calculateRevenue(linkedData) {
     }
 }
 
+function calculateTransportRevenue(linkedData, revenue) {
+    try {
+        utils.addDebug(currentEntry, "    🚗 Počítam výnosy z dopravy...");
+        
+        // Získaj cenovú ponuku
+        var quote = utils.safeGetLinks(currentEntry, CONFIG.fields.order.quote);
+        if (!quote || quote.length === 0) {
+            utils.addDebug(currentEntry, "      ℹ️ Žiadna cenová ponuka - používam výkazy dopravy");
+            return linkedData.rideReports.totalSum;
+        }
+        
+        var quoteObj = quote[0];
+        var rideCalculation = utils.safeGet(quoteObj, CONFIG.fields.quote.rideCalculation);
+        
+        utils.addDebug(currentEntry, "      • Typ účtovania: " + (rideCalculation || "Neurčené"));
+        
+        switch (rideCalculation) {
+            case "Paušál":
+                return calculateFlatRateTransport(linkedData, quoteObj);
+                
+            case "Km":
+                return calculateKmBasedTransport(linkedData, quoteObj);
+                
+            case "% zo zákazky":
+                return calculatePercentageTransport(linkedData, quoteObj, revenue);
+                
+            case "Pevná cena":
+                return calculateFixedPriceTransport(quoteObj);
+                
+            case "Neúčtovať":
+                utils.addDebug(currentEntry, "      • Doprava sa neúčtuje");
+                return 0;
+                
+            default:
+                utils.addDebug(currentEntry, "      ⚠️ Neznámy typ účtovania - používam výkazy");
+                return linkedData.rideReports.totalSum;
+        }
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "calculateTransportRevenue", error);
+        return 0;
+    }
+}
+// Paušál - počet jázd × sadzba
+function calculateFlatRateTransport(linkedData, quoteObj) {
+    try {
+        var rideCount = linkedData.rideLog.records.length;
+        var flatRatePriceLink = utils.safeGetLinks(quoteObj, CONFIG.fields.quote.flatRateRidePrice);
+        
+        if (!flatRatePriceLink || flatRatePriceLink.length === 0) {
+            utils.addError(currentEntry, "Chýba linknutá sadzba pre paušál dopravu", "calculateFlatRateTransport");
+            return 0;
+        }
+        
+        var flatRatePrice = utils.safeGet(flatRatePriceLink[0], "Cena", 0);
+        var total = rideCount * flatRatePrice;
+        
+        utils.addDebug(currentEntry, "      • Paušál: " + rideCount + " jázd × " + flatRatePrice + " € = " + utils.formatMoney(total));
+        
+        return total;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "calculateFlatRateTransport", error);
+        return 0;
+    }
+}
+
+// Km - celkové km × sadzba za km
+function calculateKmBasedTransport(linkedData, quoteObj) {
+    try {
+        var totalKm = linkedData.rideLog.totalKm;
+        var kmPriceLink = utils.safeGetLinks(quoteObj, CONFIG.fields.quote.kmRidePrice);
+        
+        if (!kmPriceLink || kmPriceLink.length === 0) {
+            utils.addError(currentEntry, "Chýba linknutá sadzba za km", "calculateKmBasedTransport");
+            return 0;
+        }
+        
+        var kmPrice = utils.safeGet(kmPriceLink[0], "Cena", 0);
+        var total = totalKm * kmPrice;
+        
+        utils.addDebug(currentEntry, "      • Km: " + totalKm + " km × " + kmPrice + " € = " + utils.formatMoney(total));
+        
+        return total;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "calculateKmBasedTransport", error);
+        return 0;
+    }
+}
+
+// % zo zákazky - percentuálny výpočet
+function calculatePercentageTransport(linkedData, quoteObj, revenue) {
+    try {
+        var rateRidePrice = utils.safeGet(quoteObj, CONFIG.fields.quote.rateRidePrice, 0);
+        
+        // Súčet všetkých položiek okrem dopravy
+        var baseAmount = 0;
+        
+        // Práce
+        baseAmount += utils.safeGet(currentEntry, CONFIG.fields.order.workReportTotal, 0);
+        
+        // Materiál
+        baseAmount += utils.safeGet(currentEntry, CONFIG.fields.order.materialTotal, 0);
+        
+        // Stroje
+        baseAmount += utils.safeGet(currentEntry, CONFIG.fields.order.machineryTotal, 0);
+        
+        // Subdodávky/Ostatné
+        baseAmount += utils.safeGet(currentEntry, CONFIG.fields.order.otherTotal, 0);
+        
+        // Vypočítaj % z celkovej sumy
+        var percentage = rateRidePrice / 100; // Konvertuj na desatinné číslo
+        var total = baseAmount * percentage;
+        
+        utils.addDebug(currentEntry, "      • % zo zákazky: " + baseAmount + " € × " + rateRidePrice + "% = " + utils.formatMoney(total));
+        utils.addDebug(currentEntry, "        - Práce: " + utils.safeGet(currentEntry, CONFIG.fields.order.workReportTotal, 0) + " €");
+        utils.addDebug(currentEntry, "        - Materiál: " + utils.safeGet(currentEntry, CONFIG.fields.order.materialTotal, 0) + " €");
+        utils.addDebug(currentEntry, "        - Stroje: " + utils.safeGet(currentEntry, CONFIG.fields.order.machineryTotal, 0) + " €");
+        utils.addDebug(currentEntry, "        - Subdodávky: " + utils.safeGet(currentEntry, CONFIG.fields.order.otherTotal, 0) + " €");
+        
+        return total;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "calculatePercentageTransport", error);
+        return 0;
+    }
+}
+
+// Pevná cena
+function calculateFixedPriceTransport(quoteObj) {
+    try {
+        var fixedPrice = utils.safeGet(quoteObj, CONFIG.fields.quote.fixRidePrice, 0);
+        
+        utils.addDebug(currentEntry, "      • Pevná cena dopravy: " + utils.formatMoney(fixedPrice));
+        
+        return fixedPrice;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "calculateFixedPriceTransport", error);
+        return 0;
+    }
+}
 // ==============================================
 // VÝPOČET MARŽE A RENTABILITY
 // ==============================================
@@ -574,7 +717,7 @@ function saveCalculatedValues(linkedData, costs, revenue, profit) {
         // Výnosy a vyúčtovanie
         utils.safeSet(currentEntry, CONFIG.fields.order.workHZSTotal, linkedData.workRecords.totalHzsSum);
         utils.safeSet(currentEntry, CONFIG.fields.order.workReportTotal, linkedData.workReports.totalSum);
-        utils.safeSet(currentEntry, CONFIG.fields.order.transportTotal, linkedData.rideLog.totalKm);
+        utils.safeSet(currentEntry, CONFIG.fields.order.transportTotal, revenue.transportRevenue);
         utils.safeSet(currentEntry, CONFIG.fields.order.transportReportTotal, revenue.transportRevenue);
         utils.safeSet(currentEntry, CONFIG.fields.order.totalBilled, revenue.totalBilled);
         utils.safeSet(currentEntry, CONFIG.fields.order.otherTotal, linkedData.cashBook.totalExpenses);
