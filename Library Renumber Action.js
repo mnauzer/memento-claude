@@ -1,11 +1,12 @@
 // ==============================================
 // MEMENTO DATABASE - PREČÍSLOVANIE KNIŽNICE
-// Verzia: 1.0 | Dátum: September 2025 | Autor: ASISTANTO
+// Verzia: 1.1 | Dátum: September 2025 | Autor: ASISTANTO
 // Knižnica: Ľubovoľná | Trigger: Manual Action
 // ==============================================
 // 📋 FUNKCIA:
 //    - Prečísluje záznamy aktuálnej knižnice podľa dátumu
 //    - Využíva MementoCore.renumberLibraryRecords()
+//    - Logging do knižnice ASISTANTO Logs
 //    - Flexibilné nastavenie polí a parametrov
 // ==============================================
 
@@ -22,7 +23,10 @@ var config = utils.getConfig();
 
 var CONFIG = {
     scriptName: "Library Renumber Action",
-    version: "1.0",
+    version: "1.1",
+
+    // Logging knižnica
+    logsLibrary: "ASISTANTO Logs",
 
     // Nastavenia prečíslovania
     settings: {
@@ -35,24 +39,107 @@ var CONFIG = {
 };
 
 // ==============================================
+// LOGGING DO ASISTANTO LOGS
+// ==============================================
+
+var logEntry = null; // Globálny log záznam
+
+/**
+ * Vytvorí log záznam v knižnici ASISTANTO Logs
+ */
+function createLogEntry() {
+    try {
+        var logsLib = libByName(CONFIG.logsLibrary);
+        if (!logsLib) {
+            console.log("⚠️ Knižnica " + CONFIG.logsLibrary + " nenájdená!");
+            return null;
+        }
+
+        logEntry = logsLib.create();
+        logEntry.set("date", new Date());
+        logEntry.set("library", lib ? lib.name : "Unknown");
+        logEntry.set("user", user ? user.fullName : "Unknown");
+        logEntry.set("Debug_Log", "");
+        logEntry.set("Error_Log", "");
+
+        return logEntry;
+
+    } catch (error) {
+        console.log("❌ Chyba pri vytváraní log záznamu: " + error.toString());
+        return null;
+    }
+}
+
+/**
+ * Pridá debug správu do log záznamu
+ */
+function addDebug(message, iconName) {
+    try {
+        if (!logEntry) return;
+
+        var icon = "";
+        if (iconName && utils.getIcon) {
+            icon = utils.getIcon(iconName) + " ";
+        }
+
+        var timestamp = moment().format("DD.MM.YY HH:mm");
+        var debugMessage = "[" + timestamp + "] " + icon + message;
+
+        var existingDebug = logEntry.field("Debug_Log") || "";
+        logEntry.set("Debug_Log", existingDebug + debugMessage + "\n");
+
+    } catch (error) {
+        console.log("❌ Chyba pri debug logu: " + error.toString());
+    }
+}
+
+/**
+ * Pridá error správu do log záznamu
+ */
+function addError(message, source, error) {
+    try {
+        if (!logEntry) return;
+
+        var timestamp = moment().format("DD.MM.YY HH:mm:ss");
+        var errorMessage = "[" + timestamp + "] ❌ ERROR: " + message;
+
+        if (source) {
+            errorMessage += " | Zdroj: " + source;
+        }
+
+        if (error && error.stack) {
+            errorMessage += "\nStack trace:\n" + error.stack;
+        }
+
+        var existingError = logEntry.field("Error_Log") || "";
+        logEntry.set("Error_Log", existingError + errorMessage + "\n");
+
+    } catch (e) {
+        console.log("❌ Chyba pri error logu: " + e.toString());
+    }
+}
+
+// ==============================================
 // HLAVNÁ FUNKCIA
 // ==============================================
 
 function main() {
     try {
-        utils.addDebug(null, "=== ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===", "start");
-        utils.clearLogs(null);
+        // Vytvor log záznam
+        createLogEntry();
+
+        addDebug("=== ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===", "start");
 
         // Overenie knižnice
         if (!lib) {
             var errorMsg = "❌ CHYBA: Script musí byť spustený v knižnici!";
-            utils.addError(null, errorMsg, "main");
+            addError(errorMsg, "main");
             message(errorMsg);
             return false;
         }
 
-        utils.addDebug(null, "📚 Knižnica: " + lib.name);
-        utils.addDebug(null, "📊 Počet záznamov: " + lib.entries().length);
+        addDebug("📚 Knižnica: " + lib.name);
+        addDebug("📊 Počet záznamov: " + lib.entries().length);
 
         // Zobraz konfirmačný dialóg
         var confirmMsg = "🔢 PREČÍSLOVANIE KNIŽNICE\n\n";
@@ -66,15 +153,16 @@ function main() {
         confirmMsg += "Pokračovať?";
 
         if (!confirm(confirmMsg)) {
-            utils.addDebug(null, "❌ Prečíslovanie zrušené používateľom");
+            addDebug("❌ Prečíslovanie zrušené používateľom");
             message("❌ Prečíslovanie zrušené");
             return false;
         }
 
         // Spusti prečíslovanie
-        utils.addDebug(null, "\n🔢 Spúšťam prečíslovanie...");
+        addDebug("🔢 Spúšťam prečíslovanie...");
 
-        var result = utils.renumberLibraryRecords(
+        // Vytvor custom verziu renumberLibraryRecords pre správny logging
+        var result = renumberLibraryRecordsWithLogging(
             lib,                           // aktuálna knižnica
             CONFIG.settings.dateField,     // pole dátumu
             CONFIG.settings.idField,       // pole ID
@@ -111,7 +199,7 @@ function main() {
                 }
             }
 
-            utils.addDebug(null, "\n✅ " + result.message);
+            addDebug("✅ " + result.message);
             message(successMsg);
 
         } else {
@@ -123,9 +211,9 @@ function main() {
                 errorMsg += "✅ Úspešne: " + result.processed + "\n";
             }
 
-            errorMsg += "\n📋 Skontrolujte Debug Log pre detaily.";
+            errorMsg += "\n📋 Skontrolujte log záznam v knižnici " + CONFIG.logsLibrary + " pre detaily.";
 
-            utils.addError(null, "Prečíslovanie zlyhalo: " + result.message, "main");
+            addError("Prečíslovanie zlyhalo: " + result.message, "main");
             message(errorMsg);
         }
 
@@ -133,9 +221,152 @@ function main() {
 
     } catch (error) {
         var criticalMsg = "💀 KRITICKÁ CHYBA!\n\n" + error.toString();
-        utils.addError(null, "Kritická chyba v main: " + error.toString(), "main", error);
+        addError("Kritická chyba v main: " + error.toString(), "main", error);
         message(criticalMsg);
         return false;
+    }
+}
+
+// ==============================================
+// PREČÍSLOVANIE S LOGOVANÍM
+// ==============================================
+
+/**
+ * Prečísluje záznamy knižnice s logovaním do ASISTANTO Logs
+ */
+function renumberLibraryRecordsWithLogging(targetLibrary, dateField, idField, startNumber, ascending) {
+    var result = {
+        success: false,
+        processed: 0,
+        errors: 0,
+        message: "",
+        details: []
+    };
+
+    try {
+        addDebug("🔢 === ZAČÍNA PREČÍSLOVANIE ZÁZNAMOV ===", "start");
+
+        // Parametrické hodnoty s fallbackmi
+        var library = targetLibrary || lib;
+        var dateFld = dateField || "Dátum";
+        var idFld = idField || "ID";
+        var startNum = startNumber || 1;
+        var sortAscending = ascending !== false; // Default true
+
+        if (!library) {
+            result.message = "Chýba knižnica pre prečíslovanie";
+            addError(result.message, "renumberLibraryRecords");
+            return result;
+        }
+
+        addDebug("📚 Knižnica: " + library.name);
+        addDebug("📅 Pole dátumu: " + dateFld);
+        addDebug("🆔 Pole ID: " + idFld);
+        addDebug("🔢 Začiatočné číslo: " + startNum);
+        addDebug("↕️ Smer: " + (sortAscending ? "od najstaršieho" : "od najnovšieho"));
+
+        // Získaj všetky záznamy
+        var allEntries = library.entries();
+        if (!allEntries || allEntries.length === 0) {
+            result.message = "Knižnica neobsahuje žiadne záznamy";
+            addDebug("⚠️ " + result.message);
+            result.success = true; // Nie je to chyba
+            return result;
+        }
+
+        addDebug("📊 Celkový počet záznamov: " + allEntries.length);
+
+        // Priprav záznamy pre zoradenie
+        var recordsWithDates = [];
+
+        for (var i = 0; i < allEntries.length; i++) {
+            var entryRecord = allEntries[i];
+            var dateValue = utils.safeGet(entryRecord, dateFld);
+
+            if (dateValue) {
+                // Má dátum - pridaj do hlavného zoznamu
+                recordsWithDates.push({
+                    entry: entryRecord,
+                    date: new Date(dateValue),
+                    originalId: utils.safeGet(entryRecord, idFld)
+                });
+            } else {
+                // Nemá dátum - použi dátum vytvorenia záznamu
+                var createdDate = entryRecord.created ? new Date(entryRecord.created) : new Date();
+                recordsWithDates.push({
+                    entry: entryRecord,
+                    date: createdDate,
+                    originalId: utils.safeGet(entryRecord, idFld),
+                    usedCreatedDate: true
+                });
+            }
+        }
+
+        addDebug("📅 Záznamy pripravené na zoradenie: " + recordsWithDates.length);
+
+        // Zoraď podľa dátumu
+        recordsWithDates.sort(function(a, b) {
+            if (sortAscending) {
+                return a.date - b.date; // Od najstaršieho
+            } else {
+                return b.date - a.date; // Od najnovšieho
+            }
+        });
+
+        addDebug("✅ Záznamy zoradené podľa dátumu");
+
+        // Prečísluj záznamy
+        var currentNumber = startNum;
+        var processed = 0;
+        var errors = 0;
+
+        for (var j = 0; j < recordsWithDates.length; j++) {
+            try {
+                var record = recordsWithDates[j];
+                var oldId = record.originalId;
+
+                // Nastav nové ID
+                utils.safeSet(record.entry, idFld, currentNumber);
+
+                var dateInfo = record.usedCreatedDate ? " (dátum vytvorenia)" : "";
+                addDebug("✅ #" + currentNumber + ": " + utils.formatDate(record.date) + dateInfo +
+                       (oldId ? " (bolo: " + oldId + ")" : ""));
+
+                result.details.push({
+                    newId: currentNumber,
+                    oldId: oldId,
+                    date: record.date,
+                    usedCreatedDate: record.usedCreatedDate || false
+                });
+
+                currentNumber++;
+                processed++;
+
+            } catch (entryError) {
+                errors++;
+                addError("Chyba pri prečíslovaní záznamu: " + entryError.toString(), "renumberLibraryRecords");
+            }
+        }
+
+        // Finálny súhrn
+        result.success = errors === 0;
+        result.processed = processed;
+        result.errors = errors;
+        result.message = "Prečíslovaných " + processed + " záznamov" +
+                       (errors > 0 ? " (" + errors + " chýb)" : "");
+
+        addDebug("📊 === SÚHRN PREČÍSLOVANIA ===");
+        addDebug("✅ Úspešne prečíslovaných: " + processed);
+        addDebug("❌ Chýb: " + errors);
+        addDebug("🆔 Rozsah ID: " + startNum + " - " + (currentNumber - 1));
+        addDebug("🔢 === PREČÍSLOVANIE DOKONČENÉ ===");
+
+        return result;
+
+    } catch (error) {
+        result.message = "Kritická chyba pri prečíslovaní: " + error.toString();
+        addError(result.message, "renumberLibraryRecords", error);
+        return result;
     }
 }
 
