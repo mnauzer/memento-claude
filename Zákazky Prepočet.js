@@ -766,22 +766,18 @@ function calculateRevenue(linkedData) {
         revenue.revenueMachinery = 0;
         if (linkedData.workRecords && linkedData.workRecords.records) {
             // 1. PRÁCE - sum poľa Suma HZS všetkých linksFrom Záznam prác/Zákazka
-            utils.addDebug(currentEntry, "    🔨 Počítam výnosy z prác...");
+            utils.addDebug(currentEntry, "    🔨 Počítam výnosy z prác a strojov...");
             utils.addDebug(currentEntry, "     • Záznamy prác: " + linkedData.workRecords.records.length);
             for (var i = 0; i < linkedData.workRecords.records.length; i++) {
                 var workRecord = linkedData.workRecords.records[i];
+                var machinesSum = utils.safeGet(workRecord, CONFIG.fields.workRecord.machinesSum, 0);
                 var hzsSum = utils.safeGet(workRecord, CONFIG.fields.workRecord.hzsSum, 0);
                 revenue.revenueWork += hzsSum;
-                utils.addDebug(currentEntry, "      • Záznam #" + workRecord.field("ID") + ": " + utils.formatMoney(hzsSum));
-            }
-
-            // 2. STROJE - sum poľa Suma Stroje všetkých linksFrom Záznam prác/Zákazka
-            utils.addDebug(currentEntry, "    🚜 Počítam výnosy zo strojov...");
-            for (var j = 0; j < linkedData.workRecords.records.length; j++) {
-                var workRec = linkedData.workRecords.records[j];
-                var machinesSum = utils.safeGet(workRec, CONFIG.fields.workRecord.machinesSum, 0);
                 revenue.revenueMachinery += machinesSum;
-                utils.addDebug(currentEntry, "      • Záznam #" + workRec.field("ID") + ": " + utils.formatMoney(machinesSum));
+                utils.addDebug(currentEntry, "      • Záznam #" + workRecord.field("ID") + ": " + utils.formatMoney(hzsSum));
+                if (machinesSum > 0) {
+                    utils.addDebug(currentEntry, "      • Záznam #" + workRecord.field("ID") + ": " + utils.formatMoney(machinesSum) + " (stroje)");
+                }
             }
         }
         revenue.revenueWorkVat = Math.round(revenue.revenueWork * vatRate * 100) / 100;
