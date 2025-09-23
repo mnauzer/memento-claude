@@ -23,13 +23,14 @@ var config = utils.getConfig();
 
 var CONFIG = {
     scriptName: "Library Renumber Action",
-    version: "1.2",
+    version: "1.3",
 
     // Logging knižnica
     logsLibrary: "ASISTANTO Logs",
 
     // Nastavenia prečíslovania
     settings: {
+        targetLibrary: "Dochádzka",   // !!! NASTAV NÁZOV KNIŽNICE KTORÚ CHCEŠ PREČÍSLOVAŤ !!!
         dateField: "Dátum",           // Pole s dátumom (fallback: dátum vytvorenia)
         idField: "ID",                // Pole pre ID číslování
         startNumber: 1,               // Počiatočné číslo
@@ -62,7 +63,7 @@ function createLogEntry() {
         // SPRÁVNE vytvorenie záznamu podľa Memento Database API
         logEntry = logsLib.create({
             "date": new Date(),
-            "library": lib ? lib.name : "Action Script",
+            "library": "Action Script",
             "user": "Action Script User",
             "Debug_Log": "SCRIPT STARTED\n",
             "Error_Log": ""
@@ -171,9 +172,10 @@ function main() {
 
         addDebug("=== ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===", "start");
 
-        // Overenie knižnice
-        if (!lib) {
-            var errorMsg = "❌ CHYBA: Script musí byť spustený v knižnici!";
+        // V Action scripte nie je dostupné lib() - musí sa zadať manuálne
+        var targetLibraryName = CONFIG.settings.targetLibrary;
+        if (!targetLibraryName) {
+            var errorMsg = "❌ CHYBA: Musíte nastaviť názov knižnice v CONFIG.settings.targetLibrary!";
             addError(errorMsg, "main");
             dialog()
                 .title("CHYBA")
@@ -183,13 +185,25 @@ function main() {
             return false;
         }
 
-        addDebug("📚 Knižnica: " + lib.name);
-        addDebug("📊 Počet záznamov: " + lib.entries().length);
+        var targetLib = libByName(targetLibraryName);
+        if (!targetLib) {
+            var errorMsg = "❌ CHYBA: Knižnica '" + targetLibraryName + "' nenájdená!";
+            addError(errorMsg, "main");
+            dialog()
+                .title("CHYBA")
+                .text(errorMsg)
+                .positiveButton("OK", function() {})
+                .show();
+            return false;
+        }
+
+        addDebug("📚 Knižnica: " + targetLib.name);
+        addDebug("📊 Počet záznamov: " + targetLib.entries().length);
 
         // Zobraz konfirmačný dialóg
         var confirmMsg = "🔢 PREČÍSLOVANIE KNIŽNICE\n\n";
-        confirmMsg += "📚 Knižnica: " + lib.name + "\n";
-        confirmMsg += "📊 Záznamy: " + lib.entries().length + "\n";
+        confirmMsg += "📚 Knižnica: " + targetLib.name + "\n";
+        confirmMsg += "📊 Záznamy: " + targetLib.entries().length + "\n";
         confirmMsg += "📅 Pole dátumu: " + CONFIG.settings.dateField + "\n";
         confirmMsg += "🆔 Pole ID: " + CONFIG.settings.idField + "\n";
         confirmMsg += "🔢 Od čísla: " + CONFIG.settings.startNumber + "\n";
@@ -212,7 +226,7 @@ function main() {
 
         // Vytvor custom verziu renumberLibraryRecords pre správny logging
         var result = renumberLibraryRecordsWithLogging(
-            lib,                           // aktuálna knižnica
+            targetLib,                     // cieľová knižnica
             CONFIG.settings.dateField,     // pole dátumu
             CONFIG.settings.idField,       // pole ID
             CONFIG.settings.startNumber,   // počiatočné číslo
@@ -308,7 +322,7 @@ function renumberLibraryRecordsWithLogging(targetLibrary, dateField, idField, st
         addDebug("🔢 === ZAČÍNA PREČÍSLOVANIE ZÁZNAMOV ===", "start");
 
         // Parametrické hodnoty s fallbackmi
-        var library = targetLibrary || lib;
+        var library = targetLibrary;
         var dateFld = dateField || "Dátum";
         var idFld = idField || "ID";
         var startNum = startNumber || 1;
