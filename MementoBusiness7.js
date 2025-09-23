@@ -834,6 +834,58 @@ var MementoBusiness = (function() {
             return false;
         }
     }
+
+    // ==============================================
+    // VÝPOČET MARŽE A RENTABILITY
+    // ==============================================
+
+    function calculateProfitability(costs, revenue) {
+        var core = getCore();
+        var config = getConfig();
+
+        var profit = {
+            grossProfit: 0,      // Hrubý zisk
+            grossMargin: 0,      // Hrubá marža v %
+            netProfit: 0,        // Čistý zisk (po DPH)
+            profitability: 0,    // Rentabilita v %
+            isProfitable: false  // Je zákazka zisková?
+        };
+        
+        try {
+            utils.addDebug(currentEntry, "  📊 Počítam ziskovosť...");
+            
+            // Hrubý zisk
+            profit.grossProfit = revenue.totalRevenue - costs.totalCosts;
+            
+            // Hrubá marža
+            if (revenue.totalRevenue > 0) {
+                profit.grossMargin = (profit.grossProfit / revenue.totalRevenue) * 100;
+            }
+            
+            // Čistý zisk (po odvode DPH)
+            profit.netProfit = profit.grossProfit - costs.vatAmount;
+            
+            // Rentabilita
+            if (costs.totalCosts > 0) {
+                profit.profitability = (profit.netProfit / costs.totalCosts) * 100;
+            }
+            
+            // Je zisková?
+            profit.isProfitable = profit.netProfit > 0;
+            
+            core.addDebug(currentEntry, "    • Hrubý zisk: " + core.formatMoney(profit.grossProfit));
+            core.addDebug(currentEntry, "    • Hrubá marža: " + profit.grossMargin.toFixed(2) + "%");
+            core.addDebug(currentEntry, "    • Čistý zisk: " + core.formatMoney(profit.netProfit));
+            core.addDebug(currentEntry, "    • Rentabilita: " + profit.profitability.toFixed(2) + "%");
+            core.addDebug(currentEntry, "    • Stav: " + (profit.isProfitable ? "✅ ZISKOVÁ" : "❌ STRATOVÁ"));
+            
+            return profit;
+            
+        } catch (error) {
+            core.addError(currentEntry, error.toString(), "calculateProfitability", error);
+            return profit;
+        }
+    }
     // ==============================================
     // PUBLIC API
     // ==============================================
@@ -876,7 +928,10 @@ var MementoBusiness = (function() {
         createObligation: createObligation,
         updateObligation: updateObligation,
         findExistingObligations: findExistingObligations,
-        findLinkedObligations: findLinkedObligations
+        findLinkedObligations: findLinkedObligations,
+
+        // Výpočet marže a rentability
+        calculateProfitability: calculateProfitability
     };
 })();
 

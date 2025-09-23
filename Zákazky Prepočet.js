@@ -104,7 +104,7 @@ function main() {
         
         // KROK 5: Výpočet marže a rentability
         utils.addDebug(currentEntry, "\n📊 KROK 5: " + steps.step5.name, "margin");
-        var profitResult = calculateProfitability(costsResult, revenueResult);
+        var profitResult = utils.calculateProfitability(costsResult, revenueResult);
         steps.step5.success = true;
         
         // KROK 6: Info záznam
@@ -751,7 +751,7 @@ function calculateRevenue(linkedData) {
     };
 
     try {
-        utils.addDebug(currentEntry, "  💰 Počítam výnosy podľa nových požiadaviek...");
+        utils.addDebug(currentEntry, "  💰 Počítam výnosy...");
 
         // Získaj sadzbu DPH z knižnice
         var orderDate = utils.safeGet(currentEntry, CONFIG.fields.order.startDate) ||
@@ -762,23 +762,20 @@ function calculateRevenue(linkedData) {
 
         utils.addDebug(currentEntry, "    • Použitá sadzba DPH: " + (vatRate * 100) + "%");
 
-        // 1. PRÁCE - sum poľa Suma HZS všetkých linksFrom Záznam prác/Zákazka
-        utils.addDebug(currentEntry, "    🔨 Počítam výnosy z prác...");
         revenue.revenueWork = 0;
+        revenue.revenueMachinery = 0;
         if (linkedData.workRecords && linkedData.workRecords.records) {
+            // 1. PRÁCE - sum poľa Suma HZS všetkých linksFrom Záznam prác/Zákazka
+            utils.addDebug(currentEntry, "    🔨 Počítam výnosy z prác...");
             for (var i = 0; i < linkedData.workRecords.records.length; i++) {
                 var workRecord = linkedData.workRecords.records[i];
                 var hzsSum = utils.safeGet(workRecord, CONFIG.fields.workRecord.hzsSum, 0);
                 revenue.revenueWork += hzsSum;
                 utils.addDebug(currentEntry, "      • Záznam #" + workRecord.field("ID") + ": " + utils.formatMoney(hzsSum));
             }
-        }
-        revenue.revenueWorkVat = Math.round(revenue.revenueWork * vatRate * 100) / 100;
 
-        // 2. STROJE - sum poľa Suma Stroje všetkých linksFrom Záznam prác/Zákazka
-        utils.addDebug(currentEntry, "    🚜 Počítam výnosy zo strojov...");
-        revenue.revenueMachinery = 0;
-        if (linkedData.workRecords && linkedData.workRecords.records) {
+            // 2. STROJE - sum poľa Suma Stroje všetkých linksFrom Záznam prác/Zákazka
+            utils.addDebug(currentEntry, "    🚜 Počítam výnosy zo strojov...");
             for (var j = 0; j < linkedData.workRecords.records.length; j++) {
                 var workRec = linkedData.workRecords.records[j];
                 var machinesSum = utils.safeGet(workRec, CONFIG.fields.workRecord.machinesSum, 0);
@@ -786,6 +783,7 @@ function calculateRevenue(linkedData) {
                 utils.addDebug(currentEntry, "      • Záznam #" + workRec.field("ID") + ": " + utils.formatMoney(machinesSum));
             }
         }
+        revenue.revenueWorkVat = Math.round(revenue.revenueWork * vatRate * 100) / 100;
         revenue.revenueMachineryVat = Math.round(revenue.revenueMachinery * vatRate * 100) / 100;
 
         // 3. DOPRAVA - podľa nastavenia v Cenovej ponuke
@@ -849,7 +847,7 @@ function calculateSubcontractorRevenue(linkedData, vatRate) {
         var baseAmount = 0;
 
         // Prejdi záznamy linksFrom Pokladňa/Zákazka where Účel výdaja = Subdodávky
-        var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.order.order);
+        var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.cashBook.order);
         utils.addDebug(currentEntry, "        • Počet záznamov v pokladni (výnosy subdodávky): " + (cashBookRecords ? cashBookRecords.length : 0));
 
         if (cashBookRecords && cashBookRecords.length > 0) {
@@ -902,7 +900,7 @@ function calculateOtherRevenue(linkedData, vatRate) {
         var baseAmount = 0;
 
         // Prejdi záznamy linksFrom Pokladňa/Zákazka where Účel výdaja = Ostatné
-        var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.order.order);
+        var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.cashBook.order);
         if (cashBookRecords && cashBookRecords.length > 0) {
             for (var i = 0; i < cashBookRecords.length; i++) {
                 var cashRecord = cashBookRecords[i];
