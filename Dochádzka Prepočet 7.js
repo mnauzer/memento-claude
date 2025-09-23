@@ -27,7 +27,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Dochádzka Prepočet",
-    version: "7.4.6",  // Opravená chyba s centralConfig
+    version: "7.4.7",  // Pridané fallback hodnoty pre constants
     
     // Referencie na centrálny config
     fields: {
@@ -65,14 +65,22 @@ var CONFIG = {
         breakDuration: 30  // minút
     },
 
-     // Konštanty pre záväzky
+     // Konštanty pre záväzky - s fallback hodnotami
     obligationTypes: {
-        wages: centralConfig.constants.obligationTypes.wages
+        wages: (centralConfig.constants && centralConfig.constants.obligationTypes)
+               ? centralConfig.constants.obligationTypes.wages
+               : "Mzdy"
     },
     obligationStates: {
-        paid: centralConfig.constants.obligationStates.paid,
-        unpaid: centralConfig.constants.obligationStates.unpaid,
-        partiallyPaid: centralConfig.constants.obligationStates.partiallyPaid
+        paid: (centralConfig.constants && centralConfig.constants.obligationStates)
+              ? centralConfig.constants.obligationStates.paid
+              : "Zaplatené",
+        unpaid: (centralConfig.constants && centralConfig.constants.obligationStates)
+                ? centralConfig.constants.obligationStates.unpaid
+                : "Nezaplatené",
+        partiallyPaid: (centralConfig.constants && centralConfig.constants.obligationStates)
+                       ? centralConfig.constants.obligationStates.partiallyPaid
+                       : "Čiastočne zaplatené"
     },
     
     // Správne mapovanie pre sadzby
