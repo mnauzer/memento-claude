@@ -527,6 +527,8 @@ function calculateCosts(linkedData) {
         // 3. NÁKLADY SUBDODÁVKY - z pokladne Účel výdaja = Subdodávky
         utils.addDebug(currentEntry, "    🏗️ Počítam náklady subdodávok...");
         var subcontractorCostData = calculateSubcontractorCosts();
+        utils.addDebug(currentEntry, "      • Subdodávky celkom: " + utils.formatMoney(subcontractorCostData.amount)) 
+        utils.addDebug(currentEntry, "      • Subdodávky počet: " + subcontractorCostData.count) 
         costs.costSubcontractors = subcontractorCostData.amount;
         costs.costSubcontractorsVatDeduction = subcontractorCostData.vatDeduction;
 
@@ -592,13 +594,7 @@ function calculateMachineryCosts() {
             for (var i = 0; i < cashBookRecords.length; i++) {
                 var cashRecord = cashBookRecords[i];
                 var operatingCost = utils.safeGet(cashRecord, "Prevádzková réžia", "");
-
-                // Debug: hodnoty pre porovnanie
-                utils.addDebug(currentEntry, "        ◦ Debug Prevádzková réžia: '" + operatingCost + "' (typ: " + typeof operatingCost + ", dĺžka: " + operatingCost.length + ")");
-
-                // Použijem trim() a porovnanie bez ohľadu na veľkosť písmen pre istotu
-                var trimmedOperatingCost = (operatingCost || "").toString().trim();
-                if (trimmedOperatingCost === "Požičovné stroja") {
+                if (operatingCost === "Požičovné stroja") {
                     var suma = utils.safeGet(cashRecord, "Suma", 0);
                     var dph = utils.safeGet(cashRecord, "DPH", 0);
 
@@ -627,6 +623,7 @@ function calculateSubcontractorCosts() {
 
         var amount = 0;
         var vatDeduction = 0;
+        var count = 0;
 
         // Prejdi záznamy linksFrom Pokladňa/Zákazka where Účel výdaja = Subdodávky
         var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.cashBook.order);
@@ -643,6 +640,7 @@ function calculateSubcontractorCosts() {
 
                     amount += suma;
                     vatDeduction += dph;
+                    count += 1;
 
                     utils.addDebug(currentEntry, "        • Záznam #" + cashRecord.field("ID") + ": " + utils.formatMoney(suma) + " (DPH: " + utils.formatMoney(dph) + ")");
                 }
@@ -651,7 +649,8 @@ function calculateSubcontractorCosts() {
 
         return {
             amount: Math.round(amount * 100) / 100,
-            vatDeduction: Math.round(vatDeduction * 100) / 100
+            vatDeduction: Math.round(vatDeduction * 100) / 100,
+            count: count
         };
 
     } catch (error) {
