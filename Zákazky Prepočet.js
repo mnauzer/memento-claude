@@ -636,7 +636,7 @@ function calculateSubcontractorCosts() {
             for (var i = 0; i < cashBookRecords.length; i++) {
                 var cashRecord = cashBookRecords[i];
                 var purpose = utils.safeGet(cashRecord, "Účel výdaja", "");
-
+                message("Účel výdaja: " + purpose);
                 // Debug: hodnoty pre porovnanie
                 utils.addDebug(currentEntry, "        ◦ Debug Účel výdaja (subdodávky): '" + purpose + "' (typ: " + typeof purpose + ", dĺžka: " + purpose.length + ")");
 
