@@ -296,6 +296,9 @@ var MementoUtils = (function() {
         // === HELPER FUNKCIE ===
         getIcon: lazyCall('core', 'getIcon'),
 
+        // Správa knižníc
+        renumberLibraryRecords: lazyCall('core', 'renumberLibraryRecords'),
+
         /**
          * Získa informácie o načítaných moduloch
          * @returns {Object} Status modulov

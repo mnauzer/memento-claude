@@ -1104,7 +1104,169 @@ function setColorByCondition(entry, condition) {
         getColor: getColor,
         setColorByCondition: setColorByCondition,
         convertToHex: convertToHex,
-        getIcon: getIcon
+        getIcon: getIcon,
+
+        // Správa knižníc
+        renumberLibraryRecords: renumberLibraryRecords
 
     };
+
+    // ==============================================
+    // SPRÁVA KNIŽNÍC - PREČÍSLOVANIE ZÁZNAMOV
+    // ==============================================
+
+    /**
+     * Prečísluje záznamy knižnice podľa dátumu
+     * @param {Library} targetLibrary - Knižnica pre prečíslovanie (ak null, použije sa aktuálna knižnica)
+     * @param {string} dateField - Názov poľa s dátumom (ak null, použije sa "Dátum")
+     * @param {string} idField - Názov poľa pre ID (ak null, použije sa "ID")
+     * @param {number} startNumber - Počiatočné číslo (default: 1)
+     * @param {boolean} ascending - Smer zoradenia: true = od najstaršieho, false = od najnovšieho (default: true)
+     * @returns {object} Výsledok operácie
+     *
+     * @example
+     * // Použitie v action scripte knižnice
+     * var result = MementoCore.renumberLibraryRecords();
+     *
+     * // Vlastné nastavenia
+     * var result = MementoCore.renumberLibraryRecords(myLibrary, "Dátum vytvorenia", "Poradové číslo", 100, false);
+     */
+    function renumberLibraryRecords(targetLibrary, dateField, idField, startNumber, ascending) {
+        var result = {
+            success: false,
+            processed: 0,
+            errors: 0,
+            message: "",
+            details: []
+        };
+
+        try {
+            addDebug(null, "🔢 === ZAČÍNA PREČÍSLOVANIE ZÁZNAMOV ===", "start");
+
+            // Parametrické hodnoty s fallbackmi
+            var library = targetLibrary || lib;
+            var dateFld = dateField || "Dátum";
+            var idFld = idField || "ID";
+            var startNum = startNumber || 1;
+            var sortAscending = ascending !== false; // Default true
+
+            if (!library) {
+                result.message = "Chýba knižnica pre prečíslovanie";
+                addError(null, result.message, "renumberLibraryRecords");
+                return result;
+            }
+
+            addDebug(null, "📚 Knižnica: " + library.name);
+            addDebug(null, "📅 Pole dátumu: " + dateFld);
+            addDebug(null, "🆔 Pole ID: " + idFld);
+            addDebug(null, "🔢 Začiatočné číslo: " + startNum);
+            addDebug(null, "↕️ Smer: " + (sortAscending ? "od najstaršieho" : "od najnovšieho"));
+
+            // Získaj všetky záznamy
+            var allEntries = library.entries();
+            if (!allEntries || allEntries.length === 0) {
+                result.message = "Knižnica neobsahuje žiadne záznamy";
+                addDebug(null, "⚠️ " + result.message);
+                result.success = true; // Nie je to chyba
+                return result;
+            }
+
+            addDebug(null, "📊 Celkový počet záznamov: " + allEntries.length);
+
+            // Priprav záznamy pre zoradenie
+            var recordsWithDates = [];
+            var recordsWithoutDates = [];
+
+            for (var i = 0; i < allEntries.length; i++) {
+                var entryRecord = allEntries[i];
+                var dateValue = safeGet(entryRecord, dateFld);
+
+                if (dateValue) {
+                    // Má dátum - pridaj do hlavného zoznamu
+                    recordsWithDates.push({
+                        entry: entryRecord,
+                        date: new Date(dateValue),
+                        originalId: safeGet(entryRecord, idFld)
+                    });
+                } else {
+                    // Nemá dátum - použi dátum vytvorenia záznamu
+                    var createdDate = entryRecord.created ? new Date(entryRecord.created) : new Date();
+                    recordsWithDates.push({
+                        entry: entryRecord,
+                        date: createdDate,
+                        originalId: safeGet(entryRecord, idFld),
+                        usedCreatedDate: true
+                    });
+                }
+            }
+
+            addDebug(null, "📅 Záznamy s dátumom: " + recordsWithDates.length);
+            addDebug(null, "❓ Záznamy bez dátumu: " + recordsWithoutDates.length);
+
+            // Zoraď podľa dátumu
+            recordsWithDates.sort(function(a, b) {
+                if (sortAscending) {
+                    return a.date - b.date; // Od najstaršieho
+                } else {
+                    return b.date - a.date; // Od najnovšieho
+                }
+            });
+
+            addDebug(null, "✅ Záznamy zoradené podľa dátumu");
+
+            // Prečísluj záznamy
+            var currentNumber = startNum;
+            var processed = 0;
+            var errors = 0;
+
+            for (var j = 0; j < recordsWithDates.length; j++) {
+                try {
+                    var record = recordsWithDates[j];
+                    var oldId = record.originalId;
+
+                    // Nastav nové ID
+                    safeSet(record.entry, idFld, currentNumber);
+
+                    var dateInfo = record.usedCreatedDate ? " (dátum vytvorenia)" : "";
+                    addDebug(null, "✅ #" + currentNumber + ": " + formatDate(record.date) + dateInfo +
+                           (oldId ? " (bolo: " + oldId + ")" : ""));
+
+                    result.details.push({
+                        newId: currentNumber,
+                        oldId: oldId,
+                        date: record.date,
+                        usedCreatedDate: record.usedCreatedDate || false
+                    });
+
+                    currentNumber++;
+                    processed++;
+
+                } catch (entryError) {
+                    errors++;
+                    addError(null, "Chyba pri prečíslovaní záznamu: " + entryError.toString(), "renumberLibraryRecords");
+                }
+            }
+
+            // Finálny súhrn
+            result.success = errors === 0;
+            result.processed = processed;
+            result.errors = errors;
+            result.message = "Prečíslovaných " + processed + " záznamov" +
+                           (errors > 0 ? " (" + errors + " chýb)" : "");
+
+            addDebug(null, "📊 === SÚHRN PREČÍSLOVANIA ===");
+            addDebug(null, "✅ Úspešne prečíslovaných: " + processed);
+            addDebug(null, "❌ Chýb: " + errors);
+            addDebug(null, "🆔 Rozsah ID: " + startNum + " - " + (currentNumber - 1));
+            addDebug(null, "🔢 === PREČÍSLOVANIE DOKONČENÉ ===");
+
+            return result;
+
+        } catch (error) {
+            result.message = "Kritická chyba pri prečíslovaní: " + error.toString();
+            addError(null, result.message, "renumberLibraryRecords", error);
+            return result;
+        }
+    }
+
 })();
