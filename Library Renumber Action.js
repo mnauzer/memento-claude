@@ -51,7 +51,11 @@ function createLogEntry() {
     try {
         var logsLib = libByName(CONFIG.logsLibrary);
         if (!logsLib) {
-            console.log("⚠️ Knižnica " + CONFIG.logsLibrary + " nenájdená!");
+            dialog()
+                .title("CHYBA")
+                .text("⚠️ Knižnica '" + CONFIG.logsLibrary + "' nenájdená!\n\nScript nebude fungovať bez logging knižnice.")
+                .positiveButton("OK", function() {})
+                .show();
             return null;
         }
 
@@ -59,13 +63,24 @@ function createLogEntry() {
         logEntry.set("date", new Date());
         logEntry.set("library", lib ? lib.name : "Unknown");
         logEntry.set("user", user ? user.fullName : "Unknown");
-        logEntry.set("Debug_Log", "");
+        logEntry.set("Debug_Log", "SCRIPT STARTED\n");
         logEntry.set("Error_Log", "");
+
+        // Test že sa záznam vytvoril
+        dialog()
+            .title("Log vytvorený")
+            .text("✅ LOG VYTVORENÝ\n\nKnižnica: " + CONFIG.logsLibrary + "\nZáznam ID: " + logEntry.field("ID"))
+            .positiveButton("OK", function() {})
+            .show();
 
         return logEntry;
 
     } catch (error) {
-        console.log("❌ Chyba pri vytváraní log záznamu: " + error.toString());
+        dialog()
+            .title("KRITICKÁ CHYBA")
+            .text("❌ Chyba pri vytváraní log záznamu:\n\n" + error.toString())
+            .positiveButton("OK", function() {})
+            .show();
         return null;
     }
 }
@@ -75,7 +90,14 @@ function createLogEntry() {
  */
 function addDebug(message, iconName) {
     try {
-        if (!logEntry) return;
+        if (!logEntry) {
+            dialog()
+                .title("Chyba")
+                .text("⚠️ addDebug: logEntry je NULL!")
+                .positiveButton("OK", function() {})
+                .show();
+            return;
+        }
 
         var icon = "";
         if (iconName && utils.getIcon) {
@@ -88,8 +110,19 @@ function addDebug(message, iconName) {
         var existingDebug = logEntry.field("Debug_Log") || "";
         logEntry.set("Debug_Log", existingDebug + debugMessage + "\n");
 
+        // Test výpis
+        dialog()
+            .title("Debug pridaný")
+            .text("✅ DEBUG PRIDANÝ:\n\n" + debugMessage)
+            .positiveButton("OK", function() {})
+            .show();
+
     } catch (error) {
-        console.log("❌ Chyba pri debug logu: " + error.toString());
+        dialog()
+            .title("Chyba")
+            .text("❌ Chyba pri debug logu:\n\n" + error.toString())
+            .positiveButton("OK", function() {})
+            .show();
     }
 }
 
@@ -125,8 +158,25 @@ function addError(message, source, error) {
 
 function main() {
     try {
+        // Test základných objektov
+        dialog()
+            .title("DEBUG TEST")
+            .text("🔍 lib: " + (lib ? lib.name : "NULL") +
+                  "\nuser: " + (user ? user.fullName : "NULL") +
+                  "\nlibByName: " + (typeof libByName))
+            .positiveButton("OK", function() {})
+            .show();
+
         // Vytvor log záznam
-        createLogEntry();
+        var logCreated = createLogEntry();
+        if (!logCreated) {
+            dialog()
+                .title("STOP")
+                .text("❌ Nemôžem vytvoriť log záznam!")
+                .positiveButton("OK", function() {})
+                .show();
+            return false;
+        }
 
         addDebug("=== ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===", "start");
 
@@ -134,7 +184,11 @@ function main() {
         if (!lib) {
             var errorMsg = "❌ CHYBA: Script musí byť spustený v knižnici!";
             addError(errorMsg, "main");
-            dialog(errorMsg);
+            dialog()
+                .title("CHYBA")
+                .text(errorMsg)
+                .positiveButton("OK", function() {})
+                .show();
             return false;
         }
 
@@ -154,7 +208,11 @@ function main() {
 
         if (!confirm(confirmMsg)) {
             addDebug("❌ Prečíslovanie zrušené používateľom");
-            dialog("❌ Prečíslovanie zrušené");
+            dialog()
+                .title("Zrušené")
+                .text("❌ Prečíslovanie zrušené")
+                .positiveButton("OK", function() {})
+                .show();
             return false;
         }
 
@@ -200,7 +258,11 @@ function main() {
             }
 
             addDebug("✅ " + result.message);
-            dialog(successMsg);
+            dialog()
+                .title("ÚSPECH")
+                .text(successMsg)
+                .positiveButton("OK", function() {})
+                .show();
 
         } else {
             var errorMsg = "❌ CHYBA PRI PREČÍSLOVANÍ!\n\n";
@@ -214,7 +276,11 @@ function main() {
             errorMsg += "\n📋 Skontrolujte log záznam v knižnici " + CONFIG.logsLibrary + " pre detaily.";
 
             addError("Prečíslovanie zlyhalo: " + result.message, "main");
-            dialog(errorMsg);
+            dialog()
+                .title("CHYBA")
+                .text(errorMsg)
+                .positiveButton("OK", function() {})
+                .show();
         }
 
         return result.success;
@@ -222,7 +288,11 @@ function main() {
     } catch (error) {
         var criticalMsg = "💀 KRITICKÁ CHYBA!\n\n" + error.toString();
         addError("Kritická chyba v main: " + error.toString(), "main", error);
-        dialog(criticalMsg);
+        dialog()
+            .title("KRITICKÁ CHYBA")
+            .text(criticalMsg)
+            .positiveButton("OK", function() {})
+            .show();
         return false;
     }
 }
