@@ -64,7 +64,7 @@ function main() {
     try {
         utils.addDebug(currentEntry, "=== ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===", "start");
         utils.addDebug(currentEntry, "⏰ Čas spustenia: " + moment().format("DD.MM.YYYY HH:mm:ss"));
-        
+        utils.clearLogs(currentEntry);
         // Kroky prepočtu
         var steps = {
             step1: { success: false, name: "Validácia vstupných dát" },
