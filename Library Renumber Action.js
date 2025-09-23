@@ -134,7 +134,7 @@ function main() {
         if (!lib) {
             var errorMsg = "❌ CHYBA: Script musí byť spustený v knižnici!";
             addError(errorMsg, "main");
-            message(errorMsg);
+            dialog(errorMsg);
             return false;
         }
 
@@ -154,7 +154,7 @@ function main() {
 
         if (!confirm(confirmMsg)) {
             addDebug("❌ Prečíslovanie zrušené používateľom");
-            message("❌ Prečíslovanie zrušené");
+            dialog("❌ Prečíslovanie zrušené");
             return false;
         }
 
@@ -200,7 +200,7 @@ function main() {
             }
 
             addDebug("✅ " + result.message);
-            message(successMsg);
+            dialog(successMsg);
 
         } else {
             var errorMsg = "❌ CHYBA PRI PREČÍSLOVANÍ!\n\n";
@@ -214,15 +214,15 @@ function main() {
             errorMsg += "\n📋 Skontrolujte log záznam v knižnici " + CONFIG.logsLibrary + " pre detaily.";
 
             addError("Prečíslovanie zlyhalo: " + result.message, "main");
-            message(errorMsg);
+            dialog(errorMsg);
         }
 
         return result.success;
 
     } catch (error) {
-        var criticalMsg = "💀 KRITICKÁ CHYBA!" + error.toString();
+        var criticalMsg = "💀 KRITICKÁ CHYBA!\n\n" + error.toString();
         addError("Kritická chyba v main: " + error.toString(), "main", error);
-        message(criticalMsg);
+        dialog(criticalMsg);
         return false;
     }
 }
