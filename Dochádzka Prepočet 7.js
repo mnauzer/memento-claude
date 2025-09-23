@@ -62,7 +62,13 @@ var CONFIG = {
         success: "✅",
         error: "❌",
         warning: "⚠️",
-        info: "ℹ️"
+        info: "ℹ️",
+        payment: "💳",          // Platba
+        obligation: "💸",
+        truck: "🚚",
+        telegram: "📱",
+        notification: "🔔"
+
     },
     
     // Lokálne nastavenia pre tento script
