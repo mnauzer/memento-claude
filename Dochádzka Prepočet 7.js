@@ -27,7 +27,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Dochádzka Prepočet",
-    version: "7.4.7",  // Pridané fallback hodnoty pre constants
+    version: "7.4.8",  // Pridané fallback hodnoty pre icons
     
     // Referencie na centrálny config
     fields: {
@@ -54,7 +54,16 @@ var CONFIG = {
     },
     attributes: centralConfig.fields.attendance.employeeAttributes,
     libraries: centralConfig.libraries,
-    icons: centralConfig.icons,
+    icons: centralConfig.icons || config.icons || {
+        work: "💼",
+        calendar: "📅",
+        time: "⏰",
+        money: "💰",
+        success: "✅",
+        error: "❌",
+        warning: "⚠️",
+        info: "ℹ️"
+    },
     
     // Lokálne nastavenia pre tento script
     settings: {
