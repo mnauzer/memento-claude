@@ -23,7 +23,7 @@ var config = utils.getConfig();
 
 var CONFIG = {
     scriptName: "Library Renumber Action",
-    version: "1.1",
+    version: "1.2",
 
     // Logging knižnica
     logsLibrary: "ASISTANTO Logs",
@@ -59,15 +59,15 @@ function createLogEntry() {
             return null;
         }
 
-        logEntry = logsLib.create();
-        logEntry.set("date", new Date());
-        logEntry.set("library", lib ? lib.name : "Unknown");
-        // user objekt nie je dostupný v Memento Database JavaScript API
-        logEntry.set("user", "Action Script User");
-        logEntry.set("Debug_Log", "SCRIPT STARTED\n");
-        logEntry.set("Error_Log", "");
+        // SPRÁVNE vytvorenie záznamu podľa Memento Database API
+        logEntry = logsLib.create({
+            "date": new Date(),
+            "library": lib ? lib.name : "Action Script",
+            "user": "Action Script User",
+            "Debug_Log": "SCRIPT STARTED\n",
+            "Error_Log": ""
+        });
 
-        // Test že sa záznam vytvoril - bez dialog pre debug
         return logEntry;
 
     } catch (error) {
@@ -86,16 +86,14 @@ function createLogEntry() {
 function addDebug(message, iconName) {
     try {
         if (!logEntry) {
-            dialog()
-                .title("Chyba")
-                .text("⚠️ addDebug: logEntry je NULL!")
-                .positiveButton("OK", function() {})
-                .show();
-            return;
+            // Ak nie je logEntry, skús ho vytvoriť
+            if (!createLogEntry()) {
+                return; // Ak sa nepodarí vytvoriť, skonči
+            }
         }
 
         var icon = "";
-        if (iconName && utils.getIcon) {
+        if (iconName && utils && utils.getIcon) {
             icon = utils.getIcon(iconName) + " ";
         }
 
@@ -105,14 +103,11 @@ function addDebug(message, iconName) {
         var existingDebug = logEntry.field("Debug_Log") || "";
         logEntry.set("Debug_Log", existingDebug + debugMessage + "\n");
 
-        // Debug správa pridaná - bez dialógu pre výkon
-
     } catch (error) {
-        dialog()
-            .title("Chyba")
-            .text("❌ Chyba pri debug logu:\n\n" + error.toString())
-            .positiveButton("OK", function() {})
-            .show();
+        // Ak zlyhá debug logging, aspoň zobraz chybu
+        if (typeof console !== 'undefined' && console.log) {
+            console.log("❌ Chyba pri debug logu: " + error.toString());
+        }
     }
 }
 
@@ -121,7 +116,12 @@ function addDebug(message, iconName) {
  */
 function addError(message, source, error) {
     try {
-        if (!logEntry) return;
+        if (!logEntry) {
+            // Ak nie je logEntry, skús ho vytvoriť
+            if (!createLogEntry()) {
+                return; // Ak sa nepodarí vytvoriť, skonči
+            }
+        }
 
         var timestamp = moment().format("DD.MM.YY HH:mm:ss");
         var errorMessage = "[" + timestamp + "] ❌ ERROR: " + message;
@@ -390,15 +390,8 @@ function renumberLibraryRecordsWithLogging(targetLibrary, dateField, idField, st
                 utils.safeSet(record.entry, idFld, currentNumber);
 
                 var dateInfo = record.usedCreatedDate ? " (dátum vytvorenia)" : "";
-                var entryIdDisplay = "N/A";
-                try {
-                    entryIdDisplay = record.entry.field("ID") || "N/A";
-                } catch (e) {
-                    entryIdDisplay = "entry_" + j;
-                }
-
                 addDebug("✅ #" + currentNumber + ": " + utils.formatDate(record.date) + dateInfo +
-                       " [" + entryIdDisplay + "]" + (oldId ? " (bolo: " + oldId + ")" : ""));
+                       (oldId ? " (bolo: " + oldId + ")" : ""));
 
                 result.details.push({
                     newId: currentNumber,
