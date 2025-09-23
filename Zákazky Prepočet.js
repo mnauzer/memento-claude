@@ -767,6 +767,7 @@ function calculateRevenue(linkedData) {
         if (linkedData.workRecords && linkedData.workRecords.records) {
             // 1. PRÁCE - sum poľa Suma HZS všetkých linksFrom Záznam prác/Zákazka
             utils.addDebug(currentEntry, "    🔨 Počítam výnosy z prác...");
+            utils.addDebug(currentEntry, "     • Záznamy prác: " + linkedData.workRecords.records.length);
             for (var i = 0; i < linkedData.workRecords.records.length; i++) {
                 var workRecord = linkedData.workRecords.records[i];
                 var hzsSum = utils.safeGet(workRecord, CONFIG.fields.workRecord.hzsSum, 0);
@@ -1102,54 +1103,6 @@ function calculateFixedPriceTransport(quoteObj) {
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "calculateFixedPriceTransport", error);
         return 0;
-    }
-}
-// ==============================================
-// VÝPOČET MARŽE A RENTABILITY
-// ==============================================
-
-function calculateProfitability(costs, revenue) {
-    var profit = {
-        grossProfit: 0,      // Hrubý zisk
-        grossMargin: 0,      // Hrubá marža v %
-        netProfit: 0,        // Čistý zisk (po DPH)
-        profitability: 0,    // Rentabilita v %
-        isProfitable: false  // Je zákazka zisková?
-    };
-    
-    try {
-        utils.addDebug(currentEntry, "  📊 Počítam ziskovosť...");
-        
-        // Hrubý zisk
-        profit.grossProfit = revenue.totalRevenue - costs.totalCosts;
-        
-        // Hrubá marža
-        if (revenue.totalRevenue > 0) {
-            profit.grossMargin = (profit.grossProfit / revenue.totalRevenue) * 100;
-        }
-        
-        // Čistý zisk (po odvode DPH)
-        profit.netProfit = profit.grossProfit - costs.vatAmount;
-        
-        // Rentabilita
-        if (costs.totalCosts > 0) {
-            profit.profitability = (profit.netProfit / costs.totalCosts) * 100;
-        }
-        
-        // Je zisková?
-        profit.isProfitable = profit.netProfit > 0;
-        
-        utils.addDebug(currentEntry, "    • Hrubý zisk: " + utils.formatMoney(profit.grossProfit));
-        utils.addDebug(currentEntry, "    • Hrubá marža: " + profit.grossMargin.toFixed(2) + "%");
-        utils.addDebug(currentEntry, "    • Čistý zisk: " + utils.formatMoney(profit.netProfit));
-        utils.addDebug(currentEntry, "    • Rentabilita: " + profit.profitability.toFixed(2) + "%");
-        utils.addDebug(currentEntry, "    • Stav: " + (profit.isProfitable ? "✅ ZISKOVÁ" : "❌ STRATOVÁ"));
-        
-        return profit;
-        
-    } catch (error) {
-        utils.addError(currentEntry, error.toString(), "calculateProfitability", error);
-        return profit;
     }
 }
 
