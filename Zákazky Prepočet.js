@@ -594,7 +594,7 @@ function calculateMachineryCosts() {
             for (var i = 0; i < cashBookRecords.length; i++) {
                 var cashRecord = cashBookRecords[i];
                 var operatingCost = utils.safeGet(cashRecord, "Prevádzková réžia", "");
-                if (operatingCost === "Požičovné stroja") {
+                if (operatingCost.trim() === "Požičovné stroja") {
                     var suma = utils.safeGet(cashRecord, "Suma", 0);
                     var dph = utils.safeGet(cashRecord, "DPH", 0);
 
@@ -627,16 +627,16 @@ function calculateSubcontractorCosts() {
 
         // Prejdi záznamy linksFrom Pokladňa/Zákazka where Účel výdaja = Subdodávky
         var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.cashBook.order);
-        utils.addDebug(currentEntry, "        • Počet záznamov v pokladni (náklady subdodávky): " + (cashBookRecords ? cashBookRecords.length : 0));
+        utils.addDebug(currentEntry, "        • Počet záznamov v pokladni: " + (cashBookRecords ? cashBookRecords.length : 0));
 
         if (cashBookRecords && cashBookRecords.length > 0) {
             for (var i = 0; i < cashBookRecords.length; i++) {
                 var cashRecord = cashBookRecords[i];
                 var purpose = utils.safeGet(cashRecord, "Účel výdaja", "");
                 // Použijem trim() pre istotu
-                if (purpose === "Subdodávky") {
-                    var suma = utils.safeGet(cashRecord, "Suma", 0);
-                    var dph = utils.safeGet(cashRecord, "DPH", 0);
+                if (purpose.trim() === "Subdodávky") {
+                    var suma = utils.safeGet(cashRecord, CONFIG.fields.cashBook.sum, 0);
+                    var dph = utils.safeGet(cashRecord, CONFIG.fields.cashBook.vat, 0);
 
                     amount += suma;
                     vatDeduction += dph;
@@ -672,7 +672,7 @@ function calculateOtherCosts() {
             for (var i = 0; i < cashBookRecords.length; i++) {
                 var cashRecord = cashBookRecords[i];
                 var purpose = utils.safeGet(cashRecord, "Účel výdaja", "");
-                if (purpose === "Ostatné") {
+                if (purpose.trim() === "Ostatné") {
                     var suma = utils.safeGet(cashRecord, "Suma", 0);
                     var dph = utils.safeGet(cashRecord, "DPH", 0);
 
