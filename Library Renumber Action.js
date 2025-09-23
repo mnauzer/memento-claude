@@ -23,7 +23,7 @@ var config = utils.getConfig();
 
 var CONFIG = {
     scriptName: "Library Renumber Action",
-    version: "1.3",
+    version: "1.4",
 
     // Logging knižnica
     logsLibrary: "ASISTANTO Logs",
@@ -211,19 +211,45 @@ function main() {
         confirmMsg += "⚠️ UPOZORNENIE: Táto operácia prepíše všetky ID!\n\n";
         confirmMsg += "Pokračovať?";
 
-        if (!confirm(confirmMsg)) {
-            addDebug("❌ Prečíslovanie zrušené používateľom");
-            dialog()
-                .title("Zrušené")
-                .text("❌ Prečíslovanie zrušené")
-                .positiveButton("OK", function() {})
-                .show();
-            return false;
-        }
+        // Zobraz konfirmačný dialóg s voľbou
+        dialog()
+            .title("POTVRDENIE")
+            .text(confirmMsg)
+            .positiveButton("POKRAČOVAŤ", function() {
+                // Spusti prečíslovanie
+                addDebug("🔢 Spúšťam prečíslovanie...");
+                executeRenumbering(targetLib);
+            })
+            .negativeButton("ZRUŠIŤ", function() {
+                addDebug("❌ Prečíslovanie zrušené používateľom");
+                dialog()
+                    .title("Zrušené")
+                    .text("❌ Prečíslovanie zrušené")
+                    .positiveButton("OK", function() {})
+                    .show();
+            })
+            .show();
 
-        // Spusti prečíslovanie
-        addDebug("🔢 Spúšťam prečíslovanie...");
+        return true; // Funkcia sa ukončí, pokračovanie v callback
 
+    } catch (error) {
+        var criticalMsg = "💀 KRITICKÁ CHYBA!\n\n" + error.toString();
+        addError("Kritická chyba v main: " + error.toString(), "main", error);
+        dialog()
+            .title("KRITICKÁ CHYBA")
+            .text(criticalMsg)
+            .positiveButton("OK", function() {})
+            .show();
+        return false;
+    }
+}
+
+// ==============================================
+// VYKONANIE PREČÍSLOVANIA
+// ==============================================
+
+function executeRenumbering(targetLib) {
+    try {
         // Vytvor custom verziu renumberLibraryRecords pre správny logging
         var result = renumberLibraryRecordsWithLogging(
             targetLib,                     // cieľová knižnica
@@ -288,17 +314,14 @@ function main() {
                 .show();
         }
 
-        return result.success;
-
     } catch (error) {
         var criticalMsg = "💀 KRITICKÁ CHYBA!\n\n" + error.toString();
-        addError("Kritická chyba v main: " + error.toString(), "main", error);
+        addError("Kritická chyba v executeRenumbering: " + error.toString(), "executeRenumbering", error);
         dialog()
             .title("KRITICKÁ CHYBA")
             .text(criticalMsg)
             .positiveButton("OK", function() {})
             .show();
-        return false;
     }
 }
 
