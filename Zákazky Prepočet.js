@@ -636,13 +636,8 @@ function calculateSubcontractorCosts() {
             for (var i = 0; i < cashBookRecords.length; i++) {
                 var cashRecord = cashBookRecords[i];
                 var purpose = utils.safeGet(cashRecord, "Účel výdaja", "");
-                message("Účel výdaja: " + purpose);
-                // Debug: hodnoty pre porovnanie
-                utils.addDebug(currentEntry, "        ◦ Debug Účel výdaja (subdodávky): '" + purpose + "' (typ: " + typeof purpose + ", dĺžka: " + purpose.length + ")");
-
                 // Použijem trim() pre istotu
-                var trimmedPurpose = (purpose || "").toString().trim();
-                if (trimmedPurpose === "Subdodávky") {
+                if (purpose === "Subdodávky") {
                     var suma = utils.safeGet(cashRecord, "Suma", 0);
                     var dph = utils.safeGet(cashRecord, "DPH", 0);
 
@@ -678,13 +673,7 @@ function calculateOtherCosts() {
             for (var i = 0; i < cashBookRecords.length; i++) {
                 var cashRecord = cashBookRecords[i];
                 var purpose = utils.safeGet(cashRecord, "Účel výdaja", "");
-
-                // Debug: hodnoty pre porovnanie
-                utils.addDebug(currentEntry, "        ◦ Debug Účel výdaja (ostatné): '" + purpose + "' (typ: " + typeof purpose + ", dĺžka: " + purpose.length + ")");
-
-                // Použijem trim() pre istotu
-                var trimmedPurpose = (purpose || "").toString().trim();
-                if (trimmedPurpose === "Ostatné") {
+                if (purpose === "Ostatné") {
                     var suma = utils.safeGet(cashRecord, "Suma", 0);
                     var dph = utils.safeGet(cashRecord, "DPH", 0);
 
