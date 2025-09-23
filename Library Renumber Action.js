@@ -390,8 +390,15 @@ function renumberLibraryRecordsWithLogging(targetLibrary, dateField, idField, st
                 utils.safeSet(record.entry, idFld, currentNumber);
 
                 var dateInfo = record.usedCreatedDate ? " (dátum vytvorenia)" : "";
+                var entryIdDisplay = "N/A";
+                try {
+                    entryIdDisplay = record.entry.field("ID") || "N/A";
+                } catch (e) {
+                    entryIdDisplay = "entry_" + j;
+                }
+
                 addDebug("✅ #" + currentNumber + ": " + utils.formatDate(record.date) + dateInfo +
-                       (oldId ? " (bolo: " + oldId + ")" : ""));
+                       " [" + entryIdDisplay + "]" + (oldId ? " (bolo: " + oldId + ")" : ""));
 
                 result.details.push({
                     newId: currentNumber,

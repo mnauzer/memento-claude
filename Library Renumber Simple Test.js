@@ -58,10 +58,20 @@ function testLogCreation() {
         logEntry.set("Debug_Log", "TEST LOG CREATED\n");
         logEntry.set("Error_Log", "");
 
-        // Úspech
+        // Ulož záznam aby sa vygenerovalo ID
+        logEntry.save();
+
+        // Teraz skús získať ID
+        var entryId = "N/A";
+        try {
+            entryId = logEntry.field("ID") || "N/A";
+        } catch (e) {
+            entryId = "ERROR: " + e.toString();
+        }
+
         dialog()
             .title("ÚSPECH")
-            .text("✅ Log záznam vytvorený!\n\nID: " + logEntry.field("ID") + "\nKnižnica: " + CONFIG.logsLibrary)
+            .text("✅ Log záznam vytvorený!\n\nID: " + entryId + "\nKnižnica: " + CONFIG.logsLibrary)
             .positiveButton("Test Debug", function() {
                 testDebugLog();
             })
