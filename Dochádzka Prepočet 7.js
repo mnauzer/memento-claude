@@ -21,39 +21,38 @@
 // Jednoduchý import všetkého cez MementoUtils
 var utils = MementoUtils;
 var config = utils.getConfig();
-var centralConfig = utils.config;
 var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Dochádzka Prepočet",
-    version: "7.4.4",  // Aktualizovaná verzia
+    version: "7.4.6",  // Opravená chyba s centralConfig
     
     // Referencie na centrálny config
     fields: {
-        place: centralConfig.fields.place,
-        vehicle: centralConfig.fields.vehicle,
-        bookOfRides: centralConfig.fields.bookOfRides,
-        account: centralConfig.fields.account,
-        notifications: centralConfig.fields.notifications,
-        rideLog: centralConfig.fields.rideLog,
-        cashBook: centralConfig.fields.cashBook,
-        workRecord: centralConfig.fields.workRecord,
-        attendance: centralConfig.fields.attendance,
-        obligations: centralConfig.fields.obligations,
-        common: centralConfig.fields.common,
+        place: config.fields.place,
+        vehicle: config.fields.vehicle,
+        bookOfRides: config.fields.bookOfRides,
+        account: config.fields.account,
+        notifications: config.fields.notifications,
+        rideLog: config.fields.rideLog,
+        cashBook: config.fields.cashBook,
+        workRecord: config.fields.workRecord,
+        attendance: config.fields.attendance,
+        obligations: config.fields.obligations,
+        common: config.fields.common,
         // Pridané mapovanie pre arrival/departure polia
-        date: centralConfig.fields.attendance.date,
-        employees: centralConfig.fields.attendance.employees,
-        arrival: centralConfig.fields.attendance.arrival,      // "Príchod"
-        departure: centralConfig.fields.attendance.departure,  // "Odchod"
-        pracovnaDoba: centralConfig.fields.attendance.workTime, // "Pracovná doba"
-        odpracovane: centralConfig.fields.attendance.workedHours, // "Odpracované"
-        pocetPracovnikov: centralConfig.fields.attendance.employeeCount, // "Počet pracovníkov"
-        info: centralConfig.fields.common.info
+        date: config.fields.attendance.date,
+        employees: config.fields.attendance.employees,
+        arrival: config.fields.attendance.arrival,      // "Príchod"
+        departure: config.fields.attendance.departure,  // "Odchod"
+        pracovnaDoba: config.fields.attendance.workTime, // "Pracovná doba"
+        odpracovane: config.fields.attendance.workedHours, // "Odpracované"
+        pocetPracovnikov: config.fields.attendance.employeeCount, // "Počet pracovníkov"
+        info: config.fields.common.info
     },
-    attributes: centralConfig.fields.attendance.employeeAttributes, 
-    libraries: centralConfig.libraries,
-    icons: centralConfig.icons,
+    attributes: config.fields.attendance.employeeAttributes,
+    libraries: config.libraries,
+    icons: config.icons,
     
     // Lokálne nastavenia pre tento script
     settings: {
@@ -66,16 +65,16 @@ var CONFIG = {
 
      // Konštanty pre záväzky
     obligationTypes: {
-        wages: centralConfig.constants.obligationTypes.wages
+        wages: config.constants.obligationTypes.wages
     },
     obligationStates: {
-        paid: centralConfig.constants.obligationStates.paid,
-        unpaid: centralConfig.constants.obligationStates.unpaid,
-        partiallyPaid: centralConfig.constants.obligationStates.partiallyPaid
+        paid: config.constants.obligationStates.paid,
+        unpaid: config.constants.obligationStates.unpaid,
+        partiallyPaid: config.constants.obligationStates.partiallyPaid
     },
     
     // Správne mapovanie pre sadzby
-    sadzbyFields: centralConfig.fields.wages
+    sadzbyFields: config.fields.wages
 };
 
 function validateInputData() {
