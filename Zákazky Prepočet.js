@@ -299,9 +299,7 @@ function collectLinkedRecordsData() {
                 var workRec = data.workRecords.records[wr];
                 
                 // Skús rôzne názvy poľa pre mechanizáciu
-                var machineryField = utils.safeGetLinks(workRec, "Mechanizácia") || 
-                                    utils.safeGetLinks(workRec, "Stroje") ||
-                                    utils.safeGetLinks(workRec, "Stroj");
+                var machineryField = utils.safeGetLinks(workRec, "Mechanizácia");
                 
                 if (machineryField && machineryField.length > 0) {
                     utils.addDebug(currentEntry, "    • Nájdená mechanizácia v zázname #" + workRec.field("ID"));
@@ -429,23 +427,39 @@ function collectLinkedRecordsData() {
                 }
             }
         }
-        utils.addDebug(currentEntry, "    • Pokladňa: " + data.cashBook.records.length + " záznamov");
+        utils.addDebug(currentEntry, "    • Záznam prác: " + data.cashBook.records.length + " záznamov");
         
-        // VÝKAZ PRÁC - linksFrom
-        var workReports = currentEntry.linksFrom(CONFIG.libraries.workReport, CONFIG.fields.workReport.zakazka);
-        if (workReports && workReports.length > 0) {
-            data.workReports.records = workReports;
+          // ZÁZNAM PRÁC - linksFrom
+        var workRecords = currentEntry.linksFrom(CONFIG.libraries.workRecord, CONFIG.fields.workRecord.order);
+        if (workRecords && workRecords.length > 0) {
+            data.workRecords.records = workRecords;
             
-            for (var m = 0; m < workReports.length; m++) {
-                var report = workReports[m];
-                var totalHours = utils.safeGet(report, CONFIG.fields.workReport.totalHours, 0);
-                var hzsSum = utils.safeGet(report, CONFIG.fields.workReport.hzsSum, 0);
+            for (var m = 0; m < workRecords.length; m++) {
+                var report = workRecords[m];
+                var totalHours = utils.safeGet(report, CONFIG.fields.workRecord.totalHours, 0);
+                var hzsSum = utils.safeGet(report, CONFIG.fields.workRecord.hzsSum, 0);
                 
-                data.workReports.totalHours += totalHours;
-                data.workReports.totalSum += hzsSum;
+                data.workRecords.totalHours += totalHours;
+                data.workRecords.totalSum += hzsSum;
             }
         }
-        utils.addDebug(currentEntry, "    • Výkaz prác: " + data.workReports.records.length + " záznamov");
+        utils.addDebug(currentEntry, "    • Záznam prác: " + data.workRecords.records.length + " záznamov");
+
+        // VÝKAZ PRÁC - linksFrom
+        var workRecords = currentEntry.linksFrom(CONFIG.libraries.workRecord, CONFIG.fields.workRecord.order);
+        if (workRecords && workRecords.length > 0) {
+            data.workRecords.records = workRecords;
+            
+            for (var m = 0; m < workRecords.length; m++) {
+                var report = workRecords[m];
+                var totalHours = utils.safeGet(report, CONFIG.fields.workRecord.totalHours, 0);
+                var hzsSum = utils.safeGet(report, CONFIG.fields.workRecord.hzsSum, 0);
+                
+                data.workRecords.totalHours += totalHours;
+                data.workRecords.totalSum += hzsSum;
+            }
+        }
+        utils.addDebug(currentEntry, "    • Výkaz prác: " + data.workRecords.records.length + " záznamov");
         
         // VÝKAZ DOPRAVY - linksFrom
         var rideReports = currentEntry.linksFrom(CONFIG.libraries.rideReport, CONFIG.fields.rideReport.order);
@@ -573,7 +587,7 @@ function calculateMachineryCosts() {
         var vatDeduction = 0;
 
         // Prejdi záznamy linksFrom Pokladňa/Zákazka where Prevádzková réžia = Požičovné stroja
-        var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.order.order);
+        var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.cashBook.order);
         if (cashBookRecords && cashBookRecords.length > 0) {
             for (var i = 0; i < cashBookRecords.length; i++) {
                 var cashRecord = cashBookRecords[i];
@@ -615,7 +629,7 @@ function calculateSubcontractorCosts() {
         var vatDeduction = 0;
 
         // Prejdi záznamy linksFrom Pokladňa/Zákazka where Účel výdaja = Subdodávky
-        var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.order.order);
+        var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.cashBook.order);
         utils.addDebug(currentEntry, "        • Počet záznamov v pokladni (náklady subdodávky): " + (cashBookRecords ? cashBookRecords.length : 0));
 
         if (cashBookRecords && cashBookRecords.length > 0) {
@@ -659,7 +673,7 @@ function calculateOtherCosts() {
         var vatDeduction = 0;
 
         // Prejdi záznamy linksFrom Pokladňa/Zákazka where Účel výdaja = Ostatné
-        var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.order.order);
+        var cashBookRecords = currentEntry.linksFrom(CONFIG.libraries.cashBook, CONFIG.fields.cashBook.order);
         if (cashBookRecords && cashBookRecords.length > 0) {
             for (var i = 0; i < cashBookRecords.length; i++) {
                 var cashRecord = cashBookRecords[i];
