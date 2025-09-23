@@ -62,17 +62,12 @@ function createLogEntry() {
         logEntry = logsLib.create();
         logEntry.set("date", new Date());
         logEntry.set("library", lib ? lib.name : "Unknown");
-        logEntry.set("user", user ? user.fullName : "Unknown");
+        // user objekt nie je dostupný v Memento Database JavaScript API
+        logEntry.set("user", "Action Script User");
         logEntry.set("Debug_Log", "SCRIPT STARTED\n");
         logEntry.set("Error_Log", "");
 
-        // Test že sa záznam vytvoril
-        dialog()
-            .title("Log vytvorený")
-            .text("✅ LOG VYTVORENÝ\n\nKnižnica: " + CONFIG.logsLibrary + "\nZáznam ID: " + logEntry.field("ID"))
-            .positiveButton("OK", function() {})
-            .show();
-
+        // Test že sa záznam vytvoril - bez dialog pre debug
         return logEntry;
 
     } catch (error) {
@@ -110,12 +105,7 @@ function addDebug(message, iconName) {
         var existingDebug = logEntry.field("Debug_Log") || "";
         logEntry.set("Debug_Log", existingDebug + debugMessage + "\n");
 
-        // Test výpis
-        dialog()
-            .title("Debug pridaný")
-            .text("✅ DEBUG PRIDANÝ:\n\n" + debugMessage)
-            .positiveButton("OK", function() {})
-            .show();
+        // Debug správa pridaná - bez dialógu pre výkon
 
     } catch (error) {
         dialog()
@@ -140,15 +130,25 @@ function addError(message, source, error) {
             errorMessage += " | Zdroj: " + source;
         }
 
+        // Pridaj číslo riadku ak je dostupné
+        if (error && error.lineNumber) {
+            errorMessage += " | Riadok: " + error.lineNumber;
+        }
+
         if (error && error.stack) {
             errorMessage += "\nStack trace:\n" + error.stack;
+        } else if (error && error.toString) {
+            errorMessage += "\nError: " + error.toString();
         }
 
         var existingError = logEntry.field("Error_Log") || "";
         logEntry.set("Error_Log", existingError + errorMessage + "\n");
 
     } catch (e) {
-        console.log("❌ Chyba pri error logu: " + e.toString());
+        // Fallback na console ak zlyhá aj error logging
+        if (typeof console !== 'undefined' && console.log) {
+            console.log("❌ Chyba pri error logu: " + e.toString());
+        }
     }
 }
 
@@ -158,15 +158,6 @@ function addError(message, source, error) {
 
 function main() {
     try {
-        // Test základných objektov
-        dialog()
-            .title("DEBUG TEST")
-            .text("🔍 lib: " + (lib ? lib.name : "NULL") +
-                  "\nuser: " + (user ? user.fullName : "NULL") +
-                  "\nlibByName: " + (typeof libByName))
-            .positiveButton("OK", function() {})
-            .show();
-
         // Vytvor log záznam
         var logCreated = createLogEntry();
         if (!logCreated) {
