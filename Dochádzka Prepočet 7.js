@@ -54,7 +54,7 @@ var CONFIG = {
     },
     attributes: centralConfig.fields.attendance.employeeAttributes,
     libraries: centralConfig.libraries,
-    icons: centralConfig.icons || config.icons || {
+    icons: {
         work: "💼",
         calendar: "📅",
         time: "⏰",
