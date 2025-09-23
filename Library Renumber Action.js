@@ -220,7 +220,7 @@ function main() {
         return result.success;
 
     } catch (error) {
-        var criticalMsg = "💀 KRITICKÁ CHYBA!\n\n" + error.toString();
+        var criticalMsg = "💀 KRITICKÁ CHYBA!" + error.toString();
         addError("Kritická chyba v main: " + error.toString(), "main", error);
         message(criticalMsg);
         return false;
