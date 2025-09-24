@@ -350,7 +350,7 @@ var CONFIG = {
                 utils.addDebug(currentEntry, "\n  [" + (i+1) + "/" + posadka.length + "] " + meno);
                 
                 // Získaj detaily zamestnanca s hodinovou sadzbou
-                var hourlyRate = utils.findValidSalary(currentEntry, zamestnanec, datum);
+                var hourlyRate = utils.findValidHourlyRate(zamestnanec, datum);
                 
                 if (!hourlyRate  || hourlyRate <= 0) {
                     utils.addError(currentEntry, "Zamestnanec " + meno + " nemá platnú sadzbu", "calculateWageCosts");
