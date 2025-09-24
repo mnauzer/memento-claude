@@ -122,16 +122,12 @@ function main() {
 
         // Získanie platnej sadzby DPH (použijeme základnú sadzbu)
         var vatRate = 0;
-        if (typeof MementoBusiness !== 'undefined' && MementoBusiness.getValidVatRate) {
-            try {
-                vatRate = MementoBusiness.getValidVatRate(datum, "základná");
-                utils.addDebug(currentEntry, CONFIG.icons.success + " Platná sadzba DPH: " + vatRate + "%");
-            } catch (error) {
-                utils.addDebug(currentEntry, CONFIG.icons.warning + " Chyba pri získavaní DPH sadzby, použije sa 0%: " + error.toString());
-                vatRate = 0;
-            }
-        } else {
-            utils.addDebug(currentEntry, CONFIG.icons.warning + " MementoBusiness modul nie je dostupný, použije sa DPH 0%");
+        try {
+            vatRate = utils.getValidVatRate(datum, "základná");
+            utils.addDebug(currentEntry, CONFIG.icons.success + " Platná sadzba DPH: " + vatRate + "%");
+        } catch (error) {
+            utils.addDebug(currentEntry, CONFIG.icons.warning + " Chyba pri získavaní DPH sadzby, použije sa 0%: " + error.toString());
+            vatRate = 0;
         }
 
         // Výpočet DPH a sumy s DPH
@@ -175,21 +171,21 @@ function calculateMaterialItems(items) {
             }
 
             // Získanie množstva
-            var quantity = parseFloat(utils.safeGetAttribute(item, CONFIG.itemAttributes.quantity) || 0);
+            var quantity = parseFloat(item.attr(CONFIG.itemAttributes.quantity) || 0);
             if (quantity <= 0) {
                 utils.addDebug(currentEntry, CONFIG.icons.warning + " Položka[" + i + "] nemá platné množstvo - preskakujem");
                 continue;
             }
 
             // Získanie ceny
-            var price = parseFloat(utils.safeGetAttribute(item, CONFIG.itemAttributes.price) || 0);
+            var price = parseFloat(item.attr(CONFIG.itemAttributes.price) || 0);
 
             // Ak nie je cena zadaná, pokús sa ju získať z knižnice Materiál
             if (price <= 0) {
                 price = getMaterialPrice(item);
                 if (price > 0) {
                     // Nastav cenu späť do atribútu
-                    utils.safeSetAttribute(item, CONFIG.itemAttributes.price, price);
+                    item.setAttr(CONFIG.itemAttributes.price, price);
                     utils.addDebug(currentEntry, CONFIG.icons.info + " Doplnená cena z knižnice: " + utils.formatMoney(price));
                 }
             }
@@ -203,7 +199,7 @@ function calculateMaterialItems(items) {
             var itemTotal = quantity * price;
 
             // Nastavenie celkovej ceny späť do atribútu
-            utils.safeSetAttribute(item, CONFIG.itemAttributes.totalPrice, itemTotal);
+            item.setAttr(CONFIG.itemAttributes.totalPrice, itemTotal);
 
             totalSum += itemTotal;
             processedItems++;
@@ -236,7 +232,7 @@ function getMaterialPrice(item) {
             return 0;
         }
 
-        // Nájdi cenu v prepojenom zázname
+        // Nájdi cenu v prepojenom zázname - item je už prepojený záznam z knižnice Materiál
         var materialPrice = utils.safeGet(item, CONFIG.materialFields.price, 0);
 
         if (materialPrice > 0) {
@@ -278,7 +274,7 @@ function createInfoRecord(totalSum, vatAmount, sumWithVat, vatRate, processedIte
         infoText += "• DPH (" + vatRate + "%): " + utils.formatMoney(vatAmount) + "\\n";
         infoText += "• Suma s DPH: " + utils.formatMoney(sumWithVat) + "\\n\\n";
 
-        infoText += "⏰ Prepočet: " + utils.formatDateTime(moment()) + "\\n";
+        infoText += "⏰ Prepočet: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\\n";
         infoText += "🔧 Script: " + CONFIG.scriptName + " v" + CONFIG.version;
 
         utils.safeSet(currentEntry, CONFIG.fields.info, infoText);
