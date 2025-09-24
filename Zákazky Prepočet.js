@@ -1507,9 +1507,10 @@ function prepareOrderNotificationInfo(linkedData, costs, revenue, profit) {
         var startDate = utils.safeGet(currentEntry, CONFIG.fields.order.startDate);
         var netWages = utils.safeGet(currentEntry, CONFIG.fields.order.wageCosts, 0);
         var wageDeductions = utils.safeGet(currentEntry, CONFIG.fields.order.wageDeductions, 0);
+        var status = utils.safeGet(currentEntry, CONFIG.fields.order.status, "Neurčené");
 
         // HTML formátovaná správa pre Telegram
-        var telegramInfo = "📋 <b>ZÁKAZKA - PREPOČET DOKONČENÝ</b> 🏗️\n";
+        var telegramInfo = "📋 <b>ZÁKAZKA - PREPOČET " + orderName.uppercase() +" ㊙️㊙️㊙️</b> 🏗️\n";
         telegramInfo += "═══════════════════════════════════\n\n";
 
         // Základné info
@@ -1517,6 +1518,7 @@ function prepareOrderNotificationInfo(linkedData, costs, revenue, profit) {
         if (startDate) {
             telegramInfo += "📅 <b>Dátum začatia:</b> " + utils.formatDate(startDate, "DD.MM.YYYY") + "\n";
         }
+        telegramInfo += "📌 <b>Stav:</b> " + status + "\n";
         telegramInfo += "⏰ <b>Prepočet:</b> " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n\n";
 
         // PRÁCA
