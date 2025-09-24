@@ -1058,11 +1058,12 @@ function calculatePercentageTransport(linkedData, quoteObj, revenue) {
         var percentage = rateRidePrice / 100; // Konvertuj na desatinné číslo
         var total = baseAmount * percentage;
         
-        utils.addDebug(currentEntry, "      • % zo zákazky: " + baseAmount + " € × " + rateRidePrice + "% = " + utils.formatMoney(total));
-        utils.addDebug(currentEntry, "        - Práce: " + utils.safeGet(currentEntry, CONFIG.fields.order.workReportTotal, 0) + " €");
-        utils.addDebug(currentEntry, "        - Materiál: " + utils.safeGet(currentEntry, CONFIG.fields.order.materialTotal, 0) + " €");
-        utils.addDebug(currentEntry, "        - Stroje: " + utils.safeGet(currentEntry, CONFIG.fields.order.machineryTotal, 0) + " €");
-        utils.addDebug(currentEntry, "        - Subdodávky: " + utils.safeGet(currentEntry, CONFIG.fields.order.otherTotal, 0) + " €");
+        utils.addDebug(currentEntry, "      • " + rateRidePrice +"% zo zákazky: " + utils.formatMoney(baseAmount) + " = " + utils.formatMoney(total));
+        utils.addDebug(currentEntry, "        - Práce: " + revenue.work + " €");
+        utils.addDebug(currentEntry, "        - Materiál: " + revenue.material + " €");
+        utils.addDebug(currentEntry, "        - Stroje: " + revenue.machinery + " €");
+        utils.addDebug(currentEntry, "        - Subdodávky: " + revenue.subcontractors + " €");
+        utils.addDebug(currentEntry, "        - Ostatné: " + revenue.other + " €");
         
         return total;
         
