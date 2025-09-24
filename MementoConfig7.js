@@ -106,11 +106,12 @@ var MementoConfig = (function() {
             inventory: "Materiál",
             materialExpenses: "Výdajky materiálu",
             
-            // Historical data 
+            // Historical data
             workPrices: "ceny prác",
             materialPrices: "ceny materiálu",
             wages: "sadzby zamestnancov",
             machinePrices: "ceny mechanizácie",
+            vatRatesLib: "sadzby DPH",
             
             // Systémové knižnice
             defaults: "ASISTANTO Defaults",
@@ -681,6 +682,13 @@ var MementoConfig = (function() {
                 mth: "MTH", // motohodiny
                 hzs: "HZS", // linkToEntry: Cenník prác
                 flatRate: "Paušál" // linkToEntry: Cenník prác
+            },
+            // Materiál polia
+            material: {
+                name: "Názov", // text
+                description: "Popis", // text
+                unit: "Jednotka", // text
+                price: "Cena" // real number
             },
             // Výdajky materiálu polia
             materialExpenses: {
