@@ -1734,7 +1734,7 @@ function main() {
             }
             utils.addDebug(currentEntry, "📋 Linkovanie dokončené: " + rideLogLinkResult.linkedCount + " záznamov");   
             if (rideLogLinkResult.linkedCount > 0) {
-                entryIcons += CONFIG.icons.truck;
+                entryIcons += CONFIG.icons.transport;
             }
         } else {
             utils.addError(currentEntry, "Linkovanie záznamov dopravy neúspešné", CONFIG.scriptName);
