@@ -323,9 +323,9 @@ var CONFIG = {
         };
         
         try {
-            var posadka = currentEntry.field(CONFIG.fields.posadka) || [];
-            var datum = utils.safeGet(currentEntry, CONFIG.fields.datum, new Date());
-            var celkovyCas = utils.safeGet(currentEntry, CONFIG.fields.celkovyCas, 0);
+            var posadka = currentEntry.field(CONFIG.fields.rideLog.crew) || [];
+            var datum = utils.safeGet(currentEntry, CONFIG.fields.rideLog.date, new Date());
+            var celkovyCas = utils.safeGet(currentEntry, CONFIG.fields.rideLog.totalTime, 0);
             
             if (posadka.length === 0) {
                 utils.addDebug(currentEntry, "  ℹ️ Žiadna posádka");
