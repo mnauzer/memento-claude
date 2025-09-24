@@ -1176,37 +1176,37 @@ function saveCalculatedValues(linkedData, costs, revenue, profit) {
         utils.safeSet(currentEntry, CONFIG.fields.order.transportWageCosts, linkedData.rideLog.totalWageCosts);
 
         // VÝNOSY - podľa screenshotov
-        utils.safeSet(currentEntry, CONFIG.fields.order.work, revenue.work);
-        utils.safeSet(currentEntry, CONFIG.fields.order.workVat, revenue.workVat);
-        utils.safeSet(currentEntry, CONFIG.fields.order.material, revenue.material);
-        utils.safeSet(currentEntry, CONFIG.fields.order.materialVat, revenue.materialVat);
-        utils.safeSet(currentEntry, CONFIG.fields.order.machinery, revenue.machinery);
-        utils.safeSet(currentEntry, CONFIG.fields.order.machineryVat, revenue.machineryVat);
-        utils.safeSet(currentEntry, CONFIG.fields.order.transport, revenue.transport);
-        utils.safeSet(currentEntry, CONFIG.fields.order.transportVat, revenue.transportVat);
-        utils.safeSet(currentEntry, CONFIG.fields.order.subcontractors, revenue.subcontractors);
-        utils.safeSet(currentEntry, CONFIG.fields.order.subcontractorsVat, revenue.subcontractorsVat);
-        utils.safeSet(currentEntry, CONFIG.fields.order.other, revenue.other);
-        utils.safeSet(currentEntry, CONFIG.fields.order.otherVat, revenue.otherVat);
-        utils.safeSet(currentEntry, CONFIG.fields.order.total, revenue.total);
-        utils.safeSet(currentEntry, CONFIG.fields.order.totalVat, revenue.totalVat);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueWork, revenue.work);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueWorkVat, revenue.workVat);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueMaterial, revenue.material);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueMaterialVat, revenue.materialVat);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueMmachinery, revenue.machinery);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueMmachineryVat, revenue.machineryVat);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueTransport, revenue.transport);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueTransportVat, revenue.transportVat);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueSubcontractors, revenue.subcontractors);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueSubcontractorsVat, revenue.subcontractorsVat);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueOther, revenue.other);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueOtherVat, revenue.otherVat);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueTotal, revenue.total);
+        utils.safeSet(currentEntry, CONFIG.fields.order.revenueTotalVat, revenue.totalVat);
 
         // NÁKLADY - podľa screenshotov
-        utils.safeSet(currentEntry, CONFIG.fields.order.work, costs.work);
-        utils.safeSet(currentEntry, CONFIG.fields.order.workVatDeduction, costs.workVatDeduction);
-        utils.safeSet(currentEntry, CONFIG.fields.order.material, costs.material);
-        utils.safeSet(currentEntry, CONFIG.fields.order.materialVatDeduction, costs.materialVatDeduction);
-        utils.safeSet(currentEntry, CONFIG.fields.order.machinery, costs.machinery);
-        utils.safeSet(currentEntry, CONFIG.fields.order.machineryVatDeduction, costs.machineryVatDeduction);
-        utils.safeSet(currentEntry, CONFIG.fields.order.transport, costs.transport);
-        utils.safeSet(currentEntry, CONFIG.fields.order.transportVatDeduction, costs.transportVatDeduction);
-        utils.safeSet(currentEntry, CONFIG.fields.order.subcontractors, costs.subcontractors);
-        utils.safeSet(currentEntry, CONFIG.fields.order.subcontractorsVatDeduction, costs.subcontractorsVatDeduction);
-        utils.safeSet(currentEntry, CONFIG.fields.order.other, costs.other);
-        utils.safeSet(currentEntry, CONFIG.fields.order.otherVatDeduction, costs.otherVatDeduction);
-        utils.safeSet(currentEntry, CONFIG.fields.order.total, costs.total);
-        utils.safeSet(currentEntry, CONFIG.fields.order.totalVatDeduction, costs.totalVatDeduction);
-        utils.safeSet(currentEntry, CONFIG.fields.order.otherExpenses, costs.otherExpenses);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costWork, costs.work);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costWorkVatDeduction, costs.workVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costMaterial, costs.material);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costMaterialVatDeduction, costs.materialVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costMachinery, costs.machinery);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costMachineryVatDeduction, costs.machineryVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costTransport, costs.transport);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costTransportVatDeduction, costs.transportVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costSubcontractors, costs.subcontractors);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costSubcontractorsVatDeduction, costs.subcontractorsVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costOther, costs.other);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costOtherVatDeduction, costs.otherVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costTotal, costs.total);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costTotalVatDeduction, costs.totalVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.costOtherExpenses, costs.otherExpenses);
 
         // STARÝ ÚDAJ pre kompatibilitu
         utils.safeSet(currentEntry, CONFIG.fields.order.totalBilled, revenue.total + revenue.totalVat);
