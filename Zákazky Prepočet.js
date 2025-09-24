@@ -751,34 +751,23 @@ function calculateRevenue(linkedData) {
 
         // Debug kontroly PRED for loopom
         utils.addDebug(currentEntry, "    🔨 Počítam výnosy z prác a strojov...");
-        utils.addDebug(currentEntry, "    🔍 DEBUG: linkedData existuje: " + (linkedData ? "áno" : "nie"));
-        utils.addDebug(currentEntry, "    🔍 DEBUG: workRecords existuje: " + (linkedData.workRecords ? "áno" : "nie"));
-        utils.addDebug(currentEntry, "    🔍 DEBUG: records existuje: " + (linkedData.workRecords && linkedData.workRecords.records ? "áno" : "nie"));
-        utils.addDebug(currentEntry, "    🔍 DEBUG: records length: " + (linkedData.workRecords && linkedData.workRecords.records ? linkedData.workRecords.records.length : "undefined"));
-        utils.addDebug(currentEntry, "    🔍 DEBUG: records typ: " + (linkedData.workRecords && linkedData.workRecords.records ? typeof linkedData.workRecords.records : "undefined"));
 
         if (linkedData.workRecords && linkedData.workRecords.records) {
             // 1. PRÁCE A STROJE - sum poľa Suma HZS všetkých linksFrom Záznam prác/Zákazka
             utils.addDebug(currentEntry, "     • Záznamy prác: " + linkedData.workRecords.records.length);
-            utils.addDebug(currentEntry, "    🔍 DEBUG: Začínam for loop s " + linkedData.workRecords.records.length + " záznamami...");
 
             for (var workIdx = 0; workIdx < linkedData.workRecords.records.length; workIdx++) {
-                utils.addDebug(currentEntry, "    🔍 DEBUG: For loop iterácia " + workIdx);
                 var workRecord = linkedData.workRecords.records[workIdx];
-                utils.addDebug(currentEntry, "    🔍 DEBUG: workRecord načítaný: " + (workRecord ? "áno" : "nie"));
-
                 var machinesSum = utils.safeGet(workRecord, CONFIG.fields.workRecord.machinesSum, 0);
                 var hzsSum = utils.safeGet(workRecord, CONFIG.fields.workRecord.hzsSum, 0);
                 revenue.revenueWork += hzsSum;
                 revenue.revenueMachinery += machinesSum;
-                utils.addDebug(currentEntry, "      • Záznam #" + workRecord.field("ID") + ": " + utils.formatMoney(hzsSum));
+                utils.addDebug(currentEntry, "      • Záznam #" + workRecord.field("ID") + " (" + utils.formatDate(workRecord.field("Dátum")) +  "): " + utils.formatMoney(hzsSum));
                 if (machinesSum > 0) {
-                    utils.addDebug(currentEntry, "      • Záznam #" + workRecord.field("ID") + ": " + utils.formatMoney(machinesSum) + " (stroje)");
+                    utils.addDebug(currentEntry, "      • Záznam #" + workRecord.field("ID") + " (" + utils.formatDate(workRecord.field("Dátum")) +  "): " + utils.formatMoney(machinesSum) + " (stroje)");
                 }
             }
-            utils.addDebug(currentEntry, "    🔍 DEBUG: For loop dokončený!");
         } else {
-            utils.addDebug(currentEntry, "    ⚠️ DEBUG: Podmienka if zlyhala - workRecords alebo records neexistujú!");
         }
         revenue.revenueWorkVat = Math.round(revenue.revenueWork * vatRate * 100) / 100;
         revenue.revenueMachineryVat = Math.round(revenue.revenueMachinery * vatRate * 100) / 100;
