@@ -1029,11 +1029,8 @@ var CONFIG = {
      */
     function linkCurrentRecordToReport(rideReport) {
         try {
-            var dopravaPole = rideReport.field(CONFIG.fields.rideReport.ride) || [];
-            if (!dopravaPole) {
-                dopravaPole = [];
-            }
-            
+            var dopravaPole = rideReport.field(CONFIG.fields.rideReport.ride);
+                       
             // Skontroluj či už nie je prepojený
             var isLinked = false;
             for (var i = 0; i < dopravaPole.length; i++) {
