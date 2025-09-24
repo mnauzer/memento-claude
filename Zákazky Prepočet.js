@@ -1507,10 +1507,10 @@ function prepareOrderNotificationInfo(linkedData, costs, revenue, profit) {
         var startDate = utils.safeGet(currentEntry, CONFIG.fields.order.startDate);
         var netWages = utils.safeGet(currentEntry, CONFIG.fields.order.wageCosts, 0);
         var wageDeductions = utils.safeGet(currentEntry, CONFIG.fields.order.wageDeductions, 0);
-        var status = utils.safeGet(currentEntry, CONFIG.fields.order.status, "Neurčené");
+        var status = utils.safeGet(currentEntry, CONFIG.fields.order.state, "Neurčené");
 
         // HTML formátovaná správa pre Telegram
-        var telegramInfo = "📋 <b>ZÁKAZKA - PREPOČET " + orderName.toUpperCase() +" ㊙️㊙️㊙️</b> 🏗️\n";
+        var telegramInfo = "📋 <b>ZÁKAZKA - PREPOČET " + orderName.toUpperCase() +" ㊙️㊙️㊙️</b> \n";
         telegramInfo += "═══════════════════════════════════\n\n";
 
         // Základné info
@@ -1560,7 +1560,6 @@ function prepareOrderNotificationInfo(linkedData, costs, revenue, profit) {
         if (revenue.subcontractors > 0) telegramInfo += "• Subdodávky: " + utils.formatMoney(revenue.subcontractors) + "\n";
         if (revenue.other > 0) telegramInfo += "• Ostatné: " + utils.formatMoney(revenue.other) + "\n";
         telegramInfo += "• <b>SPOLU: " + utils.formatMoney(revenue.total) + "</b>\n";
-        telegramInfo += "• DPH k odvodu: " + utils.formatMoney(revenue.totalVat) + "\n\n";
 
         // ZISKOVOSŤ
         var grossProfit = revenue.total - costs.total;
@@ -1572,6 +1571,12 @@ function prepareOrderNotificationInfo(linkedData, costs, revenue, profit) {
         telegramInfo += "• Hrubý zisk: <b>" + (grossProfit >= 0 ? "+" : "") + utils.formatMoney(grossProfit) + "</b>\n";
         telegramInfo += "• Marža: <b>" + profitMargin.toFixed(2) + "%</b>\n";
         telegramInfo += "• Stav: " + (isProfitable ? "✅ <b>ZISKOVÁ</b>" : "❌ <b>STRATOVÁ</b>") + "\n\n";
+
+        telegramInfo += "📊 <b>FAKTURÁCIA</b>\n";
+        telegramInfo += "───────────────────────────────────\n";
+        telegramInfo += "• Základ: <b>" + (grossProfit >= 0 ? "+" : "") + utils.formatMoney(grossProfit) + "</b>\n";
+        telegramInfo += "• DPH : <b>" + utils.formatMoney(revenue.totalVat) + "(23%)</b>\n";
+        telegramInfo += "• Celkom: " +  utils.formatMoney(grossProfit + revenue.totalVat) "\n\n";
 
         // DPH info
         if (revenue.totalVat > 0 || costs.totalVatDeduction > 0) {
