@@ -54,22 +54,7 @@ var CONFIG = {
     },
     attributes: centralConfig.fields.attendance.employeeAttributes,
     libraries: centralConfig.libraries,
-    icons: centralConfig.icons || { 
-        work: "💼",
-        calendar: "📅",
-        time: "⏰",
-        money: "💰",
-        success: "✅",
-        error: "❌",
-        warning: "⚠️",
-        info: "ℹ️",
-        payment: "💳",          // Platba
-        obligation: "💸",
-        truck: "🚚",
-        telegram: "📱",
-        notification: "🔔"
-
-    },
+    icons: centralConfig.icons,
     
     // Lokálne nastavenia pre tento script
     settings: {
@@ -82,9 +67,8 @@ var CONFIG = {
 
      // Konštanty pre záväzky - s fallback hodnotami
     obligationTypes: {
-        wages: (centralConfig.constants && centralConfig.constants.obligationTypes)
-               ? centralConfig.constants.obligationTypes.wages
-               : "Mzdy"
+        wages:  centralConfig.constants.obligationTypes.wages,
+               
     },
     obligationStates: {
         paid: (centralConfig.constants && centralConfig.constants.obligationStates)
@@ -836,14 +820,6 @@ function setEntryFields(employeeResult, workLinkResult, rideLogLinkResult, cashB
         utils.addDebug(currentEntry, "  • Prestoje: " + workHoursDiff + " hodín");
         utils.addDebug(currentEntry, " Celkové výpočty úspešné", "success");
          
-        var isHoliday = utils.isHoliday(validationResult.date);
-        var isWeekend = utils.isWeekend(validationResult.date);
-         //var farba = "#FFFFFF"; // Biela - štandard
-        if (isHoliday) {
-            utils.setColor(currentEntry, "bg", "pastel blue")
-        } else if (isWeekend) {
-            utils.setColor(currentEntry, "bg", "pastel orange")
-        }
 
         return {
             success: true
@@ -1826,7 +1802,7 @@ function main() {
                     callback_data: "confirm_attendance_" + recordId
                 },
                 {
-                    text: "⚠️ Rozporovať", 
+                    text: "⚠️ Namietať", 
                     callback_data: "dispute_attendance_" + recordId
                 }
                 ];
@@ -1847,6 +1823,15 @@ function main() {
             } else {
                 utils.addError(currentEntry, "Nepodarilo sa vytvoriť notifikáciu", "step9");
             }
+        }
+        
+        var isHoliday = utils.isHoliday(validationResult.date);
+        var isWeekend = utils.isWeekend(validationResult.date);
+         //var farba = "#FFFFFF"; // Biela - štandard
+        if (isHoliday) {
+            utils.setColor(currentEntry, "bg", "pastel blue")
+        } else if (isWeekend) {
+            utils.setColor(currentEntry, "bg", "pastel orange")
         }
 
         return true;
