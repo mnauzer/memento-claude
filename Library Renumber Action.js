@@ -173,7 +173,7 @@ function main() {
         addDebug("=== ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===", "start");
 
         // V Action scripte nie je dostupné lib() - musí sa zadať manuálne
-        var targetLibraryName = CONFIG.settings.targetLibrary;
+        var targetLibraryName = lib().name;
         if (!targetLibraryName) {
             var errorMsg = "❌ CHYBA: Musíte nastaviť názov knižnice v CONFIG.settings.targetLibrary!";
             addError(errorMsg, "main");
@@ -185,7 +185,7 @@ function main() {
             return false;
         }
 
-        var targetLib = libByName(targetLibraryName);
+        var targetLib = lib();
         if (!targetLib) {
             var errorMsg = "❌ CHYBA: Knižnica '" + targetLibraryName + "' nenájdená!";
             addError(errorMsg, "main");
