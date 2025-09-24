@@ -663,16 +663,15 @@ function getDefaultHZS() {
     try {
         var defaultsLib = libByName(CONFIG.libraries.defaults);
         if (!defaultsLib) return null;
-        message("Hľadám default HZS v knižnici: " + CONFIG.libraries.defaults);
-
+        utils.addDebug(currentEntry, "  🔍 Hľadám default HZS v knižnici: " + CONFIG.libraries.defaults);
         var defaults = defaultsLib.entries();
-        message("Nájdených " + (defaults ? defaults.length : 0) + " default záznamov");
         if (defaults && defaults.length > 0) {
             var defaultSetting = defaults[0];
-            message("Používam default záznam: " + utils.safeGet(defaultSetting, "Účtovný rok", "N/A"));
+            utils.addDebug(currentEntry, "  🔍 Nájdený default záznam: " + utils.safeGet(defaultSetting, "Účtovný rok", "N/A"));
             var defaultHZS = utils.safeGet(defaultSetting, CONFIG.fields.defaults.defaultHZS);
-            
+            utils.addDebug(currentEntry, "  🔍 Hľadám default HZS v zázname: " + utils.safeGet(defaultSetting, "Účtovný rok", "N/A"));
             if (defaultHZS && defaultHZS.length > 0) {
+                utils.addDebug(currentEntry, "  ✅ Default HZS nájdené: " + utils.safeGet(defaultHZS[0], "Názov", "N/A"));
                 utils.addDebug(currentEntry, "  " + utils.getIcon("link") + " Default HZS nájdené");
                 return defaultHZS;
             }
