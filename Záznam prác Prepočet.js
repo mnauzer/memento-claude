@@ -669,7 +669,7 @@ function getDefaultHZS() {
         message("Nájdených " + (defaults ? defaults.length : 0) + " default záznamov");
         if (defaults && defaults.length > 0) {
             var defaultSetting = defaults[0];
-            message("Používam default záznam: " + utils.safeGet(defaultSetting, "ID", "N/A"));
+            message("Používam default záznam: " + utils.safeGet(defaultSetting, "Účtovný rok", "N/A"));
             var defaultHZS = utils.safeGet(defaultSetting, CONFIG.fields.defaults.defaultHZS);
             
             if (defaultHZS && defaultHZS.length > 0) {
