@@ -173,7 +173,7 @@ function main() {
         addDebug("=== ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===", "start");
 
         // V Action scripte nie je dostupné lib() - musí sa zadať manuálne
-        var targetLibraryName = lib().name;
+        var targetLibraryName = lib().title;
         if (!targetLibraryName) {
             var errorMsg = "❌ CHYBA: Musíte nastaviť názov knižnice v CONFIG.settings.targetLibrary!";
             addError(errorMsg, "main");
