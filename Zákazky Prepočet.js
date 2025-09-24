@@ -73,7 +73,8 @@ function main() {
             step4: { success: false, name: "Výpočet výnosov" },
             step5: { success: false, name: "Výpočet marže a rentability" },
             step6: { success: false, name: "Vytvorenie info záznamu" },
-            step7: { success: false, name: "Finálne uloženie" }
+            step7: { success: false, name: "Finálne uloženie" },
+            step8: { success: false, name: "Telegram notifikácia" }
         };
         
         // KROK 1: Validácia
@@ -116,6 +117,11 @@ function main() {
         utils.addDebug(currentEntry, "\n💾 KROK 7: " + steps.step7.name, "save");
         saveCalculatedValues(linkedData, costsResult, revenueResult, profitResult);
         steps.step7.success = true;
+
+        // KROK 8: Telegram notifikácia
+        utils.addDebug(currentEntry, "\n📱 KROK 8: Vytvorenie Telegram notifikácie", "telegram");
+        var telegramResult = createTelegramNotification(linkedData, costsResult, revenueResult, profitResult);
+        steps.step8 = { success: telegramResult.success, name: "Telegram notifikácia" };
         
         // Záverečný súhrn
         logFinalSummary(steps);
@@ -1429,6 +1435,175 @@ function saveCalculatedValues(linkedData, costs, revenue, profit) {
 }
 
 // ==============================================
+// TELEGRAM NOTIFIKÁCIE
+// ==============================================
+
+function createTelegramNotification(linkedData, costs, revenue, profit) {
+    try {
+        utils.addDebug(currentEntry, "  📱 Vytváram Telegram notifikáciu...");
+
+        // 1. Vytvor info_telegram záznam
+        var telegramInfoResult = prepareOrderNotificationInfo(linkedData, costs, revenue, profit);
+        if (!telegramInfoResult.success) {
+            return telegramInfoResult;
+        }
+
+        // 2. Odstráň staré notifikácie
+        var existingNotifications = utils.getLinkedNotifications(currentEntry);
+        if (existingNotifications && existingNotifications.length > 0) {
+            utils.addDebug(currentEntry, "  🗑️ Mažem " + existingNotifications.length + " existujúcich notifikácií");
+            for (var i = 0; i < existingNotifications.length; i++) {
+                utils.deleteNotificationAndTelegram(existingNotifications[i]);
+            }
+        }
+
+        // 3. Vytvor novú notifikáciu
+        var newNotification = utils.createTelegramMessage(currentEntry);
+        if (!newNotification.success) {
+            utils.addError(currentEntry, "Nepodarilo sa vytvoriť notifikáciu", "createTelegramNotification");
+            return { success: false, error: "Chyba pri vytvorení notifikácie" };
+        }
+
+        utils.addDebug(currentEntry, "  ✅ Záznam notifikácie úspešne vytvorený");
+
+        // 4. Vytvor inline keyboard
+        var recordId = utils.safeGet(currentEntry, CONFIG.fields.common.id);
+        var buttons = [
+            {
+                text: "📊 Detaily",
+                callback_data: "order_details_" + recordId
+            },
+            {
+                text: "💰 Ziskovosť",
+                callback_data: "order_profit_" + recordId
+            }
+        ];
+
+        var inlineKeyboard = utils.createInlineKeyboard(buttons, 2);
+
+        // 5. Odošli na Telegram
+        var sendResult = utils.sendNotificationEntry(newNotification.notification, inlineKeyboard);
+
+        if (sendResult.success) {
+            utils.addDebug(currentEntry, "  🚀 Telegram notifikácia úspešne odoslaná");
+            return { success: true, message: "Telegram notifikácia odoslaná úspešne" };
+        } else {
+            utils.addError(currentEntry, "Nepodarilo sa odoslať notifikáciu na Telegram", "createTelegramNotification");
+            return { success: false, error: "Chyba pri odoslaní na Telegram" };
+        }
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri vytváraní Telegram notifikácie: " + error.toString(), "createTelegramNotification", error);
+        return { success: false, error: error.toString() };
+    }
+}
+
+function prepareOrderNotificationInfo(linkedData, costs, revenue, profit) {
+    try {
+        utils.addDebug(currentEntry, "    📝 Pripravujem info_telegram záznam...");
+
+        var orderNumber = utils.safeGet(currentEntry, CONFIG.fields.order.number);
+        var orderName = utils.safeGet(currentEntry, CONFIG.fields.order.name);
+        var startDate = utils.safeGet(currentEntry, CONFIG.fields.order.startDate);
+        var netWages = utils.safeGet(currentEntry, CONFIG.fields.order.wageCosts, 0);
+        var wageDeductions = utils.safeGet(currentEntry, CONFIG.fields.order.wageDeductions, 0);
+
+        // HTML formátovaná správa pre Telegram
+        var telegramInfo = "📋 <b>ZÁKAZKA - PREPOČET DOKONČENÝ</b> 🏗️\n";
+        telegramInfo += "═══════════════════════════════════\n\n";
+
+        // Základné info
+        telegramInfo += "📦 <b>Zákazka:</b> " + (orderNumber ? "#" + orderNumber + " " : "") + (orderName || "N/A") + "\n";
+        if (startDate) {
+            telegramInfo += "📅 <b>Dátum začatia:</b> " + utils.formatDate(startDate, "DD.MM.YYYY") + "\n";
+        }
+        telegramInfo += "⏰ <b>Prepočet:</b> " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n\n";
+
+        // PRÁCA
+        telegramInfo += "👷 <b>PRÁCA</b>\n";
+        telegramInfo += "───────────────────────────────────\n";
+        telegramInfo += "• Odpracované hodiny: <b>" + linkedData.workRecords.totalHours.toFixed(2) + " h</b>\n";
+        telegramInfo += "• Čisté mzdy: " + utils.formatMoney(netWages) + "\n";
+        telegramInfo += "• Mzdy odvody: " + utils.formatMoney(wageDeductions) + "\n";
+        telegramInfo += "• Náklady práce: <b>" + utils.formatMoney(costs.work) + "</b>\n\n";
+
+        // DOPRAVA
+        if (linkedData.rideLog.records.length > 0) {
+            telegramInfo += "🚗 <b>DOPRAVA</b>\n";
+            telegramInfo += "───────────────────────────────────\n";
+            telegramInfo += "• Počet jázd: " + linkedData.rideLog.records.length + "\n";
+            telegramInfo += "• Najazdené km: " + linkedData.rideLog.totalKm + " km\n";
+            telegramInfo += "• Hodiny v aute: " + linkedData.rideLog.totalTime.toFixed(2) + " h\n";
+            telegramInfo += "• Náklady dopravy: <b>" + utils.formatMoney(costs.transport) + "</b>\n\n";
+        }
+
+        // NÁKLADY SÚHRN
+        telegramInfo += "💸 <b>NÁKLADY CELKOM</b>\n";
+        telegramInfo += "───────────────────────────────────\n";
+        telegramInfo += "• Práce: " + utils.formatMoney(costs.work) + "\n";
+        if (costs.transport > 0) telegramInfo += "• Doprava: " + utils.formatMoney(costs.transport) + "\n";
+        if (costs.machinery > 0) telegramInfo += "• Stroje: " + utils.formatMoney(costs.machinery) + "\n";
+        if (costs.material > 0) telegramInfo += "• Materiál: " + utils.formatMoney(costs.material) + "\n";
+        if (costs.subcontractors > 0) telegramInfo += "• Subdodávky: " + utils.formatMoney(costs.subcontractors) + "\n";
+        if (costs.other > 0) telegramInfo += "• Ostatné: " + utils.formatMoney(costs.other) + "\n";
+        telegramInfo += "• <b>SPOLU: " + utils.formatMoney(costs.total) + "</b>\n\n";
+
+        // VÝNOSY SÚHRN
+        telegramInfo += "💰 <b>VÝNOSY CELKOM</b>\n";
+        telegramInfo += "───────────────────────────────────\n";
+        telegramInfo += "• Práce: " + utils.formatMoney(revenue.work) + "\n";
+        if (revenue.transport > 0) telegramInfo += "• Doprava: " + utils.formatMoney(revenue.transport) + "\n";
+        if (revenue.machinery > 0) telegramInfo += "• Stroje: " + utils.formatMoney(revenue.machinery) + "\n";
+        if (revenue.material > 0) telegramInfo += "• Materiál: " + utils.formatMoney(revenue.material) + "\n";
+        if (revenue.subcontractors > 0) telegramInfo += "• Subdodávky: " + utils.formatMoney(revenue.subcontractors) + "\n";
+        if (revenue.other > 0) telegramInfo += "• Ostatné: " + utils.formatMoney(revenue.other) + "\n";
+        telegramInfo += "• <b>SPOLU: " + utils.formatMoney(revenue.total) + "</b>\n";
+        telegramInfo += "• DPH k odvodu: " + utils.formatMoney(revenue.totalVat) + "\n\n";
+
+        // ZISKOVOSŤ
+        var grossProfit = revenue.total - costs.total;
+        var profitMargin = revenue.total > 0 ? (grossProfit / revenue.total * 100) : 0;
+        var isProfitable = grossProfit > 0;
+
+        telegramInfo += "📊 <b>ZISKOVOSŤ</b>\n";
+        telegramInfo += "───────────────────────────────────\n";
+        telegramInfo += "• Hrubý zisk: <b>" + (grossProfit >= 0 ? "+" : "") + utils.formatMoney(grossProfit) + "</b>\n";
+        telegramInfo += "• Marža: <b>" + profitMargin.toFixed(2) + "%</b>\n";
+        telegramInfo += "• Stav: " + (isProfitable ? "✅ <b>ZISKOVÁ</b>" : "❌ <b>STRATOVÁ</b>") + "\n\n";
+
+        // DPH info
+        if (revenue.totalVat > 0 || costs.totalVatDeduction > 0) {
+            telegramInfo += "🧾 <b>DPH</b>\n";
+            telegramInfo += "───────────────────────────────────\n";
+            telegramInfo += "• K odvodu: " + utils.formatMoney(revenue.totalVat) + "\n";
+            telegramInfo += "• Odpočet: " + utils.formatMoney(costs.totalVatDeduction) + "\n";
+            var dphSaldo = revenue.totalVat - costs.totalVatDeduction;
+            telegramInfo += "• Saldo: <b>" + (dphSaldo >= 0 ? "+" : "") + utils.formatMoney(dphSaldo) + "</b>\n\n";
+        }
+
+        telegramInfo += "🔧 <i>Script: " + CONFIG.scriptName + " v" + CONFIG.version + "</i>\n";
+        telegramInfo += "📝 <i>Záznam #" + currentEntry.field("ID") + "</i>";
+
+        // Ulož do poľa info_telegram
+        utils.safeSet(currentEntry, CONFIG.fields.common.infoTelegram, telegramInfo);
+
+        utils.addDebug(currentEntry, "    ✅ Info_telegram záznam vytvorený");
+
+        return {
+            success: true,
+            message: "Telegram info vytvorené úspešne"
+        };
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri príprave telegram info: " + error.toString(), "prepareOrderNotificationInfo", error);
+        return {
+            success: false,
+            error: error.toString()
+        };
+    }
+}
+
+// ==============================================
 // FINÁLNY SÚHRN
 // ==============================================
 
@@ -1468,6 +1643,12 @@ function logFinalSummary(steps) {
             summaryMsg += "💸 Náklady celkom: " + utils.formatMoney(totalCosts) + "\n";
             summaryMsg += "💰 Výnosy: " + utils.formatMoney(totalRevenue) + " + DPH " + utils.formatMoney(totalRevenueVat) + "\n";
             summaryMsg += "📊 Zisk: " + utils.formatMoney(profit) + " (" + profitPercent + "%)\n";
+
+            // Pridaj informáciu o telegram
+            if (steps.step8 && steps.step8.success) {
+                summaryMsg += "🚀 Telegram notifikácia odoslaná\n";
+            }
+
             summaryMsg += "━━━━━━━━━━━━━━━━━━━━━\n";
             summaryMsg += "ℹ️ Detaily v poli 'info'";
 
