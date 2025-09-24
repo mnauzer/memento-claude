@@ -1576,7 +1576,7 @@ function prepareOrderNotificationInfo(linkedData, costs, revenue, profit) {
         telegramInfo += "───────────────────────────────────\n";
         telegramInfo += "• Základ: <b>" + (grossProfit >= 0 ? "+" : "") + utils.formatMoney(grossProfit) + "</b>\n";
         telegramInfo += "• DPH : <b>" + utils.formatMoney(revenue.totalVat) + "(23%)</b>\n";
-        telegramInfo += "• Celkom: " +  utils.formatMoney(grossProfit + revenue.totalVat) "\n\n";
+        telegramInfo += "• Celkom: " +  utils.formatMoney(grossProfit + revenue.totalVat) +  "\n\n";
 
         // DPH info
         if (revenue.totalVat > 0 || costs.totalVatDeduction > 0) {
