@@ -791,7 +791,7 @@ function calculateRevenue(linkedData) {
 
         // 6. DOPRAVA - podľa nastavenia v Cenovej ponuke
         utils.addDebug(currentEntry, "    🚗 Počítam výnosy z dopravy...");
-        var transportResult = calculateTransportRevenue(linkedData);
+        var transportResult = calculateTransportRevenue(linkedData, revenue);
         revenue.transport = transportResult.amount || 0;
         revenue.transportVat = Math.round(revenue.transport * vatRate * 100) / 100;
 
@@ -941,9 +941,8 @@ function calculateMaterialRevenue(linkedData, vatRate) {
     }
 }
 
-function calculateTransportRevenue(linkedData) {
+function calculateTransportRevenue(linkedData, revenue) {
     try {
-        utils.addDebug(currentEntry, "    🚗 Počítam výnosy z dopravy...");
         
         // Získaj cenovú ponuku
         var quote = utils.safeGetLinks(currentEntry, CONFIG.fields.order.quote);
@@ -954,7 +953,7 @@ function calculateTransportRevenue(linkedData) {
         
         var quoteObj = quote[0];
         var rideCalculation = utils.safeGet(quoteObj, CONFIG.fields.quote.rideCalculation);
-        var transportCalculationRevenue = linkedData.work + linkedData.machinery + linkedData.material + linkedData.other + linkedData.subcontractors;
+        
 
         utils.addDebug(currentEntry, "      • Typ účtovania: " + (rideCalculation || "Neurčené"));
         
@@ -966,7 +965,7 @@ function calculateTransportRevenue(linkedData) {
                 return calculateKmBasedTransport(linkedData, quoteObj);
                 
             case "% zo zákazky":
-                return calculatePercentageTransport(linkedData, quoteObj, transportCalculationRevenue);
+                return calculatePercentageTransport(linkedData, quoteObj, revenue);
                 
             case "Pevná cena":
                 return calculateFixedPriceTransport(quoteObj);
@@ -1037,21 +1036,23 @@ function calculateKmBasedTransport(linkedData, quoteObj) {
 function calculatePercentageTransport(linkedData, quoteObj, revenue) {
     try {
         var rateRidePrice = utils.safeGet(quoteObj, CONFIG.fields.quote.rateRidePrice, 0);
-        
         // Súčet všetkých položiek okrem dopravy
         var baseAmount = 0;
         
         // Práce
-        baseAmount += utils.safeGet(currentEntry, CONFIG.fields.order.workReportTotal, 0);
+        baseAmount += revenue.work || 0;
         
         // Materiál
-        baseAmount += utils.safeGet(currentEntry, CONFIG.fields.order.materialTotal, 0);
+        baseAmount += revenue.material || 0;
         
         // Stroje
-        baseAmount += utils.safeGet(currentEntry, CONFIG.fields.order.machineryTotal, 0);
+        baseAmount += revenue.machinery || 0;
         
-        // Subdodávky/Ostatné
-        baseAmount += utils.safeGet(currentEntry, CONFIG.fields.order.otherTotal, 0);
+        // Subdodávky
+        baseAmount += revenue.subcontractors || 0;
+        
+        // Ostatné
+        baseAmount += revenue.other || 0;
         
         // Vypočítaj % z celkovej sumy
         var percentage = rateRidePrice / 100; // Konvertuj na desatinné číslo
