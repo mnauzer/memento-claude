@@ -922,7 +922,7 @@ var MementoBusiness = (function() {
             for (var i = 0; i < vatRateEntries.length; i++) {
                 var vatEntry = vatRateEntries[i];
                 var validFromField = config.fields.vatRates.validFrom;
-                var validFromDate = moment(core.safeFieldAccess(vatEntry, validFromField, null));
+                var validFromDate = moment(core.safeGet(vatEntry, validFromField, null));
 
                 if (validFromDate.isValid() && validFromDate.isSameOrBefore(targetDate)) {
                     validEntries.push({
@@ -949,7 +949,7 @@ var MementoBusiness = (function() {
                 config.fields.vatRates.reduced :
                 config.fields.vatRates.standard;
 
-            var vatRate = core.safeFieldAccess(latestEntry, vatTypeField, 0);
+            var vatRate = core.safeGet(latestEntry, vatTypeField, 0);
 
             if (vatRate === 0) {
                 core.addDebug(entry(), "DPH sadzba nie je nastavená pre typ: " + vatType + ", k dátumu: " + targetDate.format("DD.MM.YYYY"), "warning");
