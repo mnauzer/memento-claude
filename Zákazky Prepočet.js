@@ -697,12 +697,68 @@ function calculateMaterialCosts() {
 
 function calculateTransportCosts() {
     try {
-        utils.addDebug(currentEntry, "      🚗 Doprava náklady - pripravené na neskoršiu implementáciu...");
+        utils.addDebug(currentEntry, "      🚗 Počítam náklady na dopravu...");
 
-        // Pripravené na neskoršiu implementáciu
+        var totalTransportCosts = 0;
+        var totalVatDeduction = 0;
+
+        // Získaj všetky záznamy z knihy jázd pre túto zákazku
+        var rideLogRecords = currentEntry.linksFrom(CONFIG.libraries.rideLog, CONFIG.fields.rideLog.orders);
+
+        if (!rideLogRecords || rideLogRecords.length === 0) {
+            utils.addDebug(currentEntry, "        • Žiadne záznamy z knihy jázd");
+            return { amount: 0, vatDeduction: 0 };
+        }
+
+        utils.addDebug(currentEntry, "        • Počet jázd: " + rideLogRecords.length);
+
+        // Pre každý záznam knihy jázd
+        for (var i = 0; i < rideLogRecords.length; i++) {
+            var rideRecord = rideLogRecords[i];
+            var rideId = rideRecord.field("ID");
+
+            // Získaj vozidlo z záznamu jazdy
+            var vehicleField = utils.safeGetLinks(rideRecord, CONFIG.fields.rideLog.vehicle);
+            if (!vehicleField || vehicleField.length === 0) {
+                utils.addDebug(currentEntry, "        • Jazda #" + rideId + ": žiadne vozidlo");
+                continue;
+            }
+
+            var vehicle = vehicleField[0];
+            var vehicleName = utils.safeGet(vehicle, "Názov", "Neznáme vozidlo");
+
+            // Získaj nákladovú cenu vozidla
+            var costRate = utils.safeGet(vehicle, "Nákladová cena", 0);
+            if (costRate === 0) {
+                utils.addDebug(currentEntry, "        • Vozidlo " + vehicleName + ": žiadna nákladová cena");
+                continue;
+            }
+
+            // Získaj km z záznamu jazdy
+            var km = utils.safeGet(rideRecord, CONFIG.fields.rideLog.km, 0);
+            if (km === 0) {
+                utils.addDebug(currentEntry, "        • Jazda #" + rideId + ": 0 km");
+                continue;
+            }
+
+            // Vypočítaj náklady pre tento záznam
+            var rideCost = km * costRate;
+            totalTransportCosts += rideCost;
+
+            utils.addDebug(currentEntry, "        • Jazda #" + rideId + " (" + vehicleName + "): " +
+                          km + " km × " + utils.formatMoney(costRate) + "/km = " +
+                          utils.formatMoney(rideCost));
+        }
+
+        // Zaokrúhli výsledky
+        totalTransportCosts = Math.round(totalTransportCosts * 100) / 100;
+        totalVatDeduction = Math.round(totalVatDeduction * 100) / 100;
+
+        utils.addDebug(currentEntry, "        • CELKOVÉ náklady dopravy: " + utils.formatMoney(totalTransportCosts));
+
         return {
-            amount: 0,
-            vatDeduction: 0
+            amount: totalTransportCosts,
+            vatDeduction: totalVatDeduction
         };
 
     } catch (error) {
