@@ -245,7 +245,7 @@ var MementoConfig = (function() {
                 km: "Najazdené km", // real number, súčet km z knihy jázd
                 transportCounts: "Počet jázd", // integer, počet záznamov z knihy jázd
                 transportWageCosts: "Mzdy v aute", // real number, súčet nákladov na dopravu z knihy jázd
-                transportHours: "Najazdený čas", // real number, súčet hodín z knihy jázd
+                transportHours: "Hodiny v aute", // real number, súčet hodín z knihy jázd
                 // VÝNOSY - Fakturácia zákazníkovi
                 revenueWork: "Práce", // real number, fakturované práce bez DPH
                 revenueWorkVat: "DPH práce", // real number, DPH z prác
