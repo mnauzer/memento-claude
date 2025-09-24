@@ -956,11 +956,7 @@ var MementoConfig = (function() {
             // ═══════════════════════════════════════════════════════════════
             // DOPRAVA (rovnaké emoji pre príbuzné funkcie)
             // ═══════════════════════════════════════════════════════════════
-
-            
             transport: "🚚",          // Doprava
-
-            
             // Palivo a servis
             fuel: "⛽",               // Palivo
             maintenance: "🔧",        // Údržba
@@ -968,7 +964,6 @@ var MementoConfig = (function() {
             parking: "🅿️",           // Parkovanie
             breakdown: "⚠️",          // Porucha (rovnaké ako warning - OK!)
 
-            machine: "🏗️",             // Stroj
             heavy_machine: "🚜",       // Ťažký stroj)
             accessory: "🔩",           // Príslušenstvo
             machine_use: "⚙️",        // Použitie stroja (rovnaké ako inProgress - OK!)
@@ -981,14 +976,12 @@ var MementoConfig = (function() {
             light_rain: "🌦️",        // Slabý dážď
             storm: "⛈️",             // Búrka (rovnaké ako heavy_rain - OK!)
             wet: "💧",               // Mokro
-            
             // Mraky
             cloud: "☁️",             // Mrak
             cloudy: "🌥️",           // Oblačno
             overcast: "☁️",          // Zamračené (rovnaké ako cloud - OK!)
             fog: "🌫️",              // Hmla
             mist: "🌫️",             // Opar (rovnaké ako fog - OK!)
-            
             // Podmienky
             muddy: "🟤",             // Bahno
             slippery: "⚠️",          // Šmykľavo (rovnaké ako warning - OK!)  
@@ -1015,12 +1008,8 @@ var MementoConfig = (function() {
             debt: "🔴",             // Dlh
             liability: "⚖️",         // Zodpovednosť
             payment: "💳",          // Platba
-            money_out: "💸",        // Odchádzajúce peniaze (rovnaké ako obligations - OK!)
             
             // Zmluvy
-            contract: "📝",          // Zmluva
-            agreement: "🤝",         // Dohoda  
-            commitment: "🪢",        // Záväzok
             obligation: "⚖️",        // Povinnosť (rovnaké ako liability - OK!)
             bond: "🔗",             // Spojenie
 
@@ -1043,27 +1032,16 @@ var MementoConfig = (function() {
 
             // DÔVERNOSŤ A BEZPEČNOSŤ
             confidential: "🔒",       // Dôverné
-            secret: "🤫",             // Tajomstvo
             classified: "🔐",         // Utajované
             private: "🛡️",           // Súkromné
             restricted: "🚫",         // Obmedzené
             secure: "🔑",             // Zabezpečené
-            
             // ÚROVNE DÔVERNOSTI
             top_secret: "㊙️",        // Prísne tajné
-            sensitive: "⚠️🔒",       // Citlivé údaje
-            internal_only: "🏢🔒",    // Len pre interné použitie
-            nda_required: "📝🤫",     // Vyžaduje NDA
-            
             // BEZPEČNOSTNÉ AKCIE
-            encrypt: "🔏",            // Šifrovanie
-            decrypt: "🔓",            // Dešifrovanie
             access_granted: "✅🔑",   // Prístup povolený
             access_denied: "❌🔒",    // Prístup zamietnutý
-            
-
         }
-
     }
 
     // === POMOCNÉ FUNKCIE ===
