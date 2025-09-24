@@ -67,6 +67,10 @@ var MementoConfig = (function() {
             "Kniha jázd": {
                 telegramGroupField: "Telegram skupina knihy jázd",
                 permissionField: "Kniha jázd skupinové notifikácie"
+            },
+            "Zákazky": {
+                telegramGroupField: "Telegram skupina zákazky",
+                permissionField: "Zákazky skupinové notifikácie"
             }
         },
         // Defaultné hodnoty pre globálne nastavenia
