@@ -311,10 +311,69 @@ var CONFIG = {
     }
 
     /**
-     * KROK 3: Výpočet mzdových nákladov
+     * KROK 3: Výpočet nákladov vozidla
+     */
+    function calculateVehicleCosts() {
+        utils.addDebug(currentEntry, "\n🚗 === KROK 3: VÝPOČET NÁKLADOV VOZIDLA ===");
+
+        var result = {
+            success: false,
+            vehicleCosts: 0
+        };
+
+        try {
+            var vozidloField = currentEntry.field(CONFIG.fields.rideLog.vehicle);
+            var km = utils.safeGet(currentEntry, CONFIG.fields.rideLog.km, 0);
+
+            if (!vozidloField || vozidloField.length === 0) {
+                utils.addDebug(currentEntry, "  ℹ️ Žiadne vozidlo - preskakujem výpočet nákladov");
+                result.success = true;
+                return result;
+            }
+
+            if (km === 0) {
+                utils.addDebug(currentEntry, "  ℹ️ Km = 0 - preskakujem výpočet nákladov");
+                result.success = true;
+                return result;
+            }
+
+            var vozidlo = vozidloField[0];
+            var vozidloNazov = utils.safeGet(vozidlo, CONFIG.fields.vehicle.name, "N/A");
+            var nakladovaCena = utils.safeGet(vozidlo, CONFIG.fields.vehicle.costRate, 0);
+
+            utils.addDebug(currentEntry, "  🚗 Vozidlo: " + vozidloNazov);
+            utils.addDebug(currentEntry, "  📏 Km: " + km);
+            utils.addDebug(currentEntry, "  💰 Nákladová cena: " + nakladovaCena + " €/km");
+
+            if (nakladovaCena === 0) {
+                utils.addDebug(currentEntry, "  ⚠️ Nákladová cena vozidla je 0");
+                result.success = true;
+                return result;
+            }
+
+            // Výpočet nákladov vozidla
+            result.vehicleCosts = km * nakladovaCena;
+            result.vehicleCosts = Math.round(result.vehicleCosts * 100) / 100;
+
+            // Ulož náklady vozidla
+            utils.safeSet(currentEntry, CONFIG.fields.rideLog.vehicleCosts, result.vehicleCosts);
+
+            utils.addDebug(currentEntry, "  💰 Náklady vozidla: " + utils.formatMoney(result.vehicleCosts));
+
+            result.success = true;
+
+        } catch (error) {
+            utils.addError(currentEntry, error.toString(), "calculateVehicleCosts", error);
+        }
+
+        return result;
+    }
+
+    /**
+     * KROK 4: Výpočet mzdových nákladov
      */
     function calculateWageCosts() {
-        utils.addDebug(currentEntry, "\n💰 === KROK 3: VÝPOČET MZDOVÝCH NÁKLADOV ===");
+        utils.addDebug(currentEntry, "\n💰 === KROK 4: VÝPOČET MZDOVÝCH NÁKLADOV ===");
         
         var result = {
             success: false,
@@ -395,10 +454,10 @@ var CONFIG = {
     }
 
     /**
-     * KROK 4: Synchronizácia Cieľa do Stanovišťa vozidla
+     * KROK 5: Synchronizácia Cieľa do Stanovišťa vozidla
      */
     function synchronizeVehicleLocation() {
-        utils.addDebug(currentEntry, "\n🚐 === KROK 4: SYNCHRONIZÁCIA STANOVIŠŤA VOZIDLA ===");
+        utils.addDebug(currentEntry, "\n🚐 === KROK 5: SYNCHRONIZÁCIA STANOVIŠŤA VOZIDLA ===");
         
         var result = {
             success: false,
@@ -492,10 +551,10 @@ var CONFIG = {
     }
 
     /**
-     * KROK 5: Auto-linkovanie zákaziek zo zastávok
+     * KROK 6: Auto-linkovanie zákaziek zo zastávok
      */
     function autoLinkOrdersFromStops() {
-        utils.addDebug(currentEntry, "\n🔗 === KROK 5: AUTO-LINKOVANIE ZÁKAZIEK ZO ZASTÁVOK ===");
+        utils.addDebug(currentEntry, "\n🔗 === KROK 6: AUTO-LINKOVANIE ZÁKAZIEK ZO ZASTÁVOK ===");
         
         var result = {
             success: false,
@@ -778,7 +837,7 @@ var CONFIG = {
    /**
      * Vytvorí info záznam s detailmi o jazde
      */
-    function createInfoRecord(routeResult, wageResult, vehicleResult) {
+    function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostResult) {
         try {
             var info = "";
             
@@ -803,6 +862,11 @@ var CONFIG = {
                     info += "• " + detail.meno + ": " + detail.hodinovka + " €/h = " + utils.formatMoney(detail.mzda) + "\n";
                 }
                 info += "\n💰 CELKOVÉ MZDOVÉ NÁKLADY: " + utils.formatMoney(wageResult.celkoveMzdy) + "\n";
+            }
+
+            // Náklady vozidla
+            if (vehicleCostResult && vehicleCostResult.success && vehicleCostResult.vehicleCosts > 0) {
+                info += "\n🚗 NÁKLADY VOZIDLA: " + utils.formatMoney(vehicleCostResult.vehicleCosts) + "\n";
             }
             
             // Vozidlo info
@@ -833,7 +897,7 @@ var CONFIG = {
     /**
      * Synchronizuje alebo vytvorí výkazy jázd pre všetky zákazky
      */
-    function synchronizeRideReport(routeResult, wageResult) {
+    function synchronizeRideReport(routeResult, wageResult, vehicleCostResult) {
         var result = {
             success: false,
             rideReports: [],
@@ -896,7 +960,7 @@ var CONFIG = {
                     linkCurrentRecordToReport(rideReport);
                     
                     // Aktualizuj atribúty s pomernými hodnotami
-                    updateRideReportAttributesProportional(rideReport, routeResult, wageResult, zakaziekCount, i);
+                    updateRideReportAttributesProportional(rideReport, routeResult, wageResult, vehicleCostResult, zakaziekCount, i);
                     
                     // Aktualizuj info pole
                     updateRideReportInfo(rideReport);
@@ -930,7 +994,7 @@ var CONFIG = {
     /**
      * Aktualizuje atribúty na výkaze s pomerným rozdelením
      */
-    function updateRideReportAttributesProportional(rideReport, routeResult, wageResult, zakaziekCount, zakazkaIndex) {
+    function updateRideReportAttributesProportional(rideReport, routeResult, wageResult, vehicleCostResult, zakaziekCount, zakazkaIndex) {
         try {
             var dopravaPole = rideReport.field("Doprava");
             if (!dopravaPole || dopravaPole.length === 0) return;
@@ -954,6 +1018,8 @@ var CONFIG = {
             var km = Math.round((routeResult.totalKm / zakaziekCount) * 10) / 10;
             var casJazdy = Math.round((routeResult.celkovyCas / zakaziekCount) * 100) / 100;
             var mzdy = Math.round((wageResult.celkoveMzdy / zakaziekCount) * 100) / 100;
+            var nakladyVozidla = vehicleCostResult && vehicleCostResult.vehicleCosts ?
+                Math.round((vehicleCostResult.vehicleCosts / zakaziekCount) * 100) / 100 : 0;
             
             // Ak je viac zákaziek, pridaj info do popisu
             if (zakaziekCount > 1) {
@@ -965,6 +1031,7 @@ var CONFIG = {
             dopravaPole[index].setAttr(CONFIG.attributes.rideReport.km, km);
             dopravaPole[index].setAttr(CONFIG.attributes.rideReport.rideTime, casJazdy);
             dopravaPole[index].setAttr(CONFIG.attributes.rideReport.wageCosts, mzdy);
+            dopravaPole[index].setAttr(CONFIG.attributes.rideReport.vehicleCosts, nakladyVozidla);
             //dopravaPole[index].setAttr("počet zákaziek", zakaziekCount);
             
             utils.addDebug(currentEntry, "    ✅ Atribúty aktualizované (pomerné):");
@@ -972,6 +1039,9 @@ var CONFIG = {
             utils.addDebug(currentEntry, "      • Km: " + km + " (z " + routeResult.totalKm + ")");
             utils.addDebug(currentEntry, "      • Čas: " + casJazdy + " h (z " + routeResult.celkovyCas + ")");
             utils.addDebug(currentEntry, "      • Mzdy: " + utils.formatMoney(mzdy) + " (z " + utils.formatMoney(wageResult.celkoveMzdy) + ")");
+            if (nakladyVozidla > 0) {
+                utils.addDebug(currentEntry, "      • Náklady vozidla: " + utils.formatMoney(nakladyVozidla) + " (z " + utils.formatMoney(vehicleCostResult.vehicleCosts) + ")");
+            }
             
             // Prepočítaj celkový súčet výkazu
             recalculateRideReportTotals(rideReport);
@@ -1034,7 +1104,7 @@ var CONFIG = {
             // Skontroluj či už nie je prepojený
             var isLinked = false;
             for (var i = 0; i < dopravaPole.length; i++) {
-                addDebug(currentEntry, "    🔍 Kontrola prepojenia s ID: " + dopravaPole[i].id);
+                utils.addDebug(currentEntry, "    🔍 Kontrola prepojenia s ID: " + dopravaPole[i].id);
                 if (dopravaPole[i].id === currentEntry.id) {
                     isLinked = true;
                     break;
@@ -1115,30 +1185,35 @@ var CONFIG = {
             
             var totalKm = 0;
             var totalHours = 0;
-            var totalCosts = 0;
+            var totalWageCosts = 0;
+            var totalVehicleCosts = 0;
             var recordCount = dopravaPole.length;
-            
+
             // Spočítaj všetky záznamy
             for (var i = 0; i < dopravaPole.length; i++) {
                 var km = dopravaPole[i].attr(CONFIG.attributes.rideReport.km) || 0;
                 var cas = dopravaPole[i].attr(CONFIG.attributes.rideReport.rideTime) || 0;
                 var mzdy = dopravaPole[i].attr(CONFIG.attributes.rideReport.wageCosts) || 0;
-                
+                var nakladyVozidla = dopravaPole[i].attr(CONFIG.attributes.rideReport.vehicleCosts) || 0;
+
                 totalKm += km;
                 totalHours += cas;
-                totalCosts += mzdy;
+                totalWageCosts += mzdy;
+                totalVehicleCosts += nakladyVozidla;
             }
             
             // Ulož súčty do výkazu
             utils.safeSet(rideReport, "Celkové km", totalKm);
             utils.safeSet(rideReport, "Celkové hodiny", totalHours);
-            utils.safeSet(rideReport, "Celkové mzdové náklady", totalCosts);
+            utils.safeSet(rideReport, "Celkové mzdové náklady", totalWageCosts);
+            utils.safeSet(rideReport, "Celkové náklady vozidla", totalVehicleCosts);
             utils.safeSet(rideReport, "Počet jázd", recordCount);
-            
+
             utils.addDebug(currentEntry, "  📊 Výkaz prepočítaný:");
             utils.addDebug(currentEntry, "    • Celkové km: " + totalKm);
             utils.addDebug(currentEntry, "    • Celkové hodiny: " + totalHours);
-            utils.addDebug(currentEntry, "    • Celkové náklady: " + utils.formatMoney(totalCosts));
+            utils.addDebug(currentEntry, "    • Celkové mzdové náklady: " + utils.formatMoney(totalWageCosts));
+            utils.addDebug(currentEntry, "    • Celkové náklady vozidla: " + utils.formatMoney(totalVehicleCosts));
             utils.addDebug(currentEntry, "    • Počet jázd: " + recordCount);
             
         } catch (error) {
@@ -1234,11 +1309,12 @@ function main() {
         var steps = {
             step1: { success: false, name: "Výpočet trasy" },
             step2: { success: false, name: "Spracovanie šoféra" },
-            step3: { success: false, name: "Výpočet mzdových nákladov" },
-            step4: { success: false, name: "Synchronizácia stanovišťa vozidla" },
-            step5: { success: false, name: "Linkovanie zákaziek" },
-            step6: { success: false, name: "Vytvorenie info záznamu" },
-            step7: { success: false, name: "Synchronizácia výkazu jázd" }
+            step3: { success: false, name: "Výpočet nákladov vozidla" },
+            step4: { success: false, name: "Výpočet mzdových nákladov" },
+            step5: { success: false, name: "Synchronizácia stanovišťa vozidla" },
+            step6: { success: false, name: "Linkovanie zákaziek" },
+            step7: { success: false, name: "Vytvorenie info záznamu" },
+            step8: { success: false, name: "Synchronizácia výkazu jázd" }
         };
         
         // KROK 1: Výpočet trasy
@@ -1249,24 +1325,28 @@ function main() {
         var driverResult = processDriver();
         steps.step2.success = driverResult.success;
         
-        // KROK 3: Výpočet mzdových nákladov
+        // KROK 3: Výpočet nákladov vozidla
+        var vehicleCostResult = calculateVehicleCosts();
+        steps.step3.success = vehicleCostResult.success;
+
+        // KROK 4: Výpočet mzdových nákladov
         var wageResult = calculateWageCosts();
-        steps.step3.success = wageResult.success;
-        
-         // KROK 4: Synchronizácia stanovišťa vozidla
+        steps.step4.success = wageResult.success;
+
+         // KROK 5: Synchronizácia stanovišťa vozidla
         var vehicleResult = synchronizeVehicleLocation();
-        steps.step4.success = vehicleResult.success;
+        steps.step5.success = vehicleResult.success;
         
-        // KROK 5: Linkovanie zákaziek
-        steps.step5.success = autoLinkOrdersFromStops();
-   
-        // KROK 6: Vytvorenie info záznamu
-        steps.step6.success = createInfoRecord(routeResult, wageResult, vehicleResult);
+        // KROK 6: Linkovanie zákaziek
+        steps.step6.success = autoLinkOrdersFromStops();
+
+        // KROK 7: Vytvorenie info záznamu
+        steps.step7.success = createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostResult);
         
-        // KROK 7: Synchronizácia výkazu jázd
-        utils.addDebug(currentEntry, "\n📊 === KROK 6: SYNCHRONIZÁCIA VÝKAZU JÁZD ===");
-        var vykazResult = synchronizeRideReport(routeResult, wageResult);
-        steps.step7.success = vykazResult.success;
+        // KROK 8: Synchronizácia výkazu jázd
+        utils.addDebug(currentEntry, "\n📊 === KROK 8: SYNCHRONIZÁCIA VÝKAZU JÁZD ===");
+        var vykazResult = synchronizeRideReport(routeResult, wageResult, vehicleCostResult);
+        steps.step8.success = vykazResult.success;
         
         // Finálny súhrn
         logFinalSummary(steps);
@@ -1277,7 +1357,10 @@ function main() {
             msg += "📏 Vzdialenosť: " + routeResult.totalKm + " km\n";
             msg += "⏱️ Celkový čas: " + routeResult.celkovyCas + " h\n";
             if (wageResult.success && wageResult.celkoveMzdy > 0) {
-                msg += "💰 Mzdové náklady: " + utils.formatMoney(wageResult.celkoveMzdy);
+                msg += "💰 Mzdové náklady: " + utils.formatMoney(wageResult.celkoveMzdy) + "\n";
+            }
+            if (vehicleCostResult.success && vehicleCostResult.vehicleCosts > 0) {
+                msg += "🚗 Náklady vozidla: " + utils.formatMoney(vehicleCostResult.vehicleCosts) + "\n";
             }
             if (vehicleResult.success && vehicleResult.message !== "Žiadne vozidlo") {
                 msg += "🚐 " + vehicleResult.message + "\n";
