@@ -671,6 +671,7 @@ function getDefaultHZS() {
             utils.addDebug(currentEntry, "  🔍 Nájdený default záznam: " + utils.safeGet(defaultEntry, "Účtovný rok", "N/A"));
             var defaultHZS = utils.safeGet(defaultEntry, CONFIG.fields.defaults.defaultHZS);
             utils.addDebug(currentEntry, "  🔍 Hľadám default HZS v zázname: " + utils.safeGet(defaultEntry, "Účtovný rok", "N/A"));
+            utils.addDebug(currentEntry, "  🔍 Nájdených default HZS: " + (defaultHZS ? defaultHZS.length : 0));
             if (defaultHZS && defaultHZS.length > 0) {
                 utils.addDebug(currentEntry, "  ✅ Default HZS nájdené: " + utils.safeGet(defaultHZS[0], "Názov", "N/A"));
                 utils.addDebug(currentEntry, "  " + utils.getIcon("link") + " Default HZS nájdené");
