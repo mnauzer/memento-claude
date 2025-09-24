@@ -163,7 +163,7 @@ var MementoConfig = (function() {
             },
             // Kniha jázd polia
             rideLog: {
-                zastavky: "Zastávky", 
+                zastavky: "Zastávky",
                 ciel: "Cieľ",
                 casJazdy: "Čas jazdy",
                 casNaZastavkach: "Čas na zastávkach",
@@ -189,7 +189,8 @@ var MementoConfig = (function() {
                 start: "Štart",
                 destination: "Cieľ",
                 stops: "Zastávky",
-                trasa: ""
+                trasa: "",
+                vehicleCosts: "Náklady vozidlo"
 
             },
             // Výkaz dopravy polia
@@ -765,6 +766,7 @@ var MementoConfig = (function() {
                 km: "km",
                 description: "popis jazdy",
                 wageCosts: "mzdové náklady",
+                vehicleCosts: "náklady vozidlo",
                 rideTime: "čas jazdy",
                 stopTime: "čas na zastávkach",
                 totalTime: "celkový čas"
