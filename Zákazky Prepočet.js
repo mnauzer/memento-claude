@@ -1065,7 +1065,9 @@ function calculatePercentageTransport(linkedData, quoteObj, revenue) {
         utils.addDebug(currentEntry, "        - Subdodávky: " + revenue.subcontractors + " €");
         utils.addDebug(currentEntry, "        - Ostatné: " + revenue.other + " €");
         
-        return total;
+        return {
+          amount: total
+        };
         
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "calculatePercentageTransport", error);
