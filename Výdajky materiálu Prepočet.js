@@ -53,6 +53,7 @@ var CONFIG = {
 
     // Polia Materiál
     materialFields: {
+        name: (centralConfig.fields && centralConfig.fields.material && centralConfig.fields.material.name) || "Názov",
         price: (centralConfig.fields && centralConfig.fields.material && centralConfig.fields.material.price) || "Cena"
     },
 
@@ -204,7 +205,10 @@ function calculateMaterialItems(items) {
             totalSum += itemTotal;
             processedItems++;
 
-            utils.addDebug(currentEntry, CONFIG.icons.material + " Položka[" + i + "]: " + quantity + " x " + utils.formatMoney(price) + " = " + utils.formatMoney(itemTotal));
+            // Získaj názov materiálu pre debug
+            var materialName = utils.safeGet(item, CONFIG.materialFields.name, "Neznámy materiál");
+
+            utils.addDebug(currentEntry, CONFIG.icons.material + " " + materialName + ": " + quantity + " x " + utils.formatMoney(price) + " = " + utils.formatMoney(itemTotal));
         }
 
         utils.addDebug(currentEntry, CONFIG.icons.success + " Spracovaných položiek: " + processedItems + "/" + items.length);
@@ -266,22 +270,71 @@ function clearCalculatedFields() {
 
 function createInfoRecord(totalSum, vatAmount, sumWithVat, vatRate, processedItems) {
     try {
-        var infoText = CONFIG.icons.material + " VÝDAJKY MATERIÁLU - PREPOČET\\n\\n";
+        var date = utils.safeGet(currentEntry, CONFIG.fields.date, moment().toDate());
+        var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
+        var dayName = utils.getDayNameSK(moment(date).day()).toUpperCase();
 
-        infoText += "📊 SÚHRN:\\n";
-        infoText += "• Spracované položky: " + processedItems + "\\n";
-        infoText += "• Suma bez DPH: " + utils.formatMoney(totalSum) + "\\n";
-        infoText += "• DPH (" + vatRate + "%): " + utils.formatMoney(vatAmount) + "\\n";
-        infoText += "• Suma s DPH: " + utils.formatMoney(sumWithVat) + "\\n\\n";
+        var infoMessage = "📦 VÝDAJKY MATERIÁLU - AUTOMATICKÝ PREPOČET\n";
+        infoMessage += "═══════════════════════════════════════════\n";
 
-        infoText += "⏰ Prepočet: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\\n";
-        infoText += "🔧 Script: " + CONFIG.scriptName + " v" + CONFIG.version;
+        infoMessage += "📅 Dátum: " + dateFormatted + " (" + dayName + ")\n\n";
 
-        utils.safeSet(currentEntry, CONFIG.fields.info, infoText);
+        infoMessage += "📊 POLOŽKY MATERIÁLU:\n";
+        infoMessage += "───────────────────────────────────────────\n";
+        infoMessage += "• Spracované položky: " + processedItems + "\n";
+
+        // Získaj položky pre detail
+        var items = utils.safeGet(currentEntry, CONFIG.fields.items, []);
+        for (var i = 0; i < Math.min(items.length, 5); i++) { // Zobraz max 5 položiek
+            var item = items[i];
+            if (item) {
+                var materialName = utils.safeGet(item, CONFIG.materialFields.name, "Neznámy materiál");
+                var quantity = parseFloat(item.attr(CONFIG.itemAttributes.quantity) || 0);
+                var price = parseFloat(item.attr(CONFIG.itemAttributes.price) || 0);
+                var itemTotal = parseFloat(item.attr(CONFIG.itemAttributes.totalPrice) || 0);
+
+                if (quantity > 0 && price > 0) {
+                    infoMessage += "📦 " + (i+1) + ": " + materialName + "\n";
+                    infoMessage += "   " + quantity + " x " + utils.formatMoney(price) + " = " + utils.formatMoney(itemTotal) + "\n";
+                }
+            }
+        }
+
+        if (items.length > 5) {
+            infoMessage += "   ... a " + (items.length - 5) + " ďalších položiek\n";
+        }
+
+        infoMessage += "\n💰 SÚHRN:\n";
+        infoMessage += "───────────────────────────────────────────\n";
+        infoMessage += "• Suma bez DPH: " + utils.formatMoney(totalSum) + "\n";
+        infoMessage += "• DPH (" + vatRate + "%): " + utils.formatMoney(vatAmount) + "\n";
+        infoMessage += "• Suma s DPH: " + utils.formatMoney(sumWithVat) + "\n\n";
+
+        var transportPrice = utils.safeGet(currentEntry, CONFIG.fields.transportPrice, 0);
+        if (transportPrice > 0) {
+            infoMessage += "🚚 Preprava: " + utils.formatMoney(transportPrice) + "\n\n";
+        }
+
+        infoMessage += "🔧 TECHNICKÉ INFO:\n";
+        infoMessage += "• Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
+        infoMessage += "• Čas spracovania: " + moment().format("HH:mm:ss") + "\n";
+        infoMessage += "• MementoUtils: v" + (utils.version || "N/A") + "\n";
+
+        if (typeof MementoConfig !== 'undefined') {
+            infoMessage += "• MementoConfig: v" + MementoConfig.version + "\n";
+        }
+
+        infoMessage += "\n✅ PREPOČET DOKONČENÝ ÚSPEŠNE";
+
+        currentEntry.set(CONFIG.fields.info, infoMessage);
+
         utils.addDebug(currentEntry, CONFIG.icons.success + " Info záznam vytvorený");
+
+        return true;
 
     } catch (error) {
         utils.addDebug(currentEntry, CONFIG.icons.error + " Chyba pri vytváraní info záznamu: " + error.toString());
+        return false;
     }
 }
 
