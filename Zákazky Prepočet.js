@@ -1510,11 +1510,11 @@ function prepareOrderNotificationInfo(linkedData, costs, revenue, profit) {
         var status = utils.safeGet(currentEntry, CONFIG.fields.order.state, "Neurčené");
 
         // HTML formátovaná správa pre Telegram
-        var telegramInfo = "📋 <b>ZÁKAZKA - PREPOČET " + orderName.toUpperCase() +" ㊙️㊙️㊙️</b> \n";
+        var telegramInfo = "📋 ZÁKAZKA  <b>" + orderName.toUpperCase() +" ㊙️㊙️㊙️</b> \n";
         telegramInfo += "═══════════════════════════════════\n\n";
 
         // Základné info
-        telegramInfo += "📦 <b>Zákazka:</b> " + (orderNumber ? "#" + orderNumber + " " : "") + (orderName || "N/A") + "\n";
+        telegramInfo += "📦 <b>Číslo:</b> " + (orderNumber ? "#" + orderNumber + " " : "") + "\n";
         if (startDate) {
             telegramInfo += "📅 <b>Dátum začatia:</b> " + utils.formatDate(startDate, "DD.MM.YYYY") + "\n";
         }
