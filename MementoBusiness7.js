@@ -852,22 +852,22 @@ var MementoBusiness = (function() {
         };
         
         try {
-            utils.addDebug(currentEntry, "  📊 Počítam ziskovosť...");
+            core.addDebug(currentEntry, "  📊 Počítam ziskovosť...");
             
             // Hrubý zisk
-            profit.grossProfit = revenue.totalRevenue - costs.totalCosts;
+            profit.grossProfit = revenue.total - costs.total;
             
             // Hrubá marža
-            if (revenue.totalRevenue > 0) {
-                profit.grossMargin = (profit.grossProfit / revenue.totalRevenue) * 100;
+            if (revenue.total > 0) {
+                profit.grossMargin = (profit.grossProfit / revenue.total) * 100;
             }
             
             // Čistý zisk (po odvode DPH)
-            profit.netProfit = profit.grossProfit - costs.vatAmount;
+           // profit.netProfit = profit.grossProfit - costs.vatAmount; //TODO počítame profit bez dph - doriešiť
             
             // Rentabilita
-            if (costs.totalCosts > 0) {
-                profit.profitability = (profit.netProfit / costs.totalCosts) * 100;
+            if (costs.total > 0) {
+                profit.profitability = (profit.grossProfit / costs.total) * 100;
             }
             
             // Je zisková?
@@ -875,7 +875,7 @@ var MementoBusiness = (function() {
             
             core.addDebug(currentEntry, "    • Hrubý zisk: " + core.formatMoney(profit.grossProfit));
             core.addDebug(currentEntry, "    • Hrubá marža: " + profit.grossMargin.toFixed(2) + "%");
-            core.addDebug(currentEntry, "    • Čistý zisk: " + core.formatMoney(profit.netProfit));
+            //core.addDebug(currentEntry, "    • Čistý zisk: " + core.formatMoney(profit.netProfit));
             core.addDebug(currentEntry, "    • Rentabilita: " + profit.profitability.toFixed(2) + "%");
             core.addDebug(currentEntry, "    • Stav: " + (profit.isProfitable ? "✅ ZISKOVÁ" : "❌ STRATOVÁ"));
             
