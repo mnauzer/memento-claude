@@ -21,7 +21,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Záznam prác Prepočet",
-    version: "8.1.6",
+    version: "8.1.7",
     
     // Referencie na centrálny config
     fields: {
@@ -41,13 +41,13 @@ var CONFIG = {
         info: centralConfig.fields.common.info,
         infoTelegram: centralConfig.fields.common.infoTelegram || "info_telegram",
         defaults: centralConfig.fields.defaults,
-        machine: centralConfig.fields.machine,
+        machine: centralConfig.fields.machine
     },
     attributes:{ 
         workRecordHzs: centralConfig.attributes.workRecordHzs,
         workRecordEmployees: centralConfig.attributes.workRecordEmployees,
         workRecordMachines: centralConfig.attributes.workRecordMachines,
-        workReport: centralConfig.attributes.workReport,
+        workReport: centralConfig.attributes.workReport
     },
     libraries: centralConfig.libraries,
     icons: centralConfig.icons,
@@ -279,128 +279,7 @@ function calculateWorkTime(startTime, endTime) {
         return { success: false, error: error.toString() };
     }
 }
-// ==============================================
 
-// function calculateWorkTime(startTime, endTime) {
-//     try {
-//         // Použitie MementoBusiness funkcie
-//         var workHours = utils.calculateWorkHours(startTime, endTime);
-        
-//         if (!workHours || workHours.error) {
-//             return { 
-//                 success: false, 
-//                 error: workHours ? workHours.error : "Nepodarilo sa vypočítať hodiny" 
-//             };
-//         }
-        
-//         var pracovnaDobaHodiny = workHours.totalMinutes / 60;
-        
-//         // Zaokrúhlenie ak je potrebné
-//         if (CONFIG.settings.roundToQuarterHour) {
-//             pracovnaDobaHodiny = Math.round(pracovnaDobaHodiny * 4) / 4;
-//             utils.addDebug(currentEntry, "  Zaokrúhlené na štvrťhodiny: " + pracovnaDobaHodiny + "h");
-//         }
-        
-//         // Ulož do polí
-//         utils.safeSet(currentEntry, CONFIG.fields.workTime, pracovnaDobaHodiny);
-//         utils.safeSet(currentEntry, CONFIG.fields.workedHours, pracovnaDobaHodiny);
-        
-//         utils.addDebug(currentEntry, "  • Pracovná doba: " + pracovnaDobaHodiny + " hodín");
-        
-//         return {
-//             success: true,
-//             pracovnaDobaHodiny: pracovnaDobaHodiny,
-//             workHours: workHours,
-//             startTime: startTime,
-//             endTime: endTime
-//         };
-        
-//     } catch (error) {
-//         utils.addError(currentEntry, error.toString(), "calculateWorkTime", error);
-//         return { success: false, error: error.toString() };
-//     }
-// }
-
-// ==============================================
-// SPRACOVANIE ZAMESTNANCOV
-// ==============================================
-
-// function processEmployees(employees, workedHours, date) {
-//     var result = {
-//         success: false,
-//         pocetPracovnikov: zamestnanci.length,
-//         odpracovaneTotal: 0,
-//         pracovnaDoba: pracovnaDobaHodiny,
-//         celkoveMzdy: 0,
-//         detaily: []
-//     };
-    
-//     try {
-//         if (!employees || employees.length === 0) {
-//             utils.addDebug(currentEntry, "  " + utils.getIcon("info") + " Žiadni zamestnanci");
-//             utils.safeSet(currentEntry, CONFIG.fields.employeeCount, 0);
-//             utils.safeSet(currentEntry, CONFIG.fields.wageCosts, 0);
-//             return result;
-//         }
-        
-//         result.pocetPracovnikov = employees.length;
-//         utils.safeSet(currentEntry, CONFIG.fields.employeeCount, result.pocetPracovnikov);
-        
-//         // Získaj pole zamestnancov pre atribúty
-//         var empArray = currentEntry.field(CONFIG.fields.workRecord.employees);
-        
-//         for (var i = 0; i < employees.length; i++) {
-//             var employee = employees[i];
-            
-//             if (!employee) {
-//                 utils.addDebug(currentEntry, "  Zamestnanec[" + i + "] je null - preskakujem");
-//                 continue;
-//             }
-            
-//             var employeeName = utils.formatEmployeeName(employee);
-//             utils.addDebug(currentEntry, utils.getIcon("person") + " [" + (i+1) + "/" + result.pocetPracovnikov + "] " + employeeName);
-            
-//             // Nájdi platnú hodinovku
-//             var hodinovka = utils.findValidHourlyRate(employee, date);
-            
-//             if (!hodinovka || hodinovka <= 0) {
-//                 utils.addDebug(currentEntry, "  ❌ Preskakujem - nemá platnú sadzbu");
-//                 continue;
-//             }
-            
-//             // Nastav atribúty
-//             if (empArray && empArray.length > i && empArray[i]) {
-//                 empArray[i].setAttr(CONFIG.attributes.workedHours, workedHours);
-//                 empArray[i].setAttr(CONFIG.attributes.hourlyRate, hodinovka);
-                
-//                 var mzdoveNaklady = Math.round(workedHours * hodinovka * 100) / 100;
-//                 empArray[i].setAttr(CONFIG.attributes.wageCosts, mzdoveNaklady);
-                
-//                 result.celkoveMzdy += mzdoveNaklady;
-//                 result.detaily.push({
-//                     zamestnanec: employee,
-//                     hodinovka: hodinovka,
-//                     mzdoveNaklady: mzdoveNaklady
-//                 });
-                
-//                 utils.addDebug(currentEntry, "  • Hodinovka: " + hodinovka + " €/h");
-//                 utils.addDebug(currentEntry, "  • Mzdové náklady: " + mzdoveNaklady + " €");
-//             }
-//         }
-        
-//         // Ulož celkové mzdové náklady
-//         utils.safeSet(currentEntry, CONFIG.fields.wageCosts, result.celkoveMzdy);
-        
-//         utils.addDebug(currentEntry, utils.getIcon("money") + " Celkové mzdové náklady: " + utils.formatMoney(result.celkoveMzdy));
-//         result.success = true;
-        
-//         return result;
-        
-//     } catch (error) {
-//         utils.addError(currentEntry, error.toString(), "processEmployees", error);
-//         return result;
-//     }
-// }
 function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
  
     try {
@@ -535,7 +414,6 @@ function calculateTotals(employeeResult, hzsResult, machinesResult) {
 function processHZS(workedHours) {
     try {
         var hzsField = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.hzs);
-        utils.addDebug(currentEntry, "  🔍 Debug HZS: " + (hzsField ? "dĺžka=" + hzsField.length + ", typ=" + typeof hzsField : "null"));
         
         // Ak nie je HZS, skús default
         if (!hzsField || hzsField.length === 0) {
@@ -788,7 +666,8 @@ function getDefaultHZS() {
         
         var defaults = defaultsLib.entries();
         if (defaults && defaults.length > 0) {
-            var defaultHZS = utils.safeGet(defaults[0], CONFIG.fields.defaults.defaultHZS);
+            var defaultSetting = defaults[0];
+            var defaultHZS = utils.safeGet(defaultSetting, CONFIG.fields.defaults.defaultHZS);
             
             if (defaultHZS && defaultHZS.length > 0) {
                 utils.addDebug(currentEntry, "  " + utils.getIcon("link") + " Default HZS nájdené");
