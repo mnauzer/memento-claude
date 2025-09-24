@@ -941,38 +941,20 @@ var MementoConfig = (function() {
             // ═══════════════════════════════════════════════════════════════
             // DOPRAVA (rovnaké emoji pre príbuzné funkcie)
             // ═══════════════════════════════════════════════════════════════
-            car: "🚗",                // Všeobecné auto
-            vehicle: "🚗",            // Vozidlo (rovnaké ako car - OK!)
-            company_car: "🚗",        // Firemné auto (rovnaké - OK!)
+
             
             transport: "🚚",          // Doprava
-            delivery: "🚚",           // Dodávka (rovnaké ako transport - OK!)
-            work_truck: "🚚",         // Pracovné vozidlo (rovnaké - OK!)
-            truck: "🚚",              // Pracovné vozidlo (rovnaké - OK!)
-            
-            equipment_van: "🚐",      // Dodávka s náradím
-            trailer: "🚛",            // Príves
-            travel: "✈️",             // Cestovanie
-            
-            // Cesty
-            trip: "🛣️",              // Výjazd
-            route: "🗺️",             // Trasa  
-            distance: "📏",           // Vzdialenosť
-            start_trip: "🚀",         // Začiatok cesty (rovnaké ako start - OK!)
-            end_trip: "🏁",           // Koniec cesty (rovnaké ako completed - OK!)
+
             
             // Palivo a servis
             fuel: "⛽",               // Palivo
-            refuel: "⛽",             // Tankovanie (rovnaké ako fuel - OK!)
             maintenance: "🔧",        // Údržba
             service: "🛠️",           // Servis
             parking: "🅿️",           // Parkovanie
             breakdown: "⚠️",          // Porucha (rovnaké ako warning - OK!)
 
             machine: "🏗️",             // Stroj
-            tool: "🛠️",                // Náradie (rovnaké ako service - OK!
             heavy_machine: "🚜",       // Ťažký stroj)
-            light_machine: "🧰",       // Ľahký stro
             accessory: "🔩",           // Príslušenstvo
             machine_use: "⚙️",        // Použitie stroja (rovnaké ako inProgress - OK!)
             // ═══════════════════════════════════════════════════════════════
@@ -1064,11 +1046,7 @@ var MementoConfig = (function() {
             access_granted: "✅🔑",   // Prístup povolený
             access_denied: "❌🔒",    // Prístup zamietnutý
             
-            // ŠPECIALIZOVANÉ
-            detective: "🕵️",         // Vyšetrovanie
-            whisper: "🗣️🤫",         // Šepkanie
-            sealed: "📮🔒",          // Zapečatené
-            vault: "🏦🔐"            // Trezor
+
         }
 
     }
