@@ -243,6 +243,7 @@ var MementoConfig = (function() {
                 daysCount: "Počet dní", // integer, endDate - startDate
                 hoursCount: "Odpracovaných hodín", // real number, súčet odpracovaných hodín z dennej dochádzky
                 wageCosts: "Mzdy", // real number, súčet mzdových nákladov z dennej dochádzky
+                wageDeductions: "Mzdy odvody", // real number, odvody do poisťovní a dane za zamestnanca aj zamestnávateľa
                 km: "Najazdené km", // real number, súčet km z knihy jázd
                 transportCounts: "Počet jázd", // integer, počet záznamov z knihy jázd
                 transportWageCosts: "Mzdy v aute", // real number, súčet nákladov na dopravu z knihy jázd
