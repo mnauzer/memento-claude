@@ -902,7 +902,7 @@ var MementoBusiness = (function() {
             }
 
             var vatRatesLibName = config.libraries.vatRatesLib || "sadzby DPH";
-            var vatRatesLib = lib(vatRatesLibName);
+            var vatRatesLib = libByName(vatRatesLibName);
 
             if (!vatRatesLib) {
                 core.addError(entry(), "Knižnica sadzby DPH neexistuje", "getValidVatRate");
