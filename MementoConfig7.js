@@ -103,7 +103,8 @@ var MementoConfig = (function() {
             machinesReport: "Výkaz strojov",
             
             priceList: "Cenník prác",
-            inventory: "Sklad",
+            inventory: "Materiál",
+            materialExpenses: "Výdajky materiálu",
             
             // Historical data 
             workPrices: "ceny prác",
@@ -140,6 +141,7 @@ var MementoConfig = (function() {
             notifications: "Notifications",
             telegramGroups: "Telegram Groups"
         },
+
         // === NÁZVY POLÍ ===
         fields: {
             // Spoločné polia vo všetkých knižniciach
@@ -219,7 +221,6 @@ var MementoConfig = (function() {
                 priceMth: "Cena mth",
                 flatRate: "Cena paušál"
             },
-
             // Zákazky polia
             order: {
                 state: "Stav", // singleChoice: Čakajúca, Čakjaúca (klient), Prebieha, Ukončená
@@ -680,13 +681,27 @@ var MementoConfig = (function() {
                 mth: "MTH", // motohodiny
                 hzs: "HZS", // linkToEntry: Cenník prác
                 flatRate: "Paušál" // linkToEntry: Cenník prác
+            },
+            // Výdajky materiálu polia
+            materialExpenses: {
+                number: "Číslo", // text
+                date: "Dátum", // date
+                description: "Popis", // text
+                issuedTo: "Vydané", // singleChoice: Zákazka, Partner, Klient
+                client: "Klient", // linkToEntry Klienti
+                order: "Zákazka", // linkToEntry Zákazky
+                partner: "Partner", // linkToEntry Partneri
+                sum: "Suma", // real number
+                vat: "DPH", // real number
+                sumWithVat: "Suma s DPH", // real number
+                items: "Položky", // linkToEntry Materiál
+                transportPrice: "Cena za prepravu" // real number
             }
             
         },
         
         // === ATRIBÚTY ===
         attributes: {
-            // Zamestnanci atribúty (v Dochádzke a Zázname práce)
             employees: {
                 workedHours: "odpracované",
                 hourlyRate: "hodinovka",
@@ -697,7 +712,6 @@ var MementoConfig = (function() {
                 dailyWage: "denná mzda",
                 note: "poznámka"
             },
-            // V MementoConfig7.js - attributes sekcii pridaj:
             workRecordEmployees: {
                 workedHours: "odpracované",
                 hourlyRate: "hodinovka", 
@@ -713,7 +727,6 @@ var MementoConfig = (function() {
                 flatRate: "paušál", // cena za celoddenné použitie stroja - doplní sa z cenníka mechanizácie
                 totalPrice: "účtovaná suma" // suma ktorá sa účtuje za použitie stroja buď podľa motohodín alebo paušálu
             },
-            workRecordMaterials: {
             workReport: {
                 workDescription: "vykonané práce",
                 hoursCount: "počet hodín",
@@ -730,20 +743,10 @@ var MementoConfig = (function() {
                 delay: "zdržanie",
                 description: "popis jazdy"
             },
-            // Vozidlá atribúty (v Knihe jázd)
-                        
-            // HZS atribúty
-            hzs: {
-                price: "cena"
-            },
-            
-            // Posádka atribúty (v Knihe jázd)
             crew: {
                 hourlyRate: "hodinovka",
                 bonus: "príplatok"
             },
-            
-            // Zastávky atribúty (v Knihe jázd)
             stops: {
                 km: "km",
                 duration: "trvanie",
@@ -757,6 +760,12 @@ var MementoConfig = (function() {
                 rideTime: "čas jazdy",
                 stopTime: "čas na zastávkach",
                 totalTime: "celkový čas"
+            },
+            // Výdajky materiálu - atribúty položiek
+            materialExpensesItems: {
+                quantity: "množstvo", // real number
+                price: "cena", // real number
+                totalPrice: "cena celkom" // real number
             }
         },
         
@@ -1048,7 +1057,7 @@ var MementoConfig = (function() {
         }
 
     }
-};
+
     // === POMOCNÉ FUNKCIE ===
     
     /**
