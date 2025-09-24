@@ -886,10 +886,89 @@ var MementoBusiness = (function() {
             return profit;
         }
     }
+
+    // ==============================================
+    // DPH FUNKCIE
+    // ==============================================
+
+    function getValidVatRate(date, vatType) {
+        var core = getCore();
+        var config = getConfig();
+
+        try {
+            if (!date) {
+                core.addError(entry(), "Dátum nie je zadaný pre zistenie DPH", "getValidVatRate");
+                return 0;
+            }
+
+            var vatRatesLibName = config.libraries.vatRatesLib || "sadzby DPH";
+            var vatRatesLib = lib(vatRatesLibName);
+
+            if (!vatRatesLib) {
+                core.addError(entry(), "Knižnica sadzby DPH neexistuje", "getValidVatRate");
+                return 0;
+            }
+
+            var targetDate = moment(date);
+            if (!targetDate.isValid()) {
+                core.addError(entry(), "Neplatný dátum: " + date, "getValidVatRate");
+                return 0;
+            }
+
+            // Získaj všetky sadzby DPH
+            var vatRateEntries = vatRatesLib.entries();
+            var validEntries = [];
+
+            for (var i = 0; i < vatRateEntries.length; i++) {
+                var vatEntry = vatRateEntries[i];
+                var validFromField = config.fields.vatRates.validFrom;
+                var validFromDate = moment(core.safeFieldAccess(vatEntry, validFromField, null));
+
+                if (validFromDate.isValid() && validFromDate.isSameOrBefore(targetDate)) {
+                    validEntries.push({
+                        entry: vatEntry,
+                        validFrom: validFromDate
+                    });
+                }
+            }
+
+            if (validEntries.length === 0) {
+                core.addError(entry(), "Nenašla sa platná sadzba DPH k dátumu " + targetDate.format("DD.MM.YYYY"), "getValidVatRate");
+                return 0;
+            }
+
+            // Zoraď podľa dátumu platnosti (najnovšie najprv)
+            validEntries.sort(function(a, b) {
+                return b.validFrom.valueOf() - a.validFrom.valueOf();
+            });
+
+            var latestEntry = validEntries[0].entry;
+
+            // Zisti typ DPH (základná, znížená)
+            var vatTypeField = vatType === "znížená" ?
+                config.fields.vatRates.reduced :
+                config.fields.vatRates.standard;
+
+            var vatRate = core.safeFieldAccess(latestEntry, vatTypeField, 0);
+
+            if (vatRate === 0) {
+                core.addDebug(entry(), "DPH sadzba nie je nastavená pre typ: " + vatType + ", k dátumu: " + targetDate.format("DD.MM.YYYY"), "warning");
+            }
+
+            return parseFloat(vatRate) || 0;
+
+        } catch (error) {
+            if (core) {
+                core.addError(entry(), "Chyba pri hľadaní DPH sadzby: " + error.toString(), "getValidVatRate", error);
+            }
+            return 0;
+        }
+    }
+
     // ==============================================
     // PUBLIC API
     // ==============================================
-    
+
     return {
         version: version,
         
@@ -931,7 +1010,10 @@ var MementoBusiness = (function() {
         findLinkedObligations: findLinkedObligations,
 
         // Výpočet marže a rentability
-        calculateProfitability: calculateProfitability
+        calculateProfitability: calculateProfitability,
+
+        // DPH funkcie
+        getValidVatRate: getValidVatRate
     };
 })();
 
