@@ -50,8 +50,6 @@ var MementoConfig = (function() {
             }
         },
 
-
-
         // Mapovanie knižníc na ich konfigurácie
         libraryMapping: {
             "Dochádzka": {
