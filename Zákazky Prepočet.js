@@ -496,11 +496,22 @@ function calculateCosts(linkedData) {
     try {
         utils.addDebug(currentEntry, "  💸 Počítam náklady podľa nových požiadaviek...");
 
-        // 1. NÁKLADY PRÁCE - hodnota ako v poli Mzdy (neskôr sa dorobí výpočet odvodov)
+        // 1. NÁKLADY PRÁCE - čisté mzdy + odvody a dane = superhrubá mzda
         utils.addDebug(currentEntry, "    👷 Počítam náklady práce...");
-        costs.work = utils.safeGet(currentEntry, CONFIG.fields.order.wageCosts, 0);
+
+        var netWages = utils.safeGet(currentEntry, CONFIG.fields.order.wageCosts, 0);
+        var wageDeductionsResult = calculateWageDeductions(netWages);
+
+        // Ulož odvody do poľa "Mzdy odvody"
+        utils.safeSet(currentEntry, CONFIG.fields.order.wageDeductions, wageDeductionsResult.deductions);
+
+        // Náklady práce = superhrubá mzda (celkové náklady zamestnávateľa)
+        costs.work = wageDeductionsResult.superGrossWages;
         costs.workVatDeduction = 0; // Zo mzdy sa DPH neodpočítava
-        utils.addDebug(currentEntry, "      • Mzdy celkom: " + utils.formatMoney(costs.work));
+
+        utils.addDebug(currentEntry, "      • Čisté mzdy: " + utils.formatMoney(netWages));
+        utils.addDebug(currentEntry, "      • Mzdy odvody: " + utils.formatMoney(wageDeductionsResult.deductions));
+        utils.addDebug(currentEntry, "      • Náklady práce (superhrubá): " + utils.formatMoney(costs.work));
 
         // 2. NÁKLADY STROJE - z pokladne Prevádzková réžia = Požičovné stroja
         utils.addDebug(currentEntry, "    🚜 Počítam náklady strojov...");
@@ -692,6 +703,111 @@ function calculateMaterialCosts() {
     } catch (error) {
         utils.addError(currentEntry, "Chyba pri výpočte nákladov materiálu: " + error.toString(), "calculateMaterialCosts");
         return { amount: 0, vatDeduction: 0 };
+    }
+}
+
+function calculateWageDeductions(netWages) {
+    try {
+        utils.addDebug(currentEntry, "      👥 Počítam odvody zo mzdy...");
+
+        if (!netWages || netWages === 0) {
+            utils.addDebug(currentEntry, "        • Žiadne mzdy - preskakujem odvody");
+            return {
+                deductions: 0,
+                grossWages: 0,
+                superGrossWages: 0
+            };
+        }
+
+        utils.addDebug(currentEntry, "        • Čisté mzdy: " + utils.formatMoney(netWages));
+
+        // Koeficienty pre rok 2025
+        var EMPLOYEE_DEDUCTIONS_RATE = 0.134;  // 13,4% odvody zamestnanca
+        var EMPLOYER_DEDUCTIONS_RATE = 0.352;  // 35,2% odvody zamestnávateľa
+        var INCOME_TAX_RATE = 0.19;            // 19% daň z príjmu
+        var TAX_FREE_AMOUNT = 479.48;          // mesačný nezdaniteľný minimum
+
+        // Iteratívny výpočet hrubej mzdy z čistej mzdy
+        var grossWage = netWages; // Začneme s odhadom
+        var maxIterations = 10;
+        var tolerance = 0.01; // 1 cent presnosť
+
+        for (var i = 0; i < maxIterations; i++) {
+            // Vypočítaj odvody zamestnanca
+            var employeeDeductions = grossWage * EMPLOYEE_DEDUCTIONS_RATE;
+
+            // Vypočítaj daňový základ
+            var taxBase = grossWage - employeeDeductions - TAX_FREE_AMOUNT;
+            var incomeTax = 0;
+
+            if (taxBase > 0) {
+                incomeTax = taxBase * INCOME_TAX_RATE;
+            }
+
+            // Vypočítaj čistú mzdu z tejto hrubej mzdy
+            var calculatedNetWage = grossWage - employeeDeductions - incomeTax;
+
+            // Ak sme blízko k požadovanej čistej mzde, skončíme
+            var difference = Math.abs(calculatedNetWage - netWages);
+            if (difference < tolerance) {
+                break;
+            }
+
+            // Upravíme odhad hrubej mzdy
+            var ratio = netWages / calculatedNetWage;
+            grossWage = grossWage * ratio;
+        }
+
+        // Zaokrúhli hrubú mzdu
+        grossWage = Math.round(grossWage * 100) / 100;
+
+        // Vypočítaj finálne odvody
+        var finalEmployeeDeductions = Math.round(grossWage * EMPLOYEE_DEDUCTIONS_RATE * 100) / 100;
+        var finalTaxBase = grossWage - finalEmployeeDeductions - TAX_FREE_AMOUNT;
+        var finalIncomeTax = finalTaxBase > 0 ? Math.round(finalTaxBase * INCOME_TAX_RATE * 100) / 100 : 0;
+        var employerDeductions = Math.round(grossWage * EMPLOYER_DEDUCTIONS_RATE * 100) / 100;
+
+        // Celkové odvody = odvody zamestnanca + daň z príjmu + odvody zamestnávateľa
+        var totalDeductions = finalEmployeeDeductions + finalIncomeTax + employerDeductions;
+
+        // Superhrubá mzda (celkové náklady práce)
+        var superGrossWage = grossWage + employerDeductions;
+
+        utils.addDebug(currentEntry, "        • Hrubá mzda: " + utils.formatMoney(grossWage));
+        utils.addDebug(currentEntry, "        • Odvody zamestnanca (13,4%): " + utils.formatMoney(finalEmployeeDeductions));
+        utils.addDebug(currentEntry, "        • Daň z príjmu (19%): " + utils.formatMoney(finalIncomeTax));
+        utils.addDebug(currentEntry, "        • Odvody zamestnávateľa (35,2%): " + utils.formatMoney(employerDeductions));
+        utils.addDebug(currentEntry, "        • CELKOVÉ odvody: " + utils.formatMoney(totalDeductions));
+        utils.addDebug(currentEntry, "        • Superhrubá mzda: " + utils.formatMoney(superGrossWage));
+
+        // Kontrolný výpočet čistej mzdy
+        var controlNetWage = grossWage - finalEmployeeDeductions - finalIncomeTax;
+        utils.addDebug(currentEntry, "        • Kontrola čistej mzdy: " + utils.formatMoney(controlNetWage) +
+                      " (rozdiel: " + utils.formatMoney(Math.abs(controlNetWage - netWages)) + ")");
+
+        return {
+            deductions: Math.round(totalDeductions * 100) / 100,
+            grossWages: grossWage,
+            superGrossWages: Math.round(superGrossWage * 100) / 100,
+            breakdown: {
+                employeeDeductions: finalEmployeeDeductions,
+                incomeTax: finalIncomeTax,
+                employerDeductions: employerDeductions
+            }
+        };
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri výpočte odvodov zo mzdy: " + error.toString(), "calculateWageDeductions");
+        return {
+            deductions: 0,
+            grossWages: netWages || 0,
+            superGrossWages: netWages || 0,
+            breakdown: {
+                employeeDeductions: 0,
+                incomeTax: 0,
+                employerDeductions: 0
+            }
+        };
     }
 }
 
@@ -1165,7 +1281,9 @@ function createInfoRecord(linkedData, costs, revenue, profit) {
         info += "👷 PRÁCA\n";
         info += "─────────────────────────────\n";
         info += "• Odpracované hodiny: " + linkedData.workRecords.totalHours.toFixed(2) + " h\n";
-        info += "• Mzdové náklady: " + utils.formatMoney(costs.wageCosts) + "\n\n";
+        info += "• Čisté mzdy: " + utils.formatMoney(utils.safeGet(currentEntry, CONFIG.fields.order.wageCosts, 0)) + "\n";
+        info += "• Mzdy odvody: " + utils.formatMoney(utils.safeGet(currentEntry, CONFIG.fields.order.wageDeductions, 0)) + "\n";
+        info += "• Náklady práce (superhrubá): " + utils.formatMoney(costs.work) + "\n\n";
         
         // Súhrn dopravy
         info += "🚗 DOPRAVA\n";
@@ -1173,36 +1291,40 @@ function createInfoRecord(linkedData, costs, revenue, profit) {
         info += "• Počet jázd: " + linkedData.rideLog.records.length + "\n";
         info += "• Najazdené km: " + linkedData.rideLog.totalKm + " km\n";
         info += "• Hodiny v aute: " + linkedData.rideLog.totalTime.toFixed(2) + " h\n";
-        info += "• Náklady na PHM: " + utils.formatMoney(costs.transportCosts) + "\n\n";
+        info += "• Náklady dopravy: " + utils.formatMoney(costs.transport) + "\n\n";
         
         // Náklady
         info += "💸 NÁKLADY\n";
         info += "─────────────────────────────\n";
-        info += "• Mzdy: " + utils.formatMoney(costs.wageCosts) + "\n";
-        info += "• Doprava: " + utils.formatMoney(costs.transportCosts) + "\n";
-        info += "• Stroje: " + utils.formatMoney(costs.machineryCosts) + "\n";
-        info += "• Materiál: " + utils.formatMoney(costs.materialCosts) + "\n";
-        info += "• Ostatné: " + utils.formatMoney(costs.otherCosts) + "\n";
-        info += "• CELKOM: " + utils.formatMoney(costs.totalCosts) + "\n\n";
+        info += "• Práce (superhrubá): " + utils.formatMoney(costs.work) + "\n";
+        info += "• Doprava: " + utils.formatMoney(costs.transport) + "\n";
+        info += "• Stroje: " + utils.formatMoney(costs.machinery) + "\n";
+        info += "• Materiál: " + utils.formatMoney(costs.material) + "\n";
+        info += "• Subdodávky: " + utils.formatMoney(costs.subcontractors) + "\n";
+        info += "• Ostatné: " + utils.formatMoney(costs.other) + "\n";
+        info += "• CELKOM: " + utils.formatMoney(costs.total) + "\n\n";
         
         // Výnosy
         info += "💰 VÝNOSY\n";
         info += "─────────────────────────────\n";
-        info += "• Práce: " + utils.formatMoney(revenue.workRevenue) + "\n";
-        info += "• Doprava: " + utils.formatMoney(revenue.transportRevenue) + "\n";
-        info += "• Stroje: " + utils.formatMoney(revenue.machineryRevenue) + "\n";
-        info += "• Ostatné: " + utils.formatMoney(revenue.otherRevenue) + "\n";
-        info += "• CELKOM: " + utils.formatMoney(revenue.totalRevenue) + "\n\n";
+        info += "• Práce: " + utils.formatMoney(revenue.work) + "\n";
+        info += "• Doprava: " + utils.formatMoney(revenue.transport) + "\n";
+        info += "• Stroje: " + utils.formatMoney(revenue.machinery) + "\n";
+        info += "• Materiál: " + utils.formatMoney(revenue.material) + "\n";
+        info += "• Subdodávky: " + utils.formatMoney(revenue.subcontractors) + "\n";
+        info += "• Ostatné: " + utils.formatMoney(revenue.other) + "\n";
+        info += "• CELKOM: " + utils.formatMoney(revenue.total) + "\n\n";
         
         // Ziskovosť
         info += "📊 ZISKOVOSŤ\n";
         info += "─────────────────────────────\n";
-        info += "• Hrubý zisk: " + utils.formatMoney(profit.grossProfit) + "\n";
-        info += "• Marža: " + profit.grossMargin.toFixed(2) + "%\n";
-        info += "• DPH odvod: " + utils.formatMoney(costs.vatAmount) + "\n";
-        info += "• Čistý zisk: " + utils.formatMoney(profit.netProfit) + "\n";
-        info += "• Rentabilita: " + profit.profitability.toFixed(2) + "%\n";
-        info += "• Stav: " + (profit.isProfitable ? "✅ ZISKOVÁ" : "❌ STRATOVÁ") + "\n\n";
+        info += "• Hrubý zisk: " + utils.formatMoney(profit.grossProfit || (revenue.total - costs.total)) + "\n";
+        info += "• Marža: " + (profit.grossMargin || ((revenue.total - costs.total) / revenue.total * 100)).toFixed(2) + "%\n";
+        info += "• DPH k odvodu: " + utils.formatMoney(revenue.totalVat) + "\n";
+        info += "• DPH odpočet: " + utils.formatMoney(costs.totalVatDeduction) + "\n";
+        info += "• Čistý zisk: " + utils.formatMoney(profit.netProfit || (revenue.total - costs.total)) + "\n";
+        info += "• Rentabilita: " + (profit.profitability || ((revenue.total - costs.total) / costs.total * 100)).toFixed(2) + "%\n";
+        info += "• Stav: " + ((profit.isProfitable !== undefined ? profit.isProfitable : (revenue.total > costs.total)) ? "✅ ZISKOVÁ" : "❌ STRATOVÁ") + "\n\n";
         
         info += "🔧 Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
         info += "✅ PREPOČET DOKONČENÝ";
@@ -1228,8 +1350,9 @@ function saveCalculatedValues(linkedData, costs, revenue, profit) {
         utils.safeSet(currentEntry, CONFIG.fields.order.transportCounts, linkedData.rideLog.records.length);
         utils.safeSet(currentEntry, CONFIG.fields.order.transportHours, linkedData.rideLog.totalTime);
         utils.safeSet(currentEntry, CONFIG.fields.order.km, linkedData.rideLog.totalKm);
-        utils.safeSet(currentEntry, CONFIG.fields.order.wageCosts, linkedData.workRecords.totalWageCosts);
         utils.safeSet(currentEntry, CONFIG.fields.order.transportWageCosts, linkedData.rideLog.totalWageCosts);
+
+        // Poznámka: wageCosts a wageDeductions sa ukladajú už v calculateCosts() funkcii
 
         // VÝNOSY - podľa screenshotov
         utils.safeSet(currentEntry, CONFIG.fields.order.revenueWork, revenue.work);
@@ -1327,20 +1450,27 @@ function logFinalSummary(steps) {
             
             // Zobraz súhrn používateľovi
             var orderName = utils.safeGet(currentEntry, CONFIG.fields.order.name, "Zákazka");
-            var totalCosts = utils.safeGet(currentEntry, CONFIG.fields.order.totalCosts, 0);
-            var totalBilled = utils.safeGet(currentEntry, CONFIG.fields.order.totalBilled, 0);
-            var profit = totalBilled - totalCosts;
+            var totalCosts = utils.safeGet(currentEntry, CONFIG.fields.order.costTotal, 0);
+            var totalRevenue = utils.safeGet(currentEntry, CONFIG.fields.order.revenueTotal, 0);
+            var totalRevenueVat = utils.safeGet(currentEntry, CONFIG.fields.order.revenueTotalVat, 0);
+            var totalBilled = totalRevenue + totalRevenueVat;
+            var netWages = utils.safeGet(currentEntry, CONFIG.fields.order.wageCosts, 0);
+            var wageDeductions = utils.safeGet(currentEntry, CONFIG.fields.order.wageDeductions, 0);
+
+            var profit = totalRevenue - totalCosts;
             var profitPercent = totalCosts > 0 ? ((profit / totalCosts) * 100).toFixed(2) : 0;
-            
+
             var summaryMsg = "✅ PREPOČET DOKONČENÝ\n\n";
             summaryMsg += "📦 " + orderName + "\n";
             summaryMsg += "━━━━━━━━━━━━━━━━━━━━━\n";
-            summaryMsg += "💸 Náklady: " + utils.formatMoney(totalCosts) + "\n";
-            summaryMsg += "💰 Výnosy: " + utils.formatMoney(totalBilled) + "\n";
+            summaryMsg += "👥 Čisté mzdy: " + utils.formatMoney(netWages) + "\n";
+            summaryMsg += "📊 Mzdy odvody: " + utils.formatMoney(wageDeductions) + "\n";
+            summaryMsg += "💸 Náklady celkom: " + utils.formatMoney(totalCosts) + "\n";
+            summaryMsg += "💰 Výnosy: " + utils.formatMoney(totalRevenue) + " + DPH " + utils.formatMoney(totalRevenueVat) + "\n";
             summaryMsg += "📊 Zisk: " + utils.formatMoney(profit) + " (" + profitPercent + "%)\n";
             summaryMsg += "━━━━━━━━━━━━━━━━━━━━━\n";
             summaryMsg += "ℹ️ Detaily v poli 'info'";
-            
+
             message(summaryMsg);
         } else {
             utils.addDebug(currentEntry, "\n⚠️ Niektoré kroky zlyhali!");
