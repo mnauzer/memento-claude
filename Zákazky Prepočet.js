@@ -1572,11 +1572,11 @@ function prepareOrderNotificationInfo(linkedData, costs, revenue, profit) {
         telegramInfo += "• Marža: <b>" + profitMargin.toFixed(2) + "%</b>\n";
         telegramInfo += "• Stav: " + (isProfitable ? "✅ <b>ZISKOVÁ</b>" : "❌ <b>STRATOVÁ</b>") + "\n\n";
 
-        telegramInfo += "📊 <b>FAKTURÁCIA</b>\n";
+        telegramInfo += "📑 <b>FAKTURÁCIA</b>\n";
         telegramInfo += "───────────────────────────────────\n";
-        telegramInfo += "• Základ: <b>" + (grossProfit >= 0 ? "+" : "") + utils.formatMoney(grossProfit) + "</b>\n";
-        telegramInfo += "• DPH : <b>" + utils.formatMoney(revenue.totalVat) + "(23%)</b>\n";
-        telegramInfo += "• Celkom: " +  utils.formatMoney(grossProfit + revenue.totalVat) +  "\n\n";
+        telegramInfo += "• Základ: " + (revenue.total >= 0 ? "+" : "") + utils.formatMoney(revenue.total) + "\n";
+        telegramInfo += "• DPH (23%): " + utils.formatMoney(revenue.totalVat) + "\n";
+        telegramInfo += "• Celkom: <b>" +  utils.formatMoney(revenue.total + revenue.totalVat) +  "</b>\n\n";
 
         // DPH info
         if (revenue.totalVat > 0 || costs.totalVatDeduction > 0) {
