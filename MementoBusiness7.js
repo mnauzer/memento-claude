@@ -871,7 +871,7 @@ var MementoBusiness = (function() {
             }
             
             // Je zisková?
-            profit.isProfitable = profit.netProfit > 0;
+            profit.isProfitable = profit.grossProfit > 0;
             
             core.addDebug(currentEntry, "    • Hrubý zisk: " + core.formatMoney(profit.grossProfit));
             core.addDebug(currentEntry, "    • Hrubá marža: " + profit.grossMargin.toFixed(2) + "%");

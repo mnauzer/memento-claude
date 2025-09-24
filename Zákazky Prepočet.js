@@ -1295,7 +1295,7 @@ function createInfoRecord(linkedData, costs, revenue, profit) {
         info += "🚗 DOPRAVA\n";
         info += "─────────────────────────────\n";
         info += "• Počet jázd: " + linkedData.rideLog.records.length + "\n";
-        info += "• Najazdené km: " + linkedData.rideLog.totalKm + " km\n";
+        info += "• Najazdené km: " + linkedData.rideLog.totalKm.toFixed(2) + " km\n";
         info += "• Hodiny v aute: " + linkedData.rideLog.totalTime.toFixed(2) + " h\n";
         info += "• Náklady dopravy: " + utils.formatMoney(costs.transport) + "\n\n";
         
@@ -1354,8 +1354,8 @@ function saveCalculatedValues(linkedData, costs, revenue, profit) {
         // ZÁKLADNÉ ÚDAJE
         utils.safeSet(currentEntry, CONFIG.fields.order.hoursCount, linkedData.workRecords.totalHours);
         utils.safeSet(currentEntry, CONFIG.fields.order.transportCounts, linkedData.rideLog.records.length);
-        utils.safeSet(currentEntry, CONFIG.fields.order.transportHours, linkedData.rideLog.totalTime);
-        utils.safeSet(currentEntry, CONFIG.fields.order.km, linkedData.rideLog.totalKm);
+        utils.safeSet(currentEntry, CONFIG.fields.order.transportHours, linkedData.rideLog.totalTime.toFixed(2));
+        utils.safeSet(currentEntry, CONFIG.fields.order.km, linkedData.rideLog.totalKm.toFixed(2));
         utils.safeSet(currentEntry, CONFIG.fields.order.transportWageCosts, linkedData.rideLog.totalWageCosts);
 
         // Poznámka: wageCosts a wageDeductions sa ukladajú už v calculateCosts() funkcii
@@ -1412,7 +1412,7 @@ function saveCalculatedValues(linkedData, costs, revenue, profit) {
 
         // ROZPOČET A ZOSTATOK
         var budget = utils.safeGet(currentEntry, CONFIG.fields.order.budget, 0);
-        var spent = costs.total;
+        var spent = revenue.total;
         var remaining = budget - spent;
 
         utils.safeSet(currentEntry, CONFIG.fields.order.spent, spent);
@@ -1532,7 +1532,7 @@ function prepareOrderNotificationInfo(linkedData, costs, revenue, profit) {
             telegramInfo += "🚗 <b>DOPRAVA</b>\n";
             telegramInfo += "───────────────────────────────────\n";
             telegramInfo += "• Počet jázd: " + linkedData.rideLog.records.length + "\n";
-            telegramInfo += "• Najazdené km: " + linkedData.rideLog.totalKm + " km\n";
+            telegramInfo += "• Najazdené km: " + linkedData.rideLog.totalKm.toFixed(2) + " km\n";
             telegramInfo += "• Hodiny v aute: " + linkedData.rideLog.totalTime.toFixed(2) + " h\n";
             telegramInfo += "• Náklady dopravy: <b>" + utils.formatMoney(costs.transport) + "</b>\n\n";
         }
