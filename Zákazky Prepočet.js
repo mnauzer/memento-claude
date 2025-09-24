@@ -476,20 +476,20 @@ function collectLinkedRecordsData() {
 function calculateCosts(linkedData) {
     var costs = {
         // NÁKLADY - podľa presných požiadaviek
-        costWork: 0,                     // Náklady práce - hodnota ako v poli Mzdy
-        costWorkVatDeduction: 0,         // Odpočet DPH práce - 0 (zo mzdy sa neodpočítava)
-        costMaterial: 0,                 // Náklady materiál - pripravené na implementáciu
-        costMaterialVatDeduction: 0,     // Odpočet DPH materiál - pripravené na implementáciu
-        costMachinery: 0,                // Náklady stroje - z pokladne Požičovné stroja
-        costMachineryVatDeduction: 0,    // Odpočet DPH stroje - z pokladne DPH
-        costTransport: 0,                // Náklady doprava - pripravené
-        costTransportVatDeduction: 0,    // Odpočet DPH doprava - pripravené
-        costSubcontractors: 0,           // Náklady subdodávky - z pokladne Subdodávky
-        costSubcontractorsVatDeduction: 0, // Odpočet DPH subdodávky - z pokladne DPH
-        costOther: 0,                    // Náklady ostatné - z pokladne ostatné
-        costOtherVatDeduction: 0,        // Odpočet DPH ostatné - z pokladne DPH
-        costTotal: 0,                    // Náklady celkom
-        costTotalVatDeduction: 0,        // Odpočet DPH celkom
+        work: 0,                     // Náklady práce - hodnota ako v poli Mzdy
+        workVatDeduction: 0,         // Odpočet DPH práce - 0 (zo mzdy sa neodpočítava)
+        material: 0,                 // Náklady materiál - pripravené na implementáciu
+        materialVatDeduction: 0,     // Odpočet DPH materiál - pripravené na implementáciu
+        machinery: 0,                // Náklady stroje - z pokladne Požičovné stroja
+        machineryVatDeduction: 0,    // Odpočet DPH stroje - z pokladne DPH
+        transport: 0,                // Náklady doprava - pripravené
+        transportVatDeduction: 0,    // Odpočet DPH doprava - pripravené
+        subcontractors: 0,           // Náklady subdodávky - z pokladne Subdodávky
+        subcontractorsVatDeduction: 0, // Odpočet DPH subdodávky - z pokladne DPH
+        other: 0,                    // Náklady ostatné - z pokladne ostatné
+        otherVatDeduction: 0,        // Odpočet DPH ostatné - z pokladne DPH
+        total: 0,                    // Náklady celkom
+        totalVatDeduction: 0,        // Odpočet DPH celkom
         otherExpenses: 0                 // Iné výdavky
     };
 
@@ -498,59 +498,59 @@ function calculateCosts(linkedData) {
 
         // 1. NÁKLADY PRÁCE - hodnota ako v poli Mzdy (neskôr sa dorobí výpočet odvodov)
         utils.addDebug(currentEntry, "    👷 Počítam náklady práce...");
-        costs.costWork = utils.safeGet(currentEntry, CONFIG.fields.order.wageCosts, 0);
-        costs.costWorkVatDeduction = 0; // Zo mzdy sa DPH neodpočítava
-        utils.addDebug(currentEntry, "      • Mzdy celkom: " + utils.formatMoney(costs.costWork));
+        costs.work = utils.safeGet(currentEntry, CONFIG.fields.order.wageCosts, 0);
+        costs.workVatDeduction = 0; // Zo mzdy sa DPH neodpočítava
+        utils.addDebug(currentEntry, "      • Mzdy celkom: " + utils.formatMoney(costs.work));
 
         // 2. NÁKLADY STROJE - z pokladne Prevádzková réžia = Požičovné stroja
         utils.addDebug(currentEntry, "    🚜 Počítam náklady strojov...");
         var machineryCostData = calculateMachineryCosts();
-        costs.costMachinery = machineryCostData.amount;
-        costs.costMachineryVatDeduction = machineryCostData.vatDeduction;
+        costs.machinery = machineryCostData.amount;
+        costs.machineryVatDeduction = machineryCostData.vatDeduction;
 
         // 3. NÁKLADY SUBDODÁVKY - z pokladne Účel výdaja = Subdodávky
         utils.addDebug(currentEntry, "    🏗️ Počítam náklady subdodávok...");
         var subcontractorCostData = calculateSubcontractorCosts();
         utils.addDebug(currentEntry, "      • Subdodávky celkom: " + utils.formatMoney(subcontractorCostData.amount)) 
         utils.addDebug(currentEntry, "      • Subdodávky počet: " + subcontractorCostData.count) 
-        costs.costSubcontractors = subcontractorCostData.amount;
-        costs.costSubcontractorsVatDeduction = subcontractorCostData.vatDeduction;
+        costs.subcontractors = subcontractorCostData.amount;
+        costs.subcontractorsVatDeduction = subcontractorCostData.vatDeduction;
 
         // 4. NÁKLADY OSTATNÉ - z pokladne Účel výdaja = Ostatné
         utils.addDebug(currentEntry, "    📦 Počítam ostatné náklady...");
         var otherCostData = calculateOtherCosts();
-        costs.costOther = otherCostData.amount;
-        costs.costOtherVatDeduction = otherCostData.vatDeduction;
+        costs.other = otherCostData.amount;
+        costs.otherVatDeduction = otherCostData.vatDeduction;
 
         // 5. NÁKLADY MATERIÁL - pripravené na neskoršiu implementáciu
         var materialCostData = calculateMaterialCosts();
-        costs.costMaterial = materialCostData.amount;
-        costs.costMaterialVatDeduction = materialCostData.vatDeduction;
+        costs.material = materialCostData.amount;
+        costs.materialVatDeduction = materialCostData.vatDeduction;
 
         // 6. NÁKLADY DOPRAVA - pripravené na neskoršiu implementáciu
         var transportCostData = calculateTransportCosts();
-        costs.costTransport = transportCostData.amount;
-        costs.costTransportVatDeduction = transportCostData.vatDeduction;
+        costs.transport = transportCostData.amount;
+        costs.transportVatDeduction = transportCostData.vatDeduction;
 
         // CELKOVÉ SÚČTY
-        costs.costTotal = costs.costWork + costs.costMaterial + costs.costMachinery +
-                         costs.costTransport + costs.costSubcontractors + costs.costOther;
+        costs.total = costs.work + costs.material + costs.machinery +
+                         costs.transport + costs.subcontractors + costs.other;
 
-        costs.costTotalVatDeduction = costs.costWorkVatDeduction + costs.costMaterialVatDeduction +
-                                     costs.costMachineryVatDeduction + costs.costTransportVatDeduction +
-                                     costs.costSubcontractorsVatDeduction + costs.costOtherVatDeduction;
+        costs.totalVatDeduction = costs.workVatDeduction + costs.materialVatDeduction +
+                                     costs.machineryVatDeduction + costs.transportVatDeduction +
+                                     costs.subcontractorsVatDeduction + costs.otherVatDeduction;
 
         // INÉ VÝDAVKY - dodatočné výdavky (môžu byť zadané manuálne)
         costs.otherExpenses = 0; // Zatiaľ 0, môže byť doplnené
 
         utils.addDebug(currentEntry, "    ✅ NÁKLADY FINÁLNE:");
-        utils.addDebug(currentEntry, "      • Práce: " + utils.formatMoney(costs.costWork) + " (odpočet DPH: " + utils.formatMoney(costs.costWorkVatDeduction) + ")");
-        utils.addDebug(currentEntry, "      • Materiál: " + utils.formatMoney(costs.costMaterial) + " (odpočet DPH: " + utils.formatMoney(costs.costMaterialVatDeduction) + ")");
-        utils.addDebug(currentEntry, "      • Stroje: " + utils.formatMoney(costs.costMachinery) + " (odpočet DPH: " + utils.formatMoney(costs.costMachineryVatDeduction) + ")");
-        utils.addDebug(currentEntry, "      • Doprava: " + utils.formatMoney(costs.costTransport) + " (odpočet DPH: " + utils.formatMoney(costs.costTransportVatDeduction) + ")");
-        utils.addDebug(currentEntry, "      • Subdodávky: " + utils.formatMoney(costs.costSubcontractors) + " (odpočet DPH: " + utils.formatMoney(costs.costSubcontractorsVatDeduction) + ")");
-        utils.addDebug(currentEntry, "      • Ostatné: " + utils.formatMoney(costs.costOther) + " (odpočet DPH: " + utils.formatMoney(costs.costOtherVatDeduction) + ")");
-        utils.addDebug(currentEntry, "      • SPOLU: " + utils.formatMoney(costs.costTotal) + " (odpočet DPH: " + utils.formatMoney(costs.costTotalVatDeduction) + ")");
+        utils.addDebug(currentEntry, "      • Práce: " + utils.formatMoney(costs.work) + " (odpočet DPH: " + utils.formatMoney(costs.workVatDeduction) + ")");
+        utils.addDebug(currentEntry, "      • Materiál: " + utils.formatMoney(costs.material) + " (odpočet DPH: " + utils.formatMoney(costs.materialVatDeduction) + ")");
+        utils.addDebug(currentEntry, "      • Stroje: " + utils.formatMoney(costs.machinery) + " (odpočet DPH: " + utils.formatMoney(costs.machineryVatDeduction) + ")");
+        utils.addDebug(currentEntry, "      • Doprava: " + utils.formatMoney(costs.transport) + " (odpočet DPH: " + utils.formatMoney(costs.transportVatDeduction) + ")");
+        utils.addDebug(currentEntry, "      • Subdodávky: " + utils.formatMoney(costs.subcontractors) + " (odpočet DPH: " + utils.formatMoney(costs.subcontractorsVatDeduction) + ")");
+        utils.addDebug(currentEntry, "      • Ostatné: " + utils.formatMoney(costs.other) + " (odpočet DPH: " + utils.formatMoney(costs.otherVatDeduction) + ")");
+        utils.addDebug(currentEntry, "      • SPOLU: " + utils.formatMoney(costs.total) + " (odpočet DPH: " + utils.formatMoney(costs.totalVatDeduction) + ")");
         utils.addDebug(currentEntry, "      • Iné výdavky: " + utils.formatMoney(costs.otherExpenses));
 
         return costs;
@@ -1189,20 +1189,20 @@ function saveCalculatedValues(linkedData, costs, revenue, profit) {
         utils.safeSet(currentEntry, CONFIG.fields.order.totalVat, revenue.totalVat);
 
         // NÁKLADY - podľa screenshotov
-        utils.safeSet(currentEntry, CONFIG.fields.order.costWork, costs.costWork);
-        utils.safeSet(currentEntry, CONFIG.fields.order.costWorkVatDeduction, costs.costWorkVatDeduction);
-        utils.safeSet(currentEntry, CONFIG.fields.order.costMaterial, costs.costMaterial);
-        utils.safeSet(currentEntry, CONFIG.fields.order.costMaterialVatDeduction, costs.costMaterialVatDeduction);
-        utils.safeSet(currentEntry, CONFIG.fields.order.costMachinery, costs.costMachinery);
-        utils.safeSet(currentEntry, CONFIG.fields.order.costMachineryVatDeduction, costs.costMachineryVatDeduction);
-        utils.safeSet(currentEntry, CONFIG.fields.order.costTransport, costs.costTransport);
-        utils.safeSet(currentEntry, CONFIG.fields.order.costTransportVatDeduction, costs.costTransportVatDeduction);
-        utils.safeSet(currentEntry, CONFIG.fields.order.costSubcontractors, costs.costSubcontractors);
-        utils.safeSet(currentEntry, CONFIG.fields.order.costSubcontractorsVatDeduction, costs.costSubcontractorsVatDeduction);
-        utils.safeSet(currentEntry, CONFIG.fields.order.costOther, costs.costOther);
-        utils.safeSet(currentEntry, CONFIG.fields.order.costOtherVatDeduction, costs.costOtherVatDeduction);
-        utils.safeSet(currentEntry, CONFIG.fields.order.costTotal, costs.costTotal);
-        utils.safeSet(currentEntry, CONFIG.fields.order.costTotalVatDeduction, costs.costTotalVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.work, costs.work);
+        utils.safeSet(currentEntry, CONFIG.fields.order.workVatDeduction, costs.workVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.material, costs.material);
+        utils.safeSet(currentEntry, CONFIG.fields.order.materialVatDeduction, costs.materialVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.machinery, costs.machinery);
+        utils.safeSet(currentEntry, CONFIG.fields.order.machineryVatDeduction, costs.machineryVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.transport, costs.transport);
+        utils.safeSet(currentEntry, CONFIG.fields.order.transportVatDeduction, costs.transportVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.subcontractors, costs.subcontractors);
+        utils.safeSet(currentEntry, CONFIG.fields.order.subcontractorsVatDeduction, costs.subcontractorsVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.other, costs.other);
+        utils.safeSet(currentEntry, CONFIG.fields.order.otherVatDeduction, costs.otherVatDeduction);
+        utils.safeSet(currentEntry, CONFIG.fields.order.total, costs.total);
+        utils.safeSet(currentEntry, CONFIG.fields.order.totalVatDeduction, costs.totalVatDeduction);
         utils.safeSet(currentEntry, CONFIG.fields.order.otherExpenses, costs.otherExpenses);
 
         // STARÝ ÚDAJ pre kompatibilitu
@@ -1224,7 +1224,7 @@ function saveCalculatedValues(linkedData, costs, revenue, profit) {
 
         // ROZPOČET A ZOSTATOK
         var budget = utils.safeGet(currentEntry, CONFIG.fields.order.budget, 0);
-        var spent = costs.costTotal;
+        var spent = costs.total;
         var remaining = budget - spent;
 
         utils.safeSet(currentEntry, CONFIG.fields.order.spent, spent);
