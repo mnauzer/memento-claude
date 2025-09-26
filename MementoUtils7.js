@@ -278,6 +278,7 @@ var MementoUtils = (function() {
         calculateAndUpdateMaterialPrices: lazyCall('business', 'calculateAndUpdateMaterialPrices'),
         applyPriceRounding: lazyCall('business', 'applyPriceRounding'),
         createMaterialInfoRecord: lazyCall('business', 'createMaterialInfoRecord'),
+        createOrUpdateMaterialPriceRecord: lazyCall('business', 'createOrUpdateMaterialPriceRecord'),
 
 
         // === GPS FUNKCIE (ak je modul dostupný) ===

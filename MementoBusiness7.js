@@ -965,6 +965,105 @@ var MementoBusiness = (function() {
         }
     }
 
+    /**
+     * Vytvorí alebo aktualizuje záznam v knižnici "ceny materiálu"
+     * @param {Object} materialItem - Záznam materiálu
+     * @param {Date} priceDate - Dátum platnosti ceny
+     * @param {number} newPrice - Nová cena materiálu
+     * @returns {Object} Výsledok operácie
+     */
+    function createOrUpdateMaterialPriceRecord(materialItem, priceDate, newPrice) {
+        try {
+            var core = getCore();
+            var config = getConfig();
+
+            var materialName = core.safeGet(materialItem, config.fields.items.name, "Neznámy materiál");
+
+            // Získanie knižnice ceny materiálu
+            var pricesLibrary = lib(config.libraries.materialPrices);
+            if (!pricesLibrary) {
+                core.addError(entry(), "Knižnica " + config.libraries.materialPrices + " neexistuje", "createOrUpdateMaterialPriceRecord");
+                return {
+                    success: false,
+                    message: "Knižnica ceny materiálu neexistuje"
+                };
+            }
+
+            var dateFormatted = core.formatDate(priceDate, "DD.MM.YYYY");
+            core.addDebug(entry(), "💰 " + materialName + " - Spracovávam cenový záznam k " + dateFormatted);
+
+            // Hľadanie existujúceho záznamu pre tento materiál a dátum
+            var existingPriceEntry = null;
+            var priceEntries = materialItem.linksFrom(pricesLibrary);
+
+            if (priceEntries && priceEntries.length > 0) {
+                for (var i = 0; i < priceEntries.length; i++) {
+                    var priceEntry = priceEntries[i];
+                    var entryDate = core.safeGet(priceEntry, config.fields.materialPrices.date);
+
+                    if (entryDate) {
+                        var entryMoment = moment(entryDate);
+                        var priceMoment = moment(priceDate);
+
+                        // Porovnanie dátumov (len dátum, nie čas)
+                        if (entryMoment.format("YYYY-MM-DD") === priceMoment.format("YYYY-MM-DD")) {
+                            existingPriceEntry = priceEntry;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (existingPriceEntry) {
+                // Aktualizácia existujúceho záznamu
+                var oldPrice = parseFloat(core.safeGet(existingPriceEntry, config.fields.materialPrices.price, 0));
+                core.safeSet(existingPriceEntry, config.fields.materialPrices.price, newPrice);
+
+                core.addDebug(entry(), "🔄 " + materialName + " - Aktualizovaný cenový záznam k " + dateFormatted + ": " +
+                             core.formatMoney(oldPrice) + " -> " + core.formatMoney(newPrice));
+
+                return {
+                    success: true,
+                    updated: true,
+                    message: "Cenový záznam aktualizovaný",
+                    oldPrice: oldPrice,
+                    newPrice: newPrice,
+                    date: priceDate
+                };
+
+            } else {
+                // Vytvorenie nového záznamu
+                var newPriceEntry = pricesLibrary.create();
+
+                // Nastavenie polí nového záznamu
+                core.safeSet(newPriceEntry, config.fields.materialPrices.material, [materialItem]);
+                core.safeSet(newPriceEntry, config.fields.materialPrices.date, priceDate);
+                core.safeSet(newPriceEntry, config.fields.materialPrices.price, newPrice);
+
+                core.addDebug(entry(), "➕ " + materialName + " - Vytvorený nový cenový záznam k " + dateFormatted + ": " + core.formatMoney(newPrice));
+
+                return {
+                    success: true,
+                    created: true,
+                    message: "Nový cenový záznam vytvorený",
+                    newPrice: newPrice,
+                    date: priceDate,
+                    entryId: core.safeGet(newPriceEntry, "ID", "N/A")
+                };
+            }
+
+        } catch (error) {
+            var core = getCore();
+            if (core) {
+                core.addError(entry(), "Chyba pri spracovaní cenového záznamu: " + error.toString(), "createOrUpdateMaterialPriceRecord", error);
+            }
+            return {
+                success: false,
+                message: "Chyba pri spracovaní cenového záznamu: " + error.toString()
+            };
+        }
+    }
+
     // ==============================================
     // MATERIAL PRICE CALCULATIONS - NOVÉ FUNKCIE
     // ==============================================
@@ -1142,10 +1241,46 @@ var MementoBusiness = (function() {
                     previousPurchasePrice: currentPurchasePrice,
                     changePercentage: currentPurchasePrice > 0 ? Math.abs((purchasePrice - currentPurchasePrice) / currentPurchasePrice) * 100 : 0,
                     changeDirection: purchasePrice > currentPurchasePrice ? "rast" : "pokles",
-                    iconsAdded: iconsToAdd.join(" ")
+                    iconsAdded: iconsToAdd.join(" "),
+                    // Informácie o cenové histórii (bude pridané neskôr)
+                    priceHistoryResult: null
                 });
 
                 updated = true;
+
+                // Vytvorenie/aktualizácia záznamu v knižnici "ceny materiálu"
+                var priceHistoryResult = createOrUpdateMaterialPriceRecord(item, documentDate, finalPrice);
+                if (priceHistoryResult.success) {
+                    if (priceHistoryResult.created) {
+                        core.addDebug(entry(), "➕ " + materialName + " - Vytvorený cenový záznam v histórii");
+                    } else if (priceHistoryResult.updated) {
+                        core.addDebug(entry(), "🔄 " + materialName + " - Aktualizovaný cenový záznam v histórii");
+                    }
+                } else {
+                    core.addDebug(entry(), "⚠️ " + materialName + " - Chyba pri vytváraní cenového záznamu: " + priceHistoryResult.message);
+                }
+
+                // Aktualizácia info záznamu s kompletými informáciami vrátane cenovej histórie
+                createMaterialInfoRecord(item, {
+                    materialName: materialName,
+                    purchasePrice: finalPurchasePrice,
+                    finalPrice: finalPrice,
+                    sellingPrice: finalPrice,
+                    roundedPriceWithVat: roundedPriceWithVat,
+                    vatRate: vatRatePercentage,
+                    effectiveMarkupPercentage: effectiveMarkupPercentage,
+                    priceRounding: core.safeGet(item, config.fields.items.priceRounding, "").trim(),
+                    roundingValue: core.safeGet(item, config.fields.items.roundingValue, "").trim(),
+                    documentDate: documentDate,
+                    // Informácie o kontrole zmeny ceny
+                    purchasePriceChangeAction: purchasePriceChangeAction,
+                    previousPurchasePrice: currentPurchasePrice,
+                    changePercentage: currentPurchasePrice > 0 ? Math.abs((purchasePrice - currentPurchasePrice) / currentPurchasePrice) * 100 : 0,
+                    changeDirection: purchasePrice > currentPurchasePrice ? "rast" : "pokles",
+                    iconsAdded: iconsToAdd.join(" "),
+                    // Informácie o cenové histórii (teraz už dostupné)
+                    priceHistoryResult: priceHistoryResult
+                });
 
                 core.addDebug(entry(), "🔄 " + materialName + " - Aktualizované ceny:");
                 core.addDebug(entry(), "  Nákupná: " + core.formatMoney(finalPurchasePrice) + " / s DPH: " + core.formatMoney(finalPurchasePriceWithVat));
@@ -1316,6 +1451,26 @@ var MementoBusiness = (function() {
                 infoMessage += "• Skutočná marža: " + actualMargin.toFixed(2) + "%\n";
             }
 
+            // Informácie o cenové histórii
+            if (priceData.priceHistoryResult) {
+                infoMessage += "\n📈 CENOVÁ HISTÓRIA:\n";
+                infoMessage += "───────────────────────────────────────────\n";
+                if (priceData.priceHistoryResult.success) {
+                    if (priceData.priceHistoryResult.created) {
+                        infoMessage += "• Vytvorený nový záznam v knižnici 'ceny materiálu'\n";
+                        infoMessage += "• Dátum platnosti: " + core.formatDate(priceData.priceHistoryResult.date) + "\n";
+                        infoMessage += "• Cena: " + core.formatMoney(priceData.priceHistoryResult.newPrice) + "\n";
+                    } else if (priceData.priceHistoryResult.updated) {
+                        infoMessage += "• Aktualizovaný existujúci záznam v knižnici 'ceny materiálu'\n";
+                        infoMessage += "• Dátum platnosti: " + core.formatDate(priceData.priceHistoryResult.date) + "\n";
+                        infoMessage += "• Stará cena: " + core.formatMoney(priceData.priceHistoryResult.oldPrice) + "\n";
+                        infoMessage += "• Nová cena: " + core.formatMoney(priceData.priceHistoryResult.newPrice) + "\n";
+                    }
+                } else {
+                    infoMessage += "• ❌ Chyba pri vytváraní záznamu: " + priceData.priceHistoryResult.message + "\n";
+                }
+            }
+
             infoMessage += "\n✅ CENY AKTUALIZOVANÉ ÚSPEŠNE";
 
             // Nastavenie info záznamu do materiálu
@@ -1388,7 +1543,8 @@ var MementoBusiness = (function() {
         // Materiál funkcie - NOVÉ
         calculateAndUpdateMaterialPrices: calculateAndUpdateMaterialPrices,
         applyPriceRounding: applyPriceRounding,
-        createMaterialInfoRecord: createMaterialInfoRecord
+        createMaterialInfoRecord: createMaterialInfoRecord,
+        createOrUpdateMaterialPriceRecord: createOrUpdateMaterialPriceRecord
     };
 })();
 
