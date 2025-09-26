@@ -1087,16 +1087,19 @@ var MementoBusiness = (function() {
                 core.addDebug(entry(), "🚫 " + materialName + " - Prepočet ceny preskočený podľa nastavenia");
             }
 
-            // 9. Aktualizovať ikony ak sú k dispozícii (nezávisle od zmeny cien)
+            // 9. Aktualizovať ikony ak sú k dispozícii (nahradenie starých ikon)
             if (iconsToAdd.length > 0) {
-                var currentIcons = core.safeGet(item, config.fields.items.icons, "");
                 var newIcons = iconsToAdd.join(" ");
-                // Ak už existujú nejaké ikony, pridaj nové
-                if (currentIcons && currentIcons.trim() !== "") {
-                    newIcons = currentIcons + " " + newIcons;
-                }
+                var currentIcons = core.safeGet(item, config.fields.items.icons, "");
+
+                // Nahraď staré ikony novými (nezachovávaj predchádzajúce)
                 core.safeSet(item, config.fields.items.icons, newIcons);
-                core.addDebug(entry(), "🎯 " + materialName + " - Pridané ikony: " + iconsToAdd.join(" "));
+
+                if (currentIcons && currentIcons.trim() !== "") {
+                    core.addDebug(entry(), "🔄 " + materialName + " - Ikony nahradené: '" + currentIcons + "' -> '" + newIcons + "'");
+                } else {
+                    core.addDebug(entry(), "🎯 " + materialName + " - Pridané ikony: " + newIcons);
+                }
                 updated = true;
             }
 
