@@ -1071,11 +1071,12 @@ var MementoBusiness = (function() {
     /**
      * Vypočítava a aktualizuje ceny materiálu na základe nastavení
      * @param {Object} item - Záznam materiálu
-     * @param {number} purchasePrice - Nákupná cena z príjemky
+     * @param {number} purchasePrice - Nákupná cena z príjemky/manuálneho vstupu
      * @param {Date} documentDate - Dátum dokumentu
+     * @param {boolean} isManualAction - Či ide o manuálny prepočet (true) alebo príjemku (false)
      * @returns {Object} Výsledok aktualizácie
      */
-    function calculateAndUpdateMaterialPrices(item, purchasePrice, documentDate) {
+    function calculateAndUpdateMaterialPrices(item, purchasePrice, documentDate, isManualAction) {
         try {
             var core = getCore();
             var config = getConfig();
@@ -1243,7 +1244,8 @@ var MementoBusiness = (function() {
                     changeDirection: purchasePrice > currentPurchasePrice ? "rast" : "pokles",
                     iconsAdded: iconsToAdd.join(" "),
                     // Informácie o cenové histórii (bude pridané neskôr)
-                    priceHistoryResult: null
+                    priceHistoryResult: null,
+                    isManualAction: isManualAction || false
                 });
 
                 updated = true;
@@ -1262,13 +1264,18 @@ var MementoBusiness = (function() {
 
                 // Aktualizácia info záznamu s kompletými informáciami vrátane cenovej histórie
                 createMaterialInfoRecord(item, {
-                    materialName: materialName,
-                    purchasePrice: finalPurchasePrice,
+                    originalPurchasePrice: finalPurchasePrice,
+                    originalSellingPrice: finalPrice,
+                    originalPriceWithVat: roundedPriceWithVat,
+                    originalPurchasePriceWithVat: finalPurchasePriceWithVat,
                     finalPrice: finalPrice,
-                    sellingPrice: finalPrice,
-                    roundedPriceWithVat: roundedPriceWithVat,
+                    finalPriceWithVat: roundedPriceWithVat,
+                    finalPurchasePrice: finalPurchasePrice,
+                    finalPurchasePriceWithVat: finalPurchasePriceWithVat,
                     vatRate: vatRatePercentage,
-                    effectiveMarkupPercentage: effectiveMarkupPercentage,
+                    vatRateType: core.safeGet(item, config.fields.items.vatRate, "Základná"),
+                    priceCalculation: core.safeGet(item, config.fields.items.priceCalculation, "Podľa prirážky"),
+                    markupPercentage: effectiveMarkupPercentage,
                     priceRounding: core.safeGet(item, config.fields.items.priceRounding, "").trim(),
                     roundingValue: core.safeGet(item, config.fields.items.roundingValue, "").trim(),
                     documentDate: documentDate,
@@ -1279,7 +1286,8 @@ var MementoBusiness = (function() {
                     changeDirection: purchasePrice > currentPurchasePrice ? "rast" : "pokles",
                     iconsAdded: iconsToAdd.join(" "),
                     // Informácie o cenové histórii (teraz už dostupné)
-                    priceHistoryResult: priceHistoryResult
+                    priceHistoryResult: priceHistoryResult,
+                    isManualAction: isManualAction || false
                 });
 
                 core.addDebug(entry(), "🔄 " + materialName + " - Aktualizované ceny:");
@@ -1371,6 +1379,26 @@ var MementoBusiness = (function() {
     }
 
     /**
+     * Získa popis zaokrúhľovania na základe hodnoty
+     */
+    function getRoundingDescription(roundingValue) {
+        if (!roundingValue || roundingValue.trim() === "") {
+            return "nie je nastavené";
+        }
+
+        switch (roundingValue.trim()) {
+            case "0.01": return "desatiny";
+            case "0.1": return "desatiny";
+            case "1": return "jednotky";
+            case "5": return "na 5";
+            case "10": return "na 10";
+            case "50": return "na 50";
+            case "100": return "na 100";
+            default: return roundingValue;
+        }
+    }
+
+    /**
      * Vytvorí info záznam pre materiál s detailmi prepočtu cien
      * @param {Object} item - Záznam materiálu
      * @param {Object} priceData - Dáta o cenách
@@ -1388,8 +1416,11 @@ var MementoBusiness = (function() {
             infoMessage += "═══════════════════════════════════════════\n";
 
             infoMessage += "📦 Materiál: " + materialName + "\n";
-            infoMessage += "📅 Dátum príjemky: " + dateFormatted + "\n";
-            infoMessage += "🔧 Script: Príjemky materiálu Prepočet v1.0.0\n\n";
+            var sourceText = priceData.isManualAction ? "manuálny prepočet" : "príjemka";
+            var scriptName = priceData.isManualAction ? "Materiál Prepočet ceny Action v1.2.0" : "Príjemky materiálu Prepočet v1.0.0";
+
+            infoMessage += "📅 Dátum: " + dateFormatted + "\n";
+            infoMessage += "🔧 Script: " + scriptName + "\n\n";
 
             infoMessage += "⚙️ NASTAVENIA PREPOČTU:\n";
             infoMessage += "───────────────────────────────────────────\n";
@@ -1399,7 +1430,8 @@ var MementoBusiness = (function() {
             }
             infoMessage += "• Sadzba DPH: " + priceData.vatRateType + " (" + priceData.vatRate + "%)\n";
             if (priceData.priceRounding && priceData.priceRounding !== "Nezaokrúhľovať") {
-                infoMessage += "• Zaokrúhľovanie: " + priceData.priceRounding + " (" + priceData.roundingValue + ")\n";
+                var roundingText = getRoundingDescription(priceData.roundingValue);
+                infoMessage += "• Zaokrúhľovanie: " + priceData.priceRounding + " (" + roundingText + ")\n";
             }
 
             // Informácie o kontrole zmeny nákupnej ceny
@@ -1418,7 +1450,7 @@ var MementoBusiness = (function() {
 
             infoMessage += "💸 NÁKUPNÉ CENY (nezaokrúhľujú sa):\n";
             infoMessage += "───────────────────────────────────────────\n";
-            infoMessage += "• Nákupná cena (z príjemky): " + core.formatMoney(priceData.originalPurchasePrice) + "\n";
+            infoMessage += "• Nákupná cena (" + sourceText + "): " + core.formatMoney(priceData.originalPurchasePrice) + "\n";
             infoMessage += "• Nákupná cena s DPH: " + core.formatMoney(priceData.originalPurchasePriceWithVat) + "\n";
             infoMessage += "\n";
 
