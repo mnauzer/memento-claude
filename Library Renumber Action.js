@@ -197,12 +197,12 @@ function main() {
             return false;
         }
 
-        addDebug("📚 Knižnica: " + targetLib.name);
+        addDebug("📚 Knižnica: " + targetLib.title);
         addDebug("📊 Počet záznamov: " + targetLib.entries().length);
 
         // Zobraz konfirmačný dialóg
         var confirmMsg = "🔢 PREČÍSLOVANIE KNIŽNICE\n\n";
-        confirmMsg += "📚 Knižnica: " + targetLib.name + "\n";
+        confirmMsg += "📚 Knižnica: " + targetLib.title + "\n";
         confirmMsg += "📊 Záznamy: " + targetLib.entries().length + "\n";
         confirmMsg += "📅 Pole dátumu: " + CONFIG.settings.dateField + "\n";
         confirmMsg += "🆔 Pole ID: " + CONFIG.settings.idField + "\n";

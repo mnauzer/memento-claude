@@ -1286,7 +1286,12 @@ var MementoBusiness = (function() {
         calculateProfitability: calculateProfitability,
 
         // DPH funkcie
-        getValidVatRate: getValidVatRate
+        getValidVatRate: getValidVatRate,
+
+        // Materiál funkcie - NOVÉ
+        calculateAndUpdateMaterialPrices: calculateAndUpdateMaterialPrices,
+        applyPriceRounding: applyPriceRounding,
+        createMaterialInfoRecord: createMaterialInfoRecord
     };
 })();
 
