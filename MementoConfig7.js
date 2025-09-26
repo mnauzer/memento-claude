@@ -366,11 +366,11 @@ var MementoConfig = (function() {
                 vatRate: "sadzba DPH", // singleChoice: Základná, Znížená, Nulová
                 vatRateValue: "Sadzba (hodnota DPH)", // realNumber
                 priceCalculation: "Prepočet ceny", // singleChoice: Pevná cena, Podľa prirážky, Neprepočítavať
-                markupPercentage: "Obchodná prirážka (%)", // realNumber
+                markupPercentage: "Obchodná prirážka", // realNumber
                 priceRounding: "Zaokrúhľovanie cien", // singleChoice: Nahor, Nadol, Nezaokrúhľovať, Najbližšie
                 roundingValue: "Hodnota zaokrúhenia", // singleChoice: Desatiny, Jednotky, Desiatky, Stovky
                 purchasePriceChange: "Zmena nákupnej ceny", // singleChoice: Upozorniť, Prepočítať, Ignorovať
-                changePercentage: "Percento zmeny (%)", // realNumber
+                changePercentage: "Percento zmeny", // realNumber
                 calculatedMargin: "Vypočítaná marža", // realNumber
                 description: "Popis", // text
                 manufacturer: "Výrobca", // text
