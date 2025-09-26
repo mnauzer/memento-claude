@@ -1037,7 +1037,7 @@ var MementoBusiness = (function() {
             } else {
                 // Vytvorenie nového záznamu
                 core.addDebug(entry(), "🔍 DEBUG: Existujúci záznam nenájdený, vytváram nový");
-                var newPriceEntry = pricesLibrary.create();
+                var newPriceEntry = pricesLibrary.create({});
 
                 // Nastavenie polí nového záznamu (s fallback názvami)
                 var materialField = (config.fields && config.fields.materialPrices && config.fields.materialPrices.material) || "Materiál";
