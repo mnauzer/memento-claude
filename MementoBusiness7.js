@@ -1017,19 +1017,35 @@ var MementoBusiness = (function() {
             }
 
             if (existingPriceEntry) {
-                var priceField = (config.fields.materialPrices.price);
-                var oldPrice = parseFloat(core.safeGet(existingPriceEntry, priceField, 0));
-                core.safeSet(existingPriceEntry, priceField, newPrice);
+                // Získanie polí pre aktualizáciu
+                var sellPriceField = config.fields.materialPrices.sellPrice;
+                var purchasePriceField = config.fields.materialPrices.purchasePrice;
+                var vatRateField = config.fields.materialPrices.vatRate;
 
-                core.addDebug(entry(), "🔄 " + materialName + " - Aktualizovaný cenový záznam k " + dateFormatted + ": " +
-                             core.formatMoney(oldPrice) + " -> " + core.formatMoney(newPrice));
+                // Získanie aktuálnej sadzby DPH z materiálu
+                var materialVatRate = core.safeGet(materialItem, config.fields.items.vatRate, "Základná");
+                var vatRatePercentage = getValidVatRate(materialVatRate, priceDate);
+
+                var oldSellPrice = parseFloat(core.safeGet(existingPriceEntry, sellPriceField, 0));
+                var oldPurchasePrice = parseFloat(core.safeGet(existingPriceEntry, purchasePriceField, 0));
+
+                // Aktualizácia polí
+                core.safeSet(existingPriceEntry, sellPriceField, sellPrice);
+                core.safeSet(existingPriceEntry, purchasePriceField, purchasePrice);
+                core.safeSet(existingPriceEntry, vatRateField, vatRatePercentage + "%");
+
+                core.addDebug(entry(), "🔄 " + materialName + " - Aktualizovaný cenový záznam k " + dateFormatted);
+                core.addDebug(entry(), "  • Predajná: " + core.formatMoney(oldSellPrice) + " -> " + core.formatMoney(sellPrice));
+                core.addDebug(entry(), "  • Nákupná: " + core.formatMoney(oldPurchasePrice) + " -> " + core.formatMoney(purchasePrice));
 
                 return {
                     success: true,
                     updated: true,
                     message: "Cenový záznam aktualizovaný",
-                    oldPrice: oldPrice,
+                    oldSellPrice: oldSellPrice,
+                    oldPurchasePrice: oldPurchasePrice,
                     sellPrice: sellPrice,
+                    purchasePrice: purchasePrice,
                     date: priceDate
                 };
 
@@ -1042,11 +1058,17 @@ var MementoBusiness = (function() {
                 var dateField = config.fields.materialPrices.date;
                 var purchasePriceField = config.fields.materialPrices.purchasePrice;
                 var sellPriceField = config.fields.materialPrices.sellPrice;
+                var vatRateField = config.fields.materialPrices.vatRate;
+
+                // Získanie aktuálnej sadzby DPH z materiálu
+                var materialVatRate = core.safeGet(materialItem, config.fields.items.vatRate, "Základná");
+                var vatRatePercentage = getValidVatRate(materialVatRate, priceDate);
 
                 core.safeSet(newPriceEntry, materialField, [materialItem]);
                 core.safeSet(newPriceEntry, dateField, priceDate);
                 core.safeSet(newPriceEntry, purchasePriceField, purchasePrice);
                 core.safeSet(newPriceEntry, sellPriceField, sellPrice);
+                core.safeSet(newPriceEntry, vatRateField, vatRatePercentage + "%");
 
 
                 core.addDebug(entry(), "➕ " + materialName + " - Vytvorený nový cenový záznam k " + dateFormatted + ": " + core.formatMoney(sellPrice));
@@ -1231,6 +1253,13 @@ var MementoBusiness = (function() {
                 core.safeSet(item, config.fields.items.purchasePrice, finalPurchasePrice);
                 core.safeSet(item, config.fields.items.purchasePriceWithVat, finalPurchasePriceWithVat);
 
+                // Vypočítať a nastaviť skutočnú prirážku (Vypočítaná marža)
+                if (finalPurchasePrice > 0) {
+                    var actualMargin = ((finalPrice - finalPurchasePrice) / finalPurchasePrice) * 100;
+                    core.safeSet(item, config.fields.items.calculatedMargin, actualMargin);
+                    core.addDebug(entry(), "💯 Skutočná prirážka nastavená na: " + actualMargin.toFixed(2) + "%");
+                }
+
                 // Vytvorenie info záznamu pre materiál
                 createMaterialInfoRecord(item, {
                     originalPurchasePrice: finalPurchasePrice,
@@ -1399,15 +1428,20 @@ var MementoBusiness = (function() {
             return "nie je nastavené";
         }
 
-        switch (roundingValue.trim()) {
+        var value = roundingValue.trim().toLowerCase();
+        switch (value) {
             case "0.01": return "desatiny";
             case "0.1": return "desatiny";
+            case "desatiny": return "desatiny";
             case "1": return "jednotky";
+            case "jednotky": return "jednotky";
             case "5": return "na 5";
             case "10": return "na 10";
+            case "desiatky": return "na 10";
             case "50": return "na 50";
             case "100": return "na 100";
-            default: return roundingValue;
+            case "stovky": return "na 100";
+            default: return value;
         }
     }
 
