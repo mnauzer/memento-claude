@@ -59,7 +59,7 @@ var CONFIG = {
     materialFields: {
         name: (centralConfig.fields && centralConfig.fields.items && centralConfig.fields.items.name) || "Názov",
         priceCalculation: (centralConfig.fields && centralConfig.fields.items && centralConfig.fields.items.priceCalculation) || "Prepočet ceny",
-        markupPercentage: (centralConfig.fields && centralConfig.fields.items && centralConfig.fields.items.markupPercentage) || "Obchodná prirážka (%)",
+        markupPercentage: (centralConfig.fields && centralConfig.fields.items && centralConfig.fields.items.markupPercentage) || "Obchodná prirážka",
         priceRounding: (centralConfig.fields && centralConfig.fields.items && centralConfig.fields.items.priceRounding) || "Zaokrúhľovanie cien",
         roundingValue: (centralConfig.fields && centralConfig.fields.items && centralConfig.fields.items.roundingValue) || "Hodnota zaokrúhenia",
         vatRate: (centralConfig.fields && centralConfig.fields.items && centralConfig.fields.items.vatRate) || "sadzba DPH",
@@ -95,6 +95,7 @@ var CONFIG = {
 
 function main() {
     try {
+        utils.clearLogs(currentEntry, [CONFIG.fields.debugLog, CONFIG.fields.errorLog]);
         utils.addDebug(currentEntry, CONFIG.icons.start + " === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
 
         // Získanie dátumu pre určenie platnej sadzby DPH
