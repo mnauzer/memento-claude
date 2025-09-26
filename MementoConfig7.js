@@ -364,7 +364,8 @@ var MementoConfig = (function() {
                 purchasePrice: "Nákupná cena", // realNumber
                 purchasePriceWithVat: "Nákupná cena s DPH", // realNumber
                 vatRate: "sadzba DPH", // singleChoice: Základná, Znížená, Nulová
-                vatRateValue: "Sadzba (hodnota DPH)", // realNumber
+                vatRateValue: "DPH", // realNumber
+                vatRatePercentage: "Sadzba", // realNumber
                 priceCalculation: "Prepočet ceny", // singleChoice: Pevná cena, Podľa prirážky, Neprepočítavať
                 markupPercentage: "Obchodná prirážka", // realNumber
                 priceRounding: "Zaokrúhľovanie cien", // singleChoice: Nahor, Nadol, Nezaokrúhľovať, Najbližšie

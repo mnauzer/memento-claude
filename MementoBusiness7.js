@@ -980,7 +980,7 @@ var MementoBusiness = (function() {
             var materialName = core.safeGet(materialItem, config.fields.items.name, "Neznámy materiál");
 
             // Získanie knižnice ceny materiálu
-            var pricesLibrary = lib(config.libraries.materialPrices);
+            var pricesLibrary = libByName(config.libraries.materialPrices);
             if (!pricesLibrary) {
                 core.addError(entry(), "Knižnica " + config.libraries.materialPrices + " neexistuje", "createOrUpdateMaterialPriceRecord");
                 return {
