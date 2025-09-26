@@ -189,58 +189,6 @@ var MementoConfig = (function() {
                 infoTelegram: "info_telegram",    // NOVÉ
                 notifications: "Notifikácie",     // NOVÉ - link field
             },
-
-            // === EVIDENCIA - DENNÉ ZÁZNAMY ===
-            // Dochádzka polia
-            attendance: {
-                date: "Dátum",
-                arrival: "Príchod",
-                departure: "Odchod",
-                employees: "Zamestnanci",
-                works: "Práce", // linkToEntry: záznamy knižnice Záznam prác
-                rides: "Jazdy", // linkToEntry: záznamy knižnice Knija jázd
-                cashBook: "Pokladňa", // linkToEntry: záznamy knižnice Pokladňa
-                notifications: "Notifikácie", // linkToEntry: záznamy knižnice Notifikácie (group notifications)
-                obligations: "Záväzky",
-                employeeCount: "Počet pracovníkov",
-                workTime: "Pracovná doba",
-                workedHours: "Odpracované",
-                workedOnOrders: "Na zákazkách",
-                downTime: "Prestoje",
-                wageCosts: "Mzdové náklady",
-                keys: "keys",
-                entryStatus: "stav záznamu", // multiCheckboxes: Záväzky, Práce, Jazdy, Notifikácie, Skontrolované, Voľno
-                dayOffReason: "Dôvod voľna", // singleChoice: Dážď, Mokro, Oddych, Dovolenka, Iné
-                entryIcons: "ikony záznamu",
-                employeeAttributes: {
-                    workedHours: "odpracované",
-                    hourlyRate: "hodinovka",
-                    bonus: "+príplatok (€/h)",
-                    premium: "+prémia (€)",
-                    penalty: "-pokuta (€)",
-                    dailyWage: "denná mzda",
-                    note: "poznámka"
-                },
-            },
-            // Záznam práce polia
-            workRecord: {
-                date: "Dátum",
-                order: "Zákazka",
-                employees: "Zamestnanci",
-                hzs: "Hodinová zúčtovacia sadzba",
-                workReport: "Výkaz prác",
-                workDescription: "Vykonané práce",
-                employeeCount: "Počet pracovníkov",
-                workTime: "Pracovná doba",
-                workedHours: "Odpracované",
-                wageCosts: "Mzdové náklady",
-                hzsSum: "Suma HZS",
-                machinesSum: "Suma stroje",
-                startTime: "Od",
-                endTime: "Do",
-                machinery: "Mechanizácia", // linkToEntry Mechanizácia
-                sumMachineryUsage: "Použitie mechanizácie", // linkToEntry Výkaz strojov
-            },
             // Kniha jázd polia
             rideLog: {
                 zastavky: "Zastávky",
@@ -271,63 +219,10 @@ var MementoConfig = (function() {
                 stops: "Zastávky",
                 trasa: "",
                 vehicleCosts: "Náklady vozidlo"
-            },
-            // Pokladňa polia
-            cashBook: {
-                date: "Dátum",
-                transactionType: "Pohyb", //s ingleChoice: Príjem, Výdaj, PP (Priebežná položka)
-                fromAccount: "Z pokladne", // linkToEntry: Účty (Accounts)
-                toAccount: "Do pokladne", // linkToEntry: Účty (Accounts)
-                paidBy: "Platbu vykonal", // linkToEntry: Zamestnanci (Employees), kto vykonal platbu
-                paidTo: "Platbu prijal", // linkToEntry: Zamestnanci (Employees), kto prijal platbu
-                obligationPayment: "Úhrada záväzku", //Checkbox - či sa platbou uhrádzajú záväzky
-                obligationType: "Typ záväzku", //singleChoice: Mzdy, Faktúry, Nájomné, Leasing (pribudnú ďalšie)
-                offsetClaim: "Započítať pohľadávku", //Checkbox - pri úhrade záväzku sa môže započítať pohľadávka ak je rovnaký subjekt (creditor)
-                fromOverpaymentCreate: "Z preplatku vytvoriť", //Options: Zálohu, Prémiu, Pohľadávku (ak pri platbe vznikne preplatok, uplatní sa jedna z možností)
-                obligations: "Záväzky", //linkToEntry: Záväzky (prepojené úhrádzané záväzky)
-                claims: "Pohľadávky", //linkToEntry: Pohľadávky (prepojené pohľadávky ktoré uhrádzajú záväzky alebo vznikli platbou)
-                transferPurpose: "Účel prevodu", // singleChoice: Dotácia pokladne, Vklad na účet, Presun hotovosti, (použíje sa pri Priebežná položka)
-                // tieto polia pravdepodobne prerobím na linksFrom
-                recordToCustomer: "Evidovať na zákazku", // Checkbox: platba sa bude evidovať na konkrétnu zákazku
-                customer: "Zákazka", // linkToEntry: Zákazky, prepojenie so zákazkou s ktorou súvisí platba
-                order: "Zákazka", // linkToEntry: Zákazky, prepojenie so zákazkou s ktorou súvisí platba
-                rezia: "Prevádzková réžia", // singleChoice: PHM Vozidlá, PHM Stroje, ND a servis vozidlá, ND a servis stroje, PR Pitný režim, Stravné, Potraviny, Réžia rôzne, DHIM, Výdavky na zákazku, Pracovné odevy, Externá doprava, Kancelárske potreby
-                tool: "Stroj", // linkToEntry: Stroje
-                vehicle: "Vozidlo", // linkToEntry: Stroje
-                financialFees: "Finančné poplatky", //singleChoice: Odvody ZP a SP, Poistenie MV, Diaľničná známka, DPH, Pokuty a penále, Poplatky banka (ďalšie položky sa môžu vytvárať postupne)
-                employee: "Zamestnanec", // linkToEntry: Zamestnanci
-                supplier: "Dodávateľ", // linkToEntry: Dodávatelia
-                partner: "Partner", // linkToEntry: Partneri
-                sum: "Suma", // suma záznamu bez dph
-                sumTotal: "Suma s DPH", // suma záznamu s dph
-                vat: "DPH", // suma DPH
-                description: "Popis platby",
-                note: "Poznámka",
-                image: "Doklad", // screenshot alebo foto reálneho dokladu
-                isVat: "s DPH", // checkbox: či je záznam s dph alebo bez dph
-                vatRate: "sadzba DPH", // singleChoice: základná, znížená, nulová
-                vatRateValue: "DPH%"
-            },
 
-            // === EVIDENCIA POMOCNÉ ===
-            // Výkaz prác polia
-            workReport: {
-                datum: "Dátum",
-                identifikator: "Identifikátor",
-                popis: "Popis",
-                typVykazu: "Typ výkazu",
-                cenyPocitat: "Ceny počítať",
-                cenovaPonuka: "Cenová ponuka",
-                vydane: "Vydané",
-                zakazka: "Zákazka",
-                praceHZS: "Práce HZS",
-                info: "info",
-                totalHours: "Celkové hodiny",
-                hzsSum: "Suma HZS",
-                hzsCount: "Počet záznamov"
             },
             // Výkaz dopravy polia
-            rideReport: {
+            rideReport: {   
                 date: "Dátum",
                 state: "Stav", // singleChoice: Čakajúce, Prebieha, Ukončené, Vyúčtované, Zaplatené
                 number: "Číslo", // text unique
@@ -335,46 +230,14 @@ var MementoConfig = (function() {
                 reportType: "Typ výkazu", // options: % zo zákazky, Pevná suma, Cena za km, Počet jazd x paušál
                 priceCalculation: "Ceny počítať", // singleChoice: Z cenovej ponuky, z cenníka
                 order: "Zákazka", // linkToEntry Zákazky
-                kmTotal: "Km celkom", // real number, súčet km z výkazu dopravy
+                kmTotal: "Km celkom", // real number, súčet km z výkazu dopravy 
                 hoursTotal: "Hodiny celkom", // real number, súčet hodín z výkazu dopravy
                 rideCount: "Počet jázd", // integer, počet záznamov z výkazu dopravy
                 wageCostsTotal: "Mzdové náklady celkom", // real number, súčet mzdových nákladov z výkazu dopravy
                 sum: "Suma celkom", // real number
                 ride: "Doprava", // linkToEntry Kniha jázd
-            },
 
-            // === CENNÍKY A SKLAD ===
-            // Materiál polia
-            material: {
-                name: "Názov", // text
-                description: "Popis", // text
-                unit: "Jednotka", // text
-                price: "Cena" // real number
             },
-            // Výdajky materiálu polia
-            materialExpenses: {
-                number: "Číslo", // text
-                date: "Dátum", // date
-                description: "Popis", // text
-                issuedTo: "Vydané", // singleChoice: Zákazka, Partner, Klient
-                client: "Klient", // linkToEntry Klienti
-                order: "Zákazka", // linkToEntry Zákazky
-                partner: "Partner", // linkToEntry Partneri
-                sum: "Suma", // real number
-                vat: "DPH", // real number
-                sumWithVat: "Suma s DPH", // real number
-                items: "Položky", // linkToEntry Materiál
-                transportPrice: "Cena za prepravu" // real number
-            },
-
-            // ceny materiálu polia
-            materialPrices: {
-                material: "Materiál", // linkToEntry Materiál
-                date: "Dátum", // date
-                price: "Cena" // real number
-            },
-
-            // === HISTORICAL DATA ===
             // ceny prác polia
             workPrices: {
                 work: "Práca",  // Pole ktoré odkazuje späť na HZS
@@ -388,175 +251,6 @@ var MementoConfig = (function() {
                 priceMth: "Cena mth",
                 flatRate: "Cena paušál"
             },
-            // Sadzby zamestnancov polia
-            wages: {
-                employee: "Zamestnanec",
-                hourlyRate: "Sadzba",
-                validFrom: "Platnosť od",
-                validTo: "Platnosť do",
-                rateType: "Typ sadzby",
-                note: "Poznámka"
-            },
-            // sadzby DPH
-            vatRates: {
-                validFrom: "Platnosť od",
-                standard: "základná",
-                reduced: "znížená"
-            },
-
-            // === SYSTÉMOVÉ KNIŽNICE ===
-            // ASISTANTO Defaults polia
-            defaults: {
-                // Kniha jázd
-                defaultZdrzanie: "Default zdržanie",
-
-                // Main
-                date: "Dátum",
-                companyName: "Názov firmy",
-                street: "Ulica",
-                postalCode: "PSČ",
-                city: "Mesto",
-                ico: "IČO",
-                dic: "DIČ",
-                icDph: "IČ DPH",
-                accountingYear: "Účtovný rok",
-                workTimeFrom: "Pracovný čas od",
-                workTimeTo: "Pracovný čas do",
-                // Strana záznam prác
-                defaultHzs: "Default HZS",
-
-                // Telegram nastavenia
-                telegramEnabled: "Povoliť Telegram správy",
-                telegramApiKey: "Telegram Bot API Key",
-                telegramBotName: "Telegram Bot",
-                telegramDefaultGroup: "Predvolená Telegram skupina",
-                telegramAttendanceId: "Telegram Dochádzka ID",
-                telegramGroupId: "Telegram Skupina ID",
-
-                // Notifikačné nastavenia
-                notificationDelay: "Oneskorenie notifikácie (min)",
-                summaryDelay: "Oneskorenie súhrnu (min)",
-                includeStats: "Zahrnúť štatistiky",
-                includeFinancials: "Zahrnúť finančné údaje",
-                weekendMessages: "Víkendové správy",
-                individualNotifications: "Notifikácie individuálne",
-                groupNotifications: "Notifikácie skupinové",
-                attendanceIndividualNotifications: "Dochádzka individuálne notifikácie",
-                attendanceGroupNotifications: "Dochádzka skupinové notifikácie",
-
-                // Debug nastavenia
-                debugMode: "Debug mód"
-            },
-
-            // === FIREMNÉ KNIŽNICE ===
-            // Zamestnanci polia
-            employee: {
-                nick: "Nick", // text: unique
-                firstName: "Meno", // text
-                lastName: "Priezvisko", //text
-                status: "Status", //singleChoice:
-                position: "Pozícia", // option: Vedúcko, Zamestnanec, Brigádnik, Externý
-
-                phone: "Telefón",
-                email: "Email",
-                address: "Adresa",
-                birthDate: "Dátum narodenia",
-                startDate: "Dátum nástupu",
-                //filters
-                obdobie: "výber obdobia", //singleChoice: tento deň. tento týždeň, minulý týždeň, tento mesiac, minulý mesiac, tento rok, minulý rok
-                obdobieTotal: "obdobie total", //singleChoice: tento mesiac, minulý mesiac, tento rok, minulý rok, Total
-
-                telegramId: "Telegram ID",
-                telegramID: "Telegram ID",
-                // calculations
-                workedTime: "Odpracované", //sum atribút odpracované z denného záznamu dochádzky (filter obdobie)
-                workedOnOrders: "Na zákazkách", //sum atribút odpracované z dennéh záznamu prác
-                drivingTime: "Jazdy", // sum Čas jazdy zo záznamu knižnice Kniha jázd, filter obdobie
-                workTimeTotal: "Odpracované total", //sum atribút odpracované z denného záznamu dochádzky (filter obdobieTotal)
-                workedOnOrdersTotal: "Na zákazkách total",
-                drivingTimeTotal: "Jazdy total", // sum Čas jazdy zo záznamu knižnice Kniha jázd, filter obdobieTotal
-                wage: "Zarobené", // sum denná mzda z atribútu zamestnanca v zázname dochádzky (Filter obdobie)
-                wageTotal: "Zarobené total", // sum denná mzda z atribútu zamestnanca v zázrame dochádzky (Filter obdobieTotal)
-                paid: "Vyplatené", // sum vyplatené mzdy (z knižnice Pokladňa, filter obdobie)
-                paidTotal: "Vyplatené total", //sum vypletené mzdy (z knižnice Pokladňa, filter obdobieTotal)
-                unpaid: "Preplatok/Nedoplatok", // unpaid - paid
-                bonuses: "Prémie", // sum prémie (z knižnice Pokladňa)
-                obligations: "Záväzky", //sum záväzky
-                receivables: "Pohľadávky", // sum pohľadávky
-                saldo: "Saldo", // Záväzky - Pohľadávky
-            },
-            // Vozidlo
-            vehicle: {
-                active: "Aktívny", // checkbox:
-                name: "Názov",
-                type: "Typ", // singleChoice: Dodávka, Valník, Osobné
-                rate: "Sadzba za km",
-                flatRate: "Paušál za jazdu",
-                driver: "Šofér", // linkToEntry Zamestnanci, default zamestnanec ktorý jazdí na tomto vozidle
-                parkingBase: "Stanovište", // linkToEntry Miesta, default miesto kde parkuje vozidlo
-                odometerValue: "Stav tachometra",
-                kmDriven: "Najazdené",
-                consumptionRate: "Spotreba",
-                costRate: "Nákladová cena" // real number, nákladová cena za km
-            },
-            // Stroje (Mechanizácia)
-            machine: {
-                type: "Typ", // singleChoice: Stroj, Technika, Ručné náradie, Príslušenstvo
-                status: "status", // options: vlastné, externé, požičovňa
-                name: "Názov",
-                description: "Popis",
-                owner: "Vlastník",
-                mth: "MTH", // motohodiny
-                hzs: "HZS", // linkToEntry: Cenník prác
-                flatRate: "Paušál" // linkToEntry: Cenník prác
-            },
-            // Miesto
-            place: {
-                category: "Kategória", // singleChoice: Klient, Dodávateľ, Partner, Zamestnanec, Iné
-                active: "Aktívny", // checkbox
-                name: "Názov",
-                customer: "Klient", // linkToEntry Klienti
-                supplier: "Dodávateľ", // linkToEntry Dodávatelia
-                partner: "Partner", // linkToEntry Partneri
-                employee: "Zamestnanec", // linkToEntry Zamestnanci
-                distantce: "Vzdialenosť",
-                address: "Adresa",
-                gps: "GPS",
-                location: "Lokalita",
-                isOrder: "Zákazka" // checkbox
-            },
-            // Účty (Accounts)
-            account: {
-                type: "Typ", //options: Hotovosť, Banka
-                name: "Názov", //
-                accountNumber: "Číslo účtu", //
-                iban: "IBAN", //
-                initialValue: "Počiatočný stav", //
-                balance: "Stav"
-            },
-
-            // === OBCHODNÉ DOKUMENTY ===
-            // Cenové ponuky polia
-            quote: {
-                state: "Stav", // singleChoice: Návrh, Odoslaná, Schválená, Zamietnutá, Stornovaná
-                number: "Číslo", // text unique
-                name: "Názov", // text
-                description: "Popis cenovej ponuky", // text
-                date: "Dátum",
-                validUntil: "Platnosť do", // date
-                place: "Miesto realizácie", // linkToEntry Miesta
-                customer: "Klient", // linkToEntry Klienti
-                type: "Typ cenovej ponuky", // options: Hodinovka, Položky, Externá,
-                rideCalculation: "Účtovanie dopravy", // singleChoice: Paušál, Km, % zo zákazky, Pevná cena, Neúčtovať
-                fixRidePrice: "Pevná cena dopravy", // real number
-                rateRidePrice: "Doprava %", // real number % decimal
-                kmRidePrice: "Cena za km", // linkToEntry Cenník prác
-                flatRateRidePrice: "Paušál dopravy", // linkToEntry Cenník prác
-                total: "Suma celkom", // real number, súčet všetkých položiek
-                priceCalculation: "Ceny počítať", // singleChoice: Z cenovej ponuky, z cenníka
-
-                workHZS: "Hodinová zúčtovacia sadzba", // real number
-            },
             // Zákazky polia
             order: {
                 state: "Stav", // singleChoice: Čakajúca, Čakjaúca (klient), Prebieha, Ukončená
@@ -568,7 +262,7 @@ var MementoConfig = (function() {
                 description: "Popis zákazky", // text
                 place: "Miesto", // linkToEntry Miesta
                 quote: "Cenová ponuka", // linkToEntry Cenové ponuky
-                date: "Dátum",
+                date: "Dátum",    
                 startDate: "Dátum začatia",
                 endDate: "Dátum ukončenia",
                 budget: "Rozpočet", // real number
@@ -624,51 +318,182 @@ var MementoConfig = (function() {
                 vatRate: "Sadzba DPH", // text, z knižnice ASISTANTO Defaults
                 telegramGroup: "Telegram skupina" // linkToEntry Telegram Groups
             },
-            // Pohľadávky
-            receivables: {
+            // Cenové ponuky polia
+            quote: {
+                state: "Stav", // singleChoice: Návrh, Odoslaná, Schválená, Zamietnutá, Stornovaná  
+                number: "Číslo", // text unique
+                name: "Názov", // text
+                description: "Popis cenovej ponuky", // text
                 date: "Dátum",
-                type: "Typ",
-                state: "Stav",
-                creditor: "Veriteľ",
-                employee: "Zamestnanec",
-                supplier: "Dodávateľ",
-                partner: "Partner",
-                client: "Klient",
-                amount: "Suma",
-                paid: "Zaplatené",
-                balance: "Zostatok",
-                description: "Popis",
-                info: "info",
-                debtor: "Dlžník",        // Pridané
-                cashBook: "Pokladňa"      // Pridané
-            },
-            // Záväzky polia
-            obligations: {
-                date: "Dátum",
-                dueDate: "Splatnosť",
-                type: "Typ", // SingleChoice: Nákup materiálu, Mzda, Podiely, Pôžička, Poistné, Faktúra
-                state: "Stav", // SingleChoice: Neuhradené, Čiastočne uhradené, Uhradené
-                creditor: "Veriteľ", //SingleChoice list: Dodávateľ, Partner, Zamestnanec, Klient
-                employee: "Zamestnanec", //linktToEntry Zamestnanci
-                supplier: "Dodávateľ", //linktToEntry Zamestnanci
-                client: "Klient", //linktToEntry Klienti
-                partner: "Partner", //linktToEntry Partneri
-                attendance: "Dochádzka", //linktToEntry Dochádzka
-                invoices: "Faktúry prijaté", //linktToEntry Faktúry prijaté
-                description: "Popis",
-                isVat: "s DPH", // Checkbox
-                vatRateOption: "sadzba dph", // Options: Základná, Znížená, Nulová
-                vatRate: "sadzba DPH",
-                amount: "Suma",
-                vatAmount: "DPH",
-                totalAmount: "Suma s DPH",
-                paid: "Zaplatené",
-                balance: "Zostatok", // amount || totalAmount - paid
-                info: "info úhrada",
-                obligations: "Záväzky" // Chceckbox, true ak sync zaväzkov prebehol úspešne
-            },
+                validUntil: "Platnosť do", // date
+                place: "Miesto realizácie", // linkToEntry Miesta
+                customer: "Klient", // linkToEntry Klienti
+                type: "Typ cenovej ponuky", // options: Hodinovka, Položky, Externá,
+                rideCalculation: "Účtovanie dopravy", // singleChoice: Paušál, Km, % zo zákazky, Pevná cena, Neúčtovať
+                fixRidePrice: "Pevná cena dopravy", // real number
+                rateRidePrice: "Doprava %", // real number % decimal 
+                kmRidePrice: "Cena za km", // linkToEntry Cenník prác
+                flatRateRidePrice: "Paušál dopravy", // linkToEntry Cenník prác
+                total: "Suma celkom", // real number, súčet všetkých položiek
+                priceCalculation: "Ceny počítať", // singleChoice: Z cenovej ponuky, z cenníka
+                
+                workHZS: "Hodinová zúčtovacia sadzba", // real number
 
-            // === TELEGRAM KNIŽNICE ===
+            },
+            // Dochádzka polia
+            attendance: {
+                date: "Dátum",
+                arrival: "Príchod",
+                departure: "Odchod",
+                employees: "Zamestnanci",
+                works: "Práce", // linkToEntry: záznamy knižnice Záznam prác
+                rides: "Jazdy", // linkToEntry: záznamy knižnice Knija jázd
+                cashBook: "Pokladňa", // linkToEntry: záznamy knižnice Pokladňa
+                notifications: "Notifikácie", // linkToEntry: záznamy knižnice Notifikácie (group notifications)
+                obligations: "Záväzky",
+                employeeCount: "Počet pracovníkov",
+                workTime: "Pracovná doba",
+                workedHours: "Odpracované",
+                workedOnOrders: "Na zákazkách",
+                downTime: "Prestoje",
+                wageCosts: "Mzdové náklady",
+                keys: "keys",
+                entryStatus: "stav záznamu", // multiCheckboxes: Záväzky, Práce, Jazdy, Notifikácie, Skontrolované, Voľno
+                dayOffReason: "Dôvod voľna", // singleChoice: Dážď, Mokro, Oddych, Dovolenka, Iné
+                entryIcons: "ikony záznamu",
+                employeeAttributes: {
+                    workedHours: "odpracované",
+                    hourlyRate: "hodinovka",
+                    bonus: "+príplatok (€/h)",
+                    premium: "+prémia (€)",
+                    penalty: "-pokuta (€)",
+                    dailyWage: "denná mzda",
+                    note: "poznámka"
+                },
+            },
+            // Záznam práce polia
+            workRecord: {
+                date: "Dátum",
+                order: "Zákazka",
+                employees: "Zamestnanci",
+                hzs: "Hodinová zúčtovacia sadzba",
+                workReport: "Výkaz prác",
+                workDescription: "Vykonané práce",
+                employeeCount: "Počet pracovníkov",
+                workTime: "Pracovná doba",
+                workedHours: "Odpracované",
+                wageCosts: "Mzdové náklady",
+                hzsSum: "Suma HZS",
+                machinesSum: "Suma stroje",
+                startTime: "Od",
+                endTime: "Do",
+                machinery: "Mechanizácia", // linkToEntry Mechanizácia
+                sumMachineryUsage: "Použitie mechanizácie", // linkToEntry Výkaz strojov                
+            },
+            // Výkaz prác polia
+            workReport: {
+                datum: "Dátum",
+                identifikator: "Identifikátor",
+                popis: "Popis",
+                typVykazu: "Typ výkazu",
+                cenyPocitat: "Ceny počítať",
+                cenovaPonuka: "Cenová ponuka",
+                vydane: "Vydané",
+                zakazka: "Zákazka",
+                praceHZS: "Práce HZS",
+                info: "info",
+                totalHours: "Celkové hodiny",
+                hzsSum: "Suma HZS",
+                hzsCount: "Počet záznamov"
+            },
+            // Zamestnanci polia
+            employee: {
+                nick: "Nick", // text: unique
+                firstName: "Meno", // text
+                lastName: "Priezvisko", //text
+                status: "Status", //singleChoice: 
+                position: "Pozícia", // option: Vedúcko, Zamestnanec, Brigádnik, Externý
+
+                phone: "Telefón",
+                email: "Email",
+                address: "Adresa",
+                birthDate: "Dátum narodenia",
+                startDate: "Dátum nástupu",
+                //filters
+                obdobie: "výber obdobia", //singleChoice: tento deň. tento týždeň, minulý týždeň, tento mesiac, minulý mesiac, tento rok, minulý rok
+                obdobieTotal: "obdobie total", //singleChoice: tento mesiac, minulý mesiac, tento rok, minulý rok, Total
+
+                telegramId: "Telegram ID",
+                telegramID: "Telegram ID",
+                // calculations
+                workedTime: "Odpracované", //sum atribút odpracované z denného záznamu dochádzky (filter obdobie)
+                workedOnOrders: "Na zákazkách", //sum atribút odpracované z dennéh záznamu prác
+                drivingTime: "Jazdy", // sum Čas jazdy zo záznamu knižnice Kniha jázd, filter obdobie
+                workTimeTotal: "Odpracované total", //sum atribút odpracované z denného záznamu dochádzky (filter obdobieTotal)
+                workedOnOrdersTotal: "Na zákazkách total",
+                drivingTimeTotal: "Jazdy total", // sum Čas jazdy zo záznamu knižnice Kniha jázd, filter obdobieTotal
+                wage: "Zarobené", // sum denná mzda z atribútu zamestnanca v zázname dochádzky (Filter obdobie)
+                wageTotal: "Zarobené total", // sum denná mzda z atribútu zamestnanca v zázname dochádzky (Filter obdobieTotal)
+                paid: "Vyplatené", // sum vyplatené mzdy (z knižnice Pokladňa, filter obdobie)
+                paidTotal: "Vyplatené total", //sum vypletené mzdy (z knižnice Pokladňa, filter obdobieTotal)
+                unpaid: "Preplatok/Nedoplatok", // unpaid - paid
+                bonuses: "Prémie", // sum prémie (z knižnice Pokladňa)
+                obligations: "Záväzky", //sum záväzky
+                receivables: "Pohľadávky", // sum pohľadávky
+                saldo: "Saldo", // Záväzky - Pohľadávky
+
+            },
+            // Sadzby zamestnancov polia
+            wages: {
+                employee: "Zamestnanec",
+                hourlyRate: "Sadzba",
+                validFrom: "Platnosť od",
+                validTo: "Platnosť do",
+                rateType: "Typ sadzby",
+                note: "Poznámka"
+            },
+            // ASISTANTO Defaults polia
+            defaults: {
+                // Kniha jázd
+                defaultZdrzanie: "Default zdržanie",
+
+                // Main
+                date: "Dátum",
+                companyName: "Názov firmy",
+                street: "Ulica",
+                postalCode: "PSČ",
+                city: "Mesto",
+                ico: "IČO",
+                dic: "DIČ",
+                icDph: "IČ DPH",
+                accountingYear: "Účtovný rok",
+                workTimeFrom: "Pracovný čas od",
+                workTimeTo: "Pracovný čas do",
+                // Strana záznam prác
+                defaultHzs: "Default HZS",
+                
+                // Telegram nastavenia
+                telegramEnabled: "Povoliť Telegram správy",
+                telegramApiKey: "Telegram Bot API Key",
+                telegramBotName: "Telegram Bot",
+                telegramDefaultGroup: "Predvolená Telegram skupina",
+                telegramAttendanceId: "Telegram Dochádzka ID",
+                telegramGroupId: "Telegram Skupina ID",
+                
+                // Notifikačné nastavenia
+                notificationDelay: "Oneskorenie notifikácie (min)",
+                summaryDelay: "Oneskorenie súhrnu (min)",
+                includeStats: "Zahrnúť štatistiky",
+                includeFinancials: "Zahrnúť finančné údaje",
+                weekendMessages: "Víkendové správy",
+                individualNotifications: "Notifikácie individuálne",
+                groupNotifications: "Notifikácie skupinové",
+                attendanceIndividualNotifications: "Dochádzka individuálne notifikácie",
+                attendanceGroupNotifications: "Dochádzka skupinové notifikácie",
+                
+                // Debug nastavenia
+                debugMode: "Debug mód"
+            },
             // Notifications polia
             notifications: {
                 status: "Status",
@@ -711,8 +536,208 @@ var MementoConfig = (function() {
                 messageCount: "Počet správ",
                 totalMessageCount: "Celkový počet správ",
                 lastError: "Posledná chyba"
+            },
+            // Záväzky polia
+            obligations: {
+                date: "Dátum",
+                dueDate: "Splatnosť",
+                type: "Typ", // SingleChoice: Nákup materiálu, Mzda, Podiely, Pôžička, Poistné, Faktúra
+                state: "Stav", // SingleChoice: Neuhradené, Čiastočne uhradené, Uhradené
+                creditor: "Veriteľ", //SingleChoice list: Dodávateľ, Partner, Zamestnanec, Klient
+                employee: "Zamestnanec", //linktToEntry Zamestnanci
+                supplier: "Dodávateľ", //linktToEntry Zamestnanci
+                client: "Klient", //linktToEntry Klienti
+                partner: "Partner", //linktToEntry Partneri
+                attendance: "Dochádzka", //linktToEntry Dochádzka
+                invoices: "Faktúry prijaté", //linktToEntry Faktúry prijaté
+                description: "Popis",
+                isVat: "s DPH", // Checkbox
+                vatRateOption: "sadzba dph", // Options: Základná, Znížená, Nulová
+                vatRate: "sadzba DPH",
+                amount: "Suma",
+                vatAmount: "DPH",
+                totalAmount: "Suma s DPH",
+                paid: "Zaplatené",
+                balance: "Zostatok", // amount || totalAmount - paid
+                info: "info úhrada", 
+                obligations: "Záväzky" // Chceckbox, true ak sync zaväzkov prebehol úspešne
+            },
+            // Pohľadávky
+            receivables: {
+                date: "Dátum",
+                type: "Typ",
+                state: "Stav",
+                creditor: "Veriteľ",
+                employee: "Zamestnanec",
+                supplier: "Dodávateľ",
+                partner: "Partner",
+                client: "Klient",
+                amount: "Suma",
+                paid: "Zaplatené",
+                balance: "Zostatok",
+                description: "Popis",
+                info: "info",
+                debtor: "Dlžník",        // Pridané
+                cashBook: "Pokladňa"      // Pridané
+            },
+            // Zákazky polia
+            customers: {
+                state: "Stav",
+                paymentState: "Stav platby",
+                workType: "Typ práce (výber)",
+                hourlyRateSetting: "Nastavenie hodinovka",
+                priceCalculation: "Počítanie cien",
+                materialPriceCalc: "Počítanie cien Materiálu",
+                workPriceCalc: "Počítanie cien Prác",
+                transportPriceCalc: "Počítanie cien Dopravy",
+                priceOffer: "Cenová ponuka"
+            },
+            // Kniha jázd polia
+            bookOfRides: {
+                zastavky: "Zastávky", 
+                ciel: "Cieľ",
+                casJazdy: "Čas jazdy",
+                casNaZastavkach: "Čas na zastávkach",
+                celkovyCas: "Celkový čas",
+                posadka: "Posádka",
+                sofer: "Šofér",
+                datum: "Dátum",
+                mzdy: "Mzdové náklady",
+                date: "Dátum",
+                rideType: "Typ jazdy",
+                ridePurpose: "Účel jazdy",
+                rideDescription: "Popis jazdy",
+                vehicle: "Vozidlo",
+                driver: "Šofér",
+                crew: "Posádka",
+                customers: "Zákazky",
+                rate: "Sadzba za km",
+                km: "Km",
+                wageCosts: "Mzdové náklady",
+                rideTime: "Čas jazdy",
+                stopTime: "Čas na zastávkach",
+                totalTime: "Celkový čas",
+                start: "Štart",
+                destination: "Cieľ",
+                stops: "Zastávky",
+                trasa: ""
+            },
+            // Vozidlo
+            vehicle: {
+                active: "Aktívny", // checkbox:
+                name: "Názov",
+                type: "Typ", // singleChoice: Dodávka, Valník, Osobné
+                rate: "Sadzba za km",
+                flatRate: "Paušál za jazdu",
+                driver: "Šofér", // linkToEntry Zamestnanci, default zamestnanec ktorý jazdí na tomto vozidle
+                parkingBase: "Stanovište", // linkToEntry Miesta, default miesto kde parkuje vozidlo
+                odometerValue: "Stav tachometra",
+                kmDriven: "Najazdené",
+                consumptionRate: "Spotreba",
+                costRate: "Nákladová cena" // real number, nákladová cena za km
+            },
+            // Miesto
+            place: {
+                category: "Kategória", // singleChoice: Klient, Dodávateľ, Partner, Zamestnanec, Iné
+                active: "Aktívny", // checkbox
+                name: "Názov",
+                customer: "Klient", // linkToEntry Klienti
+                supplier: "Dodávateľ", // linkToEntry Dodávatelia
+                partner: "Partner", // linkToEntry Partneri
+                employee: "Zamestnanec", // linkToEntry Zamestnanci
+                distantce: "Vzdialenosť",
+                address: "Adresa",
+                gps: "GPS",
+                location: "Lokalita",
+                isOrder: "Zákazka" // checkbox
+            },
+            // Účty (Accounts)
+            account: {
+                type: "Typ", //options: Hotovosť, Banka
+                name: "Názov", //
+                accountNumber: "Číslo účtu", //
+                iban: "IBAN", //
+                initialValue: "Počiatočný stav", //
+                balance: "Stav"
+            },
+            // Pokladňa polia
+            cashBook: {
+                date: "Dátum",
+                transactionType: "Pohyb", //s ingleChoice: Príjem, Výdaj, PP (Priebežná položka)
+                fromAccount: "Z pokladne", // linkToEntry: Účty (Accounts)
+                toAccount: "Do pokladne", // linkToEntry: Účty (Accounts)
+                paidBy: "Platbu vykonal", // linkToEntry: Zamestnanci (Employees), kto vykonal platbu
+                paidTo: "Platbu prijal", // linkToEntry: Zamestnanci (Employees), kto prijal platbu
+                obligationPayment: "Úhrada záväzku", //Checkbox - či sa platbou uhrádzajú záväzky
+                obligationType: "Typ záväzku", //singleChoice: Mzdy, Faktúry, Nájomné, Leasing (pribudnú ďalšie)
+                offsetClaim: "Započítať pohľadávku", //Checkbox - pri úhrade záväzku sa môže započítať pohľadávka ak je rovnaký subjekt (creditor)
+                fromOverpaymentCreate: "Z preplatku vytvoriť", //Options: Zálohu, Prémiu, Pohľadávku (ak pri platbe vznikne preplatok, uplatní sa jedna z možností)
+                obligations: "Záväzky", //linkToEntry: Záväzky (prepojené úhrádzané záväzky)
+                claims: "Pohľadávky", //linkToEntry: Pohľadávky (prepojené pohľadávky ktoré uhrádzajú záväzky alebo vznikli platbou)
+                transferPurpose: "Účel prevodu", // singleChoice: Dotácia pokladne, Vklad na účet, Presun hotovosti, (použíje sa pri Priebežná položka)
+                // tieto polia pravdepodobne prerobím na linksFrom
+                recordToCustomer: "Evidovať na zákazku", // Checkbox: platba sa bude evidovať na konkrétnu zákazku
+                customer: "Zákazka", // linkToEntry: Zákazky, prepojenie so zákazkou s ktorou súvisí platba
+                order: "Zákazka", // linkToEntry: Zákazky, prepojenie so zákazkou s ktorou súvisí platba
+                rezia: "Prevádzková réžia", // singleChoice: PHM Vozidlá, PHM Stroje, ND a servis vozidlá, ND a servis stroje, PR Pitný režim, Stravné, Potraviny, Réžia rôzne, DHIM, Výdavky na zákazku, Pracovné odevy, Externá doprava, Kancelárske potreby
+                tool: "Stroj", // linkToEntry: Stroje
+                vehicle: "Vozidlo", // linkToEntry: Stroje
+                financialFees: "Finančné poplatky", //singleChoice: Odvody ZP a SP, Poistenie MV, Diaľničná známka, DPH, Pokuty a penále, Poplatky banka (ďalšie položky sa môžu vytvárať postupne)
+                employee: "Zamestnanec", // linkToEntry: Zamestnanci
+                supplier: "Dodávateľ", // linkToEntry: Dodávatelia
+                partner: "Partner", // linkToEntry: Partneri
+                sum: "Suma", // suma záznamu bez dph
+                sumTotal: "Suma s DPH", // suma záznamu s dph
+                vat: "DPH", // suma DPH
+                description: "Popis platby",
+                note: "Poznámka",
+                image: "Doklad", // screenshot alebo foto reálneho dokladu
+                isVat: "s DPH", // checkbox: či je záznam s dph alebo bez dph
+                vatRate: "sadzba DPH", // singleChoice: základná, znížená, nulová
+                vatRateValue: "DPH%"
+            },
+            // sadzby DPH
+            vatRates: {
+                validFrom: "Platnosť od",
+                standard: "základná",
+                reduced: "znížená"
+            }, 
+            // Stroje (Mechanizácia)
+            machine: {
+                type: "Typ", // singleChoice: Stroj, Technika, Ručné náradie, Príslušenstvo
+                status: "status", // options: vlastné, externé, požičovňa
+                name: "Názov",
+                description: "Popis",
+                owner: "Vlastník",
+                mth: "MTH", // motohodiny
+                hzs: "HZS", // linkToEntry: Cenník prác
+                flatRate: "Paušál" // linkToEntry: Cenník prác
+            },
+            // Materiál polia
+            material: {
+                name: "Názov", // text
+                description: "Popis", // text
+                unit: "Jednotka", // text
+                price: "Cena" // real number
+            },
+            // Výdajky materiálu polia
+            materialExpenses: {
+                number: "Číslo", // text
+                date: "Dátum", // date
+                description: "Popis", // text
+                issuedTo: "Vydané", // singleChoice: Zákazka, Partner, Klient
+                client: "Klient", // linkToEntry Klienti
+                order: "Zákazka", // linkToEntry Zákazky
+                partner: "Partner", // linkToEntry Partneri
+                sum: "Suma", // real number
+                vat: "DPH", // real number
+                sumWithVat: "Suma s DPH", // real number
+                items: "Položky", // linkToEntry Materiál
+                transportPrice: "Cena za prepravu" // real number
             }
-        },        
+            
+        },
+        
         // === ATRIBÚTY ===
         attributes: {
             employees: {

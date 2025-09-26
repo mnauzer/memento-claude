@@ -33,6 +33,7 @@ var CONFIG = {
     libraries: {
         materialExpenses: (centralConfig.libraries && centralConfig.libraries.materialExpenses) || "Výdajky materiálu",
         material: (centralConfig.libraries && centralConfig.libraries.inventory) || "Materiál",
+        materialPrices: (centralConfig.libraries && centralConfig.libraries.materialPrices) || "ceny materiálu",
         vatRates: (centralConfig.libraries && centralConfig.libraries.vatRatesLib) || "sadzby DPH"
     },
 
@@ -55,6 +56,12 @@ var CONFIG = {
     materialFields: {
         name: (centralConfig.fields && centralConfig.fields.material && centralConfig.fields.material.name) || "Názov",
         price: (centralConfig.fields && centralConfig.fields.material && centralConfig.fields.material.price) || "Cena"
+    },
+
+    // Polia ceny materiálu
+    priceFields: {
+        date: (centralConfig.fields && centralConfig.fields.materialPrices && centralConfig.fields.materialPrices.date) || "Dátum",
+        price: (centralConfig.fields && centralConfig.fields.materialPrices && centralConfig.fields.materialPrices.price) || "Cena"
     },
 
     // Atribúty položiek
@@ -229,22 +236,54 @@ function calculateMaterialItems(items) {
 
 function getMaterialPrice(item) {
     try {
-        // Získaj knižnicu Materiál
-        var materialLib = lib(CONFIG.libraries.material);
-        if (!materialLib) {
-            utils.addDebug(currentEntry, CONFIG.icons.warning + " Knižnica " + CONFIG.libraries.material + " neexistuje");
+        // Získaj knižnicu ceny materiálu
+        var priceLib = lib(CONFIG.libraries.materialPrices);
+        if (!priceLib) {
+            utils.addDebug(currentEntry, CONFIG.icons.warning + " Knižnica " + CONFIG.libraries.materialPrices + " neexistuje");
             return 0;
         }
 
-        // Nájdi cenu v prepojenom zázname - item je už prepojený záznam z knižnice Materiál
-        var materialPrice = utils.safeGet(item, CONFIG.materialFields.price, 0);
+        // Získaj dátum z currentEntry pre určenie platnej ceny
+        var documentDate = utils.safeGet(currentEntry, CONFIG.fields.date, moment().toDate());
 
-        if (materialPrice > 0) {
-            utils.addDebug(currentEntry, CONFIG.icons.success + " Nájdená cena materiálu: " + utils.formatMoney(materialPrice));
-            return parseFloat(materialPrice);
+        // Použij linksFrom na získanie cien pre materiál
+        var priceEntries = item.linksFrom(priceLib);
+        if (!priceEntries || priceEntries.length === 0) {
+            utils.addDebug(currentEntry, CONFIG.icons.warning + " Žiadne cenové záznamy pre materiál");
+            return 0;
         }
 
-        utils.addDebug(currentEntry, CONFIG.icons.warning + " Cena materiálu nie je nastavená");
+        var validPrice = 0;
+        var latestValidDate = null;
+
+        // Nájdi poslednú platnú cenu k dátumu dokumentu
+        for (var i = 0; i < priceEntries.length; i++) {
+            var priceEntry = priceEntries[i];
+            var priceDate = utils.safeGet(priceEntry, CONFIG.priceFields.date);
+            var price = parseFloat(utils.safeGet(priceEntry, CONFIG.priceFields.price, 0));
+
+            if (!priceDate || price <= 0) {
+                continue;
+            }
+
+            var priceMoment = moment(priceDate);
+            var documentMoment = moment(documentDate);
+
+            // Cena musí byť platná k dátumu dokumentu alebo skôr
+            if (priceMoment.isSameOrBefore(documentMoment)) {
+                if (!latestValidDate || priceMoment.isAfter(moment(latestValidDate))) {
+                    latestValidDate = priceDate;
+                    validPrice = price;
+                }
+            }
+        }
+
+        if (validPrice > 0) {
+            utils.addDebug(currentEntry, CONFIG.icons.success + " Nájdená platná cena materiálu k " + utils.formatDate(latestValidDate) + ": " + utils.formatMoney(validPrice));
+            return validPrice;
+        }
+
+        utils.addDebug(currentEntry, CONFIG.icons.warning + " Žiadna platná cena materiálu k dátumu " + utils.formatDate(documentDate));
         return 0;
 
     } catch (error) {
