@@ -345,11 +345,41 @@ var MementoConfig = (function() {
 
             // === CENNÍKY A SKLAD ===
             // Materiál polia
-            material: {
+            items: {
+                number: "Číslo", // text
+                plu: "PLU", // text
                 name: "Názov", // text
+                name2: "Názov2", // text
+                specification: "Špecifikácia", // text
+                group: "Skupina", // typ strom
+                category: "Kategória", // typ strom
+                status: "Stav", // singleChoice
+                unit: "mj", // singleChoice
+                price: "Cena", // realNumber
+                priceWithVat: "Cena s DPH", // realNumber
+                price2Unit: "Cena 2MJ", // realNumber
+                price2UnitWithVat: "Cena 2MJ s DPH", // realNumber
+                tags: "Štítky", // tags
+                warehouse: "Sklad", // linkToEntry Sklady
+                purchasePrice: "Nákupná cena", // realNumber
+                purchasePriceWithVat: "Nákupná cena s DPH", // realNumber
+                vatRate: "sadzba DPH", // singleChoice: Základná, Znížená, Nulová
+                vatRateValue: "Sadzba (hodnota DPH)", // realNumber
+                priceCalculation: "Prepočet ceny", // singleChoice: Pevná cena, Podľa prirážky, Neprepočítavať
+                markupPercentage: "Obchodná prirážka (%)", // realNumber
+                priceRounding: "Zaokrúhľovanie cien", // singleChoice: Nahor, Nadol, Nezaokrúhľovať, Najbližšie
+                roundingValue: "Hodnota zaokrúhenia", // singleChoice: Desatiny, Jednotky, Desiatky, Stovky
+                purchasePriceChange: "Zmena nákupnej ceny", // singleChoice: Upozorniť, Prepočítať, Ignorovať
+                changePercentage: "Percento zmeny (%)", // realNumber
+                calculatedMargin: "Vypočítaná marža", // realNumber
                 description: "Popis", // text
-                unit: "Jednotka", // text
-                price: "Cena" // real number
+                manufacturer: "Výrobca", // text
+                weight: "Hmotnosť", // realNumber
+                note: "Poznámka", // text
+                manual: "Manual", // link to file
+                secondUnit: "Druhá MJ", // checkBox
+                secondUnitType: "2 MJ", // singleChoice: ks, m2, t ...
+                unitRatio: "MJ/2MJ", // realNumber - pomer prvej MJ k 2MJ
             },
             // Výdajky materiálu polia
             materialExpenses: {
