@@ -141,13 +141,15 @@ function processPurchasePriceFromArguments(inputPrice, dphOption, materialName) 
             showErrorDialog("❌ CHYBA ARGUMENTU\n\nNákupná cena musí byť číslo väčšie alebo rovné 0!\n\nZadali ste: '" + inputPrice + "'");
             return false;
         }
-
+        
+        
         var finalPurchasePrice = inputPurchasePrice;
-
+        
         // Ak je zadaná cena s DPH, prepočítaj na cenu bez DPH
         if (dphOption === "s DPH") {
             // Získanie DPH sadzby pre materiál
-            var vatRatePercentage = getVatRateForMaterial();
+            var vatRate = utils.safeGet(currentEntry, CONFIG.materialFields.vatRate, "Základná");
+            var vatRatePercentage = utils.getValidVatRate(vatRate, new Date());
             if (vatRatePercentage === null) {
                 showErrorDialog("❌ CHYBA DPH\n\nNie je možné získať DPH sadzbu pre materiál!\n\nSkontrolujte nastavenie poľa 'sadzba DPH' v materiáli.");
                 return false;
