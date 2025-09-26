@@ -984,10 +984,63 @@ var MementoBusiness = (function() {
             var materialName = core.safeGet(item, config.fields.items.name, "Neznámy materiál");
             var updated = false;
 
-            // 1. Nákupné ceny - použij cenu z atribútu "cena" (nezaokrúhľujú sa)
+            // 1. Kontrola zmeny nákupnej ceny
+            var currentPurchasePrice = parseFloat(core.safeGet(item, config.fields.items.purchasePrice, 0));
+            var purchasePriceChangeAction = core.safeGet(item, config.fields.items.purchasePriceChange, "").trim();
+            var changePercentageThreshold = parseFloat(core.safeGet(item, config.fields.items.changePercentage, 0));
+
+            var shouldProcessPriceCalculation = true;
+            var iconsToAdd = [];
+
+            if (currentPurchasePrice > 0 && changePercentageThreshold > 0) {
+                var percentageChange = Math.abs((purchasePrice - currentPurchasePrice) / currentPurchasePrice) * 100;
+                var isPriceIncrease = purchasePrice > currentPurchasePrice;
+
+                core.addDebug(entry(), "ℹ️ " + materialName + " - Kontrola zmeny ceny: " + core.formatMoney(currentPurchasePrice) + " -> " + core.formatMoney(purchasePrice) + " (" + percentageChange.toFixed(2) + "%)");
+
+                if (percentageChange >= changePercentageThreshold) {
+                    // Pridanie ikony šípky podľa zmeny ceny
+                    var directionIcon = isPriceIncrease ? "⬆️" : "⬇️";
+                    iconsToAdd.push(directionIcon);
+
+                    core.addDebug(entry(), "⚠️ " + materialName + " - Zmena ceny " + percentageChange.toFixed(2) + "% prekročila prah " + changePercentageThreshold + "%");
+
+                    switch (purchasePriceChangeAction) {
+                        case "Upozorniť":
+                            iconsToAdd.push("⚠️");
+                            shouldProcessPriceCalculation = false;
+                            core.addDebug(entry(), "⚠️ " + materialName + " - Iba upozornenie, prepočet ceny sa preskočí");
+                            break;
+
+                        case "Prepočítať":
+                            iconsToAdd.push("🔄");
+                            shouldProcessPriceCalculation = true;
+                            core.addDebug(entry(), "🔄 " + materialName + " - Prepočet ceny bude vykonaný");
+                            break;
+
+                        case "Upozorniť a prepočítať":
+                            iconsToAdd.push("⚠️", "🔄");
+                            shouldProcessPriceCalculation = true;
+                            core.addDebug(entry(), "⚠️🔄 " + materialName + " - Upozornenie a prepočet ceny");
+                            break;
+
+                        case "Ignorovať":
+                            shouldProcessPriceCalculation = false;
+                            core.addDebug(entry(), "🔕 " + materialName + " - Zmena ignorovaná, len ikona zmeny");
+                            break;
+
+                        default:
+                            shouldProcessPriceCalculation = true;
+                            core.addDebug(entry(), "❓ " + materialName + " - Neznáme nastavenie, použije sa prepočet");
+                            break;
+                    }
+                }
+            }
+
+            // 2. Nákupné ceny - použij cenu z atribútu "cena" (nezaokrúhľujú sa)
             var finalPurchasePrice = purchasePrice; // Cena z atribútu "cena"
 
-            // 2. Zistiť sadzbu DPH z záznamu materiálu
+            // 3. Zistiť sadzbu DPH z záznamu materiálu
             var vatRateType = core.safeGet(item, config.fields.items.vatRate, "Základná").trim();
             var vatRate = 0;
             try {
@@ -1001,31 +1054,53 @@ var MementoBusiness = (function() {
             // 3. Výpočet nákupnej ceny s DPH (nezaokrúhľuje sa)
             var finalPurchasePriceWithVat = finalPurchasePrice * (1 + vatRate / 100);
 
-            // 4. Zistiť nastavenie prepočtu predajnej ceny z záznamu materiálu
-            var priceCalculation = core.safeGet(item, config.fields.items.priceCalculation, "").trim();
-            core.addDebug(entry(), "ℹ️ " + materialName + " - Prepočet ceny: " + priceCalculation);
+            // 4. Inicializácia cien pre prípad preskočenia prepočtu
+            var finalPrice = finalPurchasePrice; // Default = nákupná cena
+            var roundedPriceWithVat = finalPurchasePriceWithVat;
 
-            var sellingPrice = finalPurchasePrice; // Základne = nákupná cena
+            // 5. Prepočet predajných cien (ak je povolený)
+            if (shouldProcessPriceCalculation) {
+                // Zistiť nastavenie prepočtu predajnej ceny z záznamu materiálu
+                var priceCalculation = core.safeGet(item, config.fields.items.priceCalculation, "").trim();
+                core.addDebug(entry(), "ℹ️ " + materialName + " - Prepočet ceny: " + priceCalculation);
 
-            // 5. Ak je "Podľa prirážky", vypočítať predajnú cenu s prirážkou
-            if (priceCalculation === "Podľa prirážky") {
-                var markupPercentage = parseFloat(core.safeGet(item, config.fields.items.markupPercentage, 0));
-                if (markupPercentage > 0) {
-                    sellingPrice = finalPurchasePrice * (1 + markupPercentage / 100);
-                    core.addDebug(entry(), "🧮 " + materialName + " - Prirážka " + markupPercentage + "%: " + core.formatMoney(finalPurchasePrice) + " -> " + core.formatMoney(sellingPrice));
+                var sellingPrice = finalPurchasePrice; // Základne = nákupná cena
+
+                // Ak je "Podľa prirážky", vypočítať predajnú cenu s prirážkou
+                if (priceCalculation === "Podľa prirážky") {
+                    var markupPercentage = parseFloat(core.safeGet(item, config.fields.items.markupPercentage, 0));
+                    if (markupPercentage > 0) {
+                        sellingPrice = finalPurchasePrice * (1 + markupPercentage / 100);
+                        core.addDebug(entry(), "🧮 " + materialName + " - Prirážka " + markupPercentage + "%: " + core.formatMoney(finalPurchasePrice) + " -> " + core.formatMoney(sellingPrice));
+                    }
                 }
+
+                // Výpočet predajnej ceny s DPH
+                var priceWithVat = sellingPrice * (1 + vatRate / 100);
+
+                // Zaokrúhľovanie predajných cien s DPH podľa nastavení materiálu
+                roundedPriceWithVat = applyPriceRounding(item, priceWithVat, materialName + " - predajná (s DPH)");
+
+                // Prepočítanie predajnej ceny bez DPH z zaokrúhlenej ceny s DPH
+                finalPrice = roundedPriceWithVat / (1 + vatRate / 100);
+            } else {
+                core.addDebug(entry(), "🚫 " + materialName + " - Prepočet ceny preskočený podľa nastavenia");
             }
 
-            // 6. Výpočet predajnej ceny s DPH
-            var priceWithVat = sellingPrice * (1 + vatRate / 100);
+            // 9. Aktualizovať ikony ak sú k dispozícii (nezávisle od zmeny cien)
+            if (iconsToAdd.length > 0) {
+                var currentIcons = core.safeGet(item, config.fields.items.icons, "");
+                var newIcons = iconsToAdd.join(" ");
+                // Ak už existujú nejaké ikony, pridaj nové
+                if (currentIcons && currentIcons.trim() !== "") {
+                    newIcons = currentIcons + " " + newIcons;
+                }
+                core.safeSet(item, config.fields.items.icons, newIcons);
+                core.addDebug(entry(), "🎯 " + materialName + " - Pridané ikony: " + iconsToAdd.join(" "));
+                updated = true;
+            }
 
-            // 7. Zaokrúhľovanie predajných cien s DPH podľa nastavení materiálu
-            var roundedPriceWithVat = applyPriceRounding(item, priceWithVat, materialName + " - predajná (s DPH)");
-
-            // 8. Prepočítanie predajnej ceny bez DPH z zaokrúhlenej ceny s DPH
-            var finalPrice = roundedPriceWithVat / (1 + vatRate / 100);
-
-            // 9. Aktualizovať polia v materiáli ak sa ceny zmenili
+            // 10. Aktualizovať ceny v materiáli ak sa zmenili
             var currentPrice = parseFloat(core.safeGet(item, config.fields.items.price, 0));
             var currentPriceWithVat = parseFloat(core.safeGet(item, config.fields.items.priceWithVat, 0));
             var currentPurchasePrice = parseFloat(core.safeGet(item, config.fields.items.purchasePrice, 0));
@@ -1045,8 +1120,8 @@ var MementoBusiness = (function() {
                 // Vytvorenie info záznamu pre materiál
                 createMaterialInfoRecord(item, {
                     originalPurchasePrice: finalPurchasePrice,
-                    originalSellingPrice: sellingPrice,
-                    originalPriceWithVat: priceWithVat,
+                    originalSellingPrice: shouldProcessPriceCalculation ? sellingPrice : finalPurchasePrice,
+                    originalPriceWithVat: shouldProcessPriceCalculation ? priceWithVat : finalPurchasePriceWithVat,
                     originalPurchasePriceWithVat: finalPurchasePriceWithVat,
                     finalPrice: finalPrice,
                     finalPriceWithVat: roundedPriceWithVat,
@@ -1054,11 +1129,17 @@ var MementoBusiness = (function() {
                     finalPurchasePriceWithVat: finalPurchasePriceWithVat,
                     vatRate: vatRate,
                     vatRateType: vatRateType,
-                    priceCalculation: priceCalculation,
+                    priceCalculation: shouldProcessPriceCalculation ? priceCalculation : "Preskočené",
                     markupPercentage: parseFloat(core.safeGet(item, config.fields.items.markupPercentage, 0)),
-                    priceRounding: core.safeGet(item, config.fields.items.priceRounding, ""),
-                    roundingValue: core.safeGet(item, config.fields.items.roundingValue, ""),
-                    documentDate: documentDate
+                    priceRounding: core.safeGet(item, config.fields.items.priceRounding, "").trim(),
+                    roundingValue: core.safeGet(item, config.fields.items.roundingValue, "").trim(),
+                    documentDate: documentDate,
+                    // Informácie o kontrole zmeny ceny
+                    purchasePriceChangeAction: purchasePriceChangeAction,
+                    previousPurchasePrice: currentPurchasePrice,
+                    changePercentage: currentPurchasePrice > 0 ? Math.abs((purchasePrice - currentPurchasePrice) / currentPurchasePrice) * 100 : 0,
+                    changeDirection: purchasePrice > currentPurchasePrice ? "rast" : "pokles",
+                    iconsAdded: iconsToAdd.join(" ")
                 });
 
                 updated = true;
@@ -1182,6 +1263,19 @@ var MementoBusiness = (function() {
             if (priceData.priceRounding && priceData.priceRounding !== "Nezaokrúhľovať") {
                 infoMessage += "• Zaokrúhľovanie: " + priceData.priceRounding + " (" + priceData.roundingValue + ")\n";
             }
+
+            // Informácie o kontrole zmeny nákupnej ceny
+            if (priceData.previousPurchasePrice > 0 && priceData.changePercentage > 0) {
+                infoMessage += "\n🔍 KONTROLA ZMENY NÁKUPNEJ CENY:\n";
+                infoMessage += "───────────────────────────────────────────\n";
+                infoMessage += "• Predchádzajúca cena: " + core.formatMoney(priceData.previousPurchasePrice) + "\n";
+                infoMessage += "• Nová cena: " + core.formatMoney(priceData.originalPurchasePrice) + "\n";
+                infoMessage += "• Zmena: " + priceData.changePercentage.toFixed(2) + "% (" + priceData.changeDirection + ")\n";
+                infoMessage += "• Akcia: " + priceData.purchasePriceChangeAction + "\n";
+                if (priceData.iconsAdded) {
+                    infoMessage += "• Pridané ikony: " + priceData.iconsAdded + "\n";
+                }
+            }
             infoMessage += "\n";
 
             infoMessage += "💸 NÁKUPNÉ CENY (nezaokrúhľujú sa):\n";
@@ -1193,7 +1287,7 @@ var MementoBusiness = (function() {
             infoMessage += "💰 PREDAJNÉ CENY (zaokrúhľujú sa s DPH):\n";
             infoMessage += "───────────────────────────────────────────\n";
             if (priceData.priceCalculation === "Podľa prirážky" && priceData.markupPercentage > 0) {
-                infoMessage += "• Základná predajná (= nákupná): " + core.formatMoney(priceData.originalPurchasePrice) + "\n";
+                infoMessage += "• Základná nákupná: " + core.formatMoney(priceData.originalPurchasePrice) + "\n";
                 infoMessage += "• S prirážkou " + priceData.markupPercentage + "%: " + core.formatMoney(priceData.originalSellingPrice) + "\n";
             } else {
                 infoMessage += "• Predajná cena (= nákupná): " + core.formatMoney(priceData.originalSellingPrice) + "\n";
