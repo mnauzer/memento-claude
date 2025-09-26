@@ -369,7 +369,7 @@ var MementoConfig = (function() {
                 markupPercentage: "Obchodná prirážka", // realNumber
                 priceRounding: "Zaokrúhľovanie cien", // singleChoice: Nahor, Nadol, Nezaokrúhľovať, Najbližšie
                 roundingValue: "Hodnota zaokrúhenia", // singleChoice: Desatiny, Jednotky, Desiatky, Stovky
-                purchasePriceChange: "Zmena nákupnej ceny", // singleChoice: Upozorniť, Prepočítať, Ignorovať
+                purchasePriceChange: "Zmena nákupnej ceny", // singleChoice: Upozorniť, Prepočítať, Upozorniť a prepočítať, Ignorovať
                 changePercentage: "Percento zmeny", // realNumber
                 calculatedMargin: "Vypočítaná marža", // realNumber
                 description: "Popis", // text
@@ -380,6 +380,7 @@ var MementoConfig = (function() {
                 secondUnit: "Druhá MJ", // checkBox
                 secondUnitType: "2 MJ", // singleChoice: ks, m2, t ...
                 unitRatio: "MJ/2MJ", // realNumber - pomer prvej MJ k 2MJ
+                icons: "icons", // text (emoji)
             },
             // Príjemky materiálu polia
             materialIncomes: {
