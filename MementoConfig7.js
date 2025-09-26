@@ -381,6 +381,19 @@ var MementoConfig = (function() {
                 secondUnitType: "2 MJ", // singleChoice: ks, m2, t ...
                 unitRatio: "MJ/2MJ", // realNumber - pomer prvej MJ k 2MJ
             },
+            // Príjemky materiálu polia
+            materialIncomes: {
+                number: "Číslo", // text
+                date: "Dátum", // date
+                description: "Popis", // text
+                supplier: "Dodávateľ", // linkToEntry Dodávatelia
+                partner: "Partner", // linkToEntry Partneri
+                sum: "Suma", // real number
+                vat: "DPH", // real number
+                sumWithVat: "Suma s DPH", // real number
+                items: "Položky", // linkToEntry Materiál
+                transportPrice: "Cena za prepravu" // real number
+            },
             // Výdajky materiálu polia
             materialExpenses: {
                 number: "Číslo", // text
