@@ -414,9 +414,11 @@ var MementoConfig = (function() {
 
             // ceny materiálu polia
             materialPrices: {
-                material: "Materiál", // linkToEntry Materiál
-                date: "Dátum", // date
-                price: "Cena" // real number
+                material: "Položka", // linkToEntry Materiál
+                date: "Platnosť od", // date
+                buyPrice: "nc", // real number Nákupná cena
+                sellPrice: "pc" // real number Predajná cena
+
             },
 
             // === HISTORICAL DATA ===

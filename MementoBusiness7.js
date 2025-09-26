@@ -978,11 +978,9 @@ var MementoBusiness = (function() {
             var config = getConfig();
 
             var materialName = core.safeGet(materialItem, config.fields.items.name, "Neznámy materiál");
-            core.addDebug(entry(), "🔍 DEBUG: Spúšťam createOrUpdateMaterialPriceRecord pre " + materialName);
-
+      
             // Získanie knižnice ceny materiálu
-            var materialPricesLibraryName = config.libraries && config.libraries.materialPrices ? config.libraries.materialPrices : "ceny materiálu";
-            core.addDebug(entry(), "🔍 DEBUG: Hľadám knižnicu: " + materialPricesLibraryName);
+            var materialPricesLibraryName = config.libraries.materialPrices;
 
             var pricesLibrary = libByName(materialPricesLibraryName);
             if (!pricesLibrary) {
@@ -992,8 +990,6 @@ var MementoBusiness = (function() {
                     message: "Knižnica ceny materiálu neexistuje"
                 };
             }
-
-            core.addDebug(entry(), "✅ DEBUG: Knižnica " + materialPricesLibraryName + " nájdená");
 
             var dateFormatted = core.formatDate(priceDate, "DD.MM.YYYY");
             core.addDebug(entry(), "💰 " + materialName + " - Spracovávam cenový záznam k " + dateFormatted);
@@ -1005,7 +1001,7 @@ var MementoBusiness = (function() {
             if (priceEntries && priceEntries.length > 0) {
                 for (var i = 0; i < priceEntries.length; i++) {
                     var priceEntry = priceEntries[i];
-                    var entryDate = core.safeGet(priceEntry, (config.fields && config.fields.materialPrices && config.fields.materialPrices.date) || "Dátum");
+                    var entryDate = core.safeGet(priceEntry, (config.fields.materialPrices.date) );
 
                     if (entryDate) {
                         var entryMoment = moment(entryDate);
