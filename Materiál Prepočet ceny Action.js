@@ -239,10 +239,11 @@ function executeCalculation(purchasePrice, materialName) {
         var result = utils.calculateAndUpdateMaterialPrices(
             currentEntry,
             purchasePrice,
-            new Date() // Použije aktuálny dátum
+            new Date(), // Použije aktuálny dátum
+            true // isManualAction = true (ide o manuálny prepočet)
         );
 
-        if (result.success) {
+        if (result && result.sellingPrice !== undefined) {
             // Úspešný prepočet
             utils.addDebug(currentEntry, CONFIG.icons.success + " Prepočet cien úspešne dokončený");
 
@@ -262,6 +263,7 @@ function executeCalculation(purchasePrice, materialName) {
         } else {
             // Prepočet zlyhal
             utils.addError(currentEntry, "Prepočet cien zlyhal", "executeCalculation");
+            utils.addError(currentEntry, "Result object: " + JSON.stringify(result), "executeCalculation");
             showErrorDialog("❌ CHYBA PREPOČTU\n\nPrepočet cien sa nepodarilo dokončiť.\n\nSkontrolujte nastavenia materiálu a skúste znova.");
         }
 
