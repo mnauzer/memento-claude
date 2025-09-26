@@ -150,8 +150,7 @@ function main() {
         // Krok 8: Vytvorenie info záznamov
         utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 8: Vytvorenie info záznamov");
         steps.step8.success = createInfoRecord(workTimeResult, employeeResult, hzsResult);
-        createTelegramInfoRecord(workTimeResult, employeeResult, hzsResult);
-        
+          
         utils.addDebug(currentEntry, utils.getIcon("success") + " === PREPOČET DOKONČENÝ ===");
         
         // Zobraz súhrn
@@ -407,10 +406,6 @@ function calculateTotals(employeeResult, hzsResult, machinesResult) {
 // SPRACOVANIE HZS
 // ==============================================
 
-// ==============================================
-// OPRAVENÉ FUNKCIE PRE HZS SPRACOVANIE
-// ==============================================
-
 function processHZS(workedHours) {
     try {
         var hzsField = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.hzs);
@@ -463,6 +458,104 @@ function processHZS(workedHours) {
         return { success: false, price: 0, sum: 0 };
     }
 }
+function getValidHZSPrice(hzsRecord, targetDate) {
+    try {
+        if (!hzsRecord || !targetDate) {
+            utils.addDebug(currentEntry, "  ⚠️ HZS záznam alebo dátum chýba");
+            return 0;
+        }
+        
+        // Získaj historické ceny cez linksFrom
+        var priceHistory = hzsRecord.linksFrom(CONFIG.libraries.workPrices,CONFIG.fields.workPrices.work); // Upraviť názov poľa podľa skutočnosti
+        
+        if (!priceHistory || priceHistory.length === 0) {
+            utils.addDebug(currentEntry, "  ⚠️ Žiadne historické ceny pre HZS");
+            return 0;
+        }
+        
+        utils.addDebug(currentEntry, "  🔍 Nájdených " + priceHistory.length + " historických cien");
+        
+        // Zoraď záznamy podľa dátumu platnosti (vzostupne)
+        priceHistory.sort(function(a, b) {
+            var dateA = utils.safeGet(a, CONFIG.fields.workPrices.validFrom);
+            var dateB = utils.safeGet(b, CONFIG.fields.workPrices.validFrom);
+            
+            if (!dateA && !dateB) return 0;
+            if (!dateA) return -1;
+            if (!dateB) return 1;
+            
+            return moment(dateA).diff(moment(dateB));
+        });
+        
+        // Nájdi platnú cenu - posledný záznam s dátumom <= targetDate
+        var validPrice = 0;
+        var validFrom = null;
+        
+        for (var i = 0; i < priceHistory.length; i++) {
+            var priceRecord = priceHistory[i];
+            var recordValidFrom = utils.safeGet(priceRecord, CONFIG.fields.workPrices.validFrom);
+            var price = utils.safeGet(priceRecord, "Cena", 0);
+            
+            // Ak je dátum platnosti <= ako náš target dátum
+            if (recordValidFrom && moment(recordValidFrom).isSameOrBefore(targetDate)) {
+                validPrice = price;
+                validFrom = recordValidFrom;
+                
+                utils.addDebug(currentEntry, "  • Kandidát na platnú cenu: " + price + " € (od " + 
+                             utils.formatDate(recordValidFrom) + ")");
+            } else {
+                // Ak sme našli záznam s dátumom > targetDate, môžeme skončiť
+                break;
+            }
+        }
+        
+        if (validPrice > 0) {
+            utils.addDebug(currentEntry, "  ✅ Finálna platná cena: " + validPrice + " € (platná od " + 
+                         utils.formatDate(validFrom) + ")");
+            return validPrice;
+        } else {
+            utils.addDebug(currentEntry, "  ❌ Nenašla sa platná cena k dátumu " + utils.formatDate(targetDate));
+            return 0;
+        }
+        
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri získavaní ceny HZS: " + error.toString(), "getValidHZSPrice", error);
+        return 0;
+    }
+}
+function getDefaultHZS() {
+    try {
+        var defaultsLib = libByName(CONFIG.libraries.defaults);
+        if (!defaultsLib) return null;
+        utils.addDebug(currentEntry, "  🔍 Hľadám default HZS v knižnici: " + CONFIG.libraries.defaults);
+        var defaults = defaultsLib.entries();
+        if (defaults && defaults.length > 0) {
+            utils.addDebug(currentEntry, "  🔍 Nájdených default záznamov: " + defaults.length);
+            var defaultEntry = defaults[0];
+            utils.addDebug(currentEntry, "  🔍 Nájdený default záznam: " + utils.safeGet(defaultEntry, "Účtovný rok", "N/A"));
+            var defaultHZS = utils.safeGet(defaultEntry, "Default HZS"); // hardcode názov poľa
+            utils.addDebug(currentEntry, "  🔍 Hľadám default HZS v zázname: " + utils.safeGet(defaultEntry, "Účtovný rok", "N/A"));
+            utils.addDebug(currentEntry, "  🔍 Nájdených default HZS: " + (defaultHZS ? defaultHZS.length : 0));
+            if (defaultHZS && defaultHZS.length > 0) {
+                utils.addDebug(currentEntry, "  ✅ Default HZS nájdené: " + utils.safeGet(defaultHZS[0], "Cena", "N/A"));
+                utils.addDebug(currentEntry, "  " + utils.getIcon("link") + " Default HZS nájdené");
+                return defaultHZS;
+            }
+        }
+        
+        utils.addDebug(currentEntry, "  " + utils.getIcon("warning") + " Default HZS nenájdené");
+        return null;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "getDefaultHZS", error);
+        return null;
+    }
+}
+
+// ==============================================
+// SPRACOVANIE STROJOV
+// ==============================================   
+
 function processMachines() {
     try {
         var machineryField = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.machinery);
@@ -592,101 +685,82 @@ function processMachines() {
         return usedMachines;
     }
 }
+// ==============================================
+// SPRACOVANIE MATERIÁLOV
+// ==============================================   
 
-function getValidHZSPrice(hzsRecord, targetDate) {
+function processMaterials() {
     try {
-        if (!hzsRecord || !targetDate) {
-            utils.addDebug(currentEntry, "  ⚠️ HZS záznam alebo dátum chýba");
-            return 0;
+        var materialsField = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.materials);
+        var usedMaterials = {
+            success: false,
+            count: materialsField ? materialsField.length : 0,
+            processed: 0,
+            total: 0,
+            materials: []
+        };
+        // Ak nie sú žiadne materiály
+        if (!materialsField || materialsField.length === 0) {
+            utils.addDebug(currentEntry, "  ℹ️ Žiadne materiály dnes neboli použité...");
+            // Napriek tomu nastav pole Suma Materiály na 0
+            utils.safeSet(currentEntry, CONFIG.fields.workRecord.materialsSum, 0);
+            utils.addDebug(currentEntry, "  ✅ Uložená suma materiálov do poľa: 0 €");
+            usedMaterials.success = true;
+            return usedMaterials;
         }
         
-        // Získaj historické ceny cez linksFrom
-        var priceHistory = hzsRecord.linksFrom(CONFIG.libraries.workPrices,CONFIG.fields.workPrices.work); // Upraviť názov poľa podľa skutočnosti
-        
-        if (!priceHistory || priceHistory.length === 0) {
-            utils.addDebug(currentEntry, "  ⚠️ Žiadne historické ceny pre HZS");
-            return 0;
-        }
-        
-        utils.addDebug(currentEntry, "  🔍 Nájdených " + priceHistory.length + " historických cien");
-        
-        // Zoraď záznamy podľa dátumu platnosti (vzostupne)
-        priceHistory.sort(function(a, b) {
-            var dateA = utils.safeGet(a, CONFIG.fields.workPrices.validFrom);
-            var dateB = utils.safeGet(b, CONFIG.fields.workPrices.validFrom);
+        // Spracuj každý materiál
+        for (var i = 0; i < materialsField.length; i++) {
+            var material = materialsField[i];                                   
+            var materialName = utils.safeGet(material, CONFIG.fields.material.name, "Neznámy materiál")
+            + " " + utils.safeGet(material, CONFIG.fields.material.description, "");
+            utils.addDebug(currentEntry, " 🧰 Spracovanie materiálu: " + materialName);
+            materialName = materialName.trim();
             
-            if (!dateA && !dateB) return 0;
-            if (!dateA) return -1;
-            if (!dateB) return 1;
-            
-            return moment(dateA).diff(moment(dateB));
-        });
-        
-        // Nájdi platnú cenu - posledný záznam s dátumom <= targetDate
-        var validPrice = 0;
-        var validFrom = null;
-        
-        for (var i = 0; i < priceHistory.length; i++) {
-            var priceRecord = priceHistory[i];
-            var recordValidFrom = utils.safeGet(priceRecord, CONFIG.fields.workPrices.validFrom);
-            var price = utils.safeGet(priceRecord, "Cena", 0);
-            
-            // Ak je dátum platnosti <= ako náš target dátum
-            if (recordValidFrom && moment(recordValidFrom).isSameOrBefore(targetDate)) {
-                validPrice = price;
-                validFrom = recordValidFrom;
-                
-                utils.addDebug(currentEntry, "  • Kandidát na platnú cenu: " + price + " € (od " + 
-                             utils.formatDate(recordValidFrom) + ")");
-            } else {
-                // Ak sme našli záznam s dátumom > targetDate, môžeme skončiť
-                break;
+            // Získaj cenu materiálu
+
+            var materialPrice = utils.safeGet(material, CONFIG.fields.material.price, 0);
+            var quantity = utils.safeGet(material, CONFIG.fields.material.quantity, 0);
+            if (!materialPrice || materialPrice <= 0) {
+                utils.addDebug(currentEntry, "  ❌ Preskakujem - nemá platnú cenu");
+                continue;
             }
+            if (!quantity || quantity <= 0) {
+                utils.addDebug(currentEntry, "  ❌ Preskakujem - množstvo je nulové");
+                continue;
+            }
+            
+            var totalPrice = Math.round(materialPrice * quantity * 100) / 100;
+            usedMaterials.total += totalPrice;
+            usedMaterials.processed += 1;
+            usedMaterials.materials.push({
+                material: {
+                    name: materialName,
+                    id: material.id,
+                    price: materialPrice,
+                    quantity: quantity,
+                    totalPrice: totalPrice
+                }
+            });
+            utils.addDebug(currentEntry, "  • Cena za materiál: " + quantity + " × "    + materialPrice + " € = " + totalPrice + " €");    
+            usedMaterials.success = true;
         }
-        
-        if (validPrice > 0) {
-            utils.addDebug(currentEntry, "  ✅ Finálna platná cena: " + validPrice + " € (platná od " + 
-                         utils.formatDate(validFrom) + ")");
-            return validPrice;
-        } else {
-            utils.addDebug(currentEntry, "  ❌ Nenašla sa platná cena k dátumu " + utils.formatDate(targetDate));
-            return 0;
-        }
+
+        // Ulož celkovú sumu materiálov do poľa
+        utils.safeSet(currentEntry, CONFIG.fields.workRecord.materialsSum, usedMaterials.total);
+        utils.addDebug(currentEntry, "  ✅ Uložená suma materiálov do poľa: " + usedMaterials.total + " €");
+
+        utils.addDebug(currentEntry, "  " + utils.getIcon("rate") + " Suma za materiály: " + usedMaterials.total + "€");
+        utils.addDebug(currentEntry, "  " + utils.getIcon("materials") + " Použitých materiálov: " + usedMaterials.count);
+        utils.addDebug(currentEntry, "  " + utils.getIcon("success") + " Spracovanie materiálov dokončené úspešne");
+
+        return usedMaterials;
         
     } catch (error) {
-        utils.addError(currentEntry, "Chyba pri získavaní ceny HZS: " + error.toString(), "getValidHZSPrice", error);
-        return 0;
+        utils.addError(currentEntry, error.toString(), "processMaterials", error);
+        return { success: false };
     }
-}
-
-function getDefaultHZS() {
-    try {
-        var defaultsLib = libByName(CONFIG.libraries.defaults);
-        if (!defaultsLib) return null;
-        utils.addDebug(currentEntry, "  🔍 Hľadám default HZS v knižnici: " + CONFIG.libraries.defaults);
-        var defaults = defaultsLib.entries();
-        if (defaults && defaults.length > 0) {
-            utils.addDebug(currentEntry, "  🔍 Nájdených default záznamov: " + defaults.length);
-            var defaultEntry = defaults[0];
-            utils.addDebug(currentEntry, "  🔍 Nájdený default záznam: " + utils.safeGet(defaultEntry, "Účtovný rok", "N/A"));
-            var defaultHZS = utils.safeGet(defaultEntry, "Default HZS"); // hardcode názov poľa
-            utils.addDebug(currentEntry, "  🔍 Hľadám default HZS v zázname: " + utils.safeGet(defaultEntry, "Účtovný rok", "N/A"));
-            utils.addDebug(currentEntry, "  🔍 Nájdených default HZS: " + (defaultHZS ? defaultHZS.length : 0));
-            if (defaultHZS && defaultHZS.length > 0) {
-                utils.addDebug(currentEntry, "  ✅ Default HZS nájdené: " + utils.safeGet(defaultHZS[0], "Cena", "N/A"));
-                utils.addDebug(currentEntry, "  " + utils.getIcon("link") + " Default HZS nájdené");
-                return defaultHZS;
-            }
-        }
-        
-        utils.addDebug(currentEntry, "  " + utils.getIcon("warning") + " Default HZS nenájdené");
-        return null;
-        
-    } catch (error) {
-        utils.addError(currentEntry, error.toString(), "getDefaultHZS", error);
-        return null;
-    }
-}
+}   
 
 // ==============================================
 // VÝKAZ PRÁC
@@ -961,73 +1035,6 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult) {
         return false;
     }
 }
-
-function createTelegramInfoRecord(workTimeResult, employeeResult, hzsResult) {
-    try {
-        var date = currentEntry.field(CONFIG.fields.workRecord.date);
-        var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
-
-        // HTML formátovaná správa
-        var telegramInfo = "🔨 <b>ZÁZNAM PRÁC</b>\n";
-        telegramInfo += "═══════════════════════════════════\n\n";
-        
-        telegramInfo += "📅 <b>Dátum:</b> " + dateFormatted + "\n";
-        telegramInfo += "⏰ <b>Pracovný čas:</b> " + utils.formatTime(workTimeResult.startTime) + 
-                        " - " + utils.formatTime(workTimeResult.endTime) + "\n";
-        telegramInfo += "⏱️ <b>Odpracované:</b> " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
-        
-        if (employeeResult.pocetPracovnikov > 0) {
-            telegramInfo += "👥 <b>ZAMESTNANCI</b> (" + employeeResult.pocetPracovnikov + " " + 
-                            utils.selectOsobaForm(employeeResult.pocetPracovnikov) + ")\n";
-            telegramInfo += "───────────────────────────────────\n";
-            
-            for (var i = 0; i < employeeResult.detaily.length; i++) {
-                var detail = employeeResult.detaily[i];
-                var empName = utils.formatEmployeeName(detail.zamestnanec);
-                
-                telegramInfo += "• <b>" + empName + "</b>\n";
-                telegramInfo += "  💶 Hodinovka: " + detail.hodinovka + " €/h\n";
-                telegramInfo += "  💰 <b>Mzdové náklady: " + detail.mzdoveNaklady + " €</b>\n\n";
-            }
-            
-            telegramInfo += "💰 <b>Celkové mzdové náklady: " + utils.formatMoney(employeeResult.celkoveMzdy) + "</b>\n\n";
-        }
-        
-        if (hzsResult.price > 0) {
-            telegramInfo += "💵 <b>HODINOVÁ ZÚČTOVACIA SADZBA</b>\n";
-            telegramInfo += "───────────────────────────────────\n";
-            telegramInfo += "• Sadzba: <b>" + hzsResult.price + " €/h</b>\n";
-            telegramInfo += "• Suma HZS: <b>" + utils.formatMoney(hzsResult.sum) + "</b>\n\n";
-        }
-        
-        var customer = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.order);
-        if (customer && customer.length > 0) {
-            telegramInfo += "📦 <b>Zákazka:</b> " + utils.safeGet(customer[0], "Názov", "N/A") + "\n";
-        }
-        
-        var workDescription = utils.safeGet(currentEntry, CONFIG.fields.workRecord.workDescription);
-        if (workDescription) {
-            telegramInfo += "\n🔨 <b>VYKONANÉ PRÁCE:</b>\n";
-            telegramInfo += workDescription + "\n";
-        }
-        
-        telegramInfo += "\n🔧 <i>Script: " + CONFIG.scriptName + " v" + CONFIG.version + "</i>\n";
-        telegramInfo += "⏰ <i>Spracované: " + moment().format("HH:mm:ss") + "</i>\n";
-        telegramInfo += "📝 <i>Záznam #" + currentEntry.field("ID") + "</i>";
-        
-        // Ulož do poľa info_telegram
-        currentEntry.set(CONFIG.fields.infoTelegram, telegramInfo);
-        
-        utils.addDebug(currentEntry, utils.getIcon("success") + " Info_telegram záznam vytvorený");
-        
-        return true;
-        
-    } catch (error) {
-        utils.addError(currentEntry, error.toString(), "createTelegramInfoRecord", error);
-        return false;
-    }
-}
-
 // ==============================================
 // FINÁLNY SÚHRN
 // ==============================================

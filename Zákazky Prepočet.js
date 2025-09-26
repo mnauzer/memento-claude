@@ -1499,6 +1499,7 @@ function createTelegramNotification(linkedData, costs, revenue, profit) {
 }
 
 function prepareOrderNotificationInfo(linkedData, costs, revenue, profit) {
+    
     try {
         utils.addDebug(currentEntry, "    📝 Pripravujem info_telegram záznam...");
 
@@ -1559,7 +1560,7 @@ function prepareOrderNotificationInfo(linkedData, costs, revenue, profit) {
         if (revenue.material > 0) telegramInfo += "• Materiál: " + utils.formatMoney(revenue.material) + "\n";
         if (revenue.subcontractors > 0) telegramInfo += "• Subdodávky: " + utils.formatMoney(revenue.subcontractors) + "\n";
         if (revenue.other > 0) telegramInfo += "• Ostatné: " + utils.formatMoney(revenue.other) + "\n";
-        telegramInfo += "• <b>SPOLU: " + utils.formatMoney(revenue.total) + "</b>\n";
+        telegramInfo += "• <b>SPOLU: " + utils.formatMoney(revenue.total) + "</b>\n\n";
 
         // ZISKOVOSŤ
         var grossProfit = revenue.total - costs.total;
