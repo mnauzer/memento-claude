@@ -1017,8 +1017,7 @@ var MementoBusiness = (function() {
             }
 
             if (existingPriceEntry) {
-                // Aktualizácia existujúceho záznamu
-                var priceField = (config.fields && config.fields.materialPrices && config.fields.materialPrices.price) || "Cena";
+                var priceField = (config.fields.materialPrices.price);
                 var oldPrice = parseFloat(core.safeGet(existingPriceEntry, priceField, 0));
                 core.safeSet(existingPriceEntry, priceField, newPrice);
 
@@ -1036,21 +1035,18 @@ var MementoBusiness = (function() {
 
             } else {
                 // Vytvorenie nového záznamu
-                core.addDebug(entry(), "🔍 DEBUG: Existujúci záznam nenájdený, vytváram nový");
+                core.addDebug(entry(), " Existujúci záznam nenájdený, vytváram nový");
                 var newPriceEntry = pricesLibrary.create({});
 
-                // Nastavenie polí nového záznamu (s fallback názvami)
-                var materialField = (config.fields && config.fields.materialPrices && config.fields.materialPrices.material) || "Materiál";
-                var dateField = (config.fields && config.fields.materialPrices && config.fields.materialPrices.date) || "Dátum";
-                var priceField = (config.fields && config.fields.materialPrices && config.fields.materialPrices.price) || "Cena";
-
-                core.addDebug(entry(), "🔍 DEBUG: Používam polia - materiál: " + materialField + ", dátum: " + dateField + ", cena: " + priceField);
+                var materialField = config.fields.materialPrices.material;
+                var dateField = config.fields.materialPrices.date;
+                var buyPriceField = config.fields.materialPrices.price;
+                var sellPriceField = config.fields.materialPrices.price;
 
                 core.safeSet(newPriceEntry, materialField, [materialItem]);
                 core.safeSet(newPriceEntry, dateField, priceDate);
-                core.safeSet(newPriceEntry, priceField, newPrice);
+                core.safeSet(newPriceEntry, buyPriceField, newPrice);
 
-                core.addDebug(entry(), "🔍 DEBUG: Polia nastavené, záznam vytvorený");
 
                 core.addDebug(entry(), "➕ " + materialName + " - Vytvorený nový cenový záznam k " + dateFormatted + ": " + core.formatMoney(newPrice));
 
