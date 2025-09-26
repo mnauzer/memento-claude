@@ -980,9 +980,10 @@ var MementoBusiness = (function() {
             var materialName = core.safeGet(materialItem, config.fields.items.name, "Neznámy materiál");
 
             // Získanie knižnice ceny materiálu
-            var pricesLibrary = libByName(config.libraries.materialPrices);
+            var materialPricesLibraryName = config.libraries && config.libraries.materialPrices ? config.libraries.materialPrices : "ceny materiálu";
+            var pricesLibrary = libByName(materialPricesLibraryName);
             if (!pricesLibrary) {
-                core.addError(entry(), "Knižnica " + config.libraries.materialPrices + " neexistuje", "createOrUpdateMaterialPriceRecord");
+                core.addError(entry(), "Knižnica " + materialPricesLibraryName + " neexistuje", "createOrUpdateMaterialPriceRecord");
                 return {
                     success: false,
                     message: "Knižnica ceny materiálu neexistuje"
@@ -999,7 +1000,7 @@ var MementoBusiness = (function() {
             if (priceEntries && priceEntries.length > 0) {
                 for (var i = 0; i < priceEntries.length; i++) {
                     var priceEntry = priceEntries[i];
-                    var entryDate = core.safeGet(priceEntry, config.fields.materialPrices.date);
+                    var entryDate = core.safeGet(priceEntry, (config.fields && config.fields.materialPrices && config.fields.materialPrices.date) || "Dátum");
 
                     if (entryDate) {
                         var entryMoment = moment(entryDate);
@@ -1016,8 +1017,9 @@ var MementoBusiness = (function() {
 
             if (existingPriceEntry) {
                 // Aktualizácia existujúceho záznamu
-                var oldPrice = parseFloat(core.safeGet(existingPriceEntry, config.fields.materialPrices.price, 0));
-                core.safeSet(existingPriceEntry, config.fields.materialPrices.price, newPrice);
+                var priceField = (config.fields && config.fields.materialPrices && config.fields.materialPrices.price) || "Cena";
+                var oldPrice = parseFloat(core.safeGet(existingPriceEntry, priceField, 0));
+                core.safeSet(existingPriceEntry, priceField, newPrice);
 
                 core.addDebug(entry(), "🔄 " + materialName + " - Aktualizovaný cenový záznam k " + dateFormatted + ": " +
                              core.formatMoney(oldPrice) + " -> " + core.formatMoney(newPrice));
@@ -1035,10 +1037,14 @@ var MementoBusiness = (function() {
                 // Vytvorenie nového záznamu
                 var newPriceEntry = pricesLibrary.create();
 
-                // Nastavenie polí nového záznamu
-                core.safeSet(newPriceEntry, config.fields.materialPrices.material, [materialItem]);
-                core.safeSet(newPriceEntry, config.fields.materialPrices.date, priceDate);
-                core.safeSet(newPriceEntry, config.fields.materialPrices.price, newPrice);
+                // Nastavenie polí nového záznamu (s fallback názvami)
+                var materialField = (config.fields && config.fields.materialPrices && config.fields.materialPrices.material) || "Materiál";
+                var dateField = (config.fields && config.fields.materialPrices && config.fields.materialPrices.date) || "Dátum";
+                var priceField = (config.fields && config.fields.materialPrices && config.fields.materialPrices.price) || "Cena";
+
+                core.safeSet(newPriceEntry, materialField, [materialItem]);
+                core.safeSet(newPriceEntry, dateField, priceDate);
+                core.safeSet(newPriceEntry, priceField, newPrice);
 
                 core.addDebug(entry(), "➕ " + materialName + " - Vytvorený nový cenový záznam k " + dateFormatted + ": " + core.formatMoney(newPrice));
 
@@ -1272,10 +1278,10 @@ var MementoBusiness = (function() {
                     finalPriceWithVat: roundedPriceWithVat,
                     finalPurchasePrice: finalPurchasePrice,
                     finalPurchasePriceWithVat: finalPurchasePriceWithVat,
-                    vatRate: vatRatePercentage,
-                    vatRateType: core.safeGet(item, config.fields.items.vatRate, "Základná"),
-                    priceCalculation: core.safeGet(item, config.fields.items.priceCalculation, "Podľa prirážky"),
-                    markupPercentage: effectiveMarkupPercentage,
+                    vatRate: vatRate,
+                    vatRateType: vatRateType,
+                    priceCalculation: shouldProcessPriceCalculation ? priceCalculation : "Preskočené",
+                    markupPercentage: parseFloat(core.safeGet(item, config.fields.items.markupPercentage, 0)),
                     priceRounding: core.safeGet(item, config.fields.items.priceRounding, "").trim(),
                     roundingValue: core.safeGet(item, config.fields.items.roundingValue, "").trim(),
                     documentDate: documentDate,
