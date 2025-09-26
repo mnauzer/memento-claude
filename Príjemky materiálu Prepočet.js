@@ -242,24 +242,12 @@ function calculateAndUpdateMaterialPrices(item, purchasePrice, documentDate) {
         var materialName = utils.safeGet(item, CONFIG.materialFields.name, "Neznámy materiál");
         var updated = false;
 
-        // 1. Zistiť nastavenie poľa Prepočet ceny
-        var priceCalculation = utils.safeGet(item, CONFIG.materialFields.priceCalculation, "");
-        utils.addDebug(currentEntry, CONFIG.icons.info + " " + materialName + " - Prepočet ceny: " + priceCalculation);
+        // 1. Nákupné ceny - použij cenu z atribútu "cena" (nezaokrúhľujú sa)
+        var finalPurchasePrice = purchasePrice; // Cena z atribútu "cena"
 
-        var sellingPrice = purchasePrice;
-        var vatRate = 0;
-
-        // 2. Ak je "Podľa prirážky", vypočítať predajnú cenu
-        if (priceCalculation === "Podľa prirážky") {
-            var markupPercentage = parseFloat(utils.safeGet(item, CONFIG.materialFields.markupPercentage, 0));
-            if (markupPercentage > 0) {
-                sellingPrice = purchasePrice * (1 + markupPercentage / 100);
-                utils.addDebug(currentEntry, CONFIG.icons.calculation + " " + materialName + " - Prirážka " + markupPercentage + "%: " + utils.formatMoney(purchasePrice) + " -> " + utils.formatMoney(sellingPrice));
-            }
-        }
-
-        // 3. Zistiť sadzbu DPH
+        // 2. Zistiť sadzbu DPH z záznamu materiálu
         var vatRateType = utils.safeGet(item, CONFIG.materialFields.vatRate, "Základná");
+        var vatRate = 0;
         try {
             vatRate = utils.getValidVatRate(documentDate, vatRateType.toLowerCase());
             utils.addDebug(currentEntry, CONFIG.icons.success + " " + materialName + " - Sadzba DPH (" + vatRateType + "): " + vatRate + "%");
@@ -268,45 +256,60 @@ function calculateAndUpdateMaterialPrices(item, purchasePrice, documentDate) {
             vatRate = 0;
         }
 
-        // 4. Výpočet ceny s DPH (pred zaokrúhlením)
+        // 3. Výpočet nákupnej ceny s DPH (nezaokrúhľuje sa)
+        var finalPurchasePriceWithVat = finalPurchasePrice * (1 + vatRate / 100);
+
+        // 4. Zistiť nastavenie prepočtu predajnej ceny z záznamu materiálu
+        var priceCalculation = utils.safeGet(item, CONFIG.materialFields.priceCalculation, "");
+        utils.addDebug(currentEntry, CONFIG.icons.info + " " + materialName + " - Prepočet ceny: " + priceCalculation);
+
+        var sellingPrice = finalPurchasePrice; // Základne = nákupná cena
+
+        // 5. Ak je "Podľa prirážky", vypočítať predajnú cenu s prirážkou
+        if (priceCalculation === "Podľa prirážky") {
+            var markupPercentage = parseFloat(utils.safeGet(item, CONFIG.materialFields.markupPercentage, 0));
+            if (markupPercentage > 0) {
+                sellingPrice = finalPurchasePrice * (1 + markupPercentage / 100);
+                utils.addDebug(currentEntry, CONFIG.icons.calculation + " " + materialName + " - Prirážka " + markupPercentage + "%: " + utils.formatMoney(finalPurchasePrice) + " -> " + utils.formatMoney(sellingPrice));
+            }
+        }
+
+        // 6. Výpočet predajnej ceny s DPH
         var priceWithVat = sellingPrice * (1 + vatRate / 100);
-        var purchasePriceWithVat = purchasePrice * (1 + vatRate / 100);
 
-        // 5. Zaokrúhľovanie ceny s DPH
-        var roundedPriceWithVat = applyPriceRounding(item, priceWithVat, materialName + " (s DPH)");
-        var roundedPurchasePriceWithVat = applyPriceRounding(item, purchasePriceWithVat, materialName + " - nákupná (s DPH)");
+        // 7. Zaokrúhľovanie predajných cien s DPH podľa nastavení materiálu
+        var roundedPriceWithVat = applyPriceRounding(item, priceWithVat, materialName + " - predajná (s DPH)");
 
-        // 6. Prepočítanie ceny bez DPH z zaokrúhlenej ceny s DPH
-        var roundedPrice = roundedPriceWithVat / (1 + vatRate / 100);
-        var roundedPurchasePrice = roundedPurchasePriceWithVat / (1 + vatRate / 100);
+        // 8. Prepočítanie predajnej ceny bez DPH z zaokrúhlenej ceny s DPH
+        var finalPrice = roundedPriceWithVat / (1 + vatRate / 100);
 
-        // 7. Aktualizovať polia v materiáli ak sa ceny zmenili
+        // 9. Aktualizovať polia v materiáli ak sa ceny zmenili
         var currentPrice = parseFloat(utils.safeGet(item, CONFIG.materialFields.price, 0));
         var currentPriceWithVat = parseFloat(utils.safeGet(item, CONFIG.materialFields.priceWithVat, 0));
         var currentPurchasePrice = parseFloat(utils.safeGet(item, CONFIG.materialFields.purchasePrice, 0));
         var currentPurchasePriceWithVat = parseFloat(utils.safeGet(item, CONFIG.materialFields.purchasePriceWithVat, 0));
 
-        if (Math.abs(currentPrice - roundedPrice) > 0.01 ||
+        if (Math.abs(currentPrice - finalPrice) > 0.01 ||
             Math.abs(currentPriceWithVat - roundedPriceWithVat) > 0.01 ||
-            Math.abs(currentPurchasePrice - roundedPurchasePrice) > 0.01 ||
-            Math.abs(currentPurchasePriceWithVat - roundedPurchasePriceWithVat) > 0.01) {
+            Math.abs(currentPurchasePrice - finalPurchasePrice) > 0.01 ||
+            Math.abs(currentPurchasePriceWithVat - finalPurchasePriceWithVat) > 0.01) {
 
             // Aktualizovať ceny v zázname materiálu
-            utils.safeSet(item, CONFIG.materialFields.price, roundedPrice);
+            utils.safeSet(item, CONFIG.materialFields.price, finalPrice);
             utils.safeSet(item, CONFIG.materialFields.priceWithVat, roundedPriceWithVat);
-            utils.safeSet(item, CONFIG.materialFields.purchasePrice, roundedPurchasePrice);
-            utils.safeSet(item, CONFIG.materialFields.purchasePriceWithVat, roundedPurchasePriceWithVat);
+            utils.safeSet(item, CONFIG.materialFields.purchasePrice, finalPurchasePrice);
+            utils.safeSet(item, CONFIG.materialFields.purchasePriceWithVat, finalPurchasePriceWithVat);
 
             // Vytvorenie info záznamu pre materiál
             createMaterialInfoRecord(item, {
-                originalPurchasePrice: purchasePrice,
+                originalPurchasePrice: finalPurchasePrice,
                 originalSellingPrice: sellingPrice,
                 originalPriceWithVat: priceWithVat,
-                originalPurchasePriceWithVat: purchasePriceWithVat,
-                finalPrice: roundedPrice,
+                originalPurchasePriceWithVat: finalPurchasePriceWithVat,
+                finalPrice: finalPrice,
                 finalPriceWithVat: roundedPriceWithVat,
-                finalPurchasePrice: roundedPurchasePrice,
-                finalPurchasePriceWithVat: roundedPurchasePriceWithVat,
+                finalPurchasePrice: finalPurchasePrice,
+                finalPurchasePriceWithVat: finalPurchasePriceWithVat,
                 vatRate: vatRate,
                 vatRateType: vatRateType,
                 priceCalculation: priceCalculation,
@@ -319,13 +322,13 @@ function calculateAndUpdateMaterialPrices(item, purchasePrice, documentDate) {
             updated = true;
 
             utils.addDebug(currentEntry, CONFIG.icons.success + " " + materialName + " - Aktualizované ceny:");
-            utils.addDebug(currentEntry, "  Nákupná: " + utils.formatMoney(roundedPurchasePrice) + " / s DPH: " + utils.formatMoney(roundedPurchasePriceWithVat));
-            utils.addDebug(currentEntry, "  Predajná: " + utils.formatMoney(roundedPrice) + " / s DPH: " + utils.formatMoney(roundedPriceWithVat));
+            utils.addDebug(currentEntry, "  Nákupná: " + utils.formatMoney(finalPurchasePrice) + " / s DPH: " + utils.formatMoney(finalPurchasePriceWithVat));
+            utils.addDebug(currentEntry, "  Predajná: " + utils.formatMoney(finalPrice) + " / s DPH: " + utils.formatMoney(roundedPriceWithVat));
         }
 
         return {
             updated: updated,
-            sellingPrice: roundedPrice,
+            sellingPrice: finalPrice,
             priceWithVat: roundedPriceWithVat
         };
 
@@ -429,28 +432,26 @@ function createMaterialInfoRecord(item, priceData) {
         }
         infoMessage += "\n";
 
-        infoMessage += "💸 PREPOČET NÁKUPNÝCH CIEN:\n";
+        infoMessage += "💸 NÁKUPNÉ CENY (nezaokrúhľujú sa):\n";
         infoMessage += "───────────────────────────────────────────\n";
-        infoMessage += "• Pôvodná nákupná cena: " + utils.formatMoney(priceData.originalPurchasePrice) + "\n";
+        infoMessage += "• Nákupná cena (z príjemky): " + utils.formatMoney(priceData.originalPurchasePrice) + "\n";
         infoMessage += "• Nákupná cena s DPH: " + utils.formatMoney(priceData.originalPurchasePriceWithVat) + "\n";
-        if (priceData.priceRounding && priceData.priceRounding !== "Nezaokrúhľovať") {
-            infoMessage += "• Zaokrúhlená s DPH: " + utils.formatMoney(priceData.finalPurchasePriceWithVat) + "\n";
-            infoMessage += "• Finálna nákupná: " + utils.formatMoney(priceData.finalPurchasePrice) + "\n";
-        }
         infoMessage += "\n";
 
-        infoMessage += "💰 PREPOČET PREDAJNÝCH CIEN:\n";
+        infoMessage += "💰 PREDAJNÉ CENY (zaokrúhľujú sa s DPH):\n";
         infoMessage += "───────────────────────────────────────────\n";
         if (priceData.priceCalculation === "Podľa prirážky" && priceData.markupPercentage > 0) {
-            infoMessage += "• Základná predajná: " + utils.formatMoney(priceData.originalPurchasePrice) + "\n";
+            infoMessage += "• Základná predajná (= nákupná): " + utils.formatMoney(priceData.originalPurchasePrice) + "\n";
             infoMessage += "• S prirážkou " + priceData.markupPercentage + "%: " + utils.formatMoney(priceData.originalSellingPrice) + "\n";
         } else {
             infoMessage += "• Predajná cena (= nákupná): " + utils.formatMoney(priceData.originalSellingPrice) + "\n";
         }
-        infoMessage += "• Predajná s DPH: " + utils.formatMoney(priceData.originalPriceWithVat) + "\n";
+        infoMessage += "• Predajná s DPH (pred zaokr.): " + utils.formatMoney(priceData.originalPriceWithVat) + "\n";
         if (priceData.priceRounding && priceData.priceRounding !== "Nezaokrúhľovať") {
             infoMessage += "• Zaokrúhlená s DPH: " + utils.formatMoney(priceData.finalPriceWithVat) + "\n";
-            infoMessage += "• Finálna predajná: " + utils.formatMoney(priceData.finalPrice) + "\n";
+            infoMessage += "• Finálna predajná bez DPH: " + utils.formatMoney(priceData.finalPrice) + "\n";
+        } else {
+            infoMessage += "• Bez zaokrúhľovania: " + utils.formatMoney(priceData.finalPriceWithVat) + "\n";
         }
         infoMessage += "\n";
 
