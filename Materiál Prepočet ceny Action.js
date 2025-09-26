@@ -134,11 +134,25 @@ function main() {
 function processPurchasePriceFromArguments(inputPrice, dphOption, materialName) {
     try {
         utils.addDebug(currentEntry, CONFIG.icons.info + " Argumenty - nákupná cena: " + inputPrice + ", dph: " + dphOption);
+
+        // Ak nie je zadaná cena alebo je 0, použiť aktuálnu nákupnú cenu z materiálu
+        var inputPriceValue = parseFloat(inputPrice);
+        if (!inputPrice || inputPrice.trim() === "" || isNaN(inputPriceValue) || inputPriceValue === 0) {
+            var currentPurchasePrice = parseFloat(utils.safeGet(currentEntry, CONFIG.materialFields.purchasePrice, 0));
+            if (currentPurchasePrice <= 0) {
+                showErrorDialog("❌ CHYBA ARGUMENTU\n\nNie je zadaná nákupná cena a v materiáli nie je nastavená žiadna nákupná cena!\n\nNastavte nákupnú cenu v materiáli alebo zadajte hodnotu argumentu.");
+                return false;
+            }
+            inputPriceValue = currentPurchasePrice;
+            utils.addDebug(currentEntry, CONFIG.icons.info + " Použitá aktuálna nákupná cena z materiálu: " + utils.formatMoney(inputPriceValue));
+        }
+
         var price={
-            purchase: parseFloat(inputPrice),
+            purchase: inputPriceValue,
             selling: null,
         }
-        // Validácia vstupu ceny
+
+        // Validácia finálnej ceny
         if (isNaN(price.purchase) || price.purchase < 0) {
             showErrorDialog("❌ CHYBA ARGUMENTU\n\nNákupná cena musí byť číslo väčšie alebo rovné 0!\n\nZadali ste: '" + inputPrice + "'");
             return false;

@@ -998,21 +998,44 @@ var MementoBusiness = (function() {
             var existingPriceEntry = null;
             var priceEntries = materialItem.linksFrom(pricesLibrary);
 
+            core.addDebug(entry(), "🔍 DEBUG: Hľadám existujúce cenové záznamy, nájdených: " + (priceEntries ? priceEntries.length : 0));
+
             if (priceEntries && priceEntries.length > 0) {
+                var targetDateStr = moment(priceDate).format("YYYY-MM-DD");
+                core.addDebug(entry(), "🔍 DEBUG: Hľadám záznamy s dátumom: " + targetDateStr);
+
                 for (var i = 0; i < priceEntries.length; i++) {
                     var priceEntry = priceEntries[i];
-                    var entryDate = core.safeGet(priceEntry, (config.fields.materialPrices.date) );
+                    var entryDate = core.safeGet(priceEntry, config.fields.materialPrices.date);
 
                     if (entryDate) {
-                        var entryMoment = moment(entryDate);
-                        var priceMoment = moment(priceDate);
+                        var entryDateStr;
+                        if (typeof entryDate === 'string') {
+                            // Ak je dátum string, skús ho parsovať
+                            entryDateStr = moment(entryDate).format("YYYY-MM-DD");
+                        } else if (entryDate instanceof Date) {
+                            // Ak je dátum Date objekt
+                            entryDateStr = moment(entryDate).format("YYYY-MM-DD");
+                        } else {
+                            // Ak je moment objekt alebo iný formát
+                            entryDateStr = moment(entryDate).format("YYYY-MM-DD");
+                        }
+
+                        core.addDebug(entry(), "🔍 DEBUG: Porovnávam " + targetDateStr + " vs " + entryDateStr);
 
                         // Porovnanie dátumov (len dátum, nie čas)
-                        if (entryMoment.format("YYYY-MM-DD") === priceMoment.format("YYYY-MM-DD")) {
+                        if (entryDateStr === targetDateStr) {
                             existingPriceEntry = priceEntry;
+                            core.addDebug(entry(), "✅ DEBUG: Nájdený existujúci záznam pre dátum " + targetDateStr);
                             break;
                         }
+                    } else {
+                        core.addDebug(entry(), "⚠️ DEBUG: Záznam nemá dátum: index " + i);
                     }
+                }
+
+                if (!existingPriceEntry) {
+                    core.addDebug(entry(), "❌ DEBUG: Žiadny existujúci záznam pre dátum " + targetDateStr + " nebol nájdený");
                 }
             }
 
@@ -1253,11 +1276,16 @@ var MementoBusiness = (function() {
                 core.safeSet(item, config.fields.items.purchasePrice, finalPurchasePrice);
                 core.safeSet(item, config.fields.items.purchasePriceWithVat, finalPurchasePriceWithVat);
 
+                // Aktualizovať pole Sadzba s percentuálnou hodnotou DPH
+                core.safeSet(item, config.fields.items.vatRatePercentage, vatRate);
+                core.addDebug(entry(), "📊 Sadzba DPH aktualizovaná na: " + vatRate + "%");
+
                 // Vypočítať a nastaviť skutočnú prirážku (Vypočítaná marža)
                 if (finalPurchasePrice > 0) {
                     var actualMargin = ((finalPrice - finalPurchasePrice) / finalPurchasePrice) * 100;
-                    core.safeSet(item, config.fields.items.calculatedMargin, actualMargin);
-                    core.addDebug(entry(), "💯 Skutočná prirážka nastavená na: " + actualMargin.toFixed(2) + "%");
+                    var roundedMargin = Math.round(actualMargin * 100) / 100; // Zaokrúhlenie na 2 desatinné miesta
+                    core.safeSet(item, config.fields.items.calculatedMargin, roundedMargin);
+                    core.addDebug(entry(), "💯 Skutočná prirážka nastavená na: " + roundedMargin.toFixed(2) + "%");
                 }
 
                 // Vytvorenie info záznamu pre materiál
