@@ -1,19 +1,24 @@
 // ==============================================
 // MEMENTO DATABASE - MATERIÁL PREPOČET CENY ACTION
-// Verzia: 1.0 | Dátum: September 2025 | Autor: ASISTANTO
+// Verzia: 1.2 | Dátum: September 2025 | Autor: ASISTANTO
 // Knižnica: Materiál | Trigger: Manual Action
 // ==============================================
 // 📋 FUNKCIA:
 //    - Manuálny prepočet cien materiálu
-//    - Zadanie nákupnej ceny cez dialogové okno
+//    - Argumenty: "nákupná cena" (číslo) + "dph" (s DPH/bez DPH)
+//    - Automatický prepočet ceny bez DPH ak je zadaná s DPH
 //    - Kontrola zmeny nákupnej ceny podľa nastavení
 //    - Automatický prepočet predajných cien
 //    - Aktualizácia ikon podľa zmeny ceny
+//    - Automatické vytvorenie/aktualizácia cenovej histórie
 // ==============================================
 // 🔧 POUŽÍVA:
 //    - MementoUtils v7.0 (agregátor)
 //    - MementoConfig (centrálna konfigurácia)
 //    - MementoBusiness (business logika pre ceny materiálu)
+// 📝 ARGUMENTY:
+//    - "nákupná cena" (Number): Nová nákupná cena materiálu
+//    - "dph" (Options: "s DPH", "bez DPH"): Či je zadaná cena s/bez DPH
 // ==============================================
 
 // ==============================================
@@ -27,7 +32,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Materiál Prepočet ceny Action",
-    version: "1.0.0",
+    version: "1.2.0",
 
     // Knižnice
     libraries: {
@@ -79,15 +84,36 @@ function main() {
         utils.clearLogs(currentEntry, [CONFIG.materialFields.debugLog, CONFIG.materialFields.errorLog]);
         utils.addDebug(currentEntry, CONFIG.icons.start + " === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
 
-        // Získanie názvu materiálu pre dialóg
+        // Získanie názvu materiálu a aktuálnej ceny
         var materialName = utils.safeGet(currentEntry, CONFIG.materialFields.name, "Neznámy materiál");
         var currentPurchasePrice = parseFloat(utils.safeGet(currentEntry, CONFIG.materialFields.purchasePrice, 0));
 
         utils.addDebug(currentEntry, CONFIG.icons.material + " Materiál: " + materialName);
         utils.addDebug(currentEntry, CONFIG.icons.info + " Aktuálna nákupná cena: " + utils.formatMoney(currentPurchasePrice));
 
-        // Zobrazenie dialógu pre zadanie novej nákupnej ceny
-        showPurchasePriceDialog(materialName, currentPurchasePrice);
+        // Získanie argumentov
+        var newPurchasePrice = arg("nákupná cena");
+        var dphOption = arg("dph");
+
+        // Validácia argumentov
+        if (newPurchasePrice === null || newPurchasePrice === undefined || newPurchasePrice === "") {
+            showErrorDialog("❌ CHYBA ARGUMENTU\\n\\nArgument 'nákupná cena' nie je zadaný!\\n\\nPre spustenie akcie je potrebné zadať hodnotu argumentu.");
+            return false;
+        }
+
+        if (dphOption === null || dphOption === undefined || dphOption === "") {
+            showErrorDialog("❌ CHYBA ARGUMENTU\\n\\nArgument 'dph' nie je zadaný!\\n\\nVyberte: 's DPH' alebo 'bez DPH'.");
+            return false;
+        }
+
+        // Validácia hodnoty DPH argumentu
+        if (dphOption !== "s DPH" && dphOption !== "bez DPH") {
+            showErrorDialog("❌ CHYBA ARGUMENTU\\n\\nArgument 'dph' má neplatnú hodnotu: '" + dphOption + "'\\n\\nPovolené hodnoty: 's DPH', 'bez DPH'.");
+            return false;
+        }
+
+        // Spracovanie argumentov
+        processPurchasePriceFromArguments(newPurchasePrice, dphOption, materialName);
 
         return true;
 
@@ -99,99 +125,106 @@ function main() {
 }
 
 // ==============================================
-// DIALÓGOVÉ FUNKCIE
+// SPRACOVANIE ARGUMENTOV
 // ==============================================
 
 /**
- * Zobrazí dialóg pre zadanie novej nákupnej ceny
+ * Spracuje nákupnú cenu a DPH option z argumentov akcie
  */
-function showPurchasePriceDialog(materialName, currentPrice) {
+function processPurchasePriceFromArguments(inputPrice, dphOption, materialName) {
     try {
-        var dialogMessage = "💰 PREPOČET CENY MATERIÁLU\n\n";
-        dialogMessage += "📦 Materiál: " + materialName + "\n";
-        if (currentPrice > 0) {
-            dialogMessage += "💶 Aktuálna nákupná cena: " + utils.formatMoney(currentPrice) + "\n\n";
-        } else {
-            dialogMessage += "💶 Aktuálna nákupná cena: nie je nastavená\n\n";
-        }
-        dialogMessage += "Zadajte novú nákupnú cenu:";
+        utils.addDebug(currentEntry, CONFIG.icons.info + " Argumenty - nákupná cena: " + inputPrice + ", dph: " + dphOption);
 
-        // Vytvorenie dialógu s input poľom
-        dialog()
-            .title("Prepočet ceny materiálu")
-            .text(dialogMessage)
-            .textInput("purchasePrice", "Nákupná cena", currentPrice > 0 ? currentPrice.toString() : "")
-            .positiveButton("PREPOČÍTAŤ", function(results) {
-                processPriceCalculation(results.purchasePrice, materialName);
-            })
-            .negativeButton("ZRUŠIŤ", function() {
-                utils.addDebug(currentEntry, CONFIG.icons.warning + " Prepočet zrušený používateľom");
-                showCancelDialog();
-            })
-            .show();
+        // Validácia vstupu ceny
+        var inputPurchasePrice = parseFloat(inputPrice);
+        if (isNaN(inputPurchasePrice) || inputPurchasePrice < 0) {
+            showErrorDialog("❌ CHYBA ARGUMENTU\n\nNákupná cena musí byť číslo väčšie alebo rovné 0!\n\nZadali ste: '" + inputPrice + "'");
+            return false;
+        }
+
+        var finalPurchasePrice = inputPurchasePrice;
+
+        // Ak je zadaná cena s DPH, prepočítaj na cenu bez DPH
+        if (dphOption === "s DPH") {
+            // Získanie DPH sadzby pre materiál
+            var vatRatePercentage = getVatRateForMaterial();
+            if (vatRatePercentage === null) {
+                showErrorDialog("❌ CHYBA DPH\n\nNie je možné získať DPH sadzbu pre materiál!\n\nSkontrolujte nastavenie poľa 'sadzba DPH' v materiáli.");
+                return false;
+            }
+
+            // Prepočet ceny bez DPH: cena s DPH / (1 + sadzba DPH)
+            var vatMultiplier = 1 + (vatRatePercentage / 100);
+            finalPurchasePrice = inputPurchasePrice / vatMultiplier;
+
+            utils.addDebug(currentEntry, CONFIG.icons.calculation + " Prepočet z ceny s DPH:");
+            utils.addDebug(currentEntry, "  • Zadaná cena s DPH: " + utils.formatMoney(inputPurchasePrice));
+            utils.addDebug(currentEntry, "  • DPH sadzba: " + vatRatePercentage + "%");
+            utils.addDebug(currentEntry, "  • Prepočítaná cena bez DPH: " + utils.formatMoney(finalPurchasePrice));
+        } else {
+            utils.addDebug(currentEntry, CONFIG.icons.money + " Nákupná cena bez DPH (priamo zadaná): " + utils.formatMoney(finalPurchasePrice));
+        }
+
+        // Priamo vykonáme prepočet s finálnou cenou bez DPH
+        executeCalculation(finalPurchasePrice, materialName);
+
+        return true;
 
     } catch (error) {
-        utils.addError(currentEntry, "Chyba pri zobrazení dialógu", "showPurchasePriceDialog", error);
-        showErrorDialog("Chyba pri zobrazení dialógu!\n\n" + error.toString());
+        utils.addError(currentEntry, "Chyba pri spracovaní argumentov", "processPurchasePriceFromArguments", error);
+        showErrorDialog("Chyba pri spracovaní argumentov!\n\n" + error.toString());
+        return false;
     }
 }
 
 /**
- * Spracuje prepočet cien s novou nákupnou cenou
+ * Získa DPH sadzbu pre aktuálny materiál
+ * @returns {number|null} DPH sadzba v percentách alebo null pri chybe
  */
-function processPriceCalculation(inputPrice, materialName) {
+function getVatRateForMaterial() {
     try {
-        // Validácia vstupu
-        var purchasePrice = parseFloat(inputPrice);
-        if (isNaN(purchasePrice) || purchasePrice < 0) {
-            showErrorDialog("❌ CHYBA VSTUPU\n\nNákupná cena musí byť číslo väčšie alebo rovné 0!\n\nZadali ste: '" + inputPrice + "'");
-            return false;
+        var vatRateType = utils.safeGet(currentEntry, CONFIG.materialFields.vatRate, "");
+
+        if (!vatRateType || vatRateType.trim() === "") {
+            utils.addDebug(currentEntry, CONFIG.icons.warning + " DPH sadzba nie je nastavená, použije sa základná sadzba");
+            return 20; // Základná sadzba 20% ako fallback
         }
 
-        utils.addDebug(currentEntry, CONFIG.icons.money + " Nová nákupná cena: " + utils.formatMoney(purchasePrice));
+        // Získanie knižnice DPH sadzieb
+        var vatLibraryName = CONFIG.libraries.vatRates;
+        var vatLibrary = libByName(vatLibraryName);
 
-        // Zobrazenie potvrdzovacieho dialógu
-        var confirmMessage = "💰 POTVRDENIE PREPOČTU\n\n";
-        confirmMessage += "📦 Materiál: " + materialName + "\n";
-        confirmMessage += "💶 Nová nákupná cena: " + utils.formatMoney(purchasePrice) + "\n\n";
-        confirmMessage += "⚙️ Prepočet sa vykoná podľa nastavení materiálu:\n";
-
-        var priceCalculation = utils.safeGet(currentEntry, CONFIG.materialFields.priceCalculation, "");
-        if (priceCalculation) {
-            confirmMessage += "• Prepočet ceny: " + priceCalculation + "\n";
+        if (!vatLibrary) {
+            utils.addError(currentEntry, "Knižnica DPH sadzieb neexistuje", "getVatRateForMaterial");
+            return 20; // Fallback na základnú sadzbu
         }
 
-        var markupPercentage = parseFloat(utils.safeGet(currentEntry, CONFIG.materialFields.markupPercentage, 0));
-        if (markupPercentage > 0) {
-            confirmMessage += "• Obchodná prirážka: " + markupPercentage + "%\n";
+        // Hľadanie záznamu DPH sadzby
+        var vatEntries = vatLibrary.entries();
+        for (var i = 0; i < vatEntries.length; i++) {
+            var vatEntry = vatEntries[i];
+            var entryName = utils.safeGet(vatEntry, (centralConfig.fields.vatRates && centralConfig.fields.vatRates.name) || "Názov", "");
+
+            if (entryName === vatRateType) {
+                var rate = parseFloat(utils.safeGet(vatEntry, (centralConfig.fields.vatRates && centralConfig.fields.vatRates.rate) || "Sadzba", 0));
+                utils.addDebug(currentEntry, CONFIG.icons.info + " Nájdená DPH sadzba: " + entryName + " = " + rate + "%");
+                return rate;
+            }
         }
 
-        var vatRateType = utils.safeGet(currentEntry, CONFIG.materialFields.vatRate, "Základná");
-        confirmMessage += "• Sadzba DPH: " + vatRateType + "\n";
-
-        var priceRounding = utils.safeGet(currentEntry, CONFIG.materialFields.priceRounding, "");
-        if (priceRounding && priceRounding !== "Nezaokrúhľovať") {
-            var roundingValue = utils.safeGet(currentEntry, CONFIG.materialFields.roundingValue, "");
-            confirmMessage += "• Zaokrúhľovanie: " + priceRounding + " (" + roundingValue + ")\n";
+        // Ak sa nenašla konkrétna sadzba, skús parsovať číslo z názvu
+        var rateFromName = parseFloat(vatRateType);
+        if (!isNaN(rateFromName) && rateFromName >= 0) {
+            utils.addDebug(currentEntry, CONFIG.icons.info + " Parsovaná DPH sadzba z názvu: " + rateFromName + "%");
+            return rateFromName;
         }
 
-        confirmMessage += "\n⚠️ Aktuálne ceny budú prepísané!\n\nPokračovať?";
-
-        dialog()
-            .title("Potvrdenie prepočtu")
-            .text(confirmMessage)
-            .positiveButton("ÁNOÍ", function() {
-                executeCalculation(purchasePrice, materialName);
-            })
-            .negativeButton("NIE", function() {
-                utils.addDebug(currentEntry, CONFIG.icons.warning + " Prepočet zrušený po potvrdení");
-                showCancelDialog();
-            })
-            .show();
+        utils.addError(currentEntry, "Nepodarilo sa určiť DPH sadzbu pre typ: " + vatRateType, "getVatRateForMaterial");
+        return 20; // Fallback na základnú sadzbu
 
     } catch (error) {
-        utils.addError(currentEntry, "Chyba pri spracovaní vstupu", "processPriceCalculation", error);
-        showErrorDialog("Chyba pri spracovaní!\n\n" + error.toString());
+        utils.addError(currentEntry, "Chyba pri získavaní DPH sadzby", "getVatRateForMaterial", error);
+        return 20; // Fallback na základnú sadzbu
     }
 }
 
@@ -264,16 +297,6 @@ function showSuccessDialog(message) {
         .show();
 }
 
-/**
- * Zobrazí dialóg pri zrušení
- */
-function showCancelDialog() {
-    dialog()
-        .title("Zrušené")
-        .text("❌ Prepočet ceny bol zrušený")
-        .positiveButton("OK", function() {})
-        .show();
-}
 
 // ==============================================
 // SPUSTENIE SCRIPTU
