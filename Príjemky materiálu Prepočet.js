@@ -322,7 +322,7 @@ function calculateAndUpdateMaterialPrices(item, purchasePrice, documentDate) {
 
             updated = true;
 
-            utils.addDebug(currentEntry, CONFIG.icons.success + " " + materialName + " - Aktualizované ceny:");
+            utils.addDebug(currentEntry, "🔄" + " " + materialName + " - Aktualizované ceny:");
             utils.addDebug(currentEntry, "  Nákupná: " + utils.formatMoney(finalPurchasePrice) + " / s DPH: " + utils.formatMoney(finalPurchasePriceWithVat));
             utils.addDebug(currentEntry, "  Predajná: " + utils.formatMoney(finalPrice) + " / s DPH: " + utils.formatMoney(roundedPriceWithVat));
         }
