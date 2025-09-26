@@ -972,7 +972,7 @@ var MementoBusiness = (function() {
      * @param {number} newPrice - Nová cena materiálu
      * @returns {Object} Výsledok operácie
      */
-    function createOrUpdateMaterialPriceRecord(materialItem, priceDate, newPrice, purchasePrice) {
+    function createOrUpdateMaterialPriceRecord(materialItem, priceDate, sellPrice, purchasePrice) {
         try {
             var core = getCore();
             var config = getConfig();
