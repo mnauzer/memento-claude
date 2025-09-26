@@ -465,7 +465,7 @@ function createMaterialInfoRecord(item, priceData) {
 
         if (priceData.markupPercentage > 0) {
             var actualMargin = ((priceData.finalPrice - priceData.finalPurchasePrice) / priceData.finalPurchasePrice) * 100;
-            infoMessage += "• Skutočná marža: " + utils.formatNumber(actualMargin, 2) + "%\n";
+            infoMessage += "• Skutočná marža: " + actualMargin.toFixed(2) + "%\n";
         }
 
         infoMessage += "\n✅ CENY AKTUALIZOVANÉ ÚSPEŠNE";
