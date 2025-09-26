@@ -972,7 +972,7 @@ var MementoBusiness = (function() {
      * @param {number} newPrice - Nová cena materiálu
      * @returns {Object} Výsledok operácie
      */
-    function createOrUpdateMaterialPriceRecord(materialItem, priceDate, newPrice) {
+    function createOrUpdateMaterialPriceRecord(materialItem, priceDate, newPrice, purchasePrice) {
         try {
             var core = getCore();
             var config = getConfig();
@@ -1029,7 +1029,7 @@ var MementoBusiness = (function() {
                     updated: true,
                     message: "Cenový záznam aktualizovaný",
                     oldPrice: oldPrice,
-                    newPrice: newPrice,
+                    sellPrice: sellPrice,
                     date: priceDate
                 };
 
@@ -1040,21 +1040,23 @@ var MementoBusiness = (function() {
 
                 var materialField = config.fields.materialPrices.material;
                 var dateField = config.fields.materialPrices.date;
-                var buyPriceField = config.fields.materialPrices.price;
-                var sellPriceField = config.fields.materialPrices.price;
+                var purchasePriceField = config.fields.materialPrices.purchasePrice;
+                var sellPriceField = config.fields.materialPrices.sellPrice;
 
                 core.safeSet(newPriceEntry, materialField, [materialItem]);
                 core.safeSet(newPriceEntry, dateField, priceDate);
-                core.safeSet(newPriceEntry, buyPriceField, newPrice);
+                core.safeSet(newPriceEntry, purchasePriceField, purchasePrice);
+                core.safeSet(newPriceEntry, sellPriceField, sellPrice);
 
 
-                core.addDebug(entry(), "➕ " + materialName + " - Vytvorený nový cenový záznam k " + dateFormatted + ": " + core.formatMoney(newPrice));
+                core.addDebug(entry(), "➕ " + materialName + " - Vytvorený nový cenový záznam k " + dateFormatted + ": " + core.formatMoney(sellPrice));
 
                 return {
                     success: true,
                     created: true,
                     message: "Nový cenový záznam vytvorený",
-                    newPrice: newPrice,
+                    purchasePrice: purchasePrice,
+                    sellPrice: sellPrice,
                     date: priceDate,
                     entryId: core.safeGet(newPriceEntry, "ID", "N/A")
                 };
@@ -1149,10 +1151,10 @@ var MementoBusiness = (function() {
             var finalPurchasePrice = purchasePrice; // Cena z atribútu "cena"
 
             // 3. Zistiť sadzbu DPH z záznamu materiálu
-            var vatRateType = core.safeGet(item, config.fields.items.vatRate, "Základná").trim();
+            var vatRateType = core.safeGet(item, config.fields.items.vatRate, "Základná")
             var vatRate = 0;
             try {
-                vatRate = getValidVatRate(documentDate, vatRateType.toLowerCase());
+                vatRate = getValidVatRate(documentDate, vatRateType.toLowerCase().trim());
                 core.addDebug(entry(), "✅ " + materialName + " - Sadzba DPH (" + vatRateType + "): " + vatRate + "%");
             } catch (error) {
                 core.addDebug(entry(), "⚠️ " + materialName + " - Chyba pri získavaní DPH, použije sa 0%");
@@ -1260,7 +1262,7 @@ var MementoBusiness = (function() {
 
                 // Vytvorenie/aktualizácia záznamu v knižnici "ceny materiálu"
                 core.addDebug(entry(), "🔍 DEBUG: Volám createOrUpdateMaterialPriceRecord s cenou: " + core.formatMoney(finalPrice));
-                var priceHistoryResult = createOrUpdateMaterialPriceRecord(item, documentDate, finalPrice);
+                var priceHistoryResult = createOrUpdateMaterialPriceRecord(item, documentDate, finalPrice, purchasePrice);
                 if (priceHistoryResult.success) {
                     if (priceHistoryResult.created) {
                         core.addDebug(entry(), "➕ " + materialName + " - Vytvorený cenový záznam v histórii");

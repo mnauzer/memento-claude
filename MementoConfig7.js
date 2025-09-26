@@ -416,7 +416,7 @@ var MementoConfig = (function() {
             materialPrices: {
                 material: "Položka", // linkToEntry Materiál
                 date: "Platnosť od", // date
-                buyPrice: "nc", // real number Nákupná cena
+                purchasePrice: "nc", // real number Nákupná cena
                 sellPrice: "pc" // real number Predajná cena
 
             },

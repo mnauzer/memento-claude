@@ -134,16 +134,18 @@ function main() {
 function processPurchasePriceFromArguments(inputPrice, dphOption, materialName) {
     try {
         utils.addDebug(currentEntry, CONFIG.icons.info + " Argumenty - nákupná cena: " + inputPrice + ", dph: " + dphOption);
-
+        var price={
+            purchase: parseFloat(inputPrice),
+            selling: null,
+        }
         // Validácia vstupu ceny
-        var inputPurchasePrice = parseFloat(inputPrice);
-        if (isNaN(inputPurchasePrice) || inputPurchasePrice < 0) {
+        if (isNaN(price.purchase) || price.purchase < 0) {
             showErrorDialog("❌ CHYBA ARGUMENTU\n\nNákupná cena musí byť číslo väčšie alebo rovné 0!\n\nZadali ste: '" + inputPrice + "'");
             return false;
         }
         
         
-        var finalPurchasePrice = inputPurchasePrice;
+        var finalPurchasePrice = price.purchase;
         
         // Ak je zadaná cena s DPH, prepočítaj na cenu bez DPH
         if (dphOption === "s DPH") {
@@ -157,10 +159,10 @@ function processPurchasePriceFromArguments(inputPrice, dphOption, materialName) 
 
             // Prepočet ceny bez DPH: cena s DPH / (1 + sadzba DPH)
             var vatMultiplier = 1 + (vatRatePercentage / 100);
-            finalPurchasePrice = inputPurchasePrice / vatMultiplier;
+            finalPurchasePrice = price.purchase / vatMultiplier;
 
             utils.addDebug(currentEntry, CONFIG.icons.calculation + " Prepočet z ceny s DPH:");
-            utils.addDebug(currentEntry, "  • Zadaná cena s DPH: " + utils.formatMoney(inputPurchasePrice));
+            utils.addDebug(currentEntry, "  • Zadaná cena s DPH: " + utils.formatMoney(price.purchase));
             utils.addDebug(currentEntry, "  • DPH sadzba: " + vatRatePercentage + "%");
             utils.addDebug(currentEntry, "  • Prepočítaná cena bez DPH: " + utils.formatMoney(finalPurchasePrice));
         } else {
@@ -179,56 +181,6 @@ function processPurchasePriceFromArguments(inputPrice, dphOption, materialName) 
     }
 }
 
-/**
- * Získa DPH sadzbu pre aktuálny materiál
- * @returns {number|null} DPH sadzba v percentách alebo null pri chybe
- */
-function getVatRateForMaterial() {
-    try {
-        var vatRateType = utils.safeGet(currentEntry, CONFIG.materialFields.vatRate, "");
-
-        if (!vatRateType || vatRateType.trim() === "") {
-            utils.addDebug(currentEntry, CONFIG.icons.warning + " DPH sadzba nie je nastavená, použije sa základná sadzba");
-            return 20; // Základná sadzba 20% ako fallback
-        }
-
-        // Získanie knižnice DPH sadzieb
-        var vatLibraryName = CONFIG.libraries.vatRates;
-        var vatLibrary = libByName(vatLibraryName);
-
-        if (!vatLibrary) {
-            utils.addError(currentEntry, "Knižnica DPH sadzieb neexistuje", "getVatRateForMaterial");
-            return 20; // Fallback na základnú sadzbu
-        }
-
-        // Hľadanie záznamu DPH sadzby
-        var vatEntries = vatLibrary.entries();
-        for (var i = 0; i < vatEntries.length; i++) {
-            var vatEntry = vatEntries[i];
-            var entryName = utils.safeGet(vatEntry, (centralConfig.fields.vatRates && centralConfig.fields.vatRates.name) || "Názov", "");
-
-            if (entryName === vatRateType) {
-                var rate = parseFloat(utils.safeGet(vatEntry, (centralConfig.fields.vatRates && centralConfig.fields.vatRates.rate) || "Sadzba", 0));
-                utils.addDebug(currentEntry, CONFIG.icons.info + " Nájdená DPH sadzba: " + entryName + " = " + rate + "%");
-                return rate;
-            }
-        }
-
-        // Ak sa nenašla konkrétna sadzba, skús parsovať číslo z názvu
-        var rateFromName = parseFloat(vatRateType);
-        if (!isNaN(rateFromName) && rateFromName >= 0) {
-            utils.addDebug(currentEntry, CONFIG.icons.info + " Parsovaná DPH sadzba z názvu: " + rateFromName + "%");
-            return rateFromName;
-        }
-
-        utils.addError(currentEntry, "Nepodarilo sa určiť DPH sadzbu pre typ: " + vatRateType, "getVatRateForMaterial");
-        return 20; // Fallback na základnú sadzbu
-
-    } catch (error) {
-        utils.addError(currentEntry, "Chyba pri získavaní DPH sadzby", "getVatRateForMaterial", error);
-        return 20; // Fallback na základnú sadzbu
-    }
-}
 
 /**
  * Vykoná skutočný prepočet cien
