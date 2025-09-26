@@ -246,7 +246,7 @@ function calculateAndUpdateMaterialPrices(item, purchasePrice, documentDate) {
         var finalPurchasePrice = purchasePrice; // Cena z atribútu "cena"
 
         // 2. Zistiť sadzbu DPH z záznamu materiálu
-        var vatRateType = utils.safeGet(item, CONFIG.materialFields.vatRate, "Základná");
+        var vatRateType = utils.safeGet(item, CONFIG.materialFields.vatRate, "Základná").trim();
         var vatRate = 0;
         try {
             vatRate = utils.getValidVatRate(documentDate, vatRateType.toLowerCase());
@@ -260,7 +260,7 @@ function calculateAndUpdateMaterialPrices(item, purchasePrice, documentDate) {
         var finalPurchasePriceWithVat = finalPurchasePrice * (1 + vatRate / 100);
 
         // 4. Zistiť nastavenie prepočtu predajnej ceny z záznamu materiálu
-        var priceCalculation = utils.safeGet(item, CONFIG.materialFields.priceCalculation, "");
+        var priceCalculation = utils.safeGet(item, CONFIG.materialFields.priceCalculation, "").trim();
         utils.addDebug(currentEntry, CONFIG.icons.info + " " + materialName + " - Prepočet ceny: " + priceCalculation);
 
         var sellingPrice = finalPurchasePrice; // Základne = nákupná cena
@@ -344,8 +344,8 @@ function calculateAndUpdateMaterialPrices(item, purchasePrice, documentDate) {
 
 function applyPriceRounding(item, price, materialName) {
     try {
-        var priceRounding = utils.safeGet(item, CONFIG.materialFields.priceRounding, "");
-        var roundingValue = utils.safeGet(item, CONFIG.materialFields.roundingValue, "");
+        var priceRounding = utils.safeGet(item, CONFIG.materialFields.priceRounding, "").trim();
+        var roundingValue = utils.safeGet(item, CONFIG.materialFields.roundingValue, "").trim();
 
         if (!priceRounding || priceRounding === "Nezaokrúhľovať") {
             return price;
