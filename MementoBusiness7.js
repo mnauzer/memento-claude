@@ -1219,6 +1219,7 @@ var MementoBusiness = (function() {
             var currentPurchasePrice = parseFloat(core.safeGet(item, config.fields.items.purchasePrice, 0));
             var currentPurchasePriceWithVat = parseFloat(core.safeGet(item, config.fields.items.purchasePriceWithVat, 0));
 
+            
             if (Math.abs(currentPrice - finalPrice) > 0.01 ||
                 Math.abs(currentPriceWithVat - roundedPriceWithVat) > 0.01 ||
                 Math.abs(currentPurchasePrice - finalPurchasePrice) > 0.01 ||
@@ -1492,7 +1493,7 @@ var MementoBusiness = (function() {
 
             if (priceData.markupPercentage > 0) {
                 var actualMargin = ((priceData.finalPrice - priceData.finalPurchasePrice) / priceData.finalPurchasePrice) * 100;
-                infoMessage += "• Skutočná marža: " + actualMargin.toFixed(2) + "%\n";
+                infoMessage += "• Skutočná prirážka: " + actualMargin.toFixed(2) + "%\n";
             }
 
             // Informácie o cenové histórii
