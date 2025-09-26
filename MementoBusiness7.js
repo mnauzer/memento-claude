@@ -978,17 +978,22 @@ var MementoBusiness = (function() {
             var config = getConfig();
 
             var materialName = core.safeGet(materialItem, config.fields.items.name, "Neznámy materiál");
+            core.addDebug(entry(), "🔍 DEBUG: Spúšťam createOrUpdateMaterialPriceRecord pre " + materialName);
 
             // Získanie knižnice ceny materiálu
             var materialPricesLibraryName = config.libraries && config.libraries.materialPrices ? config.libraries.materialPrices : "ceny materiálu";
+            core.addDebug(entry(), "🔍 DEBUG: Hľadám knižnicu: " + materialPricesLibraryName);
+
             var pricesLibrary = libByName(materialPricesLibraryName);
             if (!pricesLibrary) {
-                core.addError(entry(), "Knižnica " + materialPricesLibraryName + " neexistuje", "createOrUpdateMaterialPriceRecord");
+                core.addError(entry(), "❌ Knižnica " + materialPricesLibraryName + " neexistuje", "createOrUpdateMaterialPriceRecord");
                 return {
                     success: false,
                     message: "Knižnica ceny materiálu neexistuje"
                 };
             }
+
+            core.addDebug(entry(), "✅ DEBUG: Knižnica " + materialPricesLibraryName + " nájdená");
 
             var dateFormatted = core.formatDate(priceDate, "DD.MM.YYYY");
             core.addDebug(entry(), "💰 " + materialName + " - Spracovávam cenový záznam k " + dateFormatted);
@@ -1035,6 +1040,7 @@ var MementoBusiness = (function() {
 
             } else {
                 // Vytvorenie nového záznamu
+                core.addDebug(entry(), "🔍 DEBUG: Existujúci záznam nenájdený, vytváram nový");
                 var newPriceEntry = pricesLibrary.create();
 
                 // Nastavenie polí nového záznamu (s fallback názvami)
@@ -1042,9 +1048,13 @@ var MementoBusiness = (function() {
                 var dateField = (config.fields && config.fields.materialPrices && config.fields.materialPrices.date) || "Dátum";
                 var priceField = (config.fields && config.fields.materialPrices && config.fields.materialPrices.price) || "Cena";
 
+                core.addDebug(entry(), "🔍 DEBUG: Používam polia - materiál: " + materialField + ", dátum: " + dateField + ", cena: " + priceField);
+
                 core.safeSet(newPriceEntry, materialField, [materialItem]);
                 core.safeSet(newPriceEntry, dateField, priceDate);
                 core.safeSet(newPriceEntry, priceField, newPrice);
+
+                core.addDebug(entry(), "🔍 DEBUG: Polia nastavené, záznam vytvorený");
 
                 core.addDebug(entry(), "➕ " + materialName + " - Vytvorený nový cenový záznam k " + dateFormatted + ": " + core.formatMoney(newPrice));
 
@@ -1257,6 +1267,7 @@ var MementoBusiness = (function() {
                 updated = true;
 
                 // Vytvorenie/aktualizácia záznamu v knižnici "ceny materiálu"
+                core.addDebug(entry(), "🔍 DEBUG: Volám createOrUpdateMaterialPriceRecord s cenou: " + core.formatMoney(finalPrice));
                 var priceHistoryResult = createOrUpdateMaterialPriceRecord(item, documentDate, finalPrice);
                 if (priceHistoryResult.success) {
                     if (priceHistoryResult.created) {
@@ -1266,6 +1277,7 @@ var MementoBusiness = (function() {
                     }
                 } else {
                     core.addDebug(entry(), "⚠️ " + materialName + " - Chyba pri vytváraní cenového záznamu: " + priceHistoryResult.message);
+                    core.addDebug(entry(), "🔍 DEBUG: priceHistoryResult: " + JSON.stringify(priceHistoryResult));
                 }
 
                 // Aktualizácia info záznamu s kompletými informáciami vrátane cenovej histórie
