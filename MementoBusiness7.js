@@ -1298,7 +1298,7 @@ var MementoBusiness = (function() {
             var vatRateType = core.safeGet(item, config.fields.items.vatRate, "Základná");
             var vatRate = 0;
             try {
-                vatRate = getValidVatRate(vatRateType, documentDate);
+                vatRate = getValidVatRate(documentDate, vatRateType);
                 core.addDebug(entry(), "✅ " + materialName + " - Sadzba DPH (" + vatRateType + "): " + vatRate + "%");
             } catch (error) {
                 core.addDebug(entry(), "⚠️ " + materialName + " - Chyba pri získavaní DPH, použije sa 0%");
