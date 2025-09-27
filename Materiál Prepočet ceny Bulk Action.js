@@ -347,6 +347,16 @@ function executeCalculation(currentEntry, purchasePrice, materialName) {
             { forceRecalculation: true } // Vynútiť prepočet bez ohľadu na prahy
         );
 
+        // Debug informácie o výsledku
+        utils.addDebug(currentEntry, "🔍 DEBUG: Výsledok calculateAndUpdateMaterialPrices:");
+        utils.addDebug(currentEntry, "  • result: " + (result ? "existuje" : "null/undefined"));
+        if (result) {
+            utils.addDebug(currentEntry, "  • result.sellingPrice: " + result.sellingPrice);
+            utils.addDebug(currentEntry, "  • result.priceWithVat: " + result.priceWithVat);
+            utils.addDebug(currentEntry, "  • result.updated: " + result.updated);
+            utils.addDebug(currentEntry, "  • result JSON: " + JSON.stringify(result));
+        }
+
         if (result && result.sellingPrice !== undefined) {
             // Úspešný prepočet
             utils.addDebug(currentEntry, CONFIG.icons.success + " Prepočet cien úspešne dokončený");
@@ -359,6 +369,7 @@ function executeCalculation(currentEntry, purchasePrice, materialName) {
         } else {
             // Prepočet zlyhal
             utils.addError(currentEntry, "Prepočet cien zlyhal pre materiál: " + materialName, "executeCalculation");
+            utils.addError(currentEntry, "Result object: " + JSON.stringify(result), "executeCalculation");
             return {
                 success: false,
                 message: "Prepočet cien sa nepodarilo dokončiť"
