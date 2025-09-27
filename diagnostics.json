@@ -1,0 +1,27 @@
+{
+  "timestamp": "2025-09-27T15:12:47.673625",
+  "client_version": "1.0",
+  "configuration": {
+    "api_key_set": true,
+    "base_url": "https://mementoserver-hrd.appspot.com/v1",
+    "timeout": 30000,
+    "max_retries": 3,
+    "library_ids_configured": 0
+  },
+  "tests": {
+    "connection": {
+      "timestamp": "2025-09-27T15:12:47.673667",
+      "api_key_configured": true,
+      "base_url": "https://mementoserver-hrd.appspot.com/v1",
+      "connection_success": false,
+      "authentication_success": false,
+      "libraries_accessible": false,
+      "error": "All authentication methods failed",
+      "response_time": null
+    },
+    "libraries": {
+      "success": false,
+      "error": "All authentication methods failed"
+    }
+  }
+}
