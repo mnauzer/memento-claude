@@ -26,3 +26,12 @@ poslednychat.txt
 
 # Claude Code session súbory
 2025-*-*.txt
+
+# Chat exporty a konverzácie
+*chat*
+*export*
+*conversation*
+chat_export_*
+conversation_*
+claude_chat_*
+ai_chat_*
