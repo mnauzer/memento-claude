@@ -198,12 +198,13 @@ function executeCalculation(purchasePrice, materialName) {
     try {
         utils.addDebug(currentEntry, CONFIG.icons.calculation + " Spúšťam prepočet cien...");
 
-        // Použitie funkcie z MementoBusiness modulu
+        // Použitie funkcie z MementoBusiness modulu s vynúteným prepočtom
         var result = utils.calculateAndUpdateMaterialPrices(
             currentEntry,
             purchasePrice,
             new Date(), // Použije aktuálny dátum
-            true // isManualAction = true (ide o manuálny prepočet)
+            true, // isManualAction = true (ide o manuálny prepočet)
+            { forceRecalculation: true } // Vynútiť prepočet bez ohľadu na prahy
         );
 
         if (result && result.sellingPrice !== undefined) {
