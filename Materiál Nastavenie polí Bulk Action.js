@@ -82,12 +82,12 @@ try {
     selectedMaterials = selectedEntries();
 } catch (error) {
     message("❌ CHYBA: Nepodarilo sa získať označené záznamy: " + error.toString());
-    return;
+    return false;
 }
 
 if (!selectedMaterials || selectedMaterials.length === 0) {
     message("⚠️ UPOZORNENIE: Žiadne záznamy nie sú označené!\n\nPre použitie bulk action označte materiály, ktoré chcete upraviť.");
-    return;
+    return false;
 }
 
 // ==============================================
