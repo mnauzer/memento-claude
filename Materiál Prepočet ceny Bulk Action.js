@@ -278,7 +278,8 @@ function processPurchasePriceFromArguments(currentEntry, inputPrice, dphOption, 
             } else {
                 // Pridať varovnú ikonu do poľa icons
                 addWarningIcon(currentEntry, materialName);
-                utils.addError(currentEntry, "Materiál " + materialName + " - nie je nastavená nákupná cena v poli ani argumente", "processPurchasePriceFromArguments");
+                var error = new Error("Materiál " + materialName + " - nie je nastavená nákupná cena v poli ani argumente");
+                utils.addError(currentEntry, error.message, "processPurchasePriceFromArguments", error);
                 return null;
             }
         }
@@ -286,7 +287,8 @@ function processPurchasePriceFromArguments(currentEntry, inputPrice, dphOption, 
         // Finálna validácia
         if (isNaN(inputPriceValue) || inputPriceValue <= 0) {
             addWarningIcon(currentEntry, materialName);
-            utils.addError(currentEntry, "Materiál " + materialName + " - neplatná nákupná cena: " + inputPriceValue, "processPurchasePriceFromArguments");
+            var error = new Error("Materiál " + materialName + " - neplatná nákupná cena: " + inputPriceValue);
+            utils.addError(currentEntry, error.message, "processPurchasePriceFromArguments", error);
             return null;
         }
 
@@ -303,7 +305,8 @@ function processPurchasePriceFromArguments(currentEntry, inputPrice, dphOption, 
 
             var vatRatePercentage = utils.getValidVatRate(vatRate, new Date());
             if (vatRatePercentage === null) {
-                utils.addError(currentEntry, "Materiál " + materialName + " - nie je možné získať DPH sadzbu pre: " + vatRate, "processPurchasePriceFromArguments");
+                var error = new Error("Materiál " + materialName + " - nie je možné získať DPH sadzbu pre: " + vatRate);
+                utils.addError(currentEntry, error.message, "processPurchasePriceFromArguments", error);
                 return null;
             }
 
@@ -368,7 +371,9 @@ function executeCalculation(currentEntry, purchasePrice, materialName) {
             };
         } else {
             // Prepočet zlyhal
-            utils.addError(currentEntry, "Prepočet cien zlyhal pre materiál: " + materialName, "executeCalculation");
+            var errorMsg = "Prepočet cien zlyhal pre materiál: " + materialName;
+            var error = new Error(errorMsg);
+            utils.addError(currentEntry, error.message, "executeCalculation", error);
             utils.addError(currentEntry, "Result object: " + JSON.stringify(result), "executeCalculation");
             return {
                 success: false,

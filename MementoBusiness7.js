@@ -1295,10 +1295,10 @@ var MementoBusiness = (function() {
             var finalPurchasePrice = purchasePrice; // Cena z atribútu "cena"
 
             // 3. Zistiť sadzbu DPH z záznamu materiálu
-            var vatRateType = core.safeGet(item, config.fields.items.vatRate, "Základná")
+            var vatRateType = core.safeGet(item, config.fields.items.vatRate, "Základná");
             var vatRate = 0;
             try {
-                vatRate = getValidVatRate(documentDate, vatRateType.toLowerCase().trim());
+                vatRate = getValidVatRate(vatRateType, documentDate);
                 core.addDebug(entry(), "✅ " + materialName + " - Sadzba DPH (" + vatRateType + "): " + vatRate + "%");
             } catch (error) {
                 core.addDebug(entry(), "⚠️ " + materialName + " - Chyba pri získavaní DPH, použije sa 0%");
