@@ -137,7 +137,7 @@ function processPurchasePriceFromArguments(inputPrice, dphOption, materialName) 
 
         // Ak nie je zadaná cena alebo je 0, použiť aktuálnu nákupnú cenu z materiálu
         var inputPriceValue = parseFloat(inputPrice);
-        if (!inputPrice || inputPrice.trim() === "" || isNaN(inputPriceValue) || inputPriceValue === 0) {
+        if (!inputPrice || inputPrice === "" || isNaN(inputPriceValue) || inputPriceValue === 0) {
             var currentPurchasePrice = parseFloat(utils.safeGet(currentEntry, CONFIG.materialFields.purchasePrice, 0));
             if (currentPurchasePrice <= 0) {
                 utils.showErrorDialog("❌ CHYBA ARGUMENTU\n\nNie je zadaná nákupná cena a v materiáli nie je nastavená žiadna nákupná cena!\n\nNastavte nákupnú cenu v materiáli alebo zadajte hodnotu argumentu.");
