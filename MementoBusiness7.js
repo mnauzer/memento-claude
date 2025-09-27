@@ -1276,9 +1276,10 @@ var MementoBusiness = (function() {
             var config = getConfig();
 
             var materialName = core.safeGet(item, config.fields.items.name, "Neznámy materiál");
+            core.addDebug(item, "🧾 " + materialName + " - Spúšťam výpočet cien...");
             var updated = false;
             options = options || {};
-
+            core.addDebug(item, "🔧 Možnosti: " + JSON.stringify(options));
             // 1. Použitie novej funkcie pre detekciu zmien
             var changeDetection = detectAllPriceChanges(item, purchasePrice, isManualAction, options);
             var shouldProcessPriceCalculation = changeDetection.shouldRecalculate;
