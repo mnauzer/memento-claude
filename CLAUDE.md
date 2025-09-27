@@ -87,6 +87,15 @@ All time calculations use:
 
 Since this appears to be a script-based system without traditional build tools, there are no npm/build commands. Scripts are likely deployed directly to the target platform.
 
+### Automatic Git Synchronization
+**IMPORTANT**: After every script modification or creation, automatically commit and push changes to GitHub:
+
+1. **Add files to staging**: `git add <modified_files>`
+2. **Create commit with descriptive message**: Include details about what was changed/fixed
+3. **Push to GitHub**: `git push origin main`
+
+This ensures all script changes are immediately synchronized and backed up.
+
 ## File Organization
 
 ### Current Files (root)
