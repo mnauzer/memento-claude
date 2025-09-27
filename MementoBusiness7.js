@@ -366,7 +366,7 @@ var MementoBusiness = (function() {
             
         } catch (error) {
             if (core) {
-                core.addError(entry(), "Chyba pri hľadaní sadzby: " + error.toString() + ", Line: " + error.lineNumber, "findValidHourlyRate", error);
+                core.addError(item, "Chyba pri hľadaní sadzby: " + error.toString() + ", Line: " + error.lineNumber, "findValidHourlyRate", error);
             }
             return null;
         }
@@ -510,7 +510,7 @@ var MementoBusiness = (function() {
             
         } catch (error) {
             if (core) {
-                core.addError(entry(), "Chyba pri hľadaní ceny: " + error.toString() + ", Line: " + error.lineNumber, "findValidWorkPrice", error);
+                core.addError(item, "Chyba pri hľadaní ceny: " + error.toString() + ", Line: " + error.lineNumber, "findValidWorkPrice", error);
             }
             return null;
         }
@@ -556,7 +556,7 @@ var MementoBusiness = (function() {
             
         } catch (error) {
             if (core) {
-                core.addError(entry(), "Chyba pri hľadaní ceny: " + error.toString() + ", Line: " + error.lineNumber, "findValidMachinePrice", error);
+                core.addError(item, "Chyba pri hľadaní ceny: " + error.toString() + ", Line: " + error.lineNumber, "findValidMachinePrice", error);
 
             }
             return null;
@@ -599,7 +599,7 @@ var MementoBusiness = (function() {
             
         } catch (error) {
             if (core) {
-                core.addError(entry(), "Chyba pri hľadaní ceny: " + error.toString() + ", Line: " + error.lineNumber, "findValidWorkPrice", error);
+                core.addError(item, "Chyba pri hľadaní ceny: " + error.toString() + ", Line: " + error.lineNumber, "findValidWorkPrice", error);
             }
             return null;
         }
@@ -897,7 +897,7 @@ var MementoBusiness = (function() {
 
         try {
             if (!date) {
-                core.addError(entry(), "Dátum nie je zadaný pre zistenie DPH", "getValidVatRate");
+                core.addError(item, "Dátum nie je zadaný pre zistenie DPH", "getValidVatRate");
                 return 0;
             }
 
@@ -905,13 +905,13 @@ var MementoBusiness = (function() {
             var vatRatesLib = libByName(vatRatesLibName);
 
             if (!vatRatesLib) {
-                core.addError(entry(), "Knižnica sadzby DPH neexistuje", "getValidVatRate");
+                core.addError(item, "Knižnica sadzby DPH neexistuje", "getValidVatRate");
                 return 0;
             }
 
             var targetDate = moment(date);
             if (!targetDate.isValid()) {
-                core.addError(entry(), "Neplatný dátum: " + date, "getValidVatRate");
+                core.addError(item, "Neplatný dátum: " + date, "getValidVatRate");
                 return 0;
             }
 
@@ -933,7 +933,7 @@ var MementoBusiness = (function() {
             }
 
             if (validEntries.length === 0) {
-                core.addError(entry(), "Nenašla sa platná sadzba DPH k dátumu " + targetDate.format("DD.MM.YYYY"), "getValidVatRate");
+                core.addError(item, "Nenašla sa platná sadzba DPH k dátumu " + targetDate.format("DD.MM.YYYY"), "getValidVatRate");
                 return 0;
             }
 
@@ -952,14 +952,14 @@ var MementoBusiness = (function() {
             var vatRate = core.safeGet(latestEntry, vatTypeField, 0);
 
             if (vatRate === 0) {
-                core.addDebug(entry(), "DPH sadzba nie je nastavená pre typ: " + vatType + ", k dátumu: " + targetDate.format("DD.MM.YYYY"), "warning");
+                core.addDebug(item, "DPH sadzba nie je nastavená pre typ: " + vatType + ", k dátumu: " + targetDate.format("DD.MM.YYYY"), "warning");
             }
 
             return parseFloat(vatRate) || 0;
 
         } catch (error) {
             if (core) {
-                core.addError(entry(), "Chyba pri hľadaní DPH sadzby: " + error.toString(), "getValidVatRate", error);
+                core.addError(item, "Chyba pri hľadaní DPH sadzby: " + error.toString(), "getValidVatRate", error);
             }
             return 0;
         }
@@ -984,7 +984,7 @@ var MementoBusiness = (function() {
 
             var pricesLibrary = libByName(materialPricesLibraryName);
             if (!pricesLibrary) {
-                core.addError(entry(), "❌ Knižnica " + materialPricesLibraryName + " neexistuje", "createOrUpdateMaterialPriceRecord");
+                core.addError(item, "❌ Knižnica " + materialPricesLibraryName + " neexistuje", "createOrUpdateMaterialPriceRecord");
                 return {
                     success: false,
                     message: "Knižnica ceny materiálu neexistuje"
@@ -992,13 +992,13 @@ var MementoBusiness = (function() {
             }
 
             var dateFormatted = core.formatDate(priceDate, "DD.MM.YYYY");
-            core.addDebug(entry(), "💰 " + materialName + " - Spracovávam cenový záznam k " + dateFormatted);
+            core.addDebug(item, "💰 " + materialName + " - Spracovávam cenový záznam k " + dateFormatted);
 
             // Hľadanie existujúceho záznamu pre tento materiál a dátum
             var existingPriceEntry = null;
             var priceEntries = materialItem.linksFrom(pricesLibrary);
 
-            core.addDebug(entry(), "🔍 DEBUG: Hľadám existujúce cenové záznamy, nájdených: " + (priceEntries ? priceEntries.length : 0));
+            core.addDebug(item, "🔍 DEBUG: Hľadám existujúce cenové záznamy, nájdených: " + (priceEntries ? priceEntries.length : 0));
 
             if (priceEntries && priceEntries.length > 0) {
                 // Konverzia cieľového dátumu na začiatok dňa (00:00:00) v millisekondách
@@ -1007,7 +1007,7 @@ var MementoBusiness = (function() {
                 var targetDateMs = targetDateDay.getTime();
 
                 var targetDateStr = moment(priceDate).format("YYYY-MM-DD");
-                core.addDebug(entry(), "🔍 DEBUG: Hľadám záznamy s dátumom: " + targetDateStr + " (ms: " + targetDateMs + ")");
+                core.addDebug(item, "🔍 DEBUG: Hľadám záznamy s dátumom: " + targetDateStr + " (ms: " + targetDateMs + ")");
 
                 for (var i = 0; i < priceEntries.length; i++) {
                     var priceEntry = priceEntries[i];
@@ -1037,26 +1037,26 @@ var MementoBusiness = (function() {
                                 entryDateMs = entryDateDay.getTime();
                                 entryDateStr = parsedDate.format("YYYY-MM-DD");
                             } else {
-                                core.addDebug(entry(), "⚠️ DEBUG: Neplatný dátum v zázname: " + entryDate);
+                                core.addDebug(item, "⚠️ DEBUG: Neplatný dátum v zázname: " + entryDate);
                                 continue;
                             }
                         }
 
-                        core.addDebug(entry(), "🔍 DEBUG: Porovnávam " + targetDateStr + " (" + targetDateMs + ") vs " + entryDateStr + " (" + entryDateMs + ")");
+                        core.addDebug(item, "🔍 DEBUG: Porovnávam " + targetDateStr + " (" + targetDateMs + ") vs " + entryDateStr + " (" + entryDateMs + ")");
 
                         // Porovnanie dátumov pomocou millisekúnd (len dátum, nie čas)
                         if (entryDateMs === targetDateMs) {
                             existingPriceEntry = priceEntry;
-                            core.addDebug(entry(), "✅ DEBUG: Nájdený existujúci záznam pre dátum " + targetDateStr);
+                            core.addDebug(item, "✅ DEBUG: Nájdený existujúci záznam pre dátum " + targetDateStr);
                             break;
                         }
                     } else {
-                        core.addDebug(entry(), "⚠️ DEBUG: Záznam nemá dátum: index " + i);
+                        core.addDebug(item, "⚠️ DEBUG: Záznam nemá dátum: index " + i);
                     }
                 }
 
                 if (!existingPriceEntry) {
-                    core.addDebug(entry(), "❌ DEBUG: Žiadny existujúci záznam pre dátum " + targetDateStr + " nebol nájdený");
+                    core.addDebug(item, "❌ DEBUG: Žiadny existujúci záznam pre dátum " + targetDateStr + " nebol nájdený");
                 }
             }
 
@@ -1078,9 +1078,9 @@ var MementoBusiness = (function() {
                 core.safeSet(existingPriceEntry, purchasePriceField, purchasePrice);
                 core.safeSet(existingPriceEntry, vatRateField, vatRatePercentage + "%");
 
-                core.addDebug(entry(), "🔄 " + materialName + " - Aktualizovaný cenový záznam k " + dateFormatted);
-                core.addDebug(entry(), "  • Predajná: " + core.formatMoney(oldSellPrice) + " -> " + core.formatMoney(sellPrice));
-                core.addDebug(entry(), "  • Nákupná: " + core.formatMoney(oldPurchasePrice) + " -> " + core.formatMoney(purchasePrice));
+                core.addDebug(item, "🔄 " + materialName + " - Aktualizovaný cenový záznam k " + dateFormatted);
+                core.addDebug(item, "  • Predajná: " + core.formatMoney(oldSellPrice) + " -> " + core.formatMoney(sellPrice));
+                core.addDebug(item, "  • Nákupná: " + core.formatMoney(oldPurchasePrice) + " -> " + core.formatMoney(purchasePrice));
 
                 return {
                     success: true,
@@ -1097,7 +1097,7 @@ var MementoBusiness = (function() {
 
             } else {
                 // Vytvorenie nového záznamu
-                core.addDebug(entry(), "➕ Existujúci záznam nenájdený, vytváram nový");
+                core.addDebug(item, "➕ Existujúci záznam nenájdený, vytváram nový");
                 var newPriceEntry = pricesLibrary.create({});
 
                 var materialField = config.fields.materialPrices.material;
@@ -1117,7 +1117,7 @@ var MementoBusiness = (function() {
                 core.safeSet(newPriceEntry, vatRateField, vatRatePercentage + "%");
 
 
-                core.addDebug(entry(), "➕ " + materialName + " - Vytvorený nový cenový záznam k " + dateFormatted + ": " + core.formatMoney(sellPrice));
+                core.addDebug(item, "➕ " + materialName + " - Vytvorený nový cenový záznam k " + dateFormatted + ": " + core.formatMoney(sellPrice));
 
                 return {
                     success: true,
@@ -1134,7 +1134,7 @@ var MementoBusiness = (function() {
         } catch (error) {
             var core = getCore();
             if (core) {
-                core.addError(entry(), "Chyba pri spracovaní cenového záznamu: " + error.toString(), "createOrUpdateMaterialPriceRecord", error);
+                core.addError(item, "Chyba pri spracovaní cenového záznamu: " + error.toString(), "createOrUpdateMaterialPriceRecord", error);
             }
             return {
                 success: false,
@@ -1165,7 +1165,7 @@ var MementoBusiness = (function() {
 
             // Pre manuálne akcie s vynúteným prepočtom - vždy prepočítaj
             if (isManualAction && options.forceRecalculation) {
-                core.addDebug(entry(), "🚀 " + materialName + " - Vynútený prepočet (manuálna akcia)");
+                core.addDebug(item, "🚀 " + materialName + " - Vynútený prepočet (manuálna akcia)");
                 return {
                     shouldRecalculate: true,
                     reason: "Manuálna akcia - vynútený prepočet",
@@ -1180,7 +1180,7 @@ var MementoBusiness = (function() {
 
             // Pre manuálne akcie bez force - stále umožni prepočet aj s malými zmenami
             if (isManualAction) {
-                core.addDebug(entry(), "⚙️ " + materialName + " - Manuálna akcia, povolený prepočet");
+                core.addDebug(item, "⚙️ " + materialName + " - Manuálna akcia, povolený prepočet");
                 return {
                     shouldRecalculate: true,
                     reason: "Manuálna akcia - povolený prepočet",
@@ -1194,14 +1194,14 @@ var MementoBusiness = (function() {
                 var percentageChange = Math.abs((purchasePrice - currentPurchasePrice) / currentPurchasePrice) * 100;
                 var isPriceIncrease = purchasePrice > currentPurchasePrice;
 
-                core.addDebug(entry(), "ℹ️ " + materialName + " - Kontrola zmeny ceny: " + core.formatMoney(currentPurchasePrice) + " -> " + core.formatMoney(purchasePrice) + " (" + percentageChange.toFixed(2) + "%)");
+                core.addDebug(item, "ℹ️ " + materialName + " - Kontrola zmeny ceny: " + core.formatMoney(currentPurchasePrice) + " -> " + core.formatMoney(purchasePrice) + " (" + percentageChange.toFixed(2) + "%)");
 
                 if (percentageChange >= changePercentageThreshold) {
                     // Pridanie ikony šípky podľa zmeny ceny
                     var directionIcon = isPriceIncrease ? "⬆️" : "⬇️";
                     iconsToAdd.push(directionIcon);
 
-                    core.addDebug(entry(), "⚠️ " + materialName + " - Zmena ceny " + percentageChange.toFixed(2) + "% prekročila prah " + changePercentageThreshold + "%");
+                    core.addDebug(item, "⚠️ " + materialName + " - Zmena ceny " + percentageChange.toFixed(2) + "% prekročila prah " + changePercentageThreshold + "%");
 
                     switch (purchasePriceChangeAction) {
                         case "Upozorniť":
@@ -1252,7 +1252,7 @@ var MementoBusiness = (function() {
             };
 
         } catch (error) {
-            core.addError(entry(), "Chyba pri detekcii zmien cien: " + error.toString(), "detectAllPriceChanges", error);
+            core.addError(item, "Chyba pri detekcii zmien cien: " + error.toString(), "detectAllPriceChanges", error);
             return {
                 shouldRecalculate: false,
                 reason: "Chyba pri detekcii zmien",
@@ -1284,7 +1284,7 @@ var MementoBusiness = (function() {
             var shouldProcessPriceCalculation = changeDetection.shouldRecalculate;
             var iconsToAdd = changeDetection.iconsToAdd || [];
 
-            core.addDebug(entry(), "🔍 " + materialName + " - " + changeDetection.reason);
+            core.addDebug(item, "🔍 " + materialName + " - " + changeDetection.reason);
 
             // Získanie hodnôt pre info záznam (potrebné neskôr)
             var currentPurchasePrice = parseFloat(core.safeGet(item, config.fields.items.purchasePrice, 0));
@@ -1299,9 +1299,9 @@ var MementoBusiness = (function() {
             var vatRate = 0;
             try {
                 vatRate = getValidVatRate(documentDate, vatRateType);
-                core.addDebug(entry(), "✅ " + materialName + " - Sadzba DPH (" + vatRateType + "): " + vatRate + "%");
+                core.addDebug(item, "✅ " + materialName + " - Sadzba DPH (" + vatRateType + "): " + vatRate + "%");
             } catch (error) {
-                core.addDebug(entry(), "⚠️ " + materialName + " - Chyba pri získavaní DPH, použije sa 0%");
+                core.addDebug(item, "⚠️ " + materialName + " - Chyba pri získavaní DPH, použije sa 0%");
                 vatRate = 0;
             }
 
@@ -1314,7 +1314,7 @@ var MementoBusiness = (function() {
 
             // 5. Prepočet predajných cien (ak je povolený)
             if (shouldProcessPriceCalculation) {
-                core.addDebug(entry(), "ℹ️ " + materialName + " - Prepočet ceny: " + priceCalculation);
+                core.addDebug(item, "ℹ️ " + materialName + " - Prepočet ceny: " + priceCalculation);
 
                 var sellingPrice = finalPurchasePrice; // Základne = nákupná cena
 
@@ -1323,7 +1323,7 @@ var MementoBusiness = (function() {
                     var markupPercentage = parseFloat(core.safeGet(item, config.fields.items.markupPercentage, 0));
                     if (markupPercentage > 0) {
                         sellingPrice = finalPurchasePrice * (1 + markupPercentage / 100);
-                        core.addDebug(entry(), "🧮 " + materialName + " - Prirážka " + markupPercentage + "%: " + core.formatMoney(finalPurchasePrice) + " -> " + core.formatMoney(sellingPrice));
+                        core.addDebug(item, "🧮 " + materialName + " - Prirážka " + markupPercentage + "%: " + core.formatMoney(finalPurchasePrice) + " -> " + core.formatMoney(sellingPrice));
                     }
                 }
 
@@ -1336,7 +1336,7 @@ var MementoBusiness = (function() {
                 // Prepočítanie predajnej ceny bez DPH z zaokrúhlenej ceny s DPH
                 finalPrice = roundedPriceWithVat / (1 + vatRate / 100);
             } else {
-                core.addDebug(entry(), "🚫 " + materialName + " - Prepočet ceny preskočený podľa nastavenia");
+                core.addDebug(item, "🚫 " + materialName + " - Prepočet ceny preskočený podľa nastavenia");
             }
 
             // 9. Aktualizovať ikony ak sú k dispozícii (nahradenie starých ikon)
@@ -1348,9 +1348,9 @@ var MementoBusiness = (function() {
                 core.safeSet(item, config.fields.items.icons, newIcons);
 
                 if (currentIcons && currentIcons.trim() !== "") {
-                    core.addDebug(entry(), "🔄 " + materialName + " - Ikony nahradené: '" + currentIcons + "' -> '" + newIcons + "'");
+                    core.addDebug(item, "🔄 " + materialName + " - Ikony nahradené: '" + currentIcons + "' -> '" + newIcons + "'");
                 } else {
-                    core.addDebug(entry(), "🎯 " + materialName + " - Pridané ikony: " + newIcons);
+                    core.addDebug(item, "🎯 " + materialName + " - Pridané ikony: " + newIcons);
                 }
                 updated = true;
             }
@@ -1375,14 +1375,14 @@ var MementoBusiness = (function() {
 
                 // Aktualizovať pole Sadzba s percentuálnou hodnotou DPH
                 core.safeSet(item, config.fields.items.vatRatePercentage, vatRate);
-                core.addDebug(entry(), "📊 Sadzba DPH aktualizovaná na: " + vatRate + "%");
+                core.addDebug(item, "📊 Sadzba DPH aktualizovaná na: " + vatRate + "%");
 
                 // Vypočítať a nastaviť skutočnú prirážku (Vypočítaná marža)
                 if (finalPurchasePrice > 0) {
                     var actualMargin = ((finalPrice - finalPurchasePrice) / finalPurchasePrice) * 100;
                     var roundedMargin = Math.round(actualMargin * 100) / 100; // Zaokrúhlenie na 2 desatinné miesta
                     core.safeSet(item, config.fields.items.calculatedMargin, roundedMargin);
-                    core.addDebug(entry(), "💯 Skutočná prirážka nastavená na: " + roundedMargin.toFixed(2) + "%");
+                    core.addDebug(item, "💯 Skutočná prirážka nastavená na: " + roundedMargin.toFixed(2) + "%");
                 }
 
                 // Vytvorenie info záznamu pre materiál
@@ -1416,17 +1416,17 @@ var MementoBusiness = (function() {
                 updated = true;
 
                 // Vytvorenie/aktualizácia záznamu v knižnici "ceny materiálu"
-                core.addDebug(entry(), "🔍 DEBUG: Volám createOrUpdateMaterialPriceRecord s cenou: " + core.formatMoney(finalPrice));
+                core.addDebug(item, "🔍 DEBUG: Volám createOrUpdateMaterialPriceRecord s cenou: " + core.formatMoney(finalPrice));
                 var priceHistoryResult = createOrUpdateMaterialPriceRecord(item, documentDate, finalPrice, purchasePrice);
                 if (priceHistoryResult.success) {
                     if (priceHistoryResult.created) {
-                        core.addDebug(entry(), "➕ " + materialName + " - Vytvorený cenový záznam v histórii");
+                        core.addDebug(item, "➕ " + materialName + " - Vytvorený cenový záznam v histórii");
                     } else if (priceHistoryResult.updated) {
-                        core.addDebug(entry(), "🔄 " + materialName + " - Aktualizovaný cenový záznam v histórii");
+                        core.addDebug(item, "🔄 " + materialName + " - Aktualizovaný cenový záznam v histórii");
                     }
                 } else {
-                    core.addDebug(entry(), "⚠️ " + materialName + " - Chyba pri vytváraní cenového záznamu: " + priceHistoryResult.message);
-                    core.addDebug(entry(), "🔍 DEBUG: priceHistoryResult: " + JSON.stringify(priceHistoryResult));
+                    core.addDebug(item, "⚠️ " + materialName + " - Chyba pri vytváraní cenového záznamu: " + priceHistoryResult.message);
+                    core.addDebug(item, "🔍 DEBUG: priceHistoryResult: " + JSON.stringify(priceHistoryResult));
                 }
 
                 // Aktualizácia info záznamu s kompletými informáciami vrátane cenovej histórie
@@ -1457,9 +1457,9 @@ var MementoBusiness = (function() {
                     isManualAction: isManualAction || false
                 });
 
-                core.addDebug(entry(), "🔄 " + materialName + " - Aktualizované ceny:");
-                core.addDebug(entry(), "  Nákupná: " + core.formatMoney(finalPurchasePrice) + " / s DPH: " + core.formatMoney(finalPurchasePriceWithVat));
-                core.addDebug(entry(), "  Predajná: " + core.formatMoney(finalPrice) + " / s DPH: " + core.formatMoney(roundedPriceWithVat));
+                core.addDebug(item, "🔄 " + materialName + " - Aktualizované ceny:");
+                core.addDebug(item, "  Nákupná: " + core.formatMoney(finalPurchasePrice) + " / s DPH: " + core.formatMoney(finalPurchasePriceWithVat));
+                core.addDebug(item, "  Predajná: " + core.formatMoney(finalPrice) + " / s DPH: " + core.formatMoney(roundedPriceWithVat));
             }
 
             return {
@@ -1471,7 +1471,7 @@ var MementoBusiness = (function() {
         } catch (error) {
             var core = getCore();
             if (core) {
-                core.addError(entry(), "Chyba pri prepočte cien materiálu: " + error.toString(), "calculateAndUpdateMaterialPrices", error);
+                core.addError(item, "Chyba pri prepočte cien materiálu: " + error.toString(), "calculateAndUpdateMaterialPrices", error);
             }
             return {
                 updated: false,
@@ -1531,7 +1531,7 @@ var MementoBusiness = (function() {
             }
 
             if (Math.abs(price - roundedPrice) > 0.001) {
-                core.addDebug(entry(), "🧮 " + materialName + " - Zaokrúhlenie (" + priceRounding + ", " + roundingValue + "): " + core.formatMoney(price) + " -> " + core.formatMoney(roundedPrice));
+                core.addDebug(item, "🧮 " + materialName + " - Zaokrúhlenie (" + priceRounding + ", " + roundingValue + "): " + core.formatMoney(price) + " -> " + core.formatMoney(roundedPrice));
             }
 
             return roundedPrice;
@@ -1539,7 +1539,7 @@ var MementoBusiness = (function() {
         } catch (error) {
             var core = getCore();
             if (core) {
-                core.addDebug(entry(), "⚠️ Chyba pri zaokrúhľovaní ceny, použije sa pôvodná: " + error.toString());
+                core.addDebug(item, "⚠️ Chyba pri zaokrúhľovaní ceny, použije sa pôvodná: " + error.toString());
             }
             return price;
         }
@@ -1681,14 +1681,14 @@ var MementoBusiness = (function() {
             var materialInfoField = config.fields.common.info;
             core.safeSet(item, materialInfoField, infoMessage);
 
-            core.addDebug(entry(), "✅ Info záznam vytvorený pre materiál: " + materialName);
+            core.addDebug(item, "✅ Info záznam vytvorený pre materiál: " + materialName);
 
             return true;
 
         } catch (error) {
             var core = getCore();
             if (core) {
-                core.addError(entry(), "Chyba pri vytváraní info záznamu pre materiál: " + error.toString(), "createMaterialInfoRecord", error);
+                core.addError(item, "Chyba pri vytváraní info záznamu pre materiál: " + error.toString(), "createMaterialInfoRecord", error);
             }
             return false;
         }
