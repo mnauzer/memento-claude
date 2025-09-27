@@ -95,12 +95,7 @@ function main() {
         var newPurchasePrice = arg("nákupná cena");
         var dphOption = arg("dph");
 
-        // Validácia argumentov
-        if (newPurchasePrice === null || newPurchasePrice === undefined || newPurchasePrice === "") {
-            utils.showErrorDialog("❌ CHYBA ARGUMENTU\\n\\nArgument 'nákupná cena' nie je zadaný!\\n\\nPre spustenie akcie je potrebné zadať hodnotu argumentu.");
-            return false;
-        }
-
+        // Validácia argumentu DPH (nákupná cena môže byť prázdna)
         if (dphOption === null || dphOption === undefined || dphOption === "") {
             utils.showErrorDialog("❌ CHYBA ARGUMENTU\\n\\nArgument 'dph' nie je zadaný!\\n\\nVyberte: 's DPH' alebo 'bez DPH'.");
             return false;

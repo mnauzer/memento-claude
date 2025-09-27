@@ -414,7 +414,7 @@ var MementoConfig = (function() {
 
             // ceny materiálu polia
             materialPrices: {
-                material: "Položka", // linkToEntry Materiál
+                material: "Materiál", // linkToEntry Materiál
                 date: "Platnosť od", // date
                 purchasePrice: "nc", // real number Nákupná cena
                 sellPrice: "pc" // real number Predajná cena
