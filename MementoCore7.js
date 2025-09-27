@@ -34,15 +34,21 @@ var MementoCore = (function() {
         try {
             var icon = "";
             var config = getConfig();
-            if (!config) return;
+            if (!config) {
+                // Fallback: config nie je dostupný, nemôžeme logovať
+                if (typeof message === 'function') {
+                    message("⚠️ MementoCore.addDebug: CONFIG nie je dostupný, debug správa sa neloží: " + message);
+                }
+                return;
+            }
             if (iconName) {
                 icon = getIcon(iconName) + " ";
-            } 
+            }
             var debugFieldName = config ? config.fields.common.debugLog : "Debug_Log";
-            
+
             var timestamp = moment().format("DD.MM.YY HH:mm");
             var debugMessage = "[" + timestamp + "] " + icon + " " + message;
-            
+
             var existingDebug = entry.field(debugFieldName) || "";
             entry.set(debugFieldName, existingDebug + debugMessage + "\n");
         } catch (e) {
@@ -56,22 +62,32 @@ var MementoCore = (function() {
             var config = getConfig();
             var errorFieldName = config ? config.fields.common.errorLog : "Error_Log";
             var icons = config ? config.icons : { error: "❌" };
-            
+
+            // Debug pre fallback values
+            if (!config) {
+                if (typeof message === 'function') {
+                    message("⚠️ MementoCore.addError: CONFIG nie je dostupný, používam fallback hodnoty");
+                }
+            }
+
             var timestamp = moment().format("DD.MM.YY HH:mm:ss");
             var errorMessage = "[" + timestamp + "] " + icons.error + " ERROR: " + message;
-            
+
             if (source) {
                 errorMessage += " | Zdroj: " + source;
             }
-            
+
             if (error && error.stack) {
                 errorMessage += "\nStack trace:\n" + error.stack;
             }
-            
+
             var existingError = entry.field(errorFieldName) || "";
             entry.set(errorFieldName, existingError + errorMessage + "\n");
         } catch (e) {
-            // Nemôžeme logovať chybu logovania
+            // Fallback pre kritické chyby
+            if (typeof message === 'function') {
+                message("❌ KRITICKÁ CHYBA: MementoCore.addError zlyhalo: " + e.toString());
+            }
         }
     }
     
@@ -114,13 +130,28 @@ var MementoCore = (function() {
     function safeGet(entry, fieldName, defaultValue) {
         try {
             if (!entry || !fieldName) {
+                // Debug informácia pre neplatné vstupy
+                if (!entry) {
+                    addDebug(null, "⚠️ safeGet: entry je null/undefined, používam defaultValue: " + (defaultValue || "null"));
+                }
+                if (!fieldName) {
+                    addDebug(null, "⚠️ safeGet: fieldName je null/undefined, používam defaultValue: " + (defaultValue || "null"));
+                }
                 return defaultValue !== undefined ? defaultValue : null;
             }
-            
+
             var value = entry.field(fieldName);
-            return value !== null && value !== undefined ? value : 
+
+            // Debug informácia pre použitie defaultValue
+            if ((value === null || value === undefined) && defaultValue !== undefined) {
+                addDebug(null, "ℹ️ safeGet: pole '" + fieldName + "' je prázdne, používam defaultValue: " + defaultValue);
+            }
+
+            return value !== null && value !== undefined ? value :
                    (defaultValue !== undefined ? defaultValue : null);
         } catch (e) {
+            // Debug informácia pre chyby
+            addDebug(null, "❌ safeGet: chyba pri prístupe k poľu '" + fieldName + "': " + e.toString() + ", používam defaultValue: " + (defaultValue || "null"));
             return defaultValue !== undefined ? defaultValue : null;
         }
     }
@@ -271,11 +302,16 @@ var MementoCore = (function() {
         try {
             var config = getConfig();
             var defaultFormat = config ? config.global.dateFormat : "DD.MM.YYYY";
-            
+
+            // Debug pre fallback format
+            if (!config) {
+                addDebug(null, "⚠️ formatDate: CONFIG nie je dostupný, používam fallback formát: " + defaultFormat);
+            }
+
             if (!date) {
                 return "";
             }
-            
+
             return moment(date).format(format || defaultFormat);
         } catch (e) {
             addError(null, "Chyba pri formátovaní dátumu: " + e.toString(), "formatDate", e);
@@ -294,7 +330,6 @@ var MementoCore = (function() {
 
     function isHoliday(date) {
         try {
-            var config = getConfig();
             var year = moment(date).year();
             
             // Slovenské štátne sviatky
@@ -566,21 +601,37 @@ var MementoCore = (function() {
         try {
             var config = getConfig();
             var defaultsLib = libraryName || (config ? config.libraries.defaults : "ASISTANTO Defaults");
-            
+
+            // Debug pre fallback library name
+            if (!config) {
+                addDebug(null, "⚠️ getSettings: CONFIG nie je dostupný, používam fallback knižnicu: " + defaultsLib);
+            } else if (!libraryName) {
+                addDebug(null, "ℹ️ getSettings: používam defaultnú knižnicu z CONFIG: " + defaultsLib);
+            }
+
             var lib = libByName(defaultsLib);
             if (!lib) {
+                addDebug(null, "❌ getSettings: knižnica '" + defaultsLib + "' neexistuje");
                 return null;
             }
-            
+
             var settings = lib.entries();
             if (settings && settings.length > 0) {
                 // Zoberieme najnovší záznam
                 var latestSettings = settings[settings.length - 1];
-                return latestSettings.field(fieldName);
+                var value = latestSettings.field(fieldName);
+
+                if (value === null || value === undefined) {
+                    addDebug(null, "⚠️ getSettings: pole '" + fieldName + "' v knižnici '" + defaultsLib + "' je prázdne");
+                }
+
+                return value;
             }
-            
+
+            addDebug(null, "⚠️ getSettings: knižnica '" + defaultsLib + "' neobsahuje žiadne záznamy");
             return null;
         } catch (e) {
+            addDebug(null, "❌ getSettings: chyba pri získavaní nastavení: " + e.toString());
             return null;
         }
     }
@@ -705,7 +756,14 @@ var MementoCore = (function() {
             if (config && config.icons && config.icons[name]) {
                 return config.icons[name];
             }
-            
+
+            // Debug pre fallback ikony
+            if (!config) {
+                addDebug(null, "⚠️ getIcon: CONFIG nie je dostupný pre ikonu '" + name + "', používam fallback");
+            } else if (!config.icons || !config.icons[name]) {
+                addDebug(null, "ℹ️ getIcon: ikona '" + name + "' nie je v CONFIG, používam fallback");
+            }
+
             // Fallback ikony ak config nie je dostupný
             var fallbackIcons = {
                 info: "ℹ️",
