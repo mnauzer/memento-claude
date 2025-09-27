@@ -18,7 +18,7 @@
 //    - MementoConfig (centrálna konfigurácia)
 //    - MementoBusiness (business logika pre ceny materiálu)
 // 📝 ARGUMENTY:
-//    - "nákupná cena" (Number): Nová nákupná cena materiálu (voliteľné)
+//    - "nákupná cena" (Number): Nová nákupná cena materiálu (voliteľné - ak nie je zadaná, použije sa cena z poľa)
 //    - "dph" (Options: "s DPH", "bez DPH"): Či je zadaná cena s/bez DPH
 // ==============================================
 
@@ -98,8 +98,22 @@ var bulkResults = {
 function main() {
     try {
         // Získanie argumentov
-        var newPurchasePrice = arg("nákupná cena");
-        var dphOption = arg("dph");
+        var newPurchasePrice = null;
+        var dphOption = null;
+
+        // Bezpečné získanie argumentov
+        try {
+            newPurchasePrice = arg("nákupná cena");
+        } catch (e) {
+            // Argument nie je definovaný, použijeme null
+            newPurchasePrice = null;
+        }
+
+        try {
+            dphOption = arg("dph");
+        } catch (e) {
+            dphOption = null;
+        }
 
         // Validácia argumentu DPH
         if (dphOption === null || dphOption === undefined || dphOption === "") {
@@ -233,22 +247,43 @@ function processMaterial(currentEntry, inputPrice, dphOption, materialName, mate
  */
 function processPurchasePriceFromArguments(currentEntry, inputPrice, dphOption, materialName, currentPurchasePrice) {
     try {
-        utils.addDebug(currentEntry, CONFIG.icons.info + " Argumenty - nákupná cena: " + inputPrice + ", dph: " + dphOption);
+        utils.addDebug(currentEntry, CONFIG.icons.info + " Argumenty - nákupná cena: " + (inputPrice || "nie je zadaná") + ", dph: " + dphOption);
 
-        // Ak nie je zadaná cena alebo je 0, použiť aktuálnu nákupnú cenu z materiálu
-        var inputPriceValue = parseFloat(inputPrice);
-        if (!inputPrice || inputPrice === "" || isNaN(inputPriceValue) || inputPriceValue === 0) {
-            if (currentPurchasePrice <= 0) {
-                utils.addError(currentEntry, "Materiál " + materialName + " - nie je nastavená nákupná cena", "processPurchasePriceFromArguments");
-                return null;
+        var inputPriceValue = null;
+
+        // Logika pre určenie finálnej ceny:
+        // 1. Ak je zadaný argument a je platný, použiť ho
+        // 2. Ak nie je zadaný argument alebo je neplatný, použiť cenu z poľa
+        // 3. Ak ani pole nemá cenu, pridať varovnú ikonu a preskočiť materiál
+
+        if (inputPrice !== null && inputPrice !== undefined && inputPrice !== "") {
+            inputPriceValue = parseFloat(inputPrice);
+            if (!isNaN(inputPriceValue) && inputPriceValue > 0) {
+                utils.addDebug(currentEntry, CONFIG.icons.money + " Použitá cena z argumentu: " + utils.formatMoney(inputPriceValue));
+            } else {
+                // Neplatný argument, použiť cenu z poľa
+                inputPriceValue = null;
+                utils.addDebug(currentEntry, CONFIG.icons.warning + " Neplatný argument ceny, použijem cenu z poľa");
             }
-            inputPriceValue = currentPurchasePrice;
-            utils.addDebug(currentEntry, CONFIG.icons.info + " Použitá aktuálna nákupná cena z materiálu: " + utils.formatMoney(inputPriceValue));
         }
 
-        // Validácia finálnej ceny
-        if (isNaN(inputPriceValue) || inputPriceValue < 0) {
-            utils.addError(currentEntry, "Materiál " + materialName + " - neplatná nákupná cena: " + inputPrice, "processPurchasePriceFromArguments");
+        // Ak nemáme platnú cenu z argumentu, použiť cenu z poľa
+        if (inputPriceValue === null) {
+            if (currentPurchasePrice > 0) {
+                inputPriceValue = currentPurchasePrice;
+                utils.addDebug(currentEntry, CONFIG.icons.info + " Použitá nákupná cena z poľa materiálu: " + utils.formatMoney(inputPriceValue));
+            } else {
+                // Pridať varovnú ikonu do poľa icons
+                addWarningIcon(currentEntry, materialName);
+                utils.addError(currentEntry, "Materiál " + materialName + " - nie je nastavená nákupná cena v poli ani argumente", "processPurchasePriceFromArguments");
+                return null;
+            }
+        }
+
+        // Finálna validácia
+        if (isNaN(inputPriceValue) || inputPriceValue <= 0) {
+            addWarningIcon(currentEntry, materialName);
+            utils.addError(currentEntry, "Materiál " + materialName + " - neplatná nákupná cena: " + inputPriceValue, "processPurchasePriceFromArguments");
             return null;
         }
 
@@ -328,6 +363,29 @@ function executeCalculation(currentEntry, purchasePrice, materialName) {
             success: false,
             message: error.toString()
         };
+    }
+}
+
+// ==============================================
+// POMOCNÉ FUNKCIE
+// ==============================================
+
+/**
+ * Pridá varovnú ikonu do poľa icons materiálu
+ */
+function addWarningIcon(currentEntry, materialName) {
+    try {
+        var currentIcons = utils.safeGet(currentEntry, CONFIG.materialFields.icons, "");
+        var warningIcon = CONFIG.icons.warning;
+
+        // Pridať varovnú ikonu len ak tam už nie je
+        if (currentIcons.indexOf(warningIcon) === -1) {
+            var newIcons = currentIcons ? currentIcons + " " + warningIcon : warningIcon;
+            utils.safeSet(currentEntry, CONFIG.materialFields.icons, newIcons);
+            utils.addDebug(currentEntry, CONFIG.icons.warning + " Pridaná varovná ikona pre materiál: " + materialName);
+        }
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri pridávaní varovnej ikony: " + error.toString(), "addWarningIcon", error);
     }
 }
 
