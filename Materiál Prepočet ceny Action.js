@@ -97,18 +97,18 @@ function main() {
 
         // Validácia argumentov
         if (newPurchasePrice === null || newPurchasePrice === undefined || newPurchasePrice === "") {
-            showErrorDialog("❌ CHYBA ARGUMENTU\\n\\nArgument 'nákupná cena' nie je zadaný!\\n\\nPre spustenie akcie je potrebné zadať hodnotu argumentu.");
+            utils.showErrorDialog("❌ CHYBA ARGUMENTU\\n\\nArgument 'nákupná cena' nie je zadaný!\\n\\nPre spustenie akcie je potrebné zadať hodnotu argumentu.");
             return false;
         }
 
         if (dphOption === null || dphOption === undefined || dphOption === "") {
-            showErrorDialog("❌ CHYBA ARGUMENTU\\n\\nArgument 'dph' nie je zadaný!\\n\\nVyberte: 's DPH' alebo 'bez DPH'.");
+            utils.showErrorDialog("❌ CHYBA ARGUMENTU\\n\\nArgument 'dph' nie je zadaný!\\n\\nVyberte: 's DPH' alebo 'bez DPH'.");
             return false;
         }
 
         // Validácia hodnoty DPH argumentu
         if (dphOption !== "s DPH" && dphOption !== "bez DPH") {
-            showErrorDialog("❌ CHYBA ARGUMENTU\\n\\nArgument 'dph' má neplatnú hodnotu: '" + dphOption + "'\\n\\nPovolené hodnoty: 's DPH', 'bez DPH'.");
+            utils.showErrorDialog("❌ CHYBA ARGUMENTU\\n\\nArgument 'dph' má neplatnú hodnotu: '" + dphOption + "'\\n\\nPovolené hodnoty: 's DPH', 'bez DPH'.");
             return false;
         }
 
@@ -119,7 +119,7 @@ function main() {
 
     } catch (error) {
         utils.addError(currentEntry, "Kritická chyba v hlavnej funkcii", "main", error);
-        showErrorDialog("Kritická chyba!\n\n" + error.toString());
+        utils.showErrorDialog("Kritická chyba!\n\n" + error.toString());
         return false;
     }
 }
@@ -140,7 +140,7 @@ function processPurchasePriceFromArguments(inputPrice, dphOption, materialName) 
         if (!inputPrice || inputPrice.trim() === "" || isNaN(inputPriceValue) || inputPriceValue === 0) {
             var currentPurchasePrice = parseFloat(utils.safeGet(currentEntry, CONFIG.materialFields.purchasePrice, 0));
             if (currentPurchasePrice <= 0) {
-                showErrorDialog("❌ CHYBA ARGUMENTU\n\nNie je zadaná nákupná cena a v materiáli nie je nastavená žiadna nákupná cena!\n\nNastavte nákupnú cenu v materiáli alebo zadajte hodnotu argumentu.");
+                utils.showErrorDialog("❌ CHYBA ARGUMENTU\n\nNie je zadaná nákupná cena a v materiáli nie je nastavená žiadna nákupná cena!\n\nNastavte nákupnú cenu v materiáli alebo zadajte hodnotu argumentu.");
                 return false;
             }
             inputPriceValue = currentPurchasePrice;
@@ -154,7 +154,7 @@ function processPurchasePriceFromArguments(inputPrice, dphOption, materialName) 
 
         // Validácia finálnej ceny
         if (isNaN(price.purchase) || price.purchase < 0) {
-            showErrorDialog("❌ CHYBA ARGUMENTU\n\nNákupná cena musí byť číslo väčšie alebo rovné 0!\n\nZadali ste: '" + inputPrice + "'");
+            utils.showErrorDialog("❌ CHYBA ARGUMENTU\n\nNákupná cena musí byť číslo väčšie alebo rovné 0!\n\nZadali ste: '" + inputPrice + "'");
             return false;
         }
         
@@ -167,7 +167,7 @@ function processPurchasePriceFromArguments(inputPrice, dphOption, materialName) 
             var vatRate = utils.safeGet(currentEntry, CONFIG.materialFields.vatRate, "Základná");
             var vatRatePercentage = utils.getValidVatRate(vatRate, new Date());
             if (vatRatePercentage === null) {
-                showErrorDialog("❌ CHYBA DPH\n\nNie je možné získať DPH sadzbu pre materiál!\n\nSkontrolujte nastavenie poľa 'sadzba DPH' v materiáli.");
+                utils.showErrorDialog("❌ CHYBA DPH\n\nNie je možné získať DPH sadzbu pre materiál!\n\nSkontrolujte nastavenie poľa 'sadzba DPH' v materiáli.");
                 return false;
             }
 
@@ -190,7 +190,7 @@ function processPurchasePriceFromArguments(inputPrice, dphOption, materialName) 
 
     } catch (error) {
         utils.addError(currentEntry, "Chyba pri spracovaní argumentov", "processPurchasePriceFromArguments", error);
-        showErrorDialog("Chyba pri spracovaní argumentov!\n\n" + error.toString());
+        utils.showErrorDialog("Chyba pri spracovaní argumentov!\n\n" + error.toString());
         return false;
     }
 }
@@ -226,46 +226,25 @@ function executeCalculation(purchasePrice, materialName) {
                 successMessage += "\n\n📝 Info záznam bol vytvorený s podrobnosťami prepočtu.";
             }
 
-            showSuccessDialog(successMessage);
+            utils.showSuccessDialog(successMessage);
 
         } else {
             // Prepočet zlyhal
             utils.addError(currentEntry, "Prepočet cien zlyhal", "executeCalculation");
             utils.addError(currentEntry, "Result object: " + JSON.stringify(result), "executeCalculation");
-            showErrorDialog("❌ CHYBA PREPOČTU\n\nPrepočet cien sa nepodarilo dokončiť.\n\nSkontrolujte nastavenia materiálu a skúste znova.");
+            utils.showErrorDialog("❌ CHYBA PREPOČTU\n\nPrepočet cien sa nepodarilo dokončiť.\n\nSkontrolujte nastavenia materiálu a skúste znova.");
         }
 
     } catch (error) {
         utils.addError(currentEntry, "Chyba pri vykonávaní prepočtu", "executeCalculation", error);
-        showErrorDialog("Kritická chyba pri prepočte!\n\n" + error.toString());
+        utils.showErrorDialog("Kritická chyba pri prepočte!\n\n" + error.toString());
     }
 }
 
 // ==============================================
-// POMOCNÉ DIALÓGY
+// POZNÁMKA: Dialógové funkcie boli presunuté do MementoCore7.js
+// a sú dostupné cez utils.showErrorDialog() a utils.showSuccessDialog()
 // ==============================================
-
-/**
- * Zobrazí dialóg s chybou
- */
-function showErrorDialog(message) {
-    dialog()
-        .title("CHYBA")
-        .text(message)
-        .positiveButton("OK", function() {})
-        .show();
-}
-
-/**
- * Zobrazí dialóg s úspechom
- */
-function showSuccessDialog(message) {
-    dialog()
-        .title("ÚSPECH")
-        .text(message)
-        .positiveButton("OK", function() {})
-        .show();
-}
 
 
 // ==============================================

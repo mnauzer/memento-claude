@@ -378,14 +378,14 @@ var MementoUtils = (function() {
          */
         createScriptConfig: function(scriptName, scriptVersion) {
             loadModule('config');
-            
+
             var baseConfig = modules.config ? modules.config.getConfig() : {};
-            
+
             return {
                 scriptName: scriptName || "Unnamed Script",
                 scriptVersion: scriptVersion || "1.0",
                 debug: baseConfig.global ? baseConfig.global.debug : true,
-                
+
                 // Skopíruj všetky sekcie z MementoConfig
                 libraries: baseConfig.libraries || {},
                 fields: baseConfig.fields || {},
@@ -395,7 +395,12 @@ var MementoUtils = (function() {
                 global: baseConfig.global || {},
                 defaults: baseConfig.defaults || {}
             };
-        }
+        },
+
+        // === DIALÓGY ===
+        showErrorDialog: lazyCall('core', 'showErrorDialog'),
+        showSuccessDialog: lazyCall('core', 'showSuccessDialog'),
+        showInfoDialog: lazyCall('core', 'showInfoDialog')
     };
     
     // === INICIALIZÁCIA ===

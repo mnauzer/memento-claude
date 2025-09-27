@@ -1037,6 +1037,52 @@ function setColorByCondition(entry, condition) {
     return false;
 }
     // ==============================================
+    // DIALÓGY
+    // ==============================================
+
+    /**
+     * Zobrazí dialóg s chybou
+     * @param {string} message - Text správy
+     * @param {string} title - Titulok dialógu (voliteľný, default: "CHYBA")
+     */
+    function showErrorDialog(message, title) {
+        var dialogTitle = title || "CHYBA";
+        dialog()
+            .title(dialogTitle)
+            .text(message)
+            .positiveButton("OK", function() {})
+            .show();
+    }
+
+    /**
+     * Zobrazí dialóg s úspechom
+     * @param {string} message - Text správy
+     * @param {string} title - Titulok dialógu (voliteľný, default: "ÚSPECH")
+     */
+    function showSuccessDialog(message, title) {
+        var dialogTitle = title || "ÚSPECH";
+        dialog()
+            .title(dialogTitle)
+            .text(message)
+            .positiveButton("OK", function() {})
+            .show();
+    }
+
+    /**
+     * Zobrazí dialóg s informáciou
+     * @param {string} message - Text správy
+     * @param {string} title - Titulok dialógu (voliteľný, default: "INFORMÁCIA")
+     */
+    function showInfoDialog(message, title) {
+        var dialogTitle = title || "INFORMÁCIA";
+        dialog()
+            .title(dialogTitle)
+            .text(message)
+            .positiveButton("OK", function() {})
+            .show();
+    }
+
+    // ==============================================
     // PUBLIC API
     // ==============================================
     
@@ -1107,7 +1153,12 @@ function setColorByCondition(entry, condition) {
         getIcon: getIcon,
 
         // Správa knižníc
-        renumberLibraryRecords: renumberLibraryRecords
+        renumberLibraryRecords: renumberLibraryRecords,
+
+        // Dialógy
+        showErrorDialog: showErrorDialog,
+        showSuccessDialog: showSuccessDialog,
+        showInfoDialog: showInfoDialog
 
     };
 
