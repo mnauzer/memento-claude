@@ -1262,6 +1262,11 @@ var MementoBusiness = (function() {
 
             core.addDebug(entry(), "🔍 " + materialName + " - " + changeDetection.reason);
 
+            // Získanie hodnôt pre info záznam (potrebné neskôr)
+            var currentPurchasePrice = parseFloat(core.safeGet(item, config.fields.items.purchasePrice, 0));
+            var purchasePriceChangeAction = core.safeGet(item, config.fields.items.purchasePriceChange, "").trim();
+            var priceCalculation = core.safeGet(item, config.fields.items.priceCalculation, "").trim();
+
             // 2. Nákupné ceny - použij cenu z atribútu "cena" (nezaokrúhľujú sa)
             var finalPurchasePrice = purchasePrice; // Cena z atribútu "cena"
 
@@ -1285,8 +1290,6 @@ var MementoBusiness = (function() {
 
             // 5. Prepočet predajných cien (ak je povolený)
             if (shouldProcessPriceCalculation) {
-                // Zistiť nastavenie prepočtu predajnej ceny z záznamu materiálu
-                var priceCalculation = core.safeGet(item, config.fields.items.priceCalculation, "").trim();
                 core.addDebug(entry(), "ℹ️ " + materialName + " - Prepočet ceny: " + priceCalculation);
 
                 var sellingPrice = finalPurchasePrice; // Základne = nákupná cena
