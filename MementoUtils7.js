@@ -276,6 +276,7 @@ var MementoUtils = (function() {
 
         // === MATERIAL FUNKCIE (nové) ===
         calculateAndUpdateMaterialPrices: lazyCall('business', 'calculateAndUpdateMaterialPrices'),
+        detectAllPriceChanges: lazyCall('business', 'detectAllPriceChanges'),
         applyPriceRounding: lazyCall('business', 'applyPriceRounding'),
         createMaterialInfoRecord: lazyCall('business', 'createMaterialInfoRecord'),
         createOrUpdateMaterialPriceRecord: lazyCall('business', 'createOrUpdateMaterialPriceRecord'),

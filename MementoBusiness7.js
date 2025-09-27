@@ -1124,29 +1124,48 @@ var MementoBusiness = (function() {
     // ==============================================
 
     /**
-     * Vypočítava a aktualizuje ceny materiálu na základe nastavení
-     * @param {Object} item - Záznam materiálu
-     * @param {number} purchasePrice - Nákupná cena z príjemky/manuálneho vstupu
-     * @param {Date} documentDate - Dátum dokumentu
-     * @param {boolean} isManualAction - Či ide o manuálny prepočet (true) alebo príjemku (false)
-     * @returns {Object} Výsledok aktualizácie
+     * Detekuje všetky typy zmien cien a rozhodne o potrebe prepočtu
+     * @param {Object} item - Materiál entry
+     * @param {number} purchasePrice - Nová nákupná cena
+     * @param {boolean} isManualAction - Či ide o manuálnu akciu
+     * @param {Object} options - Dodatočné možnosti (forceRecalculation)
+     * @returns {Object} Rozhodnutie o prepočte
      */
-    function calculateAndUpdateMaterialPrices(item, purchasePrice, documentDate, isManualAction) {
+    function detectAllPriceChanges(item, purchasePrice, isManualAction, options) {
         try {
             var core = getCore();
             var config = getConfig();
+            options = options || {};
 
             var materialName = core.safeGet(item, config.fields.items.name, "Neznámy materiál");
-            var updated = false;
 
-            // 1. Kontrola zmeny nákupnej ceny
+            // Pre manuálne akcie s vynúteným prepočtom - vždy prepočítaj
+            if (isManualAction && options.forceRecalculation) {
+                core.addDebug(entry(), "🚀 " + materialName + " - Vynútený prepočet (manuálna akcia)");
+                return {
+                    shouldRecalculate: true,
+                    reason: "Manuálna akcia - vynútený prepočet",
+                    iconsToAdd: ["🔄"]
+                };
+            }
+
+            // Súčasné hodnoty pre porovnanie
             var currentPurchasePrice = parseFloat(core.safeGet(item, config.fields.items.purchasePrice, 0));
-            var purchasePriceChangeAction = core.safeGet(item, config.fields.items.purchasePriceChange, "").trim();
             var changePercentageThreshold = parseFloat(core.safeGet(item, config.fields.items.changePercentage, 0));
+            var purchasePriceChangeAction = core.safeGet(item, config.fields.items.purchasePriceChange, "").trim();
 
-            var shouldProcessPriceCalculation = true;
+            // Pre manuálne akcie bez force - stále umožni prepočet aj s malými zmenami
+            if (isManualAction) {
+                core.addDebug(entry(), "⚙️ " + materialName + " - Manuálna akcia, povolený prepočet");
+                return {
+                    shouldRecalculate: true,
+                    reason: "Manuálna akcia - povolený prepočet",
+                    iconsToAdd: ["⚙️"]
+                };
+            }
+
+            // Štandardná kontrola zmeny nákupnej ceny pre automatické triggery
             var iconsToAdd = [];
-
             if (currentPurchasePrice > 0 && changePercentageThreshold > 0) {
                 var percentageChange = Math.abs((purchasePrice - currentPurchasePrice) / currentPurchasePrice) * 100;
                 var isPriceIncrease = purchasePrice > currentPurchasePrice;
@@ -1163,34 +1182,85 @@ var MementoBusiness = (function() {
                     switch (purchasePriceChangeAction) {
                         case "Upozorniť":
                             iconsToAdd.push("⚠️");
-                            shouldProcessPriceCalculation = false;
-                            core.addDebug(entry(), "⚠️ " + materialName + " - Iba upozornenie, prepočet ceny sa preskočí");
-                            break;
+                            return {
+                                shouldRecalculate: false,
+                                reason: "Iba upozornenie, prepočet sa preskočí",
+                                iconsToAdd: iconsToAdd
+                            };
 
                         case "Prepočítať":
                             iconsToAdd.push("🔄");
-                            shouldProcessPriceCalculation = true;
-                            core.addDebug(entry(), "🔄 " + materialName + " - Prepočet ceny bude vykonaný");
-                            break;
+                            return {
+                                shouldRecalculate: true,
+                                reason: "Prepočet ceny bude vykonaný",
+                                iconsToAdd: iconsToAdd
+                            };
 
                         case "Upozorniť a prepočítať":
                             iconsToAdd.push("⚠️", "🔄");
-                            shouldProcessPriceCalculation = true;
-                            core.addDebug(entry(), "⚠️🔄 " + materialName + " - Upozornenie a prepočet ceny");
-                            break;
+                            return {
+                                shouldRecalculate: true,
+                                reason: "Upozornenie a prepočet ceny",
+                                iconsToAdd: iconsToAdd
+                            };
 
                         case "Ignorovať":
-                            shouldProcessPriceCalculation = false;
-                            core.addDebug(entry(), "🔕 " + materialName + " - Zmena ignorovaná, len ikona zmeny");
-                            break;
+                            return {
+                                shouldRecalculate: false,
+                                reason: "Zmena ignorovaná, len ikona zmeny",
+                                iconsToAdd: iconsToAdd
+                            };
 
                         default:
-                            shouldProcessPriceCalculation = true;
-                            core.addDebug(entry(), "❓ " + materialName + " - Neznáme nastavenie, použije sa prepočet");
-                            break;
+                            return {
+                                shouldRecalculate: true,
+                                reason: "Neznáme nastavenie, použije sa prepočet",
+                                iconsToAdd: iconsToAdd
+                            };
                     }
                 }
             }
+
+            return {
+                shouldRecalculate: false,
+                reason: "Žiadne významné zmeny",
+                iconsToAdd: []
+            };
+
+        } catch (error) {
+            core.addError(entry(), "Chyba pri detekcii zmien cien: " + error.toString(), "detectAllPriceChanges", error);
+            return {
+                shouldRecalculate: false,
+                reason: "Chyba pri detekcii zmien",
+                iconsToAdd: []
+            };
+        }
+    }
+
+    /**
+     * Vypočítava a aktualizuje ceny materiálu na základe nastavení
+     * @param {Object} item - Záznam materiálu
+     * @param {number} purchasePrice - Nákupná cena z príjemky/manuálneho vstupu
+     * @param {Date} documentDate - Dátum dokumentu
+     * @param {boolean} isManualAction - Či ide o manuálny prepočet (true) alebo príjemku (false)
+     * @param {Object} options - Dodatočné možnosti (forceRecalculation)
+     * @returns {Object} Výsledok aktualizácie
+     */
+    function calculateAndUpdateMaterialPrices(item, purchasePrice, documentDate, isManualAction, options) {
+        try {
+            var core = getCore();
+            var config = getConfig();
+
+            var materialName = core.safeGet(item, config.fields.items.name, "Neznámy materiál");
+            var updated = false;
+            options = options || {};
+
+            // 1. Použitie novej funkcie pre detekciu zmien
+            var changeDetection = detectAllPriceChanges(item, purchasePrice, isManualAction, options);
+            var shouldProcessPriceCalculation = changeDetection.shouldRecalculate;
+            var iconsToAdd = changeDetection.iconsToAdd || [];
+
+            core.addDebug(entry(), "🔍 " + materialName + " - " + changeDetection.reason);
 
             // 2. Nákupné ceny - použij cenu z atribútu "cena" (nezaokrúhľujú sa)
             var finalPurchasePrice = purchasePrice; // Cena z atribútu "cena"
@@ -1649,6 +1719,7 @@ var MementoBusiness = (function() {
 
         // Materiál funkcie - NOVÉ
         calculateAndUpdateMaterialPrices: calculateAndUpdateMaterialPrices,
+        detectAllPriceChanges: detectAllPriceChanges,
         applyPriceRounding: applyPriceRounding,
         createMaterialInfoRecord: createMaterialInfoRecord,
         createOrUpdateMaterialPriceRecord: createOrUpdateMaterialPriceRecord
