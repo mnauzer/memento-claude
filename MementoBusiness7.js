@@ -1362,18 +1362,24 @@ var MementoBusiness = (function() {
             var currentPurchasePrice = parseFloat(core.safeGet(item, config.fields.items.purchasePrice, 0));
             var currentPurchasePriceWithVat = parseFloat(core.safeGet(item, config.fields.items.purchasePriceWithVat, 0));
 
-            
-            if (Math.abs(currentPrice - finalPrice) > 0.01 ||
-                Math.abs(currentPriceWithVat - roundedPriceWithVat) > 0.01 ||
-                Math.abs(currentPurchasePrice - finalPurchasePrice) > 0.01 ||
-                Math.abs(currentPurchasePriceWithVat - finalPurchasePriceWithVat) > 0.01) {
+            // Detekcia zmien v cenách
+            var pricesChanged = Math.abs(currentPrice - finalPrice) > 0.01 ||
+                                Math.abs(currentPriceWithVat - roundedPriceWithVat) > 0.01 ||
+                                Math.abs(currentPurchasePrice - finalPurchasePrice) > 0.01 ||
+                                Math.abs(currentPurchasePriceWithVat - finalPurchasePriceWithVat) > 0.01;
 
+            // Aktualizácia polí materiálu len ak sa ceny zmenili
+            if (pricesChanged) {
                 // Aktualizovať ceny v zázname materiálu
                 core.safeSet(item, config.fields.items.price, finalPrice);
                 core.safeSet(item, config.fields.items.priceWithVat, roundedPriceWithVat);
                 core.safeSet(item, config.fields.items.purchasePrice, finalPurchasePrice);
                 core.safeSet(item, config.fields.items.purchasePriceWithVat, finalPurchasePriceWithVat);
+                core.addDebug(item, "💰 " + materialName + " - Ceny aktualizované v materiáli");
+            }
 
+            // Pre manuálne akcie alebo zmeny cien - vždy aktualizuj ostatné polia a cenový záznam
+            if (isManualAction || pricesChanged) {
                 // Aktualizovať pole Sadzba s percentuálnou hodnotou DPH
                 core.safeSet(item, config.fields.items.vatRatePercentage, vatRate);
                 core.addDebug(item, "📊 Sadzba DPH aktualizovaná na: " + vatRate + "%");
@@ -1416,9 +1422,9 @@ var MementoBusiness = (function() {
 
                 updated = true;
 
-                // Vytvorenie/aktualizácia záznamu v knižnici "ceny materiálu"
-                core.addDebug(item, "🔍 DEBUG: Volám createOrUpdateMaterialPriceRecord s cenou: " + core.formatMoney(finalPrice));
-                var priceHistoryResult = createOrUpdateMaterialPriceRecord(item, documentDate, finalPrice, purchasePrice);
+                // VŽDY vytvor/aktualizuj cenový záznam pri manuálnej akcii alebo zmene cien
+                core.addDebug(item, "🔍 DEBUG: Volám createOrUpdateMaterialPriceRecord - manuálna akcia: " + isManualAction + ", zmeny cien: " + pricesChanged);
+                var priceHistoryResult = createOrUpdateMaterialPriceRecord(item, documentDate, finalPrice, finalPurchasePrice);
                 if (priceHistoryResult.success) {
                     if (priceHistoryResult.created) {
                         core.addDebug(item, "➕ " + materialName + " - Vytvorený cenový záznam v histórii");
@@ -1458,7 +1464,7 @@ var MementoBusiness = (function() {
                     isManualAction: isManualAction || false
                 });
 
-                core.addDebug(item, "🔄 " + materialName + " - Aktualizované ceny:");
+                core.addDebug(item, "🔄 " + materialName + " - Spracovanie dokončené:");
                 core.addDebug(item, "  Nákupná: " + core.formatMoney(finalPurchasePrice) + " / s DPH: " + core.formatMoney(finalPurchasePriceWithVat));
                 core.addDebug(item, "  Predajná: " + core.formatMoney(finalPrice) + " / s DPH: " + core.formatMoney(roundedPriceWithVat));
             }
