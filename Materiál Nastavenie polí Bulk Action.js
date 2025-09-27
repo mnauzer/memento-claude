@@ -83,34 +83,42 @@ try {
     selectedMaterials = selectedEntries();
 } catch (error) {
     dialog("❌ CHYBA: Nepodarilo sa získať označené záznamy: " + error.toString());
-    return false;
+    utils.addError(currentEntry, "Chyba pri získavaní označených záznamov: " + error.toString(), CONFIG.scriptName, error);
+    // Ukončenie scriptu bez return
+    selectedMaterials = [];
 }
 
 if (!selectedMaterials || selectedMaterials.length === 0) {
     dialog("⚠️ UPOZORNENIE: Žiadne záznamy nie sú označené!\n\nPre použitie bulk action označte materiály, ktoré chcete upraviť.");
-    return false;
+    utils.addError(currentEntry, "Žiadne záznamy nie sú označené", CONFIG.scriptName);
+    // Ukončenie scriptu bez return
+    selectedMaterials = [];
 }
 
 utils.addDebug(currentEntry, "🚀 " + CONFIG.scriptName + " v" + CONFIG.version);
-utils.addDebug(currentEntry, "📦 Spúšťam nastavenie polí pre " + selectedMaterials.length + " označených materiálov...");
 
-utils.addDebug(currentEntry, "🔍 Parametre:");
-utils.addDebug(currentEntry, "  • Prepočet ceny: '" + priceCalculation + "'");
-utils.addDebug(currentEntry, "  • Obchodná prirážka: " + (markupPercentage !== null ? markupPercentage + "%" : "nezadané"));
-utils.addDebug(currentEntry, "  • Zaokrúhľovanie: '" + priceRounding + "'");
-utils.addDebug(currentEntry, "  • Hodnota zaokrúhľovania: '" + roundingValue + "'");
-utils.addDebug(currentEntry, "  • Zmena nákupnej ceny: '" + purchasePriceChange + "'");
-utils.addDebug(currentEntry, "  • Percento zmeny: " + (changePercentage !== null ? changePercentage + "%" : "nezadané"));
-
-// ==============================================
-// NASTAVENIE POLÍ PRE KAŽDÝ OZNAČENÝ MATERIÁL
-// ==============================================
-
+// Inicializácia premenných
 var updatedCount = 0;
 var errorsCount = 0;
 var skippedCount = 0;
 
-utils.addDebug(currentEntry, "🔧 Spúšťam nastavenie polí pre " + selectedMaterials.length + " materiálov...");
+// Skontroluj či sa má script vykonať
+if (selectedMaterials.length > 0) {
+    utils.addDebug(currentEntry, "📦 Spúšťam nastavenie polí pre " + selectedMaterials.length + " označených materiálov...");
+
+    utils.addDebug(currentEntry, "🔍 Parametre:");
+    utils.addDebug(currentEntry, "  • Prepočet ceny: '" + priceCalculation + "'");
+    utils.addDebug(currentEntry, "  • Obchodná prirážka: " + (markupPercentage !== null ? markupPercentage + "%" : "nezadané"));
+    utils.addDebug(currentEntry, "  • Zaokrúhľovanie: '" + priceRounding + "'");
+    utils.addDebug(currentEntry, "  • Hodnota zaokrúhľovania: '" + roundingValue + "'");
+    utils.addDebug(currentEntry, "  • Zmena nákupnej ceny: '" + purchasePriceChange + "'");
+    utils.addDebug(currentEntry, "  • Percento zmeny: " + (changePercentage !== null ? changePercentage + "%" : "nezadané"));
+
+    // ==============================================
+    // NASTAVENIE POLÍ PRE KAŽDÝ OZNAČENÝ MATERIÁL
+    // ==============================================
+
+    utils.addDebug(currentEntry, "🔧 Spúšťam nastavenie polí pre " + selectedMaterials.length + " materiálov...");
 
 for (var i = 0; i < selectedMaterials.length; i++) {
     var material = selectedMaterials[i];
@@ -272,9 +280,13 @@ if (errorsCount > 0) {
 
 summaryMessage += "\nℹ️ Detaily v poli 'info'";
 
-utils.addDebug(currentEntry, "🎯 Nastavenie dokončené:");
-utils.addDebug(currentEntry, "  • Aktualizované: " + updatedCount);
-utils.addDebug(currentEntry, "  • Preskočené: " + skippedCount);
-utils.addDebug(currentEntry, "  • Chyby: " + errorsCount);
+    utils.addDebug(currentEntry, "🎯 Nastavenie dokončené:");
+    utils.addDebug(currentEntry, "  • Aktualizované: " + updatedCount);
+    utils.addDebug(currentEntry, "  • Preskočené: " + skippedCount);
+    utils.addDebug(currentEntry, "  • Chyby: " + errorsCount);
 
-dialog(summaryMessage);
+    dialog(summaryMessage);
+} else {
+    // Ak nie sú žiadne materiály, ukončiť script
+    utils.addDebug(currentEntry, "⚠️ Script ukončený - žiadne materiály na spracovanie");
+}
