@@ -123,19 +123,19 @@ function main() {
         if (dphOption === null || dphOption === undefined || dphOption === "") {
             dphOption = determineDphOptionFromMaterials(materialEntries);
             if (!dphOption) {
-                utils.showErrorDialog("❌ CHYBA ARGUMENTU\\n\\nArgument 'dph' nie je zadaný a nie je možné ho určiť automaticky!\\n\\nVyberte: 's DPH' alebo 'bez DPH' alebo nastavte sadzbu DPH v materiáloch.");
+                utils.showErrorDialog("❌ CHYBA ARGUMENTU\n\nArgument 'dph' nie je zadaný a nie je možné ho určiť automaticky!\n\nVyberte: 's DPH' alebo 'bez DPH' alebo nastavte sadzbu DPH v materiáloch.");
                 return false;
             }
         }
 
         // Validácia hodnoty DPH argumentu
         if (dphOption !== "s DPH" && dphOption !== "bez DPH") {
-            utils.showErrorDialog("❌ CHYBA ARGUMENTU\\n\\nArgument 'dph' má neplatnú hodnotu: '" + dphOption + "'\\n\\nPovolené hodnoty: 's DPH', 'bez DPH'.");
+            utils.showErrorDialog("❌ CHYBA ARGUMENTU\n\nArgument 'dph' má neplatnú hodnotu: '" + dphOption + "'\n\nPovolené hodnoty: 's DPH', 'bez DPH'.");
             return false;
         }
 
         if (bulkResults.total === 0) {
-            utils.showErrorDialog("❌ ŽIADNE MATERIÁLY\\n\\nNie sú vybrané žiadne materiály na spracovanie!");
+            utils.showErrorDialog("❌ ŽIADNE MATERIÁLY\n\nNie sú vybrané žiadne materiály na spracovanie!");
             return false;
         }
 
@@ -467,66 +467,66 @@ function showFinalSummary() {
     var endTime = new Date();
     var duration = Math.round((endTime - bulkResults.startTime) / 1000);
 
-    var summaryMessage = "📋 HROMADNÝ PREPOČET CIEN MATERIÁLOV\\n";
-    summaryMessage += "═══════════════════════════════════════\\n\\n";
+    var summaryMessage = "📋 HROMADNÝ PREPOČET CIEN MATERIÁLOV\n";
+    summaryMessage += "═══════════════════════════════════════\n\n";
 
-    summaryMessage += "⏱️ Čas spracovania: " + duration + " sekúnd\\n";
-    summaryMessage += "📊 Celkový počet materiálov: " + bulkResults.total + "\\n\\n";
+    summaryMessage += "⏱️ Čas spracovania: " + duration + " sekúnd\n";
+    summaryMessage += "📊 Celkový počet materiálov: " + bulkResults.total + "\n\n";
 
-    summaryMessage += "✅ Úspešne spracované: " + bulkResults.successful + "\\n";
-    summaryMessage += "❌ Neúspešné: " + bulkResults.failed + "\\n";
-    summaryMessage += "⏭️ Preskočené: " + bulkResults.skipped + "\\n\\n";
+    summaryMessage += "✅ Úspešne spracované: " + bulkResults.successful + "\n";
+    summaryMessage += "❌ Neúspešné: " + bulkResults.failed + "\n";
+    summaryMessage += "⏭️ Preskočené: " + bulkResults.skipped + "\n\n";
 
     // Percentuálny úspech
     var successRate = bulkResults.total > 0 ? Math.round((bulkResults.successful / bulkResults.total) * 100) : 0;
-    summaryMessage += "📈 Úspešnosť: " + successRate + "%\\n\\n";
+    summaryMessage += "📈 Úspešnosť: " + successRate + "%\n\n";
 
     // Detaily úspešných materiálov
     if (bulkResults.successful > 0) {
-        summaryMessage += "✅ ÚSPEŠNE SPRACOVANÉ MATERIÁLY:\\n";
-        summaryMessage += "─────────────────────────────────────\\n";
+        summaryMessage += "✅ ÚSPEŠNE SPRACOVANÉ MATERIÁLY:\n";
+        summaryMessage += "─────────────────────────────────────\n";
 
         var successfulCount = 0;
         for (var i = 0; i < bulkResults.details.length && successfulCount < 10; i++) {
             var detail = bulkResults.details[i];
             if (detail.status === "úspešný") {
                 successfulCount++;
-                summaryMessage += "• " + detail.material + "\\n";
-                summaryMessage += "  Nákupná: " + utils.formatMoney(detail.newPrice) + "\\n";
-                summaryMessage += "  Predajná: " + utils.formatMoney(detail.sellingPrice) + "\\n";
+                summaryMessage += "• " + detail.material + "\n";
+                summaryMessage += "  Nákupná: " + utils.formatMoney(detail.newPrice) + "\n";
+                summaryMessage += "  Predajná: " + utils.formatMoney(detail.sellingPrice) + "\n";
                 if (successfulCount < 10 && successfulCount < bulkResults.successful) {
-                    summaryMessage += "\\n";
+                    summaryMessage += "\n";
                 }
             }
         }
 
         if (bulkResults.successful > 10) {
-            summaryMessage += "... a ďalších " + (bulkResults.successful - 10) + " materiálov\\n";
+            summaryMessage += "... a ďalších " + (bulkResults.successful - 10) + " materiálov\n";
         }
-        summaryMessage += "\\n";
+        summaryMessage += "\n";
     }
 
     // Chyby a problémy
     if (bulkResults.failed > 0 || bulkResults.skipped > 0) {
-        summaryMessage += "⚠️ PROBLÉMY:\\n";
-        summaryMessage += "─────────────────────────────────────\\n";
+        summaryMessage += "⚠️ PROBLÉMY:\n";
+        summaryMessage += "─────────────────────────────────────\n";
 
         var problemCount = 0;
         for (var i = 0; i < bulkResults.details.length && problemCount < 5; i++) {
             var detail = bulkResults.details[i];
             if (detail.status !== "úspešný") {
                 problemCount++;
-                summaryMessage += "• " + detail.material + ": " + detail.reason + "\\n";
+                summaryMessage += "• " + detail.material + ": " + detail.reason + "\n";
             }
         }
 
         if ((bulkResults.failed + bulkResults.skipped) > 5) {
-            summaryMessage += "... a ďalších " + ((bulkResults.failed + bulkResults.skipped) - 5) + " problémov\\n";
+            summaryMessage += "... a ďalších " + ((bulkResults.failed + bulkResults.skipped) - 5) + " problémov\n";
         }
-        summaryMessage += "\\n";
+        summaryMessage += "\n";
     }
 
-    summaryMessage += "📝 Detailné informácie nájdete v Debug_Log poliach\\n";
+    summaryMessage += "📝 Detailné informácie nájdete v Debug_Log poliach\n";
     summaryMessage += "jednotlivých materiálov.";
 
     // Zobrazenie správneho dialógu podľa výsledku
