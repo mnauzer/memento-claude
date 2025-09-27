@@ -17,3 +17,12 @@ screenshots/
 # Systémové súbory
 .DS_Store
 Thumbs.db
+
+# Knowledge a dokumentačné súbory
+CLAUDE.md
+*.md
+*.txt
+poslednychat.txt
+
+# Claude Code session súbory
+2025-*-*.txt
