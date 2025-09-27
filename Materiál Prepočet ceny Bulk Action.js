@@ -115,13 +115,13 @@ function main() {
             dphOption = null;
         }
 
-        // Získanie všetkých vybraných materiálov
-        var selectedEntries = entries();
-        bulkResults.total = selectedEntries.length;
+        // Získanie všetkých vybraných materiálov (Bulk Action API)
+        var materialEntries = selectedEntries();
+        bulkResults.total = materialEntries.length;
 
         // Ak nie je zadaný DPH argument, určíme ho podľa prvého materiálu
         if (dphOption === null || dphOption === undefined || dphOption === "") {
-            dphOption = determineDphOptionFromMaterials(selectedEntries);
+            dphOption = determineDphOptionFromMaterials(materialEntries);
             if (!dphOption) {
                 utils.showErrorDialog("❌ CHYBA ARGUMENTU\\n\\nArgument 'dph' nie je zadaný a nie je možné ho určiť automaticky!\\n\\nVyberte: 's DPH' alebo 'bez DPH' alebo nastavte sadzbu DPH v materiáloch.");
                 return false;
@@ -140,8 +140,8 @@ function main() {
         }
 
         // Spracovanie všetkých vybraných materiálov
-        for (var i = 0; i < selectedEntries.length; i++) {
-            var currentEntry = selectedEntries[i];
+        for (var i = 0; i < materialEntries.length; i++) {
+            var currentEntry = materialEntries[i];
             var materialName = utils.safeGet(currentEntry, CONFIG.materialFields.name, "Materiál #" + (i + 1));
 
             try {
@@ -381,15 +381,15 @@ function executeCalculation(currentEntry, purchasePrice, materialName) {
 /**
  * Určí DPH option na základe sadzby DPH z materiálov
  */
-function determineDphOptionFromMaterials(selectedEntries) {
+function determineDphOptionFromMaterials(materialEntries) {
     try {
-        if (!selectedEntries || selectedEntries.length === 0) {
+        if (!materialEntries || materialEntries.length === 0) {
             return null;
         }
 
         // Prejdeme prvých niekoľko materiálov a pokúsime sa určiť DPH
-        for (var i = 0; i < Math.min(selectedEntries.length, 3); i++) {
-            var currentEntry = selectedEntries[i];
+        for (var i = 0; i < Math.min(materialEntries.length, 3); i++) {
+            var currentEntry = materialEntries[i];
             var materialName = utils.safeGet(currentEntry, CONFIG.materialFields.name, "Materiál #" + (i + 1));
 
             // Získanie sadzby DPH z materiálu
