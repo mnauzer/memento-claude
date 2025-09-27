@@ -19,7 +19,7 @@
 //    - MementoBusiness (business logika pre ceny materiálu)
 // 📝 ARGUMENTY:
 //    - "nákupná cena" (Number): Nová nákupná cena materiálu (voliteľné - ak nie je zadaná, použije sa cena z poľa)
-//    - "dph" (Options: "s DPH", "bez DPH"): Či je zadaná cena s/bez DPH
+//    - "dph" (Options: "s DPH", "bez DPH"): Či je zadaná cena s/bez DPH (voliteľné - ak nie je zadané, určí sa podľa sadzby DPH)
 // ==============================================
 
 // ==============================================
@@ -115,10 +115,17 @@ function main() {
             dphOption = null;
         }
 
-        // Validácia argumentu DPH
+        // Získanie všetkých vybraných materiálov
+        var selectedEntries = entries();
+        bulkResults.total = selectedEntries.length;
+
+        // Ak nie je zadaný DPH argument, určíme ho podľa prvého materiálu
         if (dphOption === null || dphOption === undefined || dphOption === "") {
-            utils.showErrorDialog("❌ CHYBA ARGUMENTU\\n\\nArgument 'dph' nie je zadaný!\\n\\nVyberte: 's DPH' alebo 'bez DPH'.");
-            return false;
+            dphOption = determineDphOptionFromMaterials(selectedEntries);
+            if (!dphOption) {
+                utils.showErrorDialog("❌ CHYBA ARGUMENTU\\n\\nArgument 'dph' nie je zadaný a nie je možné ho určiť automaticky!\\n\\nVyberte: 's DPH' alebo 'bez DPH' alebo nastavte sadzbu DPH v materiáloch.");
+                return false;
+            }
         }
 
         // Validácia hodnoty DPH argumentu
@@ -126,10 +133,6 @@ function main() {
             utils.showErrorDialog("❌ CHYBA ARGUMENTU\\n\\nArgument 'dph' má neplatnú hodnotu: '" + dphOption + "'\\n\\nPovolené hodnoty: 's DPH', 'bez DPH'.");
             return false;
         }
-
-        // Získanie všetkých vybraných materiálov
-        var selectedEntries = entries();
-        bulkResults.total = selectedEntries.length;
 
         if (bulkResults.total === 0) {
             utils.showErrorDialog("❌ ŽIADNE MATERIÁLY\\n\\nNie sú vybrané žiadne materiály na spracovanie!");
@@ -291,11 +294,16 @@ function processPurchasePriceFromArguments(currentEntry, inputPrice, dphOption, 
 
         // Ak je zadaná cena s DPH, prepočítaj na cenu bez DPH
         if (dphOption === "s DPH") {
-            // Získanie DPH sadzby pre materiál
-            var vatRate = utils.safeGet(currentEntry, CONFIG.materialFields.vatRate, "Základná");
+            // Získanie DPH sadzby pre materiál s fallback na "Základná"
+            var vatRate = utils.safeGet(currentEntry, CONFIG.materialFields.vatRate, "");
+            if (!vatRate || vatRate.trim() === "") {
+                vatRate = "Základná";
+                utils.addDebug(currentEntry, CONFIG.icons.info + " Použitá default DPH sadzba: " + vatRate);
+            }
+
             var vatRatePercentage = utils.getValidVatRate(vatRate, new Date());
             if (vatRatePercentage === null) {
-                utils.addError(currentEntry, "Materiál " + materialName + " - nie je možné získať DPH sadzbu", "processPurchasePriceFromArguments");
+                utils.addError(currentEntry, "Materiál " + materialName + " - nie je možné získať DPH sadzbu pre: " + vatRate, "processPurchasePriceFromArguments");
                 return null;
             }
 
@@ -369,6 +377,49 @@ function executeCalculation(currentEntry, purchasePrice, materialName) {
 // ==============================================
 // POMOCNÉ FUNKCIE
 // ==============================================
+
+/**
+ * Určí DPH option na základe sadzby DPH z materiálov
+ */
+function determineDphOptionFromMaterials(selectedEntries) {
+    try {
+        if (!selectedEntries || selectedEntries.length === 0) {
+            return null;
+        }
+
+        // Prejdeme prvých niekoľko materiálov a pokúsime sa určiť DPH
+        for (var i = 0; i < Math.min(selectedEntries.length, 3); i++) {
+            var currentEntry = selectedEntries[i];
+            var materialName = utils.safeGet(currentEntry, CONFIG.materialFields.name, "Materiál #" + (i + 1));
+
+            // Získanie sadzby DPH z materiálu
+            var vatRate = utils.safeGet(currentEntry, CONFIG.materialFields.vatRate, "");
+
+            // Ak nie je nastavená sadzba, použiť "Základná"
+            if (!vatRate || vatRate.trim() === "") {
+                vatRate = "Základná";
+            }
+
+            // Získanie percentuálnej hodnoty DPH
+            var vatRatePercentage = utils.getValidVatRate(vatRate, new Date());
+
+            if (vatRatePercentage !== null && vatRatePercentage > 0) {
+                // Ak má materiál DPH > 0, predpokladáme že ceny sú "bez DPH"
+                return "bez DPH";
+            } else if (vatRatePercentage === 0) {
+                // Ak má materiál DPH = 0, ceny sú tiež "bez DPH"
+                return "bez DPH";
+            }
+        }
+
+        // Ak sa nepodarilo určiť z materiálov, použiť default "bez DPH"
+        return "bez DPH";
+
+    } catch (error) {
+        // Pri chybe vrátime default hodnotu
+        return "bez DPH";
+    }
+}
 
 /**
  * Pridá varovnú ikonu do poľa icons materiálu
