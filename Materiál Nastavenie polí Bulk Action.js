@@ -26,6 +26,7 @@
 
 var utils = MementoUtils;
 var config = utils.getConfig();
+var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Materiál Nastavenie polí Bulk Action",
@@ -61,7 +62,7 @@ function getSafeArgument(argName, defaultValue) {
         var value = argument(argName);
         return value !== null && value !== undefined ? value : defaultValue;
     } catch (error) {
-        // Fallback na prázdnu hodnotu ak argument nie je zadaný
+        utils.addDebug(currentEntry, "⚠️ Argument '" + argName + "' nie je dostupný, použije sa default: " + defaultValue);
         return defaultValue;
     }
 }
@@ -81,81 +82,50 @@ var selectedMaterials;
 try {
     selectedMaterials = selectedEntries();
 } catch (error) {
-    message("❌ CHYBA: Nepodarilo sa získať označené záznamy: " + error.toString());
+    dialog("❌ CHYBA: Nepodarilo sa získať označené záznamy: " + error.toString());
     return false;
 }
 
 if (!selectedMaterials || selectedMaterials.length === 0) {
-    message("⚠️ UPOZORNENIE: Žiadne záznamy nie sú označené!\n\nPre použitie bulk action označte materiály, ktoré chcete upraviť.");
+    dialog("⚠️ UPOZORNENIE: Žiadne záznamy nie sú označené!\n\nPre použitie bulk action označte materiály, ktoré chcete upraviť.");
     return false;
 }
 
-// ==============================================
-// INICIALIZÁCIA ŠTATISTÍK A LOGOV
-// ==============================================
+utils.addDebug(currentEntry, "🚀 " + CONFIG.scriptName + " v" + CONFIG.version);
+utils.addDebug(currentEntry, "📦 Spúšťam nastavenie polí pre " + selectedMaterials.length + " označených materiálov...");
 
-var stats = {
-    total: selectedMaterials.length,
-    updated: 0,
-    skipped: 0,
-    errors: 0,
-    categories: {},
-    processedMaterials: []
-};
-
-var globalDebugLog = "";
-var globalErrorLog = "";
-
-function addGlobalDebug(message) {
-    globalDebugLog += utils.formatDate(moment(), "HH:mm:ss") + " " + message + "\n";
-}
-
-function addGlobalError(message, error) {
-    var errorMsg = message;
-    if (error && error.stack) {
-        errorMsg += "\nStack: " + error.stack;
-    }
-    globalErrorLog += utils.formatDate(moment(), "HH:mm:ss") + " " + errorMsg + "\n";
-}
-
-addGlobalDebug("🚀 " + CONFIG.scriptName + " v" + CONFIG.version);
-addGlobalDebug("📦 Spúšťam nastavenie polí pre " + stats.total + " označených materiálov...");
-
-addGlobalDebug("🔍 Parametre:");
-addGlobalDebug("  • Prepočet ceny: '" + priceCalculation + "'");
-addGlobalDebug("  • Obchodná prirážka: " + (markupPercentage !== null ? markupPercentage + "%" : "nezadané"));
-addGlobalDebug("  • Zaokrúhľovanie: '" + priceRounding + "'");
-addGlobalDebug("  • Hodnota zaokrúhľovania: '" + roundingValue + "'");
-addGlobalDebug("  • Zmena nákupnej ceny: '" + purchasePriceChange + "'");
-addGlobalDebug("  • Percento zmeny: " + (changePercentage !== null ? changePercentage + "%" : "nezadané"));
+utils.addDebug(currentEntry, "🔍 Parametre:");
+utils.addDebug(currentEntry, "  • Prepočet ceny: '" + priceCalculation + "'");
+utils.addDebug(currentEntry, "  • Obchodná prirážka: " + (markupPercentage !== null ? markupPercentage + "%" : "nezadané"));
+utils.addDebug(currentEntry, "  • Zaokrúhľovanie: '" + priceRounding + "'");
+utils.addDebug(currentEntry, "  • Hodnota zaokrúhľovania: '" + roundingValue + "'");
+utils.addDebug(currentEntry, "  • Zmena nákupnej ceny: '" + purchasePriceChange + "'");
+utils.addDebug(currentEntry, "  • Percento zmeny: " + (changePercentage !== null ? changePercentage + "%" : "nezadané"));
 
 // ==============================================
-// SPRACOVANIE KAŽDÉHO OZNAČENÉHO MATERIÁLU
+// NASTAVENIE POLÍ PRE KAŽDÝ OZNAČENÝ MATERIÁL
 // ==============================================
+
+var updatedCount = 0;
+var errorsCount = 0;
+var skippedCount = 0;
+
+utils.addDebug(currentEntry, "🔧 Spúšťam nastavenie polí pre " + selectedMaterials.length + " materiálov...");
 
 for (var i = 0; i < selectedMaterials.length; i++) {
     var material = selectedMaterials[i];
     var materialName = utils.safeGet(material, CONFIG.materialFields.name, "Neznámy materiál");
-    var materialCategory = utils.safeGet(material, CONFIG.materialFields.category, "Bez kategórie");
     var hasChanges = false;
-    var materialChanges = [];
 
     try {
-        addGlobalDebug("📦 [" + (i + 1) + "/" + stats.total + "] " + materialName);
-
-        // Sledovanie kategórií
-        if (!stats.categories[materialCategory]) {
-            stats.categories[materialCategory] = 0;
-        }
-        stats.categories[materialCategory]++;
+        utils.addDebug(currentEntry, "📦 [" + (i + 1) + "/" + selectedMaterials.length + "] " + materialName);
 
         // Nastavenie Prepočet ceny
         if (priceCalculation && priceCalculation.trim() !== "") {
             var currentPriceCalculation = utils.safeGet(material, CONFIG.materialFields.priceCalculation, "");
             if (currentPriceCalculation !== priceCalculation) {
                 utils.safeSet(material, CONFIG.materialFields.priceCalculation, priceCalculation);
-                materialChanges.push("Prepočet ceny: '" + currentPriceCalculation + "' → '" + priceCalculation + "'");
-                addGlobalDebug("  ✅ Prepočet ceny: '" + currentPriceCalculation + "' → '" + priceCalculation + "'");
+                utils.addDebug(currentEntry, "  ✅ Prepočet ceny: '" + currentPriceCalculation + "' → '" + priceCalculation + "'");
                 hasChanges = true;
             }
         }
@@ -165,8 +135,7 @@ for (var i = 0; i < selectedMaterials.length; i++) {
             var currentMarkup = parseFloat(utils.safeGet(material, CONFIG.materialFields.markupPercentage, 0));
             if (Math.abs(currentMarkup - markupPercentage) > 0.01) {
                 utils.safeSet(material, CONFIG.materialFields.markupPercentage, markupPercentage);
-                materialChanges.push("Obchodná prirážka: " + currentMarkup + "% → " + markupPercentage + "%");
-                addGlobalDebug("  ✅ Obchodná prirážka: " + currentMarkup + "% → " + markupPercentage + "%");
+                utils.addDebug(currentEntry, "  ✅ Obchodná prirážka: " + currentMarkup + "% → " + markupPercentage + "%");
                 hasChanges = true;
             }
         }
@@ -176,8 +145,7 @@ for (var i = 0; i < selectedMaterials.length; i++) {
             var currentRounding = utils.safeGet(material, CONFIG.materialFields.priceRounding, "");
             if (currentRounding !== priceRounding) {
                 utils.safeSet(material, CONFIG.materialFields.priceRounding, priceRounding);
-                materialChanges.push("Zaokrúhľovanie: '" + currentRounding + "' → '" + priceRounding + "'");
-                addGlobalDebug("  ✅ Zaokrúhľovanie: '" + currentRounding + "' → '" + priceRounding + "'");
+                utils.addDebug(currentEntry, "  ✅ Zaokrúhľovanie: '" + currentRounding + "' → '" + priceRounding + "'");
                 hasChanges = true;
             }
         }
@@ -187,8 +155,7 @@ for (var i = 0; i < selectedMaterials.length; i++) {
             var currentRoundingValue = utils.safeGet(material, CONFIG.materialFields.roundingValue, "");
             if (currentRoundingValue !== roundingValue) {
                 utils.safeSet(material, CONFIG.materialFields.roundingValue, roundingValue);
-                materialChanges.push("Hodnota zaokrúhľovania: '" + currentRoundingValue + "' → '" + roundingValue + "'");
-                addGlobalDebug("  ✅ Hodnota zaokrúhľovania: '" + currentRoundingValue + "' → '" + roundingValue + "'");
+                utils.addDebug(currentEntry, "  ✅ Hodnota zaokrúhľovania: '" + currentRoundingValue + "' → '" + roundingValue + "'");
                 hasChanges = true;
             }
         }
@@ -198,8 +165,7 @@ for (var i = 0; i < selectedMaterials.length; i++) {
             var currentPriceChange = utils.safeGet(material, CONFIG.materialFields.purchasePriceChange, "");
             if (currentPriceChange !== purchasePriceChange) {
                 utils.safeSet(material, CONFIG.materialFields.purchasePriceChange, purchasePriceChange);
-                materialChanges.push("Zmena nákupnej ceny: '" + currentPriceChange + "' → '" + purchasePriceChange + "'");
-                addGlobalDebug("  ✅ Zmena nákupnej ceny: '" + currentPriceChange + "' → '" + purchasePriceChange + "'");
+                utils.addDebug(currentEntry, "  ✅ Zmena nákupnej ceny: '" + currentPriceChange + "' → '" + purchasePriceChange + "'");
                 hasChanges = true;
             }
         }
@@ -209,8 +175,7 @@ for (var i = 0; i < selectedMaterials.length; i++) {
             var currentChangePercentage = parseFloat(utils.safeGet(material, CONFIG.materialFields.changePercentage, 0));
             if (Math.abs(currentChangePercentage - changePercentage) > 0.01) {
                 utils.safeSet(material, CONFIG.materialFields.changePercentage, changePercentage);
-                materialChanges.push("Percento zmeny: " + currentChangePercentage + "% → " + changePercentage + "%");
-                addGlobalDebug("  ✅ Percento zmeny: " + currentChangePercentage + "% → " + changePercentage + "%");
+                utils.addDebug(currentEntry, "  ✅ Percento zmeny: " + currentChangePercentage + "% → " + changePercentage + "%");
                 hasChanges = true;
             }
         }
@@ -222,75 +187,35 @@ for (var i = 0; i < selectedMaterials.length; i++) {
             if (!currentIcons.includes(newIcon)) {
                 var updatedIcons = currentIcons ? currentIcons + " " + newIcon : newIcon;
                 utils.safeSet(material, CONFIG.materialFields.icons, updatedIcons);
-                addGlobalDebug("  🎯 Pridaná ikona: " + newIcon);
+                utils.addDebug(currentEntry, "  🎯 Pridaná ikona: " + newIcon);
             }
 
-            stats.updated++;
-            addGlobalDebug("  ✅ Materiál aktualizovaný");
-
-            // Uloženie informácií o materiáli pre súhrn
-            stats.processedMaterials.push({
-                name: materialName,
-                category: materialCategory,
-                changes: materialChanges,
-                status: "updated"
-            });
+            updatedCount++;
+            utils.addDebug(currentEntry, "  ✅ Materiál aktualizovaný");
         } else {
-            stats.skipped++;
-            addGlobalDebug("  ➖ Žiadne zmeny");
-
-            stats.processedMaterials.push({
-                name: materialName,
-                category: materialCategory,
-                changes: [],
-                status: "skipped"
-            });
+            skippedCount++;
+            utils.addDebug(currentEntry, "  ➖ Žiadne zmeny");
         }
 
     } catch (error) {
-        stats.errors++;
-        var errorMessage = "Chyba pri spracovaní materiálu '" + materialName + "': " + error.toString();
-        addGlobalError(errorMessage, error);
-        addGlobalDebug("  ❌ Chyba pri spracovaní");
-
-        stats.processedMaterials.push({
-            name: materialName,
-            category: materialCategory,
-            changes: [],
-            status: "error",
-            error: error.toString()
-        });
+        errorsCount++;
+        utils.addError(currentEntry, "Chyba pri spracovaní materiálu '" + materialName + "': " + error.toString(), CONFIG.scriptName, error);
+        utils.addDebug(currentEntry, "  ❌ Chyba pri spracovaní");
     }
 }
 
 // ==============================================
-// VYTVORENIE SÚHRNNÉHO INFO ZÁZNAMU
+// VYTVORENIE INFO ZÁZNAMU
 // ==============================================
-
-// Vytvoríme jeden súhrnný záznam v prvom materiáli
-var firstMaterial = selectedMaterials[0];
 
 var infoMessage = "⚙️ HROMADNÉ NASTAVENIE POLÍ MATERIÁLOV (BULK)\n";
 infoMessage += "════════════════════════════════════════════════\n";
 infoMessage += "📅 Dátum: " + utils.formatDate(moment(), "DD.MM.YYYY HH:mm:ss") + "\n";
 infoMessage += "🔧 Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n\n";
 
-infoMessage += "📊 SÚHRN SPRACOVANIA:\n";
+infoMessage += "🔍 OZNAČENÉ MATERIÁLY:\n";
 infoMessage += "───────────────────────────────────────────────\n";
-infoMessage += "• Označené materiály: " + stats.total + "\n";
-infoMessage += "• Aktualizované: " + stats.updated + "\n";
-infoMessage += "• Preskočené (bez zmien): " + stats.skipped + "\n";
-infoMessage += "• Chyby: " + stats.errors + "\n\n";
-
-// Kategórie
-if (Object.keys(stats.categories).length > 0) {
-    infoMessage += "📦 KATEGÓRIE MATERIÁLOV:\n";
-    infoMessage += "───────────────────────────────────────────────\n";
-    for (var category in stats.categories) {
-        infoMessage += "• " + category + ": " + stats.categories[category] + " materiálov\n";
-    }
-    infoMessage += "\n";
-}
+infoMessage += "• Označených materiálov: " + selectedMaterials.length + "\n\n";
 
 infoMessage += "⚙️ NASTAVENÉ HODNOTY:\n";
 infoMessage += "───────────────────────────────────────────────\n";
@@ -313,58 +238,22 @@ if (changePercentage !== null && !isNaN(changePercentage)) {
     infoMessage += "• Percento zmeny: " + changePercentage + "%\n";
 }
 
-// Detaily materiálov s aktualizáciami
-if (stats.updated > 0) {
-    infoMessage += "\n✅ AKTUALIZOVANÉ MATERIÁLY:\n";
-    infoMessage += "───────────────────────────────────────────────\n";
-    var updatedCount = 0;
-    for (var i = 0; i < stats.processedMaterials.length && updatedCount < 10; i++) {
-        var mat = stats.processedMaterials[i];
-        if (mat.status === "updated") {
-            infoMessage += "• " + mat.name + " (" + mat.category + ")\n";
-            for (var j = 0; j < mat.changes.length; j++) {
-                infoMessage += "  - " + mat.changes[j] + "\n";
-            }
-            updatedCount++;
-        }
-    }
-    if (stats.updated > 10) {
-        infoMessage += "• ... a " + (stats.updated - 10) + " ďalších materiálov\n";
-    }
-}
+infoMessage += "\n📊 VÝSLEDKY:\n";
+infoMessage += "───────────────────────────────────────────────\n";
+infoMessage += "• Aktualizované: " + updatedCount + " materiálov\n";
+infoMessage += "• Preskočené (bez zmien): " + skippedCount + " materiálov\n";
+infoMessage += "• Chyby: " + errorsCount + " materiálov\n";
+infoMessage += "• Celkovo spracované: " + selectedMaterials.length + " materiálov\n\n";
 
-// Chyby
-if (stats.errors > 0) {
-    infoMessage += "\n❌ CHYBY:\n";
-    infoMessage += "───────────────────────────────────────────────\n";
-    var errorCount = 0;
-    for (var i = 0; i < stats.processedMaterials.length && errorCount < 5; i++) {
-        var mat = stats.processedMaterials[i];
-        if (mat.status === "error") {
-            infoMessage += "• " + mat.name + ": " + mat.error + "\n";
-            errorCount++;
-        }
-    }
-    if (stats.errors > 5) {
-        infoMessage += "• ... a " + (stats.errors - 5) + " ďalších chýb\n";
-    }
-}
+infoMessage += "✅ NASTAVENIE DOKONČENÉ";
 
-infoMessage += "\n✅ NASTAVENIE DOKONČENÉ";
-
-// Nastavenie info záznamu do prvého materiálu
-utils.safeSet(firstMaterial, CONFIG.materialFields.name + " (Súhrn)", firstMaterial.field(CONFIG.materialFields.name) + " (Súhrn)");
-utils.safeSet(firstMaterial, CONFIG.commonFields.info, infoMessage);
-utils.safeSet(firstMaterial, CONFIG.commonFields.debugLog, globalDebugLog);
-if (globalErrorLog) {
-    utils.safeSet(firstMaterial, CONFIG.commonFields.errorLog, globalErrorLog);
-}
+utils.safeSet(currentEntry, CONFIG.commonFields.info, infoMessage);
 
 // ==============================================
-// FINÁLNY DIALOG
+// FINÁLNY SÚHRN
 // ==============================================
 
-var isSuccess = stats.errors === 0;
+var isSuccess = errorsCount === 0;
 var summaryMessage = "";
 
 if (isSuccess) {
@@ -373,21 +262,19 @@ if (isSuccess) {
     summaryMessage = "⚠️ DOKONČENÉ S CHYBAMI\n\n";
 }
 
-summaryMessage += "📦 Označené materiály: " + stats.total + "\n";
-summaryMessage += "✅ Aktualizované: " + stats.updated + "\n";
-summaryMessage += "➖ Preskočené: " + stats.skipped + "\n";
+summaryMessage += "📦 Označené materiály: " + selectedMaterials.length + "\n";
+summaryMessage += "✅ Aktualizované: " + updatedCount + "\n";
+summaryMessage += "➖ Preskočené: " + skippedCount + "\n";
 
-if (stats.errors > 0) {
-    summaryMessage += "❌ Chyby: " + stats.errors + "\n";
+if (errorsCount > 0) {
+    summaryMessage += "❌ Chyby: " + errorsCount + "\n";
 }
 
-summaryMessage += "\nℹ️ Detaily v prvom materiáli v poli 'info'";
+summaryMessage += "\nℹ️ Detaily v poli 'info'";
 
-addGlobalDebug("🎯 Nastavenie dokončené:");
-addGlobalDebug("  • Aktualizované: " + stats.updated);
-addGlobalDebug("  • Preskočené: " + stats.skipped);
-addGlobalDebug("  • Chyby: " + stats.errors);
+utils.addDebug(currentEntry, "🎯 Nastavenie dokončené:");
+utils.addDebug(currentEntry, "  • Aktualizované: " + updatedCount);
+utils.addDebug(currentEntry, "  • Preskočené: " + skippedCount);
+utils.addDebug(currentEntry, "  • Chyby: " + errorsCount);
 
-<function_calls>
-<invoke name="TodoWrite">
-<parameter name="todos">[{"content": "Vytvori\u0165 bulk action verziu scriptu bez v\u00fdberu kateg\u00f3rie", "status": "completed", "activeForm": "Vytvoren\u00e1 bulk action verzia scriptu"}]
+dialog(summaryMessage);
