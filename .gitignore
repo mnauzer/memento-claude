@@ -35,3 +35,48 @@ chat_export_*
 conversation_*
 claude_chat_*
 ai_chat_*
+
+# Citlivé a bezpečnostné súbory
+*.env
+.env*
+*secret*
+*credential*
+*password*
+*token*
+*key*
+*api_key*
+*apikey*
+config.json
+settings.json
+secrets.json
+keys.json
+
+# Claude Code nastavenia a permissions
+.claude/
+*.local.json
+
+# Záložné a dočasné súbory
+*.backup
+*.bak
+*.old
+*~
+\#*\#
+.#*
+
+# Database a exports
+*.db
+*.sqlite
+*.csv
+*.xlsx
+*.xls
+
+# Privátne súbory
+private/
+confidential/
+sensitive/
+
+# Vývojové súbory
+debug.js
+test-*.js
+*-test.js
+playground.js
