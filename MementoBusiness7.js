@@ -1001,30 +1001,51 @@ var MementoBusiness = (function() {
             core.addDebug(entry(), "🔍 DEBUG: Hľadám existujúce cenové záznamy, nájdených: " + (priceEntries ? priceEntries.length : 0));
 
             if (priceEntries && priceEntries.length > 0) {
+                // Konverzia cieľového dátumu na začiatok dňa (00:00:00) v millisekondách
+                var targetDate = new Date(priceDate);
+                var targetDateDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+                var targetDateMs = targetDateDay.getTime();
+
                 var targetDateStr = moment(priceDate).format("YYYY-MM-DD");
-                core.addDebug(entry(), "🔍 DEBUG: Hľadám záznamy s dátumom: " + targetDateStr);
+                core.addDebug(entry(), "🔍 DEBUG: Hľadám záznamy s dátumom: " + targetDateStr + " (ms: " + targetDateMs + ")");
 
                 for (var i = 0; i < priceEntries.length; i++) {
                     var priceEntry = priceEntries[i];
                     var entryDate = core.safeGet(priceEntry, config.fields.materialPrices.date);
 
                     if (entryDate) {
+                        var entryDateMs;
                         var entryDateStr;
-                        if (typeof entryDate === 'string') {
-                            // Ak je dátum string, skús ho parsovať
+
+                        // Konvertuj dátum záznamu na millisekudy začiatku dňa
+                        if (typeof entryDate === 'number') {
+                            // Ak je dátum už v millisekndách
+                            var entryDateObj = new Date(entryDate);
+                            var entryDateDay = new Date(entryDateObj.getFullYear(), entryDateObj.getMonth(), entryDateObj.getDate());
+                            entryDateMs = entryDateDay.getTime();
                             entryDateStr = moment(entryDate).format("YYYY-MM-DD");
                         } else if (entryDate instanceof Date) {
                             // Ak je dátum Date objekt
+                            var entryDateDay = new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate());
+                            entryDateMs = entryDateDay.getTime();
                             entryDateStr = moment(entryDate).format("YYYY-MM-DD");
                         } else {
-                            // Ak je moment objekt alebo iný formát
-                            entryDateStr = moment(entryDate).format("YYYY-MM-DD");
+                            // Ak je string alebo iný formát, parsuj cez moment
+                            var parsedDate = moment(entryDate);
+                            if (parsedDate.isValid()) {
+                                var entryDateDay = new Date(parsedDate.year(), parsedDate.month(), parsedDate.date());
+                                entryDateMs = entryDateDay.getTime();
+                                entryDateStr = parsedDate.format("YYYY-MM-DD");
+                            } else {
+                                core.addDebug(entry(), "⚠️ DEBUG: Neplatný dátum v zázname: " + entryDate);
+                                continue;
+                            }
                         }
 
-                        core.addDebug(entry(), "🔍 DEBUG: Porovnávam " + targetDateStr + " vs " + entryDateStr);
+                        core.addDebug(entry(), "🔍 DEBUG: Porovnávam " + targetDateStr + " (" + targetDateMs + ") vs " + entryDateStr + " (" + entryDateMs + ")");
 
-                        // Porovnanie dátumov (len dátum, nie čas)
-                        if (entryDateStr === targetDateStr) {
+                        // Porovnanie dátumov pomocou millisekúnd (len dátum, nie čas)
+                        if (entryDateMs === targetDateMs) {
                             existingPriceEntry = priceEntry;
                             core.addDebug(entry(), "✅ DEBUG: Nájdený existujúci záznam pre dátum " + targetDateStr);
                             break;
@@ -1067,6 +1088,8 @@ var MementoBusiness = (function() {
                     message: "Cenový záznam aktualizovaný",
                     oldSellPrice: oldSellPrice,
                     oldPurchasePrice: oldPurchasePrice,
+                    oldPrice: oldSellPrice, // Pre Info záznam
+                    newPrice: sellPrice,    // Pre Info záznam
                     sellPrice: sellPrice,
                     purchasePrice: purchasePrice,
                     date: priceDate
@@ -1102,6 +1125,7 @@ var MementoBusiness = (function() {
                     message: "Nový cenový záznam vytvorený",
                     purchasePrice: purchasePrice,
                     sellPrice: sellPrice,
+                    newPrice: sellPrice,    // Pre Info záznam
                     date: priceDate,
                     entryId: core.safeGet(newPriceEntry, "ID", "N/A")
                 };
