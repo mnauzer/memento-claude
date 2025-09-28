@@ -91,24 +91,246 @@ var MementoCore = (function() {
         }
     }
     
-    function addInfo(entry, message, data) {
+    function addInfo(entry, message, data, options) {
         try {
             var config = getConfig();
             var infoFieldName = config ? config.fields.common.info : "info";
-            var icons = config ? config.icons : { info: "ℹ️" };
-            
-            var timestamp = moment().format("DD.MM.YY HH:mm");
-            var infoMessage = "[" + timestamp + "] " + icons.info + " " + message;
-            
-            if (data) {
-                infoMessage += "\nDáta: " + JSON.stringify(data);
-            }
-            
+
+            // Predvolené nastavenia
+            var settings = {
+                scriptName: options && options.scriptName ? options.scriptName : "Memento Script",
+                scriptVersion: options && options.scriptVersion ? options.scriptVersion : "1.0",
+                moduleName: options && options.moduleName ? options.moduleName : null,
+                sectionName: options && options.sectionName ? options.sectionName : "Výsledok",
+                includeHeader: options && options.includeHeader !== undefined ? options.includeHeader : true,
+                includeFooter: options && options.includeFooter !== undefined ? options.includeFooter : true,
+                addTimestamp: options && options.addTimestamp !== undefined ? options.addTimestamp : true
+            };
+
+            var infoMessage = buildInfoMessage(message, data, settings);
             var existingInfo = entry.field(infoFieldName) || "";
-            entry.set(infoFieldName, existingInfo + infoMessage + "\n");
+            entry.set(infoFieldName, existingInfo + infoMessage + "\n\n");
         } catch (e) {
             // Nemôžeme logovať chybu logovania
         }
+    }
+
+    function addInfoTelegram(entry, message, data, options) {
+        try {
+            var config = getConfig();
+            var infoFieldName = config ? config.fields.common.info : "info";
+
+            // Predvolené nastavenia pre Telegram
+            var settings = {
+                scriptName: options && options.scriptName ? options.scriptName : "Memento Script",
+                scriptVersion: options && options.scriptVersion ? options.scriptVersion : "1.0",
+                moduleName: options && options.moduleName ? options.moduleName : null,
+                sectionName: options && options.sectionName ? options.sectionName : "Výsledok",
+                format: options && options.format ? options.format : "markdown", // "markdown" alebo "html"
+                includeHeader: options && options.includeHeader !== undefined ? options.includeHeader : true,
+                includeFooter: options && options.includeFooter !== undefined ? options.includeFooter : true,
+                addTimestamp: options && options.addTimestamp !== undefined ? options.addTimestamp : true,
+                inlineKeyboard: options && options.inlineKeyboard ? options.inlineKeyboard : null
+            };
+
+            var telegramMessage = buildTelegramMessage(message, data, settings);
+            var existingInfo = entry.field(infoFieldName) || "";
+            entry.set(infoFieldName, existingInfo + telegramMessage + "\n\n");
+        } catch (e) {
+            // Nemôžeme logovať chybu logovania
+        }
+    }
+
+    function buildInfoMessage(message, data, settings) {
+        var config = getConfig();
+        var icons = config ? config.icons : { info: "ℹ️", script: "📋", time: "🕐", data: "💾" };
+        var parts = [];
+
+        // HEADER
+        if (settings.includeHeader) {
+            var headerParts = [];
+            headerParts.push("=".repeat(50));
+            headerParts.push(icons.script + " " + settings.scriptName + " v" + settings.scriptVersion);
+
+            if (settings.addTimestamp) {
+                var timestamp = moment().format("DD.MM.YYYY HH:mm:ss");
+                headerParts.push(icons.time + " " + timestamp);
+            }
+
+            if (settings.moduleName) {
+                headerParts.push("📦 Modul: " + settings.moduleName);
+            }
+
+            headerParts.push("=".repeat(50));
+            parts.push(headerParts.join("\n"));
+        }
+
+        // SECTION
+        if (settings.sectionName && message) {
+            parts.push("\n" + icons.info + " " + settings.sectionName.toUpperCase());
+            parts.push("-".repeat(30));
+            parts.push(message);
+        } else if (message) {
+            parts.push("\n" + icons.info + " " + message);
+        }
+
+        // DATA SECTION
+        if (data) {
+            parts.push("\n" + icons.data + " DÁTA");
+            parts.push("-".repeat(30));
+
+            if (typeof data === 'object') {
+                // Formátované zobrazenie objektu
+                parts.push(formatObjectData(data));
+            } else {
+                parts.push(String(data));
+            }
+        }
+
+        // FOOTER
+        if (settings.includeFooter) {
+            var footerParts = [];
+            footerParts.push("\n" + "=".repeat(50));
+            footerParts.push("🏁 Spracovanie dokončené");
+            footerParts.push("⚙️ MementoCore v7.0 | Memento Database System");
+            footerParts.push("=".repeat(50));
+            parts.push(footerParts.join("\n"));
+        }
+
+        return parts.join("\n");
+    }
+
+    function buildTelegramMessage(message, data, settings) {
+        var config = getConfig();
+        var icons = config ? config.icons : { info: "ℹ️", script: "📋", time: "🕐", data: "💾" };
+        var parts = [];
+        var format = settings.format.toLowerCase();
+
+        // HEADER
+        if (settings.includeHeader) {
+            if (format === "html") {
+                parts.push("<b>" + icons.script + " " + settings.scriptName + " v" + settings.scriptVersion + "</b>");
+
+                if (settings.addTimestamp) {
+                    var timestamp = moment().format("DD.MM.YYYY HH:mm");
+                    parts.push("<i>" + icons.time + " " + timestamp + "</i>");
+                }
+
+                if (settings.moduleName) {
+                    parts.push("📦 <code>" + settings.moduleName + "</code>");
+                }
+
+                parts.push("➖➖➖➖➖➖➖➖➖➖");
+            } else {
+                // Markdown format
+                parts.push("*" + icons.script + " " + settings.scriptName + " v" + settings.scriptVersion + "*");
+
+                if (settings.addTimestamp) {
+                    var timestamp = moment().format("DD.MM.YYYY HH:mm");
+                    parts.push("_" + icons.time + " " + timestamp + "_");
+                }
+
+                if (settings.moduleName) {
+                    parts.push("📦 `" + settings.moduleName + "`");
+                }
+
+                parts.push("➖➖➖➖➖➖➖➖➖➖");
+            }
+        }
+
+        // SECTION
+        if (settings.sectionName && message) {
+            if (format === "html") {
+                parts.push("<b>" + icons.info + " " + settings.sectionName.toUpperCase() + "</b>");
+                parts.push(message);
+            } else {
+                parts.push("*" + icons.info + " " + settings.sectionName.toUpperCase() + "*");
+                parts.push(message);
+            }
+        } else if (message) {
+            parts.push(icons.info + " " + message);
+        }
+
+        // DATA SECTION
+        if (data) {
+            if (format === "html") {
+                parts.push("<b>" + icons.data + " DÁTA</b>");
+                if (typeof data === 'object') {
+                    parts.push("<pre>" + formatObjectDataTelegram(data, format) + "</pre>");
+                } else {
+                    parts.push("<code>" + String(data) + "</code>");
+                }
+            } else {
+                parts.push("*" + icons.data + " DÁTA*");
+                if (typeof data === 'object') {
+                    parts.push("```\n" + formatObjectDataTelegram(data, format) + "\n```");
+                } else {
+                    parts.push("`" + String(data) + "`");
+                }
+            }
+        }
+
+        // FOOTER
+        if (settings.includeFooter) {
+            if (format === "html") {
+                parts.push("➖➖➖➖➖➖➖➖➖➖");
+                parts.push("🏁 <i>Spracovanie dokončené</i>");
+                parts.push("⚙️ <small>MementoCore v7.0</small>");
+            } else {
+                parts.push("➖➖➖➖➖➖➖➖➖➖");
+                parts.push("🏁 _Spracovanie dokončené_");
+                parts.push("⚙️ `MementoCore v7.0`");
+            }
+        }
+
+        var finalMessage = parts.join("\n");
+
+        // Pridaj inline keyboard ak je definovaná
+        if (settings.inlineKeyboard) {
+            finalMessage += "\n\n📱 Inline Keyboard: " + JSON.stringify(settings.inlineKeyboard);
+        }
+
+        return finalMessage;
+    }
+
+    function formatObjectData(obj, indent) {
+        indent = indent || 0;
+        var spaces = "  ".repeat(indent);
+        var result = [];
+
+        for (var key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                var value = obj[key];
+                if (typeof value === 'object' && value !== null) {
+                    result.push(spaces + key + ":");
+                    result.push(formatObjectData(value, indent + 1));
+                } else {
+                    result.push(spaces + key + ": " + String(value));
+                }
+            }
+        }
+
+        return result.join("\n");
+    }
+
+    function formatObjectDataTelegram(obj, format, indent) {
+        indent = indent || 0;
+        var spaces = "  ".repeat(indent);
+        var result = [];
+
+        for (var key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                var value = obj[key];
+                if (typeof value === 'object' && value !== null) {
+                    result.push(spaces + key + ":");
+                    result.push(formatObjectDataTelegram(value, format, indent + 1));
+                } else {
+                    result.push(spaces + key + ": " + String(value));
+                }
+            }
+        }
+
+        return result.join("\n");
     }
     
     function clearLogs(entry, clearError) {
@@ -1151,6 +1373,7 @@ function setColorByCondition(entry, condition) {
         addDebug: addDebug,
         addError: addError,
         addInfo: addInfo,
+        addInfoTelegram: addInfoTelegram,
         clearLogs: clearLogs,
         getSettings: getSettings,
 
