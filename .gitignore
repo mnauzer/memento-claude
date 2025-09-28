@@ -1,22 +1,65 @@
+# ========================================
+# MEMENTO DATABASE - GIT SYNC CONFIGURATION
+# ========================================
+# SYNCHRONIZOVANÉ: Len produkčné scripty pre Memento Database
+# IGNOROVANÉ: Všetky interné vývojové súbory
+
+# ========================================
+# INTERNÉ VÝVOJOVÉ SÚBORY - IGNOROVAŤ
+# ========================================
+
+# Python development súbory
+*.py
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Field verification system
+field_verification_system.py
+memento_config_updater.py
+field_sync_system.py
+verification_workflow.py
+memento_api_client.py
+rate_limit_test.py
+analyze_library_structure.py
+
+# JSON analysis a dokumentácia
+asistanto.json
+*.json
+links_analysis.json
+attendance_analysis.json
+diagnostics.json
+
+# Cache a temporary súbory
+.cache/
+.backups/
+.docs/
+*.tmp
+*.temp
+*.log
+
 # Screenshots a dokumentácia
 screenshots/
 
 # Skryté adresáre a súbory
 .*/
-
-# Záložné súbory
-.backup/
-
-# Dočasné súbory
-*.tmp
-*.temp
-
-# Log súbory
-*.log
-
-# Systémové súbory
-.DS_Store
-Thumbs.db
 
 # Knowledge a dokumentačné súbory
 CLAUDE.md
@@ -80,3 +123,41 @@ debug.js
 test-*.js
 *-test.js
 playground.js
+
+# ========================================
+# SYNCHRONIZOVANÉ SÚBORY - WHITELIST
+# ========================================
+# Tieto súbory sa budú synchronizovať do GitHub repo
+
+# Memento Core moduly (SYNCHRONIZOVANÉ)
+!Memento*.js
+
+# Memento Database business scripty (SYNCHRONIZOVANÉ)
+!*Prepočet*.js
+!*prepočet*.js
+!*Prepocet*.js
+!*prepocet*.js
+
+# Notification scripty (SYNCHRONIZOVANÉ)
+!*Notifications*.js
+!*notifications*.js
+!*Notification*.js
+!*notification*.js
+
+# Trigger scripty (SYNCHRONIZOVANÉ)
+!*Trigger*.js
+!*trigger*.js
+
+# Individuálne notifikačné scripty (SYNCHRONIZOVANÉ)
+!*Individual*.js
+!*individual*.js
+
+# Delete trigger scripty (SYNCHRONIZOVANÉ)
+!*Delete*.js
+!*delete*.js
+
+# ========================================
+# POZNÁMKA:
+# Repo obsahuje len produkčné Memento Database scripty
+# Všetky development tools zostávajú lokálne
+# ========================================
