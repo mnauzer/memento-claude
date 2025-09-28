@@ -13,7 +13,7 @@
 
 // ===== INICIALIZÁCIA MODULOV =====
 var utils = MementoUtils;
-var config = utils.getConfig();
+var config = utils.config;
 var core = MementoCore;
 var business = MementoBusiness;
 
@@ -21,10 +21,30 @@ var business = MementoBusiness;
 var SCRIPT_CONFIG = {
     name: "Materiál Universal Bulk Settings",
     version: "2.0",
-    fields: config.fields.items,
+
+    // Knižnice s fallbackmi
     libraries: {
-        primary: config.libraries.inventory
+        primary: (config && config.libraries && config.libraries.inventory) || "Materiál"
     },
+
+    // Polia s fallbackmi
+    fields: {
+        name: (config && config.fields && config.fields.items && config.fields.items.name) || "Názov",
+        category: (config && config.fields && config.fields.items && config.fields.items.category) || "Kategória",
+        priceCalculation: (config && config.fields && config.fields.items && config.fields.items.priceCalculation) || "Prepočet ceny",
+        markupPercentage: (config && config.fields && config.fields.items && config.fields.items.markupPercentage) || "Obchodná prirážka",
+        priceRounding: (config && config.fields && config.fields.items && config.fields.items.priceRounding) || "Zaokrúhľovanie cien",
+        roundingValue: (config && config.fields && config.fields.items && config.fields.items.roundingValue) || "Hodnota zaokrúhenia",
+        purchasePriceChange: (config && config.fields && config.fields.items && config.fields.items.purchasePriceChange) || "Zmena nákupnej ceny",
+        changePercentage: (config && config.fields && config.fields.items && config.fields.items.changePercentage) || "Percento zmeny",
+        icons: (config && config.fields && config.fields.items && config.fields.items.icons) || "icons",
+
+        // Spoločné polia
+        debugLog: (config && config.fields && config.fields.common && config.fields.common.debugLog) || "Debug_Log",
+        errorLog: (config && config.fields && config.fields.common && config.fields.common.errorLog) || "Error_Log",
+        info: (config && config.fields && config.fields.common && config.fields.common.info) || "info"
+    },
+
     arguments: [
         "Prepočet ceny",
         "Obchodná prirážka",
@@ -338,16 +358,16 @@ function processBulkSettings(bulkData, resultObject) {
 function getMaterialInfo(material) {
     return {
         id: material.id(),
-        name: core.safeGet(material, config.fields.items.name, "Neznámy materiál"),
-        category: core.safeGet(material, config.fields.items.category, ""),
+        name: core.safeGet(material, SCRIPT_CONFIG.fields.name, "Neznámy materiál"),
+        category: core.safeGet(material, SCRIPT_CONFIG.fields.category, ""),
         entry: material
     };
 }
 
 function clearMaterialLogs(material) {
     // Vyčisti debug a error logy pre čistý stav
-    core.safeSet(material, config.fields.common.debugLog, "");
-    core.safeSet(material, config.fields.common.errorLog, "");
+    core.safeSet(material, SCRIPT_CONFIG.fields.debugLog, "");
+    core.safeSet(material, SCRIPT_CONFIG.fields.errorLog, "");
 }
 
 function processMaterialSettings(material, materialInfo, arguments) {
@@ -380,12 +400,12 @@ function processMaterialSettings(material, materialInfo, arguments) {
 
 function applyFieldSetting(material, argumentName, argumentValue) {
     var fieldMapping = {
-        "Prepočet ceny": config.fields.items.priceCalculation,
-        "Obchodná prirážka": config.fields.items.markupPercentage,
-        "Zaokrúhľovanie cien": config.fields.items.priceRounding,
-        "Hodnota zaokrúhenia": config.fields.items.roundingValue,
-        "Zmena nákupnej ceny": config.fields.items.purchasePriceChange,
-        "Percento zmeny": config.fields.items.changePercentage
+        "Prepočet ceny": SCRIPT_CONFIG.fields.priceCalculation,
+        "Obchodná prirážka": SCRIPT_CONFIG.fields.markupPercentage,
+        "Zaokrúhľovanie cien": SCRIPT_CONFIG.fields.priceRounding,
+        "Hodnota zaokrúhenia": SCRIPT_CONFIG.fields.roundingValue,
+        "Zmena nákupnej ceny": SCRIPT_CONFIG.fields.purchasePriceChange,
+        "Percento zmeny": SCRIPT_CONFIG.fields.changePercentage
     };
 
     var fieldName = fieldMapping[argumentName];
@@ -442,9 +462,9 @@ function updateMaterialWithResults(material, materialResult, arguments) {
 
 function addMaterialSettingsIcon(material) {
     try {
-        var iconsField = config.fields.items.icons || "icons";
+        var iconsField = SCRIPT_CONFIG.fields.icons;
         var currentIcons = core.safeGet(material, iconsField, "");
-        var settingsIcon = config.icons.settings;
+        var settingsIcon = (config && config.icons && config.icons.settings) || "⚙️";
 
         if (!currentIcons.includes(settingsIcon)) {
             var updatedIcons = currentIcons ? currentIcons + " " + settingsIcon : settingsIcon;
