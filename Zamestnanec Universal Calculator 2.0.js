@@ -16,47 +16,28 @@
 // MODUL IMPORTS A INICIALIZÁCIA
 // ==============================================
 
-// Lazy loading modulov
-var utils, config, core, business;
-
-function initializeModules() {
-    if (!utils && typeof MementoUtils !== 'undefined') {
-        utils = MementoUtils;
-    }
-    if (!config && utils && utils.config) {
-        config = utils.config;
-    }
-    if (!core && typeof MementoCore !== 'undefined') {
-        core = MementoCore;
-    }
-    if (!business && typeof MementoBusiness !== 'undefined') {
-        business = MementoBusiness;
-    }
-
-    // Fallback ak moduly nie sú dostupné
-    if (!utils || !config || !core) {
-        throw new Error("Required Memento modules not available");
-    }
-}
+// Jednoduché import všetkého cez MementoUtils (rovnako ako Dochádzka Prepočet)
+var utils = MementoUtils;
+var config = utils.getConfig();
+var centralConfig = utils.config;
+var core = MementoCore;
+var business = MementoBusiness;
+var currentEntry = entry();
 
 // ==============================================
 // SCRIPT KONFIGURÁCIA
 // ==============================================
 
-var SCRIPT_CONFIG = {
-    name: "Zamestnanec Universal Calculator",
+var CONFIG = {
+    // Script špecifické nastavenia
+    scriptName: "Zamestnanec Universal Calculator",
     version: "2.0",
-    description: "Univerzálny prepočet zamestnanca s opraveným filtrom okresov",
-    libraries: {
-        employees: "Zamestnanci",
-        attendance: "Dochádzka",
-        workRecords: "Záznam prác",
-        drivingLog: "Kniha jázd",
-        rates: "sadzby zamestnancov",
-        receivables: "Pohľadávky",
-        liabilities: "Záväzky",
-        cashRegister: "Pokladňa"
-    },
+
+    // Referencie na centrálny config
+    fields: centralConfig.fields,
+    libraries: centralConfig.libraries,
+    icons: centralConfig.icons,
+
     debug: true
 };
 
@@ -153,11 +134,7 @@ var EmployeeCalculationData = {
 // ==============================================
 
 function parseFilterDateRange(filterText) {
-    utils.addDebug(entry(), "Parsovanie dátumového filtra: '" + filterText + "'", {
-        scriptName: SCRIPT_CONFIG.name,
-        scriptVersion: SCRIPT_CONFIG.version,
-        moduleName: "FilterProcessor"
-    });
+    utils.addDebug(currentEntry, "📅 Parsovanie dátumového filtra: '" + filterText + "'", "filter");
 
     if (!filterText) {
         return { isValid: false, reason: "Prázdny filter" };
@@ -226,11 +203,7 @@ function parseFilterDateRange(filterText) {
     // Skontroluj textové výrazy
     if (textualPatterns[cleanFilter]) {
         var pattern = textualPatterns[cleanFilter];
-        utils.addDebug(entry(), "Rozpoznaný textový filter: " + cleanFilter, {
-            scriptName: SCRIPT_CONFIG.name,
-            scriptVersion: SCRIPT_CONFIG.version,
-            moduleName: "FilterProcessor"
-        });
+        utils.addDebug(currentEntry, "✅ Rozpoznaný textový filter: " + cleanFilter, "success");
         return {
             isValid: true,
             type: pattern.type,
@@ -320,23 +293,14 @@ function processLibraryData(employeeEntry, libraryName, fieldMappings, filter, i
     };
 
     try {
-        utils.addDebug(employeeEntry, "Spracovanie knižnice: " + libraryName + " (" + (isTotal ? "TOTAL" : "FILTERED") + ")", {
-            scriptName: SCRIPT_CONFIG.name,
-            scriptVersion: SCRIPT_CONFIG.version,
-            moduleName: "LibraryProcessor",
-            sectionName: libraryName
-        });
+        utils.addDebug(employeeEntry, "🗃️ Spracovanie knižnice: " + libraryName + " (" + (isTotal ? "TOTAL" : "FILTERED") + ")", "database");
 
-        // Získaj záznamy cez linksFrom
+        // Získaj záznamy cez utils.safeGetLinksFrom (MementoUtils funkcia)
         var linksFromField = fieldMappings.linksFromField;
-        var records = employeeEntry.linksFrom(lib(libraryName), linksFromField);
+        var records = utils.safeGetLinksFrom(employeeEntry, libraryName, linksFromField);
 
         if (!records || records.length === 0) {
-            utils.addDebug(employeeEntry, "Žiadne záznamy v knižnici " + libraryName, {
-                scriptName: SCRIPT_CONFIG.name,
-                scriptVersion: SCRIPT_CONFIG.version,
-                moduleName: "LibraryProcessor"
-            });
+            utils.addDebug(employeeEntry, "⚠️ Žiadne záznamy v knižnici " + libraryName, "warning");
             result.success = true;
             return result;
         }
@@ -353,7 +317,7 @@ function processLibraryData(employeeEntry, libraryName, fieldMappings, filter, i
         for (var i = 0; i < records.length; i++) {
             try {
                 var record = records[i];
-                var dateValue = core.safeGet(record, fieldMappings.dateField);
+                var dateValue = utils.safeGet(record, fieldMappings.dateField);
 
                 // OPRAVENÉ: Používaj správny filter podľa typu
                 var shouldInclude = dateMatchesFilter(dateValue, filter);
@@ -362,11 +326,11 @@ function processLibraryData(employeeEntry, libraryName, fieldMappings, filter, i
                     // Spracuj všetky nakonfigurované polia
                     for (var fieldKey in fieldMappings.dataFields) {
                         var fieldName = fieldMappings.dataFields[fieldKey];
-                        var fieldValue = core.safeGet(record, fieldName, 0);
+                        var fieldValue = utils.safeGet(record, fieldName, 0);
 
                         // Špeciálne spracovanie pre pokladňa (len Mzda a Mzda záloha)
-                        if (libraryName === SCRIPT_CONFIG.libraries.cashRegister) {
-                            var purpose = core.safeGet(record, "Účel výdaja", "");
+                        if (libraryName === CONFIG.libraries.cashBook) {
+                            var purpose = utils.safeGet(record, "Účel výdaja", "");
                             if (purpose !== "Mzda" && purpose !== "Mzda záloha") {
                                 continue; // Preskočiť tento záznam
                             }
@@ -385,11 +349,7 @@ function processLibraryData(employeeEntry, libraryName, fieldMappings, filter, i
         result.data = processedData;
         result.success = true;
 
-        utils.addDebug(employeeEntry, "Spracovaných záznamov: " + result.recordsProcessed + "/" + result.recordsTotal, {
-            scriptName: SCRIPT_CONFIG.name,
-            scriptVersion: SCRIPT_CONFIG.version,
-            moduleName: "LibraryProcessor"
-        });
+        utils.addDebug(employeeEntry, "📊 Spracovaných záznamov: " + result.recordsProcessed + "/" + result.recordsTotal, "calculation");
 
     } catch (error) {
         result.errors++;
@@ -406,46 +366,46 @@ function processLibraryData(employeeEntry, libraryName, fieldMappings, filter, i
 function getLibraryMappings() {
     return {
         attendance: {
-            linksFromField: "Zamestnanci",
-            dateField: "Dátum",
+            linksFromField: CONFIG.fields.attendance.employees,
+            dateField: CONFIG.fields.attendance.date,
             dataFields: {
-                worked: "Pracovná doba",
+                worked: CONFIG.fields.attendance.workTime,
                 // earned sa počíta z atribútu "denná mzda"
             }
         },
         workRecords: {
-            linksFromField: "Zamestnanci",
-            dateField: "Dátum",
+            linksFromField: CONFIG.fields.workRecord.employees,
+            dateField: CONFIG.fields.workRecord.date,
             dataFields: {
-                worked: "Pracovná doba"
+                worked: CONFIG.fields.workRecord.workTime
             }
         },
         drivingLog: {
-            linksFromField: "Posádka",
-            dateField: "Dátum",
+            linksFromField: CONFIG.fields.rideLog.crew,
+            dateField: CONFIG.fields.rideLog.date,
             dataFields: {
-                hours: "Celkový čas"
+                hours: CONFIG.fields.rideLog.totalTime
             }
         },
         cashRegister: {
-            linksFromField: "Zamestnanec",
-            dateField: "Dátum",
+            linksFromField: CONFIG.fields.cashBook.employee,
+            dateField: CONFIG.fields.cashBook.date,
             dataFields: {
-                paid: "Suma"
+                paid: CONFIG.fields.cashBook.amount
             }
         },
         receivables: {
-            linksFromField: "Zamestnanec",
-            dateField: "Dátum",
+            linksFromField: CONFIG.fields.receivables.employee,
+            dateField: CONFIG.fields.receivables.date,
             dataFields: {
-                amount: "Zostatok"
+                amount: CONFIG.fields.receivables.remainingAmount
             }
         },
         liabilities: {
-            linksFromField: "Zamestnanec",
-            dateField: "Dátum",
+            linksFromField: CONFIG.fields.obligations.employee,
+            dateField: CONFIG.fields.obligations.date,
             dataFields: {
-                amount: "Zostatok"
+                amount: CONFIG.fields.obligations.remainingAmount
             }
         }
     };
@@ -456,56 +416,22 @@ function getLibraryMappings() {
 // ==============================================
 
 function getCurrentHourlyRate(employeeEntry) {
-    utils.addDebug(employeeEntry, "Výpočet aktuálnej hodinovky", {
-        scriptName: SCRIPT_CONFIG.name,
-        scriptVersion: SCRIPT_CONFIG.version,
-        moduleName: "RateCalculator"
-    });
+    utils.addDebug(employeeEntry, "💰 Výpočet aktuálnej hodinovky", "money");
 
     try {
-        var ratesLibrary = lib(SCRIPT_CONFIG.libraries.rates);
-        if (!ratesLibrary) {
-            utils.addError(employeeEntry, "Knižnica '" + SCRIPT_CONFIG.libraries.rates + "' nenájdená", "RateCalculator");
+        // Použij utils.findValidSalary (existujúca MementoUtils funkcia)
+        var hodinovka = utils.findValidSalary(currentEntry, employeeEntry, utils.safeGet(currentEntry, CONFIG.fields.attendance.date));
+
+        if (!hodinovka || hodinovka <= 0) {
+            utils.addDebug(employeeEntry, "⚠️ Nenájdená platná sadzba pre zamestnanca", "warning");
             return 0;
         }
 
-        var rates = ratesLibrary.find("Zamestnanec", employeeEntry);
-
-        if (!rates || rates.length === 0) {
-            utils.addDebug(employeeEntry, "Pre zamestnanca neboli nájdené žiadne sadzby", {
-                scriptName: SCRIPT_CONFIG.name,
-                scriptVersion: SCRIPT_CONFIG.version,
-                moduleName: "RateCalculator"
-            });
-            return 0;
-        }
-
-        // Nájdi najnovšiu platnú sadzbu
-        var latestRate = null;
-        var latestDate = null;
-
-        for (var i = 0; i < rates.length; i++) {
-            var rate = rates[i];
-            var validFrom = core.safeGet(rate, "Platnosť od");
-            var rateValue = core.safeGet(rate, "Sadzba", 0);
-
-            if (validFrom && (!latestDate || moment(validFrom).isAfter(latestDate))) {
-                latestDate = moment(validFrom);
-                latestRate = rateValue;
-            }
-        }
-
-        if (latestRate !== null) {
-            utils.addDebug(employeeEntry, "Aktuálna hodinovka: " + latestRate + " €/h (platná od " + latestDate.format('DD.MM.YYYY') + ")", {
-                scriptName: SCRIPT_CONFIG.name,
-                scriptVersion: SCRIPT_CONFIG.version,
-                moduleName: "RateCalculator"
-            });
-            return latestRate;
-        }
+        utils.addDebug(employeeEntry, "✅ Aktuálna hodinovka: " + hodinovka + " €/h", "money");
+        return hodinovka;
 
     } catch (error) {
-        utils.addError(employeeEntry, "Chyba pri získavaní hodinovky: " + error.toString(), "RateCalculator");
+        utils.addError(employeeEntry, "Chyba pri získavaní hodinovky: " + error.toString(), "getCurrentHourlyRate");
     }
 
     return 0;
@@ -525,7 +451,7 @@ function processAttendanceEarnings(employeeEntry, filter, isTotal) {
     };
 
     try {
-        var attendanceRecords = employeeEntry.linksFrom(lib(SCRIPT_CONFIG.libraries.attendance), "Zamestnanci");
+        var attendanceRecords = utils.safeGetLinksFrom(employeeEntry, CONFIG.libraries.attendance, CONFIG.fields.attendance.employees);
 
         if (!attendanceRecords || attendanceRecords.length === 0) {
             return result;
@@ -536,8 +462,8 @@ function processAttendanceEarnings(employeeEntry, filter, isTotal) {
         for (var i = 0; i < attendanceRecords.length; i++) {
             try {
                 var record = attendanceRecords[i];
-                var dateValue = core.safeGet(record, "Dátum");
-                var workedHours = core.safeGet(record, "Pracovná doba", 0);
+                var dateValue = utils.safeGet(record, CONFIG.fields.attendance.date);
+                var workedHours = utils.safeGet(record, CONFIG.fields.attendance.workTime, 0);
 
                 if (dateMatchesFilter(dateValue, filter)) {
                     result.worked += workedHours;
@@ -574,7 +500,7 @@ function processAllLibraries() {
 
     var workRecordsFiltered = processLibraryData(
         EmployeeCalculationData.employee.entry,
-        SCRIPT_CONFIG.libraries.workRecords,
+        CONFIG.libraries.workRecords,
         mappings.workRecords,
         EmployeeCalculationData.filters.selection,
         false
@@ -584,7 +510,7 @@ function processAllLibraries() {
 
     var drivingLogFiltered = processLibraryData(
         EmployeeCalculationData.employee.entry,
-        SCRIPT_CONFIG.libraries.drivingLog,
+        CONFIG.libraries.rideLog,
         mappings.drivingLog,
         EmployeeCalculationData.filters.selection,
         false
@@ -594,7 +520,7 @@ function processAllLibraries() {
 
     var cashRegisterFiltered = processLibraryData(
         EmployeeCalculationData.employee.entry,
-        SCRIPT_CONFIG.libraries.cashRegister,
+        CONFIG.libraries.cashBook,
         mappings.cashRegister,
         EmployeeCalculationData.filters.selection,
         false
@@ -604,7 +530,7 @@ function processAllLibraries() {
 
     var receivablesFiltered = processLibraryData(
         EmployeeCalculationData.employee.entry,
-        SCRIPT_CONFIG.libraries.receivables,
+        CONFIG.libraries.receivables,
         mappings.receivables,
         EmployeeCalculationData.filters.selection,
         false
@@ -614,7 +540,7 @@ function processAllLibraries() {
 
     var liabilitiesFiltered = processLibraryData(
         EmployeeCalculationData.employee.entry,
-        SCRIPT_CONFIG.libraries.liabilities,
+        CONFIG.libraries.obligations,
         mappings.liabilities,
         EmployeeCalculationData.filters.selection,
         false
@@ -628,7 +554,7 @@ function processAllLibraries() {
 
     var workRecordsTotal = processLibraryData(
         EmployeeCalculationData.employee.entry,
-        SCRIPT_CONFIG.libraries.workRecords,
+        CONFIG.libraries.workRecords,
         mappings.workRecords,
         EmployeeCalculationData.filters.total,
         true
@@ -638,7 +564,7 @@ function processAllLibraries() {
 
     var drivingLogTotal = processLibraryData(
         EmployeeCalculationData.employee.entry,
-        SCRIPT_CONFIG.libraries.drivingLog,
+        CONFIG.libraries.rideLog,
         mappings.drivingLog,
         EmployeeCalculationData.filters.total,
         true
@@ -648,7 +574,7 @@ function processAllLibraries() {
 
     var cashRegisterTotal = processLibraryData(
         EmployeeCalculationData.employee.entry,
-        SCRIPT_CONFIG.libraries.cashRegister,
+        CONFIG.libraries.cashBook,
         mappings.cashRegister,
         EmployeeCalculationData.filters.total,
         true
@@ -689,7 +615,7 @@ function updateEmployeeFields() {
     var savedFields = 0;
     for (var i = 0; i < fieldsToUpdate.length; i++) {
         try {
-            core.safeSet(employeeEntry, fieldsToUpdate[i][0], fieldsToUpdate[i][1]);
+            utils.safeSet(employeeEntry, fieldsToUpdate[i][0], fieldsToUpdate[i][1]);
             savedFields++;
         } catch (saveError) {
             utils.addError(employeeEntry, "Chyba pri uložení poľa '" + fieldsToUpdate[i][0] + "': " + saveError.toString(), "FieldUpdater");
@@ -699,74 +625,81 @@ function updateEmployeeFields() {
 
     EmployeeCalculationData.statistics.savedFields = savedFields;
 
-    utils.addDebug(employeeEntry, "Uložených polí: " + savedFields + "/" + fieldsToUpdate.length, {
-        scriptName: SCRIPT_CONFIG.name,
-        scriptVersion: SCRIPT_CONFIG.version,
-        moduleName: "FieldUpdater"
-    });
+    utils.addDebug(employeeEntry, "💾 Uložených polí: " + savedFields + "/" + fieldsToUpdate.length, "success");
 
     return savedFields === fieldsToUpdate.length;
 }
 
 function createInfoRecord() {
-    var employeeEntry = EmployeeCalculationData.employee.entry;
-    var summary = EmployeeCalculationData.getSummary();
-
-    var infoData = {
-        zamestnanec: summary.employee,
-        filtre: summary.filters,
-        odpracovanýČas: {
-            odpracované: summary.totals.workedHours.toFixed(2) + "h",
-            odpracovanéTotal: EmployeeCalculationData.total.attendance.worked.toFixed(2) + "h",
-            naZákazkách: EmployeeCalculationData.filtered.workRecords.worked.toFixed(2) + "h",
-            naZákazkáchTotal: EmployeeCalculationData.total.workRecords.worked.toFixed(2) + "h",
-            jazdy: EmployeeCalculationData.filtered.drivingLog.hours.toFixed(2) + "h",
-            jazdyTotal: EmployeeCalculationData.total.drivingLog.hours.toFixed(2) + "h"
-        },
-        mzdyAFinancie: {
-            aktuálnaHodinovka: EmployeeCalculationData.employee.currentHourlyRate.toFixed(2) + " €/h",
-            zarobené: summary.totals.earnedAmount.toFixed(2) + "€",
-            zarobenéTotal: EmployeeCalculationData.total.attendance.earned.toFixed(2) + "€",
-            vyplatené: summary.totals.paidAmount.toFixed(2) + "€",
-            vyplaténeTotal: EmployeeCalculationData.total.cashRegister.paid.toFixed(2) + "€"
-        },
-        pohľadávkyAZáväzky: {
-            pohľadávky: EmployeeCalculationData.filtered.receivables.amount.toFixed(2) + "€",
-            záväzky: EmployeeCalculationData.filtered.liabilities.amount.toFixed(2) + "€",
-            saldo: summary.totals.balance.toFixed(2) + "€"
-        },
-        výpočty: {
-            preplatokNedoplatok: summary.totals.paymentDifference.toFixed(2) + "€",
-            formulaPreplatok: "Zarobené - Vyplatené = " + summary.totals.earnedAmount.toFixed(2) + "€ - " + summary.totals.paidAmount.toFixed(2) + "€",
-            formulaSaldo: "Pohľadávky - Záväzky = " + EmployeeCalculationData.filtered.receivables.amount.toFixed(2) + "€ - " + EmployeeCalculationData.filtered.liabilities.amount.toFixed(2) + "€"
-        },
-        štatistiky: {
-            dochádzka: EmployeeCalculationData.filtered.attendance.records + " záznamov",
-            záznamPrác: EmployeeCalculationData.filtered.workRecords.records + " záznamov",
-            knihaJázd: EmployeeCalculationData.filtered.drivingLog.records + " záznamov",
-            pohľadávky: EmployeeCalculationData.filtered.receivables.records + " záznamov",
-            záväzky: EmployeeCalculationData.filtered.liabilities.records + " záznamov",
-            pokladňa: EmployeeCalculationData.filtered.cashRegister.records + " záznamov (len Mzda + Mzda záloha)"
-        }
-    };
-
     try {
-        core.addInfo(employeeEntry, "Prepočet zamestnanca dokončený", infoData, {
-            scriptName: SCRIPT_CONFIG.name,
-            scriptVersion: SCRIPT_CONFIG.version,
-            moduleName: "EmployeeCalculator",
-            sectionName: "Výsledok prepočtu"
-        });
+        var employeeEntry = EmployeeCalculationData.employee.entry;
+        var summary = EmployeeCalculationData.getSummary();
 
-        utils.addDebug(employeeEntry, "Info záznam vytvorený", {
-            scriptName: SCRIPT_CONFIG.name,
-            scriptVersion: SCRIPT_CONFIG.version,
-            moduleName: "InfoCreator"
-        });
+        // Štýl ako Dochádzka Prepočet - priamy formát
+        var infoMessage = "📋 ZAMESTNANEC - PREPOČET DOKONČENÝ\n";
+        infoMessage += "═══════════════════════════════════════\n";
+
+        infoMessage += "👤 Zamestnanec: " + summary.employee + "\n";
+        infoMessage += "🔍 Filter (filtrované): " + summary.filters.selection + "\n";
+        infoMessage += "🔍 Filter (total): " + summary.filters.total + "\n\n";
+
+        infoMessage += "📊 ODPRACOVANÝ ČAS:\n";
+        infoMessage += "───────────────────────────────────\n";
+        infoMessage += "• Odpracované: " + summary.totals.workedHours.toFixed(2) + "h\n";
+        infoMessage += "• Odpracované total: " + EmployeeCalculationData.total.attendance.worked.toFixed(2) + "h\n";
+        infoMessage += "• Na zákazkách: " + EmployeeCalculationData.filtered.workRecords.worked.toFixed(2) + "h\n";
+        infoMessage += "• Na zákazkách total: " + EmployeeCalculationData.total.workRecords.worked.toFixed(2) + "h\n";
+        infoMessage += "• Jazdy: " + EmployeeCalculationData.filtered.drivingLog.hours.toFixed(2) + "h\n";
+        infoMessage += "• Jazdy total: " + EmployeeCalculationData.total.drivingLog.hours.toFixed(2) + "h\n\n";
+
+        infoMessage += "💰 MZDY A FINANCIE:\n";
+        infoMessage += "───────────────────────────────────\n";
+        infoMessage += "• Aktuálna hodinovka: " + EmployeeCalculationData.employee.currentHourlyRate.toFixed(2) + " €/h\n";
+        infoMessage += "• Zarobené: " + summary.totals.earnedAmount.toFixed(2) + "€\n";
+        infoMessage += "• Zarobené total: " + EmployeeCalculationData.total.attendance.earned.toFixed(2) + "€\n";
+        infoMessage += "• Vyplatené: " + summary.totals.paidAmount.toFixed(2) + "€\n";
+        infoMessage += "• Vyplatené total: " + EmployeeCalculationData.total.cashRegister.paid.toFixed(2) + "€\n\n";
+
+        infoMessage += "📈 POHĽADÁVKY A ZÁVÄZKY (filter: výber obdobia):\n";
+        infoMessage += "───────────────────────────────────\n";
+        infoMessage += "• Pohľadávky (zostatok): " + EmployeeCalculationData.filtered.receivables.amount.toFixed(2) + "€\n";
+        infoMessage += "• Záväzky (zostatok): " + EmployeeCalculationData.filtered.liabilities.amount.toFixed(2) + "€\n";
+        infoMessage += "• Saldo = Pohľadávky - Záväzky: " + summary.totals.balance.toFixed(2) + "€\n\n";
+
+        infoMessage += "🧮 VÝPOČTY:\n";
+        infoMessage += "───────────────────────────────────\n";
+        infoMessage += "• Preplatok/Nedoplatok = Zarobené - Vyplatené\n";
+        infoMessage += "• " + summary.totals.earnedAmount.toFixed(2) + "€ - " + summary.totals.paidAmount.toFixed(2) + "€ = " + summary.totals.paymentDifference.toFixed(2) + "€\n";
+        infoMessage += "• Saldo = Pohľadávky - Záväzky (používa filter 'výber obdobia')\n";
+        infoMessage += "• " + EmployeeCalculationData.filtered.receivables.amount.toFixed(2) + "€ - " + EmployeeCalculationData.filtered.liabilities.amount.toFixed(2) + "€ = " + summary.totals.balance.toFixed(2) + "€\n\n";
+
+        infoMessage += "📊 ŠTATISTIKY ZÁZNAMOV:\n";
+        infoMessage += "───────────────────────────────────\n";
+        infoMessage += "• Dochádzka: " + (EmployeeCalculationData.filtered.attendance.records || 0) + " záznamov\n";
+        infoMessage += "• Záznam prác: " + (EmployeeCalculationData.filtered.workRecords.records || 0) + " záznamov\n";
+        infoMessage += "• Kniha jázd: " + (EmployeeCalculationData.filtered.drivingLog.records || 0) + " záznamov\n";
+        infoMessage += "• Pohľadávky: " + (EmployeeCalculationData.filtered.receivables.records || 0) + " záznamov\n";
+        infoMessage += "• Záväzky: " + (EmployeeCalculationData.filtered.liabilities.records || 0) + " záznamov\n";
+        infoMessage += "• Pokladňa: " + (EmployeeCalculationData.filtered.cashRegister.records || 0) + " záznamov (len Mzda + Mzda záloha)\n\n";
+
+        infoMessage += "🔧 TECHNICKÉ INFO:\n";
+        infoMessage += "• Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
+        infoMessage += "• Čas spracovania: " + moment().format("HH:mm:ss") + "\n";
+        infoMessage += "• MementoUtils: v" + (utils.version || "N/A") + "\n";
+
+        if (typeof MementoConfig !== 'undefined') {
+            infoMessage += "• MementoConfig: v" + MementoConfig.version + "\n";
+        }
+
+        infoMessage += "\n✅ PREPOČET DOKONČENÝ ÚSPEŠNE";
+
+        utils.safeSet(employeeEntry, CONFIG.fields.common.info, infoMessage);
+
+        utils.addDebug(employeeEntry, "✅ Info záznam vytvorený", "success");
 
         return true;
     } catch (error) {
-        utils.addError(employeeEntry, "Chyba pri vytváraní info záznamu: " + error.toString(), "InfoCreator");
+        utils.addError(employeeEntry, "Chyba pri vytváraní info záznamu: " + error.toString(), "createInfoRecord");
         return false;
     }
 }
@@ -777,87 +710,82 @@ function createInfoRecord() {
 
 function main() {
     try {
-        // Inicializuj moduly
-        initializeModules();
-
         // Nastav základné údaje
-        EmployeeCalculationData.employee.entry = entry();
+        EmployeeCalculationData.employee.entry = currentEntry;
 
-        utils.addDebug(EmployeeCalculationData.employee.entry, "Štart prepočtu zamestnanca", {
-            scriptName: SCRIPT_CONFIG.name,
-            scriptVersion: SCRIPT_CONFIG.version,
-            moduleName: "Main"
-        });
+        utils.addDebug(currentEntry, "=== ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===", "start");
+        utils.addDebug(currentEntry, "Čas spustenia: " + utils.formatDate(moment()), "calendar");
 
         // KROK 1: Získaj základné údaje zamestnanca
-        var nick = core.safeGet(EmployeeCalculationData.employee.entry, "Nick");
-        var firstName = core.safeGet(EmployeeCalculationData.employee.entry, "Meno", "");
-        var lastName = core.safeGet(EmployeeCalculationData.employee.entry, "Priezvisko", "");
-        var selectionPeriod = core.safeGet(EmployeeCalculationData.employee.entry, "výber obdobia", "");
-        var totalPeriod = core.safeGet(EmployeeCalculationData.employee.entry, "obdobie total", "");
+        utils.addDebug(currentEntry, " KROK 1: Načítanie základných údajov", "validation");
+
+        var nick = utils.safeGet(currentEntry, "Nick");
+        var firstName = utils.safeGet(currentEntry, "Meno", "");
+        var lastName = utils.safeGet(currentEntry, "Priezvisko", "");
+        var selectionPeriod = utils.safeGet(currentEntry, "výber obdobia", "");
+        var totalPeriod = utils.safeGet(currentEntry, "obdobie total", "");
 
         if (!nick) {
-            utils.addError(EmployeeCalculationData.employee.entry, "Nick je povinný identifikátor", "Validation");
+            utils.addError(currentEntry, "Nick je povinný identifikátor", CONFIG.scriptName);
             return false;
         }
 
         EmployeeCalculationData.employee.nick = nick;
         EmployeeCalculationData.employee.fullName = nick + " (" + firstName + " " + lastName + ")";
 
-        utils.addDebug(EmployeeCalculationData.employee.entry, "Zamestnanec: " + EmployeeCalculationData.employee.fullName, {
-            scriptName: SCRIPT_CONFIG.name,
-            scriptVersion: SCRIPT_CONFIG.version,
-            moduleName: "Main"
-        });
+        utils.addDebug(currentEntry, "👤 Zamestnanec: " + EmployeeCalculationData.employee.fullName, "person");
+        utils.addDebug(currentEntry, "🔍 Výber obdobia: '" + selectionPeriod + "'", "filter");
+        utils.addDebug(currentEntry, "🔍 Obdobie total: '" + totalPeriod + "'", "filter");
 
         // KROK 2: Spracuj filtre
+        utils.addDebug(currentEntry, " KROK 2: Parsovanie dátumových filtrov", "step");
+
         EmployeeCalculationData.filters.selection = parseFilterDateRange(selectionPeriod);
         EmployeeCalculationData.filters.total = parseFilterDateRange(totalPeriod);
 
         if (!EmployeeCalculationData.filters.selection.isValid) {
-            utils.addError(EmployeeCalculationData.employee.entry, "Neplatný filter 'výber obdobia': " + EmployeeCalculationData.filters.selection.reason, "FilterValidation");
+            utils.addError(currentEntry, "Neplatný filter 'výber obdobia': " + EmployeeCalculationData.filters.selection.reason, CONFIG.scriptName);
             return false;
         }
 
         if (!EmployeeCalculationData.filters.total.isValid) {
-            utils.addError(EmployeeCalculationData.employee.entry, "Neplatný filter 'obdobie total': " + EmployeeCalculationData.filters.total.reason, "FilterValidation");
+            utils.addError(currentEntry, "Neplatný filter 'obdobie total': " + EmployeeCalculationData.filters.total.reason, CONFIG.scriptName);
             return false;
         }
 
-        utils.addDebug(EmployeeCalculationData.employee.entry, "Filtre úspešne parsované", {
-            scriptName: SCRIPT_CONFIG.name,
-            scriptVersion: SCRIPT_CONFIG.version,
-            moduleName: "FilterProcessor"
-        });
+        utils.addDebug(currentEntry, "✅ Filter pre filtrované úspešne parsovaný: " + EmployeeCalculationData.filters.selection.popis, "success");
+        utils.addDebug(currentEntry, "✅ Filter pre total úspešne parsovaný: " + EmployeeCalculationData.filters.total.popis, "success");
 
         // KROK 3: Získaj aktuálnu hodinovku
-        EmployeeCalculationData.employee.currentHourlyRate = getCurrentHourlyRate(EmployeeCalculationData.employee.entry);
+        utils.addDebug(currentEntry, " KROK 3: Výpočet aktuálnej hodinovky", "step");
+        EmployeeCalculationData.employee.currentHourlyRate = getCurrentHourlyRate(currentEntry);
 
         // KROK 4: Spracuj všetky knižnice
+        utils.addDebug(currentEntry, " KROK 4: Spracovanie všetkých knižníc", "step");
         processAllLibraries();
 
         // KROK 5: Vypočítaj finálne hodnoty
+        utils.addDebug(currentEntry, " KROK 5: Výpočet finálnych hodnôt", "step");
         EmployeeCalculationData.calculateFinalValues();
 
         // KROK 6: Aktualizuj polia zamestnanca
+        utils.addDebug(currentEntry, " KROK 6: Aktualizácia polí zamestnanca", "step");
         var updateSuccess = updateEmployeeFields();
 
         // KROK 7: Vytvor info záznam
+        utils.addDebug(currentEntry, " KROK 7: Vytvorenie info záznamu", "step");
         var infoSuccess = createInfoRecord();
 
         // KROK 8: Finálny debug
+        utils.addDebug(currentEntry, "=== PREPOČET DOKONČENÝ ÚSPEŠNE ===", "success");
+        utils.addDebug(currentEntry, "📊 Celkovo spracovaných knižníc: 6", "summary");
         var summary = EmployeeCalculationData.getSummary();
-        utils.addDebug(EmployeeCalculationData.employee.entry, "Prepočet dokončený úspešne", {
-            scriptName: SCRIPT_CONFIG.name,
-            scriptVersion: SCRIPT_CONFIG.version,
-            moduleName: "Main",
-            sectionName: "Finálny report"
-        });
+        utils.addDebug(currentEntry, "💰 Finálne hodnoty: Saldo=" + summary.totals.balance.toFixed(2) + "€, Preplatok/Nedoplatok=" + summary.totals.paymentDifference.toFixed(2) + "€", "summary");
 
         return updateSuccess && infoSuccess;
 
     } catch (error) {
-        utils.addError(entry(), "Kritická chyba v main(): " + error.toString(), "Main");
+        utils.addError(currentEntry, "Kritická chyba v main(): " + error.toString(), CONFIG.scriptName);
         return false;
     }
 }
