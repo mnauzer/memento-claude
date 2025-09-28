@@ -475,10 +475,6 @@ function generateReport(employee, results) {
         report.push("⚙️ NASTAVENIA VÝPOČTU:");
         report.push("• 15-minútové zaokrúhľovanie: " + (CONFIG.settings.roundToQuarterHour ? "ÁNO" : "NIE"));
         report.push("• Smer zaokrúhľovania: " + CONFIG.settings.roundDirection);
-        report.push("• Prestávky: " + (CONFIG.settings.includeBreaks ? "ÁNO" : "NIE"));
-        report.push("• Prestávka od: " + CONFIG.settings.breakThreshold + "h");
-        report.push("• Dĺžka prestávky: " + CONFIG.settings.breakDuration + " min");
-        report.push("• Štandardná pracovná doba: " + CONFIG.settings.workHoursPerDay + "h");
         report.push("");
         report.push("=".repeat(50));
 

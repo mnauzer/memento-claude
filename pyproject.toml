@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "memento-database-mcp"
+version = "1.0.0"
+description = "Model Context Protocol server for Memento Database operations"
+authors = ["ASISTANTO <noreply@memento.local>"]
+readme = "README.md"
+packages = [{include = "memento_mcp_server.py"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+mcp = "^1.2.0"
+requests = "^2.31.0"
+aiohttp = "^3.9.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pytest-asyncio = "^0.21.0"
+
+[tool.poetry.scripts]
+memento-mcp = "memento_mcp_server:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
