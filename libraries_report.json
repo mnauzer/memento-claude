@@ -1,0 +1,1647 @@
+{
+  "timestamp": "2025-09-28T05:37:19.301748",
+  "total_libraries": 181,
+  "libraries": [
+    {
+      "id": "6Js7d4uom",
+      "name": "Dochádzka Meškania",
+      "owner": "rasto",
+      "createdTime": "2019-12-12T15:07:52.177Z",
+      "modifiedTime": "2025-08-03T19:40:01.347Z",
+      "revision": 6
+    },
+    {
+      "id": "rcqVgxmcp",
+      "name": "Objednávky",
+      "owner": "rasto",
+      "createdTime": "2021-09-18T09:59:29.427Z",
+      "modifiedTime": "2023-11-10T13:23:42.152Z",
+      "revision": 10
+    },
+    {
+      "id": "cmfdxrRm3",
+      "name": "del Listnaté kry",
+      "owner": "rasto",
+      "createdTime": "2018-10-04T11:35:13.034Z",
+      "modifiedTime": "2023-04-12T07:21:48.423Z",
+      "revision": 59
+    },
+    {
+      "id": "Xn3nstpAH",
+      "name": "Vozidlá Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T18:08:19.806Z",
+      "modifiedTime": "2025-08-10T18:08:20.808Z",
+      "revision": 2
+    },
+    {
+      "id": "pUJ5H89e4",
+      "name": "Telegram Groups",
+      "owner": "rasto",
+      "createdTime": "2025-08-15T20:40:23.286Z",
+      "modifiedTime": "2025-09-24T20:37:55.733Z",
+      "revision": 75
+    },
+    {
+      "id": "BqDashpcg",
+      "name": "Práce",
+      "owner": "rasto",
+      "createdTime": "2018-10-30T21:47:45.855Z",
+      "modifiedTime": "2019-04-19T02:32:13.750Z",
+      "revision": 21
+    },
+    {
+      "id": "iF3iVbFcj",
+      "name": "Zakázky 2019",
+      "owner": "rasto",
+      "createdTime": "2018-09-05T04:58:09.988Z",
+      "modifiedTime": "2022-01-07T22:15:21.306Z",
+      "revision": 1321
+    },
+    {
+      "id": "7axBFD8KR",
+      "name": "Pohľadávky Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T17:46:09.453Z",
+      "modifiedTime": "2025-08-10T17:46:10.177Z",
+      "revision": 2
+    },
+    {
+      "id": "CfRHN7QTG",
+      "name": "Zákazky",
+      "owner": "rasto",
+      "createdTime": "2021-08-24T08:27:52.821Z",
+      "modifiedTime": "2025-09-25T06:51:10.796Z",
+      "revision": 6243
+    },
+    {
+      "id": "ZdzBCnbhd",
+      "name": "Presuny a prestoje",
+      "owner": "rasto",
+      "createdTime": "2019-09-20T10:38:57.285Z",
+      "modifiedTime": "2019-11-06T16:26:14.976Z",
+      "revision": 25
+    },
+    {
+      "id": "cruj4L9w5",
+      "name": "Záhrada Záznamy ",
+      "owner": "rasto",
+      "createdTime": "2025-04-13T05:23:34.880Z",
+      "modifiedTime": "2025-04-13T05:24:25.515Z",
+      "revision": 2
+    },
+    {
+      "id": "KTZ6dsnY9",
+      "name": "ASISTANTO Defaults",
+      "owner": "rasto",
+      "createdTime": "2025-08-01T12:34:41.788Z",
+      "modifiedTime": "2025-09-24T18:43:04.076Z",
+      "revision": 75
+    },
+    {
+      "id": "SDQTvcSNe",
+      "name": "Zákazky Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T14:23:53.298Z",
+      "modifiedTime": "2025-08-10T14:24:06.379Z",
+      "revision": 6
+    },
+    {
+      "id": "mVadrV6p2",
+      "name": "Miesta",
+      "owner": "rasto",
+      "createdTime": "2018-09-05T12:57:20.143Z",
+      "modifiedTime": "2025-09-21T18:24:08.206Z",
+      "revision": 994
+    },
+    {
+      "id": "FGxx369FV",
+      "alias": "dochadzka2019",
+      "name": "Dochádzka 2019",
+      "owner": "rasto",
+      "createdTime": "2019-04-01T13:49:24.029Z",
+      "modifiedTime": "2022-01-16T15:07:59.391Z",
+      "revision": 764
+    },
+    {
+      "id": "CHA0BHu8w",
+      "name": "del Hnojivá",
+      "owner": "rasto",
+      "createdTime": "2018-10-23T07:47:57.428Z",
+      "modifiedTime": "2023-04-12T07:31:25.059Z",
+      "revision": 70
+    },
+    {
+      "id": "6c9NiSCCf",
+      "name": "Dochádzka 2020",
+      "owner": "rasto",
+      "createdTime": "2019-12-12T14:33:49.933Z",
+      "modifiedTime": "2021-08-24T16:43:32.031Z",
+      "revision": 57
+    },
+    {
+      "id": "Y8Lj8krOn",
+      "name": "del Rúry",
+      "owner": "rasto",
+      "createdTime": "2018-10-19T15:16:26.888Z",
+      "modifiedTime": "2023-04-12T07:46:42.703Z",
+      "revision": 37
+    },
+    {
+      "id": "Ywds5FM2w",
+      "name": "Príjmy 2021",
+      "owner": "rasto",
+      "createdTime": "2021-08-24T08:10:17.296Z",
+      "modifiedTime": "2021-09-11T09:31:12.135Z",
+      "revision": 40
+    },
+    {
+      "id": "FXbYBd3U9",
+      "name": "Údržby",
+      "owner": "rasto",
+      "createdTime": "2018-09-05T14:08:33.962Z",
+      "modifiedTime": "2019-10-01T12:27:35.694Z",
+      "revision": 75
+    },
+    {
+      "id": "3FSQN0reH",
+      "alias": "dodavatelia",
+      "name": "Dodávatelia",
+      "owner": "rasto",
+      "createdTime": "2018-09-05T08:34:46.030Z",
+      "modifiedTime": "2025-09-25T14:37:05.308Z",
+      "revision": 206
+    },
+    {
+      "id": "mRERW8SrY",
+      "name": "Notifications",
+      "owner": "rasto",
+      "createdTime": "2025-08-14T12:24:03.314Z",
+      "modifiedTime": "2025-09-25T14:20:47.435Z",
+      "revision": 1147
+    },
+    {
+      "id": "SGeCpstDa",
+      "name": "Veci",
+      "owner": "rasto",
+      "createdTime": "2021-08-27T05:41:36.723Z",
+      "modifiedTime": "2024-02-26T09:12:26.573Z",
+      "revision": 282
+    },
+    {
+      "id": "tKdQ00Nhp",
+      "name": "Záhrada Výsadba ",
+      "owner": "rasto",
+      "createdTime": "2025-04-12T04:25:48.793Z",
+      "modifiedTime": "2025-04-12T09:18:11.090Z",
+      "revision": 10
+    },
+    {
+      "id": "C6SHEPVqw",
+      "name": "del Ihličnaté stromy",
+      "owner": "rasto",
+      "createdTime": "2018-10-04T11:34:16.812Z",
+      "modifiedTime": "2023-04-12T05:01:10.985Z",
+      "revision": 57
+    },
+    {
+      "id": "E8vYSCKg0",
+      "name": "Záznam prác Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T14:20:30.592Z",
+      "modifiedTime": "2025-08-10T14:20:39.535Z",
+      "revision": 9
+    },
+    {
+      "id": "dL3Gt8rUw",
+      "name": "Záhrada Výsevy",
+      "owner": "rasto",
+      "createdTime": "2025-04-12T04:48:01.007Z",
+      "modifiedTime": "2025-06-01T06:56:53.209Z",
+      "revision": 128
+    },
+    {
+      "id": "hNasN9vjf",
+      "name": "del Zamestnanci 2019",
+      "owner": "rasto",
+      "createdTime": "2018-09-03T09:52:30.847Z",
+      "modifiedTime": "2022-01-07T18:06:26.961Z",
+      "revision": 406
+    },
+    {
+      "id": "9C2udeJ7e",
+      "name": "Plán prác",
+      "owner": "rasto",
+      "createdTime": "2022-04-03T01:52:26.030Z",
+      "modifiedTime": "2025-09-25T10:48:10.418Z",
+      "revision": 76
+    },
+    {
+      "id": "MWYNokaZX",
+      "name": "príplatky ceny",
+      "owner": "rasto",
+      "createdTime": "2021-09-08T16:52:23.309Z",
+      "modifiedTime": "2025-09-25T13:25:21.624Z",
+      "revision": 71
+    },
+    {
+      "id": "CqXNnosKP",
+      "name": "sadzby zamestnancov",
+      "owner": "rasto",
+      "createdTime": "2023-04-07T10:42:18.990Z",
+      "modifiedTime": "2025-09-08T05:27:52.957Z",
+      "revision": 72
+    },
+    {
+      "id": "58BAmTNtZ",
+      "name": "ceny prác2",
+      "owner": "rasto",
+      "createdTime": "2025-08-02T15:28:44.260Z",
+      "modifiedTime": "2025-08-02T15:28:44.794Z",
+      "revision": 2
+    },
+    {
+      "id": "0RSuurUDB",
+      "name": "ceny prác2",
+      "owner": "rasto",
+      "createdTime": "2023-04-09T17:22:40.675Z",
+      "modifiedTime": "2023-04-09T21:01:07.940Z",
+      "revision": 16
+    },
+    {
+      "id": "nHeX4hPWP",
+      "name": "Záhrada",
+      "owner": "rasto",
+      "createdTime": "2023-05-27T06:51:37.354Z",
+      "modifiedTime": "2025-05-23T07:51:43.498Z",
+      "revision": 429
+    },
+    {
+      "id": "mRrAwZgHS",
+      "name": "MEMENTO SCHEMA ANALYZER\n\n",
+      "owner": "rasto",
+      "createdTime": "2025-08-15T06:50:22.437Z",
+      "modifiedTime": "2025-08-16T09:53:02.170Z",
+      "revision": 84
+    },
+    {
+      "id": "YNTZV90Kr",
+      "name": "Semiramis",
+      "owner": "rasto",
+      "createdTime": "2018-10-26T05:46:42.045Z",
+      "modifiedTime": "2019-04-15T04:36:21.082Z",
+      "revision": 2
+    },
+    {
+      "id": "E0admu6Yy",
+      "name": "sadzby dph",
+      "owner": "rasto",
+      "createdTime": "2025-09-05T06:49:22.195Z",
+      "modifiedTime": "2025-09-05T06:49:53.140Z",
+      "revision": 3
+    },
+    {
+      "id": "6g3SWwqKK",
+      "name": "del Doprava, obaly",
+      "owner": "rasto",
+      "createdTime": "2018-10-28T15:36:32.557Z",
+      "modifiedTime": "2023-04-12T07:50:20.738Z",
+      "revision": 30
+    },
+    {
+      "id": "FZqUL34L4",
+      "name": "Kniha jázd Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T16:09:26.778Z",
+      "modifiedTime": "2025-08-10T16:09:28.214Z",
+      "revision": 2
+    },
+    {
+      "id": "yo3ZwOPnV",
+      "name": "Pohľadávky",
+      "owner": "rasto",
+      "createdTime": "2025-08-04T15:31:40.303Z",
+      "modifiedTime": "2025-09-21T18:42:16.621Z",
+      "revision": 53
+    },
+    {
+      "id": "E2znZZd0m",
+      "name": "Príjemky materiálu",
+      "owner": "rasto",
+      "createdTime": "2025-09-25T13:54:57.543Z",
+      "modifiedTime": "2025-09-26T12:22:04.985Z",
+      "revision": 29
+    },
+    {
+      "id": "tYpgxThFa",
+      "name": "Výdavky 2019",
+      "owner": "rasto",
+      "createdTime": "2019-04-01T13:48:29.704Z",
+      "modifiedTime": "2019-12-03T21:11:59.649Z",
+      "revision": 97
+    },
+    {
+      "id": "Ek99aq0Qj",
+      "name": "del Siete, rohože, textílie",
+      "owner": "rasto",
+      "createdTime": "2018-10-28T15:29:46.233Z",
+      "modifiedTime": "2023-04-12T07:45:02.913Z",
+      "revision": 94
+    },
+    {
+      "id": "fAm96xfA7",
+      "name": "Výdavky",
+      "owner": "rasto",
+      "createdTime": "2019-12-12T14:20:14.600Z",
+      "modifiedTime": "2022-03-15T15:39:07.455Z",
+      "revision": 11
+    },
+    {
+      "id": "ThZEgbQ8F",
+      "name": "Výdavky Súkromné 2019",
+      "owner": "rasto",
+      "createdTime": "2019-10-06T15:17:41.899Z",
+      "modifiedTime": "2019-10-11T04:52:26.467Z",
+      "revision": 8
+    },
+    {
+      "id": "uQtXqjqa9",
+      "name": "Platby",
+      "owner": "rasto",
+      "createdTime": "2018-10-03T07:45:43.096Z",
+      "modifiedTime": "2018-10-03T07:47:24.370Z",
+      "revision": 5
+    },
+    {
+      "id": "uDat9mfES",
+      "name": "Dochádzka Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T14:19:31.255Z",
+      "modifiedTime": "2025-08-10T16:15:20.864Z",
+      "revision": 18
+    },
+    {
+      "id": "gWckeGdVi",
+      "name": "sadzby zamestnancov Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T16:48:22.516Z",
+      "modifiedTime": "2025-08-10T16:48:22.926Z",
+      "revision": 2
+    },
+    {
+      "id": "6MMrpkJwc",
+      "name": "Doprava 2019",
+      "owner": "rasto",
+      "createdTime": "2018-09-12T07:59:34.273Z",
+      "modifiedTime": "2019-12-04T14:11:16.156Z",
+      "revision": 457
+    },
+    {
+      "id": "NkON4Crd4",
+      "name": "Výkaz dopravy",
+      "owner": "rasto",
+      "createdTime": "2023-04-09T04:54:39.311Z",
+      "modifiedTime": "2025-09-25T13:44:20.932Z",
+      "revision": 89
+    },
+    {
+      "id": "OONHPMVwZ",
+      "name": "del Rastliny Špecifikácia ",
+      "owner": "rasto",
+      "createdTime": "2019-09-08T19:44:24.869Z",
+      "modifiedTime": "2023-04-12T07:40:16.337Z",
+      "revision": 11
+    },
+    {
+      "id": "ArdaPo5TU",
+      "name": "Záznam prác",
+      "owner": "rasto",
+      "createdTime": "2021-04-29T11:08:36.208Z",
+      "modifiedTime": "2025-09-25T14:24:58.203Z",
+      "revision": 4807
+    },
+    {
+      "id": "4HEGz320C",
+      "name": "Inventúry",
+      "owner": "rasto",
+      "createdTime": "2022-04-18T07:44:17.065Z",
+      "modifiedTime": "2025-09-04T17:48:04.440Z",
+      "revision": 26
+    },
+    {
+      "id": "69zVhx6Mw",
+      "name": "del Šachty, príslušenstvo",
+      "owner": "rasto",
+      "createdTime": "2018-11-01T01:59:12.674Z",
+      "modifiedTime": "2023-04-12T07:39:34.677Z",
+      "revision": 60
+    },
+    {
+      "id": "oUhCGZgNV",
+      "name": "Krajinka",
+      "owner": "rasto",
+      "createdTime": "2018-10-26T05:45:45.694Z",
+      "modifiedTime": "2019-04-09T04:28:32.928Z",
+      "revision": 2
+    },
+    {
+      "id": "Ys2rEjVeo",
+      "name": "Záhrady",
+      "owner": "rasto",
+      "createdTime": "2023-11-13T09:32:59.007Z",
+      "modifiedTime": "2023-11-18T07:42:07.729Z",
+      "revision": 45
+    },
+    {
+      "id": "gZYXp9W9u",
+      "name": "Účty Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T18:09:00.531Z",
+      "modifiedTime": "2025-08-10T18:09:01.119Z",
+      "revision": 2
+    },
+    {
+      "id": "6Eiriy6nB",
+      "name": "Príjemky 2018",
+      "owner": "rasto",
+      "createdTime": "2018-10-04T14:16:52.079Z",
+      "modifiedTime": "2025-08-03T20:08:13.431Z",
+      "revision": 754
+    },
+    {
+      "id": "grLGYND6G",
+      "name": "ceny mechanizácie",
+      "owner": "rasto",
+      "createdTime": "2025-08-02T05:40:52.604Z",
+      "modifiedTime": "2025-09-25T13:42:52.115Z",
+      "revision": 22
+    },
+    {
+      "id": "LExJngAvu",
+      "name": "Výkaz prác",
+      "owner": "rasto",
+      "createdTime": "2021-09-01T13:12:12.310Z",
+      "modifiedTime": "2025-09-25T14:25:47.816Z",
+      "revision": 3318
+    },
+    {
+      "id": "5jCQtF0dy",
+      "name": "Výkaz materiálu Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T16:43:45.344Z",
+      "modifiedTime": "2025-08-10T16:43:49.446Z",
+      "revision": 5
+    },
+    {
+      "id": "cQdv7uTGG",
+      "name": "del Trvalky a trávy",
+      "owner": "rasto",
+      "createdTime": "2018-10-04T06:01:50.439Z",
+      "modifiedTime": "2023-04-12T04:52:32.162Z",
+      "revision": 443
+    },
+    {
+      "id": "YCMwbRG7g",
+      "name": "Rezervácie",
+      "owner": "rasto",
+      "createdTime": "2022-04-17T16:41:51.404Z",
+      "modifiedTime": "2023-11-10T13:25:16.267Z",
+      "revision": 4
+    },
+    {
+      "id": "bdjModT3P",
+      "name": "del Rastliny",
+      "owner": "rasto",
+      "createdTime": "2019-09-08T19:12:18.218Z",
+      "modifiedTime": "2023-04-12T07:35:33.839Z",
+      "revision": 18
+    },
+    {
+      "id": "oVVMoLPee",
+      "name": "ASISTANTO Fields",
+      "owner": "rasto",
+      "createdTime": "2025-04-18T20:51:37.706Z",
+      "modifiedTime": "2025-04-18T21:36:59.344Z",
+      "revision": 2
+    },
+    {
+      "id": "DXEM44be9",
+      "alias": "cryptow",
+      "name": "Crypto",
+      "owner": "rasto",
+      "createdTime": "2024-03-15T10:26:10.867Z",
+      "modifiedTime": "2024-11-01T05:58:25.644Z",
+      "revision": 2
+    },
+    {
+      "id": "yzHGQynq4",
+      "name": "Náradie a prístroje ",
+      "owner": "rasto",
+      "createdTime": "2021-08-27T06:40:47.919Z",
+      "modifiedTime": "2021-09-23T05:50:28.852Z",
+      "revision": 61
+    },
+    {
+      "id": "MwVbvCOUB",
+      "name": "Cenové ponuky v2",
+      "owner": "rasto",
+      "createdTime": "2024-12-03T19:54:46.505Z",
+      "modifiedTime": "2024-12-05T13:05:58.825Z",
+      "revision": 23
+    },
+    {
+      "id": "TN6r7QT6q",
+      "name": "del Fólie, geotextílie, rúry",
+      "owner": "rasto",
+      "createdTime": "2018-11-05T06:39:17.053Z",
+      "modifiedTime": "2023-04-12T07:36:51.249Z",
+      "revision": 12
+    },
+    {
+      "id": "rh9Q43wG7",
+      "name": "del Technológia",
+      "owner": "rasto",
+      "createdTime": "2018-11-05T06:44:24.985Z",
+      "modifiedTime": "2023-04-12T07:18:10.986Z",
+      "revision": 22
+    },
+    {
+      "id": "zNoMvrv8U",
+      "name": "Dochádzka",
+      "owner": "rasto",
+      "createdTime": "2021-08-23T07:59:55.617Z",
+      "modifiedTime": "2025-09-26T09:59:11.412Z",
+      "revision": 8658
+    },
+    {
+      "id": "kR4DXoVfY",
+      "name": "Evidencia prác 2020",
+      "owner": "rasto",
+      "createdTime": "2019-12-12T14:33:42.425Z",
+      "modifiedTime": "2021-07-22T12:27:57.601Z",
+      "revision": 19
+    },
+    {
+      "id": "uD0qRFNpD",
+      "name": "Externý sklad",
+      "owner": "rasto",
+      "createdTime": "2023-11-05T08:32:50.393Z",
+      "modifiedTime": "2023-11-05T09:01:10.710Z",
+      "revision": 8
+    },
+    {
+      "id": "E7JH67U4f",
+      "name": "Faktúry prijaté Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T18:00:53.107Z",
+      "modifiedTime": "2025-08-10T18:00:54.012Z",
+      "revision": 2
+    },
+    {
+      "id": "MbMVDFJJF",
+      "name": "Sadzby Mzdy",
+      "owner": "rasto",
+      "createdTime": "2019-09-08T18:02:08.446Z",
+      "modifiedTime": "2024-11-02T15:06:20.959Z",
+      "revision": 20
+    },
+    {
+      "id": "uCRaUwsTo",
+      "name": "Výkaz strojov",
+      "owner": "rasto",
+      "createdTime": "2022-03-24T09:50:44.151Z",
+      "modifiedTime": "2025-08-11T12:20:26.204Z",
+      "revision": 1199
+    },
+    {
+      "id": "vLEGtJU3S",
+      "name": "del RAIN BIRD",
+      "owner": "rasto",
+      "createdTime": "2018-11-02T09:18:09.678Z",
+      "modifiedTime": "2023-04-12T07:51:16.370Z",
+      "revision": 98
+    },
+    {
+      "id": "JJtudeFw4",
+      "name": "Materiál",
+      "owner": "rasto",
+      "createdTime": "2021-08-30T18:13:12.202Z",
+      "modifiedTime": "2025-09-27T12:41:16.861Z",
+      "revision": 12187
+    },
+    {
+      "id": "Kypnqf3Ts",
+      "name": "ceny materiálu",
+      "owner": "rasto",
+      "createdTime": "2022-03-25T05:51:59.274Z",
+      "modifiedTime": "2025-08-11T17:23:08.668Z",
+      "revision": 1
+    },
+    {
+      "id": "PvDBuypRq",
+      "name": "Doprava backup",
+      "owner": "rasto",
+      "createdTime": "2019-10-08T19:39:50.766Z",
+      "modifiedTime": "2019-10-08T19:40:16.918Z",
+      "revision": 4
+    },
+    {
+      "id": "GLNUxcvhr",
+      "name": "ASISTANTO DB",
+      "owner": "rasto",
+      "createdTime": "2022-01-05T14:46:44.614Z",
+      "modifiedTime": "2025-04-20T15:42:56.031Z",
+      "revision": 389
+    },
+    {
+      "id": "BJNV5QFqG",
+      "alias": "dochadzka2018",
+      "name": "del Dochádzka 2018",
+      "owner": "rasto",
+      "createdTime": "2018-09-05T04:58:01.477Z",
+      "modifiedTime": "2023-04-12T07:34:28.352Z",
+      "revision": 874
+    },
+    {
+      "id": "g9eS5Ny2E",
+      "name": "Pokladňa",
+      "owner": "rasto",
+      "createdTime": "2021-08-24T08:10:30.615Z",
+      "modifiedTime": "2025-09-25T14:48:04.701Z",
+      "revision": 3861
+    },
+    {
+      "id": "BkbFAwbAi",
+      "name": "Účty Semiramis",
+      "owner": "rasto",
+      "createdTime": "2022-01-28T09:21:43.517Z",
+      "modifiedTime": "2022-01-28T09:52:09.599Z",
+      "revision": 3
+    },
+    {
+      "id": "JSSyLeG0w",
+      "name": "Mechanizácia",
+      "owner": "rasto",
+      "createdTime": "2018-10-24T05:35:06.373Z",
+      "modifiedTime": "2025-09-25T15:45:45.706Z",
+      "revision": 152
+    },
+    {
+      "id": "vGgDEqWrs",
+      "name": "Príjmy 2019",
+      "owner": "rasto",
+      "createdTime": "2019-04-10T04:38:35.031Z",
+      "modifiedTime": "2025-08-03T18:29:13.061Z",
+      "revision": 18
+    },
+    {
+      "id": "4rPUUGaV0",
+      "name": "Sklady",
+      "owner": "rasto",
+      "createdTime": "2025-09-26T13:40:41.460Z",
+      "modifiedTime": "2025-09-26T14:03:37.518Z",
+      "revision": 2
+    },
+    {
+      "id": "H6PRzPqxU",
+      "name": "ASISTANTO Logs",
+      "owner": "rasto",
+      "createdTime": "2023-11-07T18:08:57.277Z",
+      "modifiedTime": "2025-09-27T08:06:47.022Z",
+      "revision": 2595
+    },
+    {
+      "id": "uAzUuntQz",
+      "name": "Vyúčtovania Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T14:25:44.544Z",
+      "modifiedTime": "2025-08-10T14:25:47.814Z",
+      "revision": 3
+    },
+    {
+      "id": "zpNQ27Mcb",
+      "name": "del Spotrebný materiál",
+      "owner": "rasto",
+      "createdTime": "2018-11-05T08:22:22.848Z",
+      "modifiedTime": "2023-04-12T07:37:33.476Z",
+      "revision": 13
+    },
+    {
+      "id": "LgUpeVDPk",
+      "name": "Základná štruktúra",
+      "owner": "rasto",
+      "createdTime": "2025-09-26T13:43:49.000Z",
+      "modifiedTime": "2025-09-26T13:43:49.010Z",
+      "revision": 1
+    },
+    {
+      "id": "4pK6TP2F6",
+      "name": "Denník",
+      "owner": "rasto",
+      "createdTime": "2018-10-18T02:34:24.093Z",
+      "modifiedTime": "2025-08-03T20:33:29.609Z",
+      "revision": 2219
+    },
+    {
+      "id": "FRsyFUGEV",
+      "name": "Dodávatelia Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T16:46:37.134Z",
+      "modifiedTime": "2025-08-10T16:46:40.282Z",
+      "revision": 4
+    },
+    {
+      "id": "uWRRbk5NA",
+      "name": "Miesta Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T16:08:32.232Z",
+      "modifiedTime": "2025-08-10T16:08:34.824Z",
+      "revision": 5
+    },
+    {
+      "id": "zEOMquGGt",
+      "name": "ASISTANTO ToDo",
+      "owner": "rasto",
+      "createdTime": "2023-11-14T05:39:07.029Z",
+      "modifiedTime": "2025-08-28T04:35:33.337Z",
+      "revision": 9
+    },
+    {
+      "id": "6vwnSJU8Q",
+      "name": "del Tvarovky PE Závitové",
+      "owner": "rasto",
+      "createdTime": "2018-10-31T09:40:06.805Z",
+      "modifiedTime": "2023-04-12T07:23:58.936Z",
+      "revision": 150
+    },
+    {
+      "id": "pUZLw27Vd",
+      "name": "Zastávky Backup",
+      "owner": "rasto",
+      "createdTime": "2021-09-17T06:10:19.866Z",
+      "modifiedTime": "2022-03-22T14:37:26.249Z",
+      "revision": 60
+    },
+    {
+      "id": "9ng4PzafS",
+      "name": "ceny prác",
+      "owner": "rasto",
+      "createdTime": "2023-11-11T07:59:03.158Z",
+      "modifiedTime": "2025-09-25T10:15:49.420Z",
+      "revision": 21
+    },
+    {
+      "id": "ER7wPeXad",
+      "name": "del Tvarovky mosadzné",
+      "owner": "rasto",
+      "createdTime": "2018-10-19T05:17:50.236Z",
+      "modifiedTime": "2023-04-12T07:26:11.693Z",
+      "revision": 90
+    },
+    {
+      "id": "iPM7jiKKF",
+      "name": "ASISTANTO Tenants",
+      "owner": "rasto",
+      "createdTime": "2023-11-13T18:21:24.724Z",
+      "modifiedTime": "2025-04-20T15:18:23.223Z",
+      "revision": 324
+    },
+    {
+      "id": "nWb00Nogf",
+      "alias": "zamestnanci",
+      "name": "Zamestnanci",
+      "owner": "rasto",
+      "createdTime": "2021-08-23T08:43:56.767Z",
+      "modifiedTime": "2025-09-25T14:25:47.464Z",
+      "revision": 1723
+    },
+    {
+      "id": "46CPOAV5A",
+      "name": "Chemikálie ",
+      "owner": "rasto",
+      "createdTime": "2021-08-27T06:48:35.348Z",
+      "modifiedTime": "2021-08-27T08:11:06.467Z",
+      "revision": 7
+    },
+    {
+      "id": "zSSox2T3X",
+      "name": "Pokladňa osobná",
+      "owner": "rasto",
+      "createdTime": "2021-09-12T09:06:01.686Z",
+      "modifiedTime": "2021-09-23T05:37:02.386Z",
+      "revision": 12
+    },
+    {
+      "id": "8qb0u3G0R",
+      "name": "del Kvapková",
+      "owner": "rasto",
+      "createdTime": "2018-10-31T09:33:34.710Z",
+      "modifiedTime": "2023-04-12T07:18:43.807Z",
+      "revision": 24
+    },
+    {
+      "id": "VPE04WRmo",
+      "name": "Výdajky materiálu",
+      "owner": "rasto",
+      "createdTime": "2025-09-24T06:01:10.330Z",
+      "modifiedTime": "2025-09-26T06:25:40.573Z",
+      "revision": 22
+    },
+    {
+      "id": "sKgiFUStw",
+      "name": "Miestnosť",
+      "owner": "rasto",
+      "createdTime": "2021-08-27T05:46:43.669Z",
+      "modifiedTime": "2022-01-20T08:04:43.773Z",
+      "revision": 48
+    },
+    {
+      "id": "Hm2mqwynm",
+      "name": "del Ihličnaté kry",
+      "owner": "rasto",
+      "createdTime": "2018-10-04T11:34:24.904Z",
+      "modifiedTime": "2023-04-12T07:44:59.448Z",
+      "revision": 48
+    },
+    {
+      "id": "WrkHtUH88",
+      "alias": "vozidla",
+      "name": "Vozidlá",
+      "owner": "rasto",
+      "createdTime": "2018-09-06T04:35:08.068Z",
+      "modifiedTime": "2025-09-24T17:27:06.531Z",
+      "revision": 104
+    },
+    {
+      "id": "ti0wccFMQ",
+      "name": "del Čerpadlá, príslušenstvo",
+      "owner": "rasto",
+      "createdTime": "2018-10-31T09:42:56.366Z",
+      "modifiedTime": "2023-04-12T07:38:54.569Z",
+      "revision": 48
+    },
+    {
+      "id": "VJNbyMTyV",
+      "name": "Jazdy 2019",
+      "owner": "rasto",
+      "createdTime": "2019-12-12T12:14:14.821Z",
+      "modifiedTime": "2019-12-13T11:58:52.433Z",
+      "revision": 3
+    },
+    {
+      "id": "nAZMuRUk5",
+      "name": "Príjmy",
+      "owner": "rasto",
+      "createdTime": "2019-12-12T14:33:24.430Z",
+      "modifiedTime": "2022-03-15T15:32:39.160Z",
+      "revision": 3
+    },
+    {
+      "id": "E6J5amF65",
+      "name": "ASISTANTO",
+      "owner": "rasto",
+      "createdTime": "2022-01-05T14:39:31.541Z",
+      "modifiedTime": "2025-04-20T15:47:51.035Z",
+      "revision": 2453
+    },
+    {
+      "id": "vjLaZChTd",
+      "name": "Účty personal",
+      "owner": "rasto",
+      "createdTime": "2021-09-12T09:09:05.930Z",
+      "modifiedTime": "2021-09-12T09:10:31.784Z",
+      "revision": 2
+    },
+    {
+      "id": "H9HwQNWJu",
+      "name": "Reklamácie",
+      "owner": "rasto",
+      "createdTime": "2018-09-05T14:08:38.660Z",
+      "modifiedTime": "2019-04-11T18:15:42.978Z",
+      "revision": 14
+    },
+    {
+      "id": "ptMuvwMS8",
+      "name": "Cenové ponuky Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T14:26:54.286Z",
+      "modifiedTime": "2025-08-10T14:27:07.620Z",
+      "revision": 6
+    },
+    {
+      "id": "tNX0mOwis",
+      "name": "Partneri Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T17:02:43.716Z",
+      "modifiedTime": "2025-08-10T17:02:44.347Z",
+      "revision": 2
+    },
+    {
+      "id": "8jtm6qDwG",
+      "alias": "knihajazd",
+      "name": "Kniha jázd",
+      "owner": "rasto",
+      "createdTime": "2025-08-01T10:49:56.807Z",
+      "modifiedTime": "2025-09-25T18:40:15.711Z",
+      "revision": 863
+    },
+    {
+      "id": "mtXqVYNfr",
+      "name": "Pokladňa Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T17:19:45.083Z",
+      "modifiedTime": "2025-08-10T17:20:05.411Z",
+      "revision": 12
+    },
+    {
+      "id": "nAT7OTWyy",
+      "name": "Výživa ",
+      "owner": "rasto",
+      "createdTime": "2023-06-12T16:07:14.872Z",
+      "modifiedTime": "2023-06-12T16:17:35.680Z",
+      "revision": 7
+    },
+    {
+      "id": "NffZSLRKU",
+      "name": "Partneri",
+      "owner": "rasto",
+      "createdTime": "2018-09-05T08:39:18.811Z",
+      "modifiedTime": "2025-09-08T02:54:34.827Z",
+      "revision": 54
+    },
+    {
+      "id": "iZLaf0YNo",
+      "name": "Kniha jázd 2021",
+      "owner": "rasto",
+      "createdTime": "2021-08-24T08:10:19.872Z",
+      "modifiedTime": "2023-11-13T14:21:23.640Z",
+      "revision": 1456
+    },
+    {
+      "id": "PKFKKPLPB",
+      "name": "del Listnaté stromy",
+      "owner": "rasto",
+      "createdTime": "2018-10-04T11:35:07.781Z",
+      "modifiedTime": "2023-04-12T07:49:52.814Z",
+      "revision": 34
+    },
+    {
+      "id": "5ez6J8sJr",
+      "name": "Dochádzka Semiramis",
+      "owner": "rasto",
+      "createdTime": "2022-05-01T10:28:25.859Z",
+      "modifiedTime": "2022-05-01T11:47:48.127Z",
+      "revision": 6
+    },
+    {
+      "id": "oMf3kLYDA",
+      "name": "Príjmy 2018",
+      "owner": "rasto",
+      "createdTime": "2018-09-05T04:58:17.777Z",
+      "modifiedTime": "2019-12-12T14:30:14.830Z",
+      "revision": 122
+    },
+    {
+      "id": "qDY8crP5Q",
+      "name": "del Substráty, kôra",
+      "owner": "rasto",
+      "createdTime": "2018-10-23T07:46:19.272Z",
+      "modifiedTime": "2023-04-12T07:37:13.463Z",
+      "revision": 40
+    },
+    {
+      "id": "TwuOgdap3",
+      "name": "del Vodné rastliny",
+      "owner": "rasto",
+      "createdTime": "2018-11-06T09:29:00.973Z",
+      "modifiedTime": "2023-04-12T07:36:05.189Z",
+      "revision": 46
+    },
+    {
+      "id": "08ZmZo35w",
+      "name": "Záhrada Sadenice",
+      "owner": "rasto",
+      "createdTime": "2025-04-14T05:02:59.522Z",
+      "modifiedTime": "2025-05-23T07:47:12.203Z",
+      "revision": 18
+    },
+    {
+      "id": "K4osVehsX",
+      "name": "Dokumenty",
+      "owner": "rasto",
+      "createdTime": "2025-08-09T11:07:44.101Z",
+      "modifiedTime": "2025-08-09T11:14:21.537Z",
+      "revision": 4
+    },
+    {
+      "id": "MXC70TZDD",
+      "name": "šablóny importu",
+      "owner": "rasto",
+      "createdTime": "2023-12-03T10:26:52.862Z",
+      "modifiedTime": "2025-08-04T04:20:05.248Z",
+      "revision": 11
+    },
+    {
+      "id": "Xv7xSyNRd",
+      "name": "Umiestnenie",
+      "owner": "rasto",
+      "createdTime": "2021-08-27T05:42:39.747Z",
+      "modifiedTime": "2024-02-26T09:16:55.648Z",
+      "revision": 99
+    },
+    {
+      "id": "YmkAi7t7i",
+      "name": "Výkaz prác Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T16:43:23.645Z",
+      "modifiedTime": "2025-08-10T16:43:26.580Z",
+      "revision": 4
+    },
+    {
+      "id": "GT59EHG7s",
+      "name": "Evidencia prác 2019",
+      "owner": "rasto",
+      "createdTime": "2019-04-01T13:50:16.642Z",
+      "modifiedTime": "2023-04-12T01:44:40.007Z",
+      "revision": 580
+    },
+    {
+      "id": "NzYLmGdSs",
+      "name": "Výdajky 2019",
+      "owner": "rasto",
+      "createdTime": "2019-09-27T13:18:17.099Z",
+      "modifiedTime": "2019-10-02T12:22:23.667Z",
+      "revision": 8
+    },
+    {
+      "id": "oOxT6eDsF",
+      "name": "Evidencia prác.24",
+      "owner": "rasto",
+      "createdTime": "2024-10-31T20:58:06.914Z",
+      "modifiedTime": "2024-10-31T20:58:09.763Z",
+      "revision": 2
+    },
+    {
+      "id": "w8RX37728",
+      "name": "del Ventily",
+      "owner": "rasto",
+      "createdTime": "2018-10-19T05:16:10.438Z",
+      "modifiedTime": "2023-04-12T07:44:16.854Z",
+      "revision": 34
+    },
+    {
+      "id": "nmDvBcEwg",
+      "name": "Zamestnanci Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T14:19:05.695Z",
+      "modifiedTime": "2025-08-10T14:19:07.038Z",
+      "revision": 2
+    },
+    {
+      "id": "pTNH6i6uM",
+      "name": "Záväzky",
+      "owner": "rasto",
+      "createdTime": "2023-11-13T05:30:35.063Z",
+      "modifiedTime": "2025-09-25T14:20:48.417Z",
+      "revision": 4159
+    },
+    {
+      "id": "9w4UaWWW2",
+      "name": "Sklad Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T14:52:41.372Z",
+      "modifiedTime": "2025-08-10T18:10:37.632Z",
+      "revision": 43
+    },
+    {
+      "id": "n7bMbi0MN",
+      "alias": "scripts",
+      "name": "ASISTANTO Scripts",
+      "owner": "rasto",
+      "createdTime": "2023-11-14T21:15:52.616Z",
+      "modifiedTime": "2025-04-18T19:11:45.999Z",
+      "revision": 31
+    },
+    {
+      "id": "odC9Gt2HQ",
+      "name": "del Trávy",
+      "owner": "rasto",
+      "createdTime": "2018-10-04T10:05:23.206Z",
+      "modifiedTime": "2023-04-12T07:42:19.231Z",
+      "revision": 88
+    },
+    {
+      "id": "zSuQmhdH7",
+      "name": "Zákazky Diely",
+      "owner": "rasto",
+      "createdTime": "2025-08-12T11:43:19.569Z",
+      "modifiedTime": "2025-09-08T09:15:43.762Z",
+      "revision": 4
+    },
+    {
+      "id": "8gTgSDSXE",
+      "name": "del DHIM",
+      "owner": "rasto",
+      "createdTime": "2018-11-05T09:28:18.498Z",
+      "modifiedTime": "2023-11-07T11:15:05.293Z",
+      "revision": 7
+    },
+    {
+      "id": "A9MxRfKsS",
+      "name": "Účty",
+      "owner": "rasto",
+      "createdTime": "2022-01-04T07:17:51.711Z",
+      "modifiedTime": "2025-09-25T14:20:47.127Z",
+      "revision": 414
+    },
+    {
+      "id": "OLuJ67Kig",
+      "name": "del Tvarovky PE Svorné",
+      "owner": "rasto",
+      "createdTime": "2018-10-19T03:55:41.161Z",
+      "modifiedTime": "2023-04-12T07:30:13.605Z",
+      "revision": 140
+    },
+    {
+      "id": "rh7YHaVRM",
+      "name": "Klienti",
+      "owner": "rasto",
+      "createdTime": "2018-09-03T09:52:41.654Z",
+      "modifiedTime": "2025-09-16T14:44:40.908Z",
+      "revision": 684
+    },
+    {
+      "id": "90RmdjWuk",
+      "alias": "cenoveponuky",
+      "name": "Cenové ponuky",
+      "owner": "rasto",
+      "createdTime": "2021-09-02T06:04:53.585Z",
+      "modifiedTime": "2025-09-22T06:10:10.755Z",
+      "revision": 5645
+    },
+    {
+      "id": "hU0NGBUkr",
+      "name": "Diely CP",
+      "owner": "rasto",
+      "createdTime": "2024-12-04T10:06:49.383Z",
+      "modifiedTime": "2025-09-21T19:25:46.480Z",
+      "revision": 13
+    },
+    {
+      "id": "evTbhBqKL",
+      "name": "Servis AZS",
+      "owner": "rasto",
+      "createdTime": "2018-10-26T05:47:59.548Z",
+      "modifiedTime": "2018-11-09T05:45:49.725Z",
+      "revision": 4
+    },
+    {
+      "id": "eLVZwChm9",
+      "name": "Cenník prác Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T16:19:25.941Z",
+      "modifiedTime": "2025-08-10T16:19:28.650Z",
+      "revision": 5
+    },
+    {
+      "id": "z3sxkUHgT",
+      "name": "Výkaz materiálu",
+      "owner": "rasto",
+      "createdTime": "2021-08-24T08:10:16.297Z",
+      "modifiedTime": "2025-08-29T04:57:01.979Z",
+      "revision": 2985
+    },
+    {
+      "id": "QSLtGMBLV",
+      "alias": "cennikprac",
+      "name": "Cenník prác",
+      "owner": "rasto",
+      "createdTime": "2021-08-31T16:18:14.322Z",
+      "modifiedTime": "2025-09-25T15:59:42.284Z",
+      "revision": 1315
+    },
+    {
+      "id": "S654doOdS",
+      "name": "Cenové ponuky v2",
+      "owner": "rasto",
+      "createdTime": "2025-04-18T03:54:42.464Z",
+      "modifiedTime": "2025-04-18T17:12:01.636Z",
+      "revision": 57
+    },
+    {
+      "id": "8hvbz7onR",
+      "name": "Knihy",
+      "owner": "rasto",
+      "createdTime": "2021-08-27T06:42:57.783Z",
+      "modifiedTime": "2021-08-30T06:12:02.166Z",
+      "revision": 9
+    },
+    {
+      "id": "GwvzQmGqV",
+      "name": "Záväzky Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T18:02:00.104Z",
+      "modifiedTime": "2025-08-10T18:03:21.692Z",
+      "revision": 71
+    },
+    {
+      "id": "P3BpVyUcP",
+      "name": "del Ovocné dreviny",
+      "owner": "rasto",
+      "createdTime": "2018-10-04T11:35:17.758Z",
+      "modifiedTime": "2023-04-12T07:44:00.541Z",
+      "revision": 459
+    },
+    {
+      "id": "Gk6xfHfm5",
+      "name": "del Elektro",
+      "owner": "rasto",
+      "createdTime": "2018-10-19T19:14:44.295Z",
+      "modifiedTime": "2023-04-12T07:42:54.508Z",
+      "revision": 61
+    },
+    {
+      "id": "VNSGXVsFi",
+      "name": "Výkaz strojov Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T16:43:30.295Z",
+      "modifiedTime": "2025-08-10T16:43:31.602Z",
+      "revision": 3
+    },
+    {
+      "id": "qU4Br5hU6",
+      "alias": "zamsemiramis",
+      "name": "Zamestnanci Semiramis",
+      "owner": "rasto",
+      "createdTime": "2022-01-28T09:34:35.044Z",
+      "modifiedTime": "2022-05-01T11:47:52.259Z",
+      "revision": 9
+    },
+    {
+      "id": "zJo6VxOrQ",
+      "name": "CP Diely Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T18:10:48.649Z",
+      "modifiedTime": "2025-08-10T18:10:48.661Z",
+      "revision": 1
+    },
+    {
+      "id": "Y54CuOgaY",
+      "name": "Klienti Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T16:13:01.798Z",
+      "modifiedTime": "2025-08-10T16:13:05.431Z",
+      "revision": 5
+    },
+    {
+      "id": "0kXxRxGoj",
+      "alias": "zakazky2020",
+      "name": "Zakázky old",
+      "owner": "rasto",
+      "createdTime": "2019-12-12T11:37:56.045Z",
+      "modifiedTime": "2025-08-10T14:49:31.696Z",
+      "revision": 36
+    },
+    {
+      "id": "nCAgQkfvK",
+      "name": "Cenové ponuky Diely ",
+      "owner": "rasto",
+      "createdTime": "2025-04-18T04:21:14.966Z",
+      "modifiedTime": "2025-09-10T07:50:32.165Z",
+      "revision": 46
+    },
+    {
+      "id": "ynnCr2MpD",
+      "name": "Faktúry prijaté",
+      "owner": "rasto",
+      "createdTime": "2023-04-09T05:49:10.689Z",
+      "modifiedTime": "2025-08-10T17:44:53.121Z",
+      "revision": 79
+    },
+    {
+      "id": "exg45Vg2L",
+      "name": "Evidencia prác 2018",
+      "owner": "rasto",
+      "createdTime": "2018-09-05T04:58:30.382Z",
+      "modifiedTime": "2019-02-11T10:19:39.337Z",
+      "revision": 884
+    },
+    {
+      "id": "PcSP9Saix",
+      "name": "del Výsadbový materiál",
+      "owner": "rasto",
+      "createdTime": "2018-10-23T07:48:52.194Z",
+      "modifiedTime": "2023-04-12T07:43:30.612Z",
+      "revision": 68
+    },
+    {
+      "id": "JH7AbQ4EH",
+      "name": "Práce navyše ",
+      "owner": "rasto",
+      "createdTime": "2019-09-08T23:07:52.225Z",
+      "modifiedTime": "2025-08-03T19:49:29.212Z",
+      "revision": 7
+    },
+    {
+      "id": "GiHN2EX27",
+      "name": "Výdavky 2018",
+      "owner": "rasto",
+      "createdTime": "2018-09-05T05:32:14.783Z",
+      "modifiedTime": "2018-11-21T13:06:44.915Z",
+      "revision": 609
+    },
+    {
+      "id": "ctHFDvxyY",
+      "name": "Vyúčtovania",
+      "owner": "rasto",
+      "createdTime": "2022-03-08T20:50:01.338Z",
+      "modifiedTime": "2025-08-11T12:21:55.724Z",
+      "revision": 2550
+    },
+    {
+      "id": "Zzjt7Mscg",
+      "name": "del Príslušenstvo",
+      "owner": "rasto",
+      "createdTime": "2018-11-05T08:31:50.272Z",
+      "modifiedTime": "2023-04-12T07:33:07.182Z",
+      "revision": 15
+    },
+    {
+      "id": "0BOZu7FVb",
+      "alias": "rastliny",
+      "name": "Databáza rastlín",
+      "owner": "rasto",
+      "createdTime": "2021-09-05T05:58:16.291Z",
+      "modifiedTime": "2025-04-14T10:26:21.398Z",
+      "revision": 1695
+    },
+    {
+      "id": "2e7wMQBKT",
+      "name": "Mechanizácia Backup",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T16:52:45.044Z",
+      "modifiedTime": "2025-08-10T16:52:45.765Z",
+      "revision": 2
+    },
+    {
+      "id": "mNBTqY7Kz",
+      "name": "Príjemky 2019",
+      "owner": "rasto",
+      "createdTime": "2019-09-08T20:32:52.387Z",
+      "modifiedTime": "2019-09-09T06:43:03.647Z",
+      "revision": 14
+    },
+    {
+      "id": "TJerHYrJT",
+      "name": "del TORO",
+      "owner": "rasto",
+      "createdTime": "2018-10-19T15:20:27.280Z",
+      "modifiedTime": "2023-04-12T07:40:47.143Z",
+      "revision": 297
+    },
+    {
+      "id": "bYtZrw5Sn",
+      "name": "Záhrada Osivo",
+      "owner": "rasto",
+      "createdTime": "2025-04-14T08:01:03.729Z",
+      "modifiedTime": "2025-04-14T09:03:59.418Z",
+      "revision": 22
+    },
+    {
+      "id": "fWACBzYY4",
+      "name": "Výdajky 2018",
+      "owner": "rasto",
+      "createdTime": "2018-10-21T08:32:02.209Z",
+      "modifiedTime": "2025-08-03T20:04:28.728Z",
+      "revision": 572
+    },
+    {
+      "id": "NGz2MzEzL",
+      "name": "Príjemky materiálu",
+      "owner": "rasto",
+      "createdTime": "2021-08-25T17:23:12.252Z",
+      "modifiedTime": "2025-09-25T14:36:33.031Z",
+      "revision": 464
+    },
+    {
+      "id": "KmW7Y6GhT",
+      "name": "Časti CP",
+      "owner": "rasto",
+      "createdTime": "2024-12-04T07:25:06.322Z",
+      "modifiedTime": "2025-09-21T19:28:18.519Z",
+      "revision": 18
+    },
+    {
+      "id": "jBpwKGWcr",
+      "name": "ceny materiálu",
+      "owner": "rasto",
+      "createdTime": "2023-11-15T08:29:14.636Z",
+      "modifiedTime": "2025-09-27T10:31:27.438Z",
+      "revision": 1009
+    },
+    {
+      "id": "WNhp8uEvS",
+      "name": "Dokumenty Osobné ",
+      "owner": "rasto",
+      "createdTime": "2021-08-27T06:51:31.032Z",
+      "modifiedTime": "2022-01-20T08:05:08.438Z",
+      "revision": 25
+    },
+    {
+      "id": "fS4a5RdNE",
+      "name": "ASISTANTO UsersSettings",
+      "owner": "rasto",
+      "createdTime": "2025-08-05T15:08:34.531Z",
+      "modifiedTime": "2025-08-05T15:14:56.256Z",
+      "revision": 8
+    },
+    {
+      "id": "At7dLMQ3w",
+      "name": "ASISTANTO API",
+      "owner": "rasto",
+      "createdTime": "2025-08-10T06:12:36.852Z",
+      "modifiedTime": "2025-09-16T09:19:23.019Z",
+      "revision": 42
+    }
+  ],
+  "env_mappings": {
+    "Dochádzka Meškania": "LIBRARY_ID_ATTENDANCE_DELAYS",
+    "Objednávky": "LIBRARY_ID_OBJEDNÁVKY",
+    "del Listnaté kry": "LIBRARY_ID_DEL_LISTNATÉ_KRY",
+    "Vozidlá Backup": "LIBRARY_ID_VOZIDLÁ_BACKUP",
+    "Telegram Groups": "LIBRARY_ID_TELEGRAM_GROUPS",
+    "Práce": "LIBRARY_ID_PRÁCE",
+    "Zakázky 2019": "LIBRARY_ID_ZAKÁZKY_2019",
+    "Pohľadávky Backup": "LIBRARY_ID_POHĽADÁVKY_BACKUP",
+    "Zákazky": "LIBRARY_ID_ZÁKAZKY",
+    "Presuny a prestoje": "LIBRARY_ID_PRESUNY_A_PRESTOJE",
+    "Záhrada Záznamy ": "LIBRARY_ID_ZÁHRADA_ZÁZNAMY_",
+    "ASISTANTO Defaults": "LIBRARY_ID_DEFAULTS",
+    "Zákazky Backup": "LIBRARY_ID_ZÁKAZKY_BACKUP",
+    "Miesta": "LIBRARY_ID_MIESTA",
+    "Dochádzka 2019": "LIBRARY_ID_DOCHÁDZKA_2019",
+    "del Hnojivá": "LIBRARY_ID_DEL_HNOJIVÁ",
+    "Dochádzka 2020": "LIBRARY_ID_DOCHÁDZKA_2020",
+    "del Rúry": "LIBRARY_ID_DEL_RÚRY",
+    "Príjmy 2021": "LIBRARY_ID_PRÍJMY_2021",
+    "Údržby": "LIBRARY_ID_ÚDRŽBY",
+    "Dodávatelia": "LIBRARY_ID_DODÁVATELIA",
+    "Notifications": "LIBRARY_ID_NOTIFICATIONS",
+    "Veci": "LIBRARY_ID_VECI",
+    "Záhrada Výsadba ": "LIBRARY_ID_ZÁHRADA_VÝSADBA_",
+    "del Ihličnaté stromy": "LIBRARY_ID_DEL_IHLIČNATÉ_STROMY",
+    "Záznam prác Backup": "LIBRARY_ID_ZÁZNAM_PRÁC_BACKUP",
+    "Záhrada Výsevy": "LIBRARY_ID_ZÁHRADA_VÝSEVY",
+    "del Zamestnanci 2019": "LIBRARY_ID_DEL_ZAMESTNANCI_2019",
+    "Plán prác": "LIBRARY_ID_PLÁN_PRÁC",
+    "príplatky ceny": "LIBRARY_ID_PRÍPLATKY_CENY",
+    "sadzby zamestnancov": "LIBRARY_ID_SADZBY_ZAMESTNANCOV",
+    "ceny prác2": "LIBRARY_ID_CENY_PRÁC2",
+    "Záhrada": "LIBRARY_ID_ZÁHRADA",
+    "MEMENTO SCHEMA ANALYZER\n\n": "LIBRARY_ID_MEMENTO_SCHEMA_ANALYZER\n\n",
+    "Semiramis": "LIBRARY_ID_SEMIRAMIS",
+    "sadzby dph": "LIBRARY_ID_VAT_RATES",
+    "del Doprava, obaly": "LIBRARY_ID_DEL_DOPRAVA,_OBALY",
+    "Kniha jázd Backup": "LIBRARY_ID_KNIHA_JÁZD_BACKUP",
+    "Pohľadávky": "LIBRARY_ID_POHĽADÁVKY",
+    "Príjemky materiálu": "LIBRARY_ID_PRÍJEMKY_MATERIÁLU",
+    "Výdavky 2019": "LIBRARY_ID_VÝDAVKY_2019",
+    "del Siete, rohože, textílie": "LIBRARY_ID_DEL_SIETE,_ROHOŽE,_TEXTÍLIE",
+    "Výdavky": "LIBRARY_ID_VÝDAVKY",
+    "Výdavky Súkromné 2019": "LIBRARY_ID_VÝDAVKY_SÚKROMNÉ_2019",
+    "Platby": "LIBRARY_ID_PLATBY",
+    "Dochádzka Backup": "LIBRARY_ID_DOCHÁDZKA_BACKUP",
+    "sadzby zamestnancov Backup": "LIBRARY_ID_SADZBY_ZAMESTNANCOV_BACKUP",
+    "Doprava 2019": "LIBRARY_ID_DOPRAVA_2019",
+    "Výkaz dopravy": "LIBRARY_ID_VÝKAZ_DOPRAVY",
+    "del Rastliny Špecifikácia ": "LIBRARY_ID_DEL_RASTLINY_ŠPECIFIKÁCIA_",
+    "Záznam prác": "LIBRARY_ID_WORK_RECORDS",
+    "Inventúry": "LIBRARY_ID_INVENTÚRY",
+    "del Šachty, príslušenstvo": "LIBRARY_ID_DEL_ŠACHTY,_PRÍSLUŠENSTVO",
+    "Krajinka": "LIBRARY_ID_KRAJINKA",
+    "Záhrady": "LIBRARY_ID_ZÁHRADY",
+    "Účty Backup": "LIBRARY_ID_ÚČTY_BACKUP",
+    "Príjemky 2018": "LIBRARY_ID_PRÍJEMKY_2018",
+    "ceny mechanizácie": "LIBRARY_ID_CENY_MECHANIZÁCIE",
+    "Výkaz prác": "LIBRARY_ID_VÝKAZ_PRÁC",
+    "Výkaz materiálu Backup": "LIBRARY_ID_VÝKAZ_MATERIÁLU_BACKUP",
+    "del Trvalky a trávy": "LIBRARY_ID_DEL_TRVALKY_A_TRÁVY",
+    "Rezervácie": "LIBRARY_ID_REZERVÁCIE",
+    "del Rastliny": "LIBRARY_ID_DEL_RASTLINY",
+    "ASISTANTO Fields": "LIBRARY_ID_ASISTANTO_FIELDS",
+    "Crypto": "LIBRARY_ID_CRYPTO",
+    "Náradie a prístroje ": "LIBRARY_ID_NÁRADIE_A_PRÍSTROJE_",
+    "Cenové ponuky v2": "LIBRARY_ID_CENOVÉ_PONUKY_V2",
+    "del Fólie, geotextílie, rúry": "LIBRARY_ID_DEL_FÓLIE,_GEOTEXTÍLIE,_RÚRY",
+    "del Technológia": "LIBRARY_ID_DEL_TECHNOLÓGIA",
+    "Dochádzka": "LIBRARY_ID_ATTENDANCE",
+    "Evidencia prác 2020": "LIBRARY_ID_EVIDENCIA_PRÁC_2020",
+    "Externý sklad": "LIBRARY_ID_EXTERNÝ_SKLAD",
+    "Faktúry prijaté Backup": "LIBRARY_ID_FAKTÚRY_PRIJATÉ_BACKUP",
+    "Sadzby Mzdy": "LIBRARY_ID_SADZBY_MZDY",
+    "Výkaz strojov": "LIBRARY_ID_VÝKAZ_STROJOV",
+    "del RAIN BIRD": "LIBRARY_ID_DEL_RAIN_BIRD",
+    "Materiál": "LIBRARY_ID_MATERIAL",
+    "ceny materiálu": "LIBRARY_ID_PRICE_HISTORY",
+    "Doprava backup": "LIBRARY_ID_DOPRAVA_BACKUP",
+    "ASISTANTO DB": "LIBRARY_ID_ASISTANTO_DB",
+    "del Dochádzka 2018": "LIBRARY_ID_DEL_DOCHÁDZKA_2018",
+    "Pokladňa": "LIBRARY_ID_CASH_REGISTER",
+    "Účty Semiramis": "LIBRARY_ID_ÚČTY_SEMIRAMIS",
+    "Mechanizácia": "LIBRARY_ID_MECHANIZÁCIA",
+    "Príjmy 2019": "LIBRARY_ID_PRÍJMY_2019",
+    "Sklady": "LIBRARY_ID_SKLADY",
+    "ASISTANTO Logs": "LIBRARY_ID_ASISTANTO_LOGS",
+    "Vyúčtovania Backup": "LIBRARY_ID_VYÚČTOVANIA_BACKUP",
+    "del Spotrebný materiál": "LIBRARY_ID_DEL_SPOTREBNÝ_MATERIÁL",
+    "Základná štruktúra": "LIBRARY_ID_ZÁKLADNÁ_ŠTRUKTÚRA",
+    "Denník": "LIBRARY_ID_DENNÍK",
+    "Dodávatelia Backup": "LIBRARY_ID_DODÁVATELIA_BACKUP",
+    "Miesta Backup": "LIBRARY_ID_MIESTA_BACKUP",
+    "ASISTANTO ToDo": "LIBRARY_ID_ASISTANTO_TODO",
+    "del Tvarovky PE Závitové": "LIBRARY_ID_DEL_TVAROVKY_PE_ZÁVITOVÉ",
+    "Zastávky Backup": "LIBRARY_ID_ZASTÁVKY_BACKUP",
+    "ceny prác": "LIBRARY_ID_CENY_PRÁC",
+    "del Tvarovky mosadzné": "LIBRARY_ID_DEL_TVAROVKY_MOSADZNÉ",
+    "ASISTANTO Tenants": "LIBRARY_ID_ASISTANTO_TENANTS",
+    "Zamestnanci": "LIBRARY_ID_EMPLOYEES",
+    "Chemikálie ": "LIBRARY_ID_CHEMIKÁLIE_",
+    "Pokladňa osobná": "LIBRARY_ID_POKLADŇA_OSOBNÁ",
+    "del Kvapková": "LIBRARY_ID_DEL_KVAPKOVÁ",
+    "Výdajky materiálu": "LIBRARY_ID_VÝDAJKY_MATERIÁLU",
+    "Miestnosť": "LIBRARY_ID_MIESTNOSŤ",
+    "del Ihličnaté kry": "LIBRARY_ID_DEL_IHLIČNATÉ_KRY",
+    "Vozidlá": "LIBRARY_ID_VEHICLES",
+    "del Čerpadlá, príslušenstvo": "LIBRARY_ID_DEL_ČERPADLÁ,_PRÍSLUŠENSTVO",
+    "Jazdy 2019": "LIBRARY_ID_JAZDY_2019",
+    "Príjmy": "LIBRARY_ID_PRÍJMY",
+    "ASISTANTO": "LIBRARY_ID_ASISTANTO",
+    "Účty personal": "LIBRARY_ID_ÚČTY_PERSONAL",
+    "Reklamácie": "LIBRARY_ID_REKLAMÁCIE",
+    "Cenové ponuky Backup": "LIBRARY_ID_CENOVÉ_PONUKY_BACKUP",
+    "Partneri Backup": "LIBRARY_ID_PARTNERI_BACKUP",
+    "Kniha jázd": "LIBRARY_ID_VEHICLE_LOGBOOK",
+    "Pokladňa Backup": "LIBRARY_ID_POKLADŇA_BACKUP",
+    "Výživa ": "LIBRARY_ID_VÝŽIVA_",
+    "Partneri": "LIBRARY_ID_PARTNERI",
+    "Kniha jázd 2021": "LIBRARY_ID_KNIHA_JÁZD_2021",
+    "del Listnaté stromy": "LIBRARY_ID_DEL_LISTNATÉ_STROMY",
+    "Dochádzka Semiramis": "LIBRARY_ID_DOCHÁDZKA_SEMIRAMIS",
+    "Príjmy 2018": "LIBRARY_ID_PRÍJMY_2018",
+    "del Substráty, kôra": "LIBRARY_ID_DEL_SUBSTRÁTY,_KÔRA",
+    "del Vodné rastliny": "LIBRARY_ID_DEL_VODNÉ_RASTLINY",
+    "Záhrada Sadenice": "LIBRARY_ID_ZÁHRADA_SADENICE",
+    "Dokumenty": "LIBRARY_ID_DOKUMENTY",
+    "šablóny importu": "LIBRARY_ID_ŠABLÓNY_IMPORTU",
+    "Umiestnenie": "LIBRARY_ID_UMIESTNENIE",
+    "Výkaz prác Backup": "LIBRARY_ID_VÝKAZ_PRÁC_BACKUP",
+    "Evidencia prác 2019": "LIBRARY_ID_EVIDENCIA_PRÁC_2019",
+    "Výdajky 2019": "LIBRARY_ID_VÝDAJKY_2019",
+    "Evidencia prác.24": "LIBRARY_ID_EVIDENCIA_PRÁC.24",
+    "del Ventily": "LIBRARY_ID_DEL_VENTILY",
+    "Zamestnanci Backup": "LIBRARY_ID_ZAMESTNANCI_BACKUP",
+    "Záväzky": "LIBRARY_ID_OBLIGATIONS",
+    "Sklad Backup": "LIBRARY_ID_SKLAD_BACKUP",
+    "ASISTANTO Scripts": "LIBRARY_ID_ASISTANTO_SCRIPTS",
+    "del Trávy": "LIBRARY_ID_DEL_TRÁVY",
+    "Zákazky Diely": "LIBRARY_ID_ZÁKAZKY_DIELY",
+    "del DHIM": "LIBRARY_ID_DEL_DHIM",
+    "Účty": "LIBRARY_ID_ÚČTY",
+    "del Tvarovky PE Svorné": "LIBRARY_ID_DEL_TVAROVKY_PE_SVORNÉ",
+    "Klienti": "LIBRARY_ID_CUSTOMERS",
+    "Cenové ponuky": "LIBRARY_ID_CENOVÉ_PONUKY",
+    "Diely CP": "LIBRARY_ID_DIELY_CP",
+    "Servis AZS": "LIBRARY_ID_SERVIS_AZS",
+    "Cenník prác Backup": "LIBRARY_ID_CENNÍK_PRÁC_BACKUP",
+    "Výkaz materiálu": "LIBRARY_ID_VÝKAZ_MATERIÁLU",
+    "Cenník prác": "LIBRARY_ID_CENNÍK_PRÁC",
+    "Knihy": "LIBRARY_ID_KNIHY",
+    "Záväzky Backup": "LIBRARY_ID_ZÁVÄZKY_BACKUP",
+    "del Ovocné dreviny": "LIBRARY_ID_DEL_OVOCNÉ_DREVINY",
+    "del Elektro": "LIBRARY_ID_DEL_ELEKTRO",
+    "Výkaz strojov Backup": "LIBRARY_ID_VÝKAZ_STROJOV_BACKUP",
+    "Zamestnanci Semiramis": "LIBRARY_ID_ZAMESTNANCI_SEMIRAMIS",
+    "CP Diely Backup": "LIBRARY_ID_CP_DIELY_BACKUP",
+    "Klienti Backup": "LIBRARY_ID_KLIENTI_BACKUP",
+    "Zakázky old": "LIBRARY_ID_ZAKÁZKY_OLD",
+    "Cenové ponuky Diely ": "LIBRARY_ID_CENOVÉ_PONUKY_DIELY_",
+    "Faktúry prijaté": "LIBRARY_ID_FAKTÚRY_PRIJATÉ",
+    "Evidencia prác 2018": "LIBRARY_ID_EVIDENCIA_PRÁC_2018",
+    "del Výsadbový materiál": "LIBRARY_ID_DEL_VÝSADBOVÝ_MATERIÁL",
+    "Práce navyše ": "LIBRARY_ID_PRÁCE_NAVYŠE_",
+    "Výdavky 2018": "LIBRARY_ID_VÝDAVKY_2018",
+    "Vyúčtovania": "LIBRARY_ID_VYÚČTOVANIA",
+    "del Príslušenstvo": "LIBRARY_ID_DEL_PRÍSLUŠENSTVO",
+    "Databáza rastlín": "LIBRARY_ID_DATABÁZA_RASTLÍN",
+    "Mechanizácia Backup": "LIBRARY_ID_MECHANIZÁCIA_BACKUP",
+    "Príjemky 2019": "LIBRARY_ID_PRÍJEMKY_2019",
+    "del TORO": "LIBRARY_ID_DEL_TORO",
+    "Záhrada Osivo": "LIBRARY_ID_ZÁHRADA_OSIVO",
+    "Výdajky 2018": "LIBRARY_ID_VÝDAJKY_2018",
+    "Časti CP": "LIBRARY_ID_ČASTI_CP",
+    "Dokumenty Osobné ": "LIBRARY_ID_DOKUMENTY_OSOBNÉ_",
+    "ASISTANTO UsersSettings": "LIBRARY_ID_ASISTANTO_USERSSETTINGS",
+    "ASISTANTO API": "LIBRARY_ID_API_KEYS"
+  },
+  "unmatched_count": 166
+}
