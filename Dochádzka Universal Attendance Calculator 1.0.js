@@ -341,9 +341,48 @@ function calculateEmployeeWorkHours(timeData, employeeInfo) {
     }
 }
 
-function writeResultsToEmployees(calculationData) {
-    var config = utils.config;
+function getEmployeePaidAmount(employeeEntry) {
+    try {
+        // Získaj meno zamestnanca pre vyhľadávanie v Pokladni
+        var employeeName = core.safeGet(employeeEntry, "Meno", "") + " " + core.safeGet(employeeEntry, "Priezvisko", "");
+        employeeName = employeeName.trim();
 
+        if (!employeeName) {
+            return 0;
+        }
+
+        // Vyhľadaj platby v knižnici Pokladňa
+        var cashRegisterLibrary = lib("Pokladňa");
+        if (!cashRegisterLibrary) {
+            return 0;
+        }
+
+        var allEntries = cashRegisterLibrary.entries();
+        var totalPaid = 0;
+
+        for (var i = 0; i < allEntries.length; i++) {
+            var entry = allEntries[i];
+
+            // Skontroluj či je to platba mzdy
+            var description = core.safeGet(entry, "Popis", "").toLowerCase();
+            var recipient = core.safeGet(entry, "Príjemca", "").toLowerCase();
+
+            if ((description.indexOf("mzda") !== -1 || description.indexOf("plat") !== -1) &&
+                (recipient.indexOf(employeeName.toLowerCase()) !== -1)) {
+
+                var amount = parseFloat(core.safeGet(entry, "Suma", "0")) || 0;
+                totalPaid += Math.abs(amount); // Beriem absolútnu hodnotu
+            }
+        }
+
+        return totalPaid;
+
+    } catch (error) {
+        throw new Error("Chyba vyhľadávania platieb: " + error.message);
+    }
+}
+
+function writeResultsToEmployees(calculationData) {
     Object.keys(calculationData.employeeResults).forEach(function(employeeId) {
         var result = calculationData.employeeResults[employeeId];
 
@@ -352,39 +391,110 @@ function writeResultsToEmployees(calculationData) {
             var employeeEntry = utils.findEmployeeById(employeeId);
 
             if (!employeeEntry) {
-                utils.addError(entry(), `Nenájdený záznam zamestnanca s ID: ${employeeId}`, "writeResultsToEmployees");
+                utils.addError(entry(), "Nenájdený záznam zamestnanca s ID: " + employeeId, "writeResultsToEmployees");
                 return;
             }
 
-            // Zapíš výsledky do polí zamestnanca
-            if (!result.error) {
-                // Aktualizuj polia s výsledkami výpočtu
-                core.safeSet(employeeEntry, "Odpracované hodiny", result.totalDecimalHours);
-                core.safeSet(employeeEntry, "Riadne hodiny", result.regularHours);
-                core.safeSet(employeeEntry, "Nadčasové hodiny", result.overtimeHours);
-                core.safeSet(employeeEntry, "Prestávky (min)", result.breakMinutes);
+            // Vyčisti logy pre nový výpočet
+            core.safeSet(employeeEntry, SCRIPT_CONFIG.fields.debugLog, "");
+            core.safeSet(employeeEntry, SCRIPT_CONFIG.fields.errorLog, "");
 
-                // Pridaj info o výpočte
-                core.addInfo(employeeEntry, `Výpočet dochádzky dokončený`, {
+            // Debug začiatok spracovania
+            utils.addDebug(employeeEntry, "🚀 === ŠTART VÝPOČTU DOCHÁDZKY ===");
+            utils.addDebug(employeeEntry, "👤 Zamestnanec: " + result.employeeName);
+            utils.addDebug(employeeEntry, "📅 Dátum: " + result.date);
+
+            if (result.error) {
+                // Zapíš chybu do zamestnanca
+                utils.addError(employeeEntry, "Chyba výpočtu dochádzky: " + result.error, "calculateEmployeeWorkHours");
+                return;
+            }
+
+            // 1. ODPRACOVANÉ - celkové odpracované hodiny z dochádzky
+            var totalHours = result.totalDecimalHours;
+            core.safeSet(employeeEntry, "Odpracované", totalHours);
+            utils.addDebug(employeeEntry, "⏰ Odpracované hodiny: " + totalHours.toFixed(2) + "h");
+
+            // 2. AKTUÁLNA HODINOVKA - získaj z MementoBusiness alebo z poľa
+            var hourlyRate = 0;
+            try {
+                // Skús získať z business funkcie ak existuje
+                if (business && business.getEmployeeHourlyRate) {
+                    hourlyRate = business.getEmployeeHourlyRate(employeeEntry);
+                }
+
+                // Fallback - skús získať z poľa Hodinovka
+                if (!hourlyRate || hourlyRate <= 0) {
+                    hourlyRate = parseFloat(core.safeGet(employeeEntry, "Hodinovka", "0")) || 0;
+                }
+
+                core.safeSet(employeeEntry, "Aktuálna hodinovka", hourlyRate);
+                utils.addDebug(employeeEntry, "💰 Aktuálna hodinovka: " + hourlyRate.toFixed(2) + " €/h");
+            } catch (rateError) {
+                utils.addError(employeeEntry, "Chyba získania hodinovej sadzby: " + rateError.message, "getEmployeeHourlyRate");
+                hourlyRate = 0;
+            }
+
+            // 3. ZAROBENÉ - vypočítaj z hodín × sadzba
+            var earned = totalHours * hourlyRate;
+            core.safeSet(employeeEntry, "Zarobené", earned);
+            utils.addDebug(employeeEntry, "💵 Zarobené: " + earned.toFixed(2) + " € (" + totalHours.toFixed(2) + "h × " + hourlyRate.toFixed(2) + "€/h)");
+
+            // 4. VYPLATENÉ - získaj z knižnice Pokladňa
+            var paid = 0;
+            try {
+                paid = getEmployeePaidAmount(employeeEntry);
+                core.safeSet(employeeEntry, "Vyplatené", paid);
+                utils.addDebug(employeeEntry, "💳 Vyplatené: " + paid.toFixed(2) + " € (z Pokladne)");
+            } catch (paidError) {
+                utils.addError(employeeEntry, "Chyba získania vyplatených súm: " + paidError.message, "getEmployeePaidAmount");
+                paid = 0;
+            }
+
+            // 5. PREPLATOK/NEDOPLATOK - rozdiel medzi Zarobené a Vyplatené
+            var balance = earned - paid;
+            core.safeSet(employeeEntry, "Preplatok/Nedoplatok", balance);
+
+            var balanceIcon = balance > 0 ? "💰" : balance < 0 ? "❌" : "✅";
+            var balanceText = balance > 0 ? "PREPLATOK" : balance < 0 ? "NEDOPLATOK" : "VYROVNANÉ";
+            utils.addDebug(employeeEntry, balanceIcon + " " + balanceText + ": " + balance.toFixed(2) + " €");
+
+            // Súhrn výpočtu
+            utils.addDebug(employeeEntry, "🎯 === SÚHRN VÝPOČTU ===");
+            utils.addDebug(employeeEntry, "⏰ Príchod: " + result.arrivalTime);
+            utils.addDebug(employeeEntry, "⏰ Odchod: " + result.departureTime);
+            utils.addDebug(employeeEntry, "📊 Celkom hodín: " + result.formatted);
+            utils.addDebug(employeeEntry, "🌙 Cez polnoc: " + (result.crossesMidnight ? "ÁNO" : "NIE"));
+            utils.addDebug(employeeEntry, "☕ Prestávky: " + result.breakMinutes + " min");
+
+            // Info záznam s novými addInfo funkciami
+            core.addInfo(employeeEntry, "Výpočet dochádzky a mzdy dokončený", {
+                dochádzka: {
                     dátum: result.date,
                     príchod: result.arrivalTime,
                     odchod: result.departureTime,
-                    celkom: result.formatted,
-                    cezPolnoc: result.crossesMidnight
-                }, {
-                    scriptName: SCRIPT_CONFIG.name,
-                    scriptVersion: SCRIPT_CONFIG.version,
-                    sectionName: "Výsledok výpočtu",
-                    includeHeader: false,
-                    includeFooter: false
-                });
-            } else {
-                // Zapíš chybu
-                core.addError(employeeEntry, `Chyba výpočtu dochádzky: ${result.error}`, "calculateEmployeeWorkHours");
-            }
+                    odpracované: totalHours.toFixed(2) + "h",
+                    prestávky: result.breakMinutes + "min"
+                },
+                finance: {
+                    hodinovka: hourlyRate.toFixed(2) + "€/h",
+                    zarobené: earned.toFixed(2) + "€",
+                    vyplatené: paid.toFixed(2) + "€",
+                    bilancia: balance.toFixed(2) + "€"
+                }
+            }, {
+                scriptName: SCRIPT_CONFIG.name,
+                scriptVersion: SCRIPT_CONFIG.version,
+                moduleName: "AttendanceCalculator",
+                sectionName: "Výsledok výpočtu",
+                includeHeader: true,
+                includeFooter: false
+            });
+
+            utils.addDebug(employeeEntry, "✅ Výpočet dokončený úspešne");
 
         } catch (writeError) {
-            utils.addError(entry(), `Chyba zápisu výsledkov pre zamestnanca ${result.employeeName}: ${writeError.message}`, "writeResultsToEmployees");
+            utils.addError(employeeEntry || entry(), "Chyba zápisu výsledkov pre zamestnanca " + result.employeeName + ": " + writeError.message, "writeResultsToEmployees");
         }
     });
 }
