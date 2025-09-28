@@ -200,6 +200,7 @@ var MementoConfig = (function() {
                 works: "Práce", // linkToEntry: záznamy knižnice Záznam prác
                 rides: "Jazdy", // linkToEntry: záznamy knižnice Knija jázd
                 cashBook: "Pokladňa", // linkToEntry: záznamy knižnice Pokladňa
+                material: "Materiál", // NOVÉ - linkToEntry: záznamy knižnice Materiál
                 notifications: "Notifikácie", // linkToEntry: záznamy knižnice Notifikácie (group notifications)
                 obligations: "Záväzky",
                 employeeCount: "Počet pracovníkov",
@@ -212,6 +213,10 @@ var MementoConfig = (function() {
                 entryStatus: "stav záznamu", // multiCheckboxes: Záväzky, Práce, Jazdy, Notifikácie, Skontrolované, Voľno
                 dayOffReason: "Dôvod voľna", // singleChoice: Dážď, Mokro, Oddych, Dovolenka, Iné
                 entryIcons: "ikony záznamu",
+                note: "Poznámka", // NOVÉ - text field, role: desc
+                entryInfo: "entry info", // NOVÉ - text field, role: desc
+                entryPhoto: "foto záznamu", // NOVÉ - image field
+                infoRich: "info", // NOVÉ - richtext field
                 employeeAttributes: {
                     workedHours: "odpracované",
                     hourlyRate: "hodinovka",
