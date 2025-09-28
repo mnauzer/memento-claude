@@ -37,7 +37,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.6",
+        version: "7.0.7",
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -114,7 +114,7 @@ var MementoConfig = (function() {
             language: "sk_SK"
         },
         
-        // === NÁZVY KNIŽNÍC ===
+        // === NÁZVY A ID KNIŽNÍC ===
         libraries: {
             // Evidencia - denné záznamy
             attendance: "Dochádzka",
@@ -147,7 +147,7 @@ var MementoConfig = (function() {
             globalLogs: "ASISTANTO Logs",
             
             // Firemné knižnice
-            employees: "Zamestnanci",
+            employees: "Zamestnanci", // Aktuálna: "Zamestnanci Semiramis" ID: qU4Br5hU6
             suppliers: "Dodávatelia",
             partners: "Partneri",
             clients: "Klienti",
@@ -169,6 +169,18 @@ var MementoConfig = (function() {
             // Telegram knižnice
             notifications: "Notifications",
             telegramGroups: "Telegram Groups"
+        },
+
+        // === ID KNIŽNÍC (pre API prístup) ===
+        libraryIds: {
+            // Aktuálne používané knižnice podľa API analýzy
+            employees: "qU4Br5hU6", // Zamestnanci Semiramis (obsahuje všetky potrebné polia)
+            employeesBackup: "nmDvBcEwg", // Zamestnanci Backup
+            employeesArchive2019: "hNasN9vjf", // del Zamestnanci 2019 (archív)
+            employeeRates: "CqXNnosKP", // sadzby zamestnancov
+
+            // Poznámka: Hlavná knižnica "Zamestnanci" (ID: nWb00Nogf) má obmedzený prístup
+            // Pre scripts používať "Zamestnanci Semiramis" (qU4Br5hU6)
         },
 
         // === NÁZVY POLÍ ===
@@ -501,39 +513,64 @@ var MementoConfig = (function() {
             },
 
             // === FIREMNÉ KNIŽNICE ===
-            // Zamestnanci polia
+            // Zamestnanci polia - aktualizované podľa API analýzy (Zamestnanci Semiramis: qU4Br5hU6)
             employee: {
-                nick: "Nick", // text: unique
+                // Základné identifikačné polia
+                nick: "Nick", // text: unique identifier
                 firstName: "Meno", // text
-                lastName: "Priezvisko", //text
-                status: "Status", //singleChoice:
-                position: "Pozícia", // option: Vedúcko, Zamestnanec, Brigádnik, Externý
+                lastName: "Priezvisko", // text
+                active: "Aktívny", // boolean - či je zamestnanec aktívny
+                position: "Pozícia", // radio: Brigádnik, Stály zamestnanec, Vedúcko
 
-                phone: "Telefón",
-                email: "Email",
-                address: "Adresa",
-                birthDate: "Dátum narodenia",
-                startDate: "Dátum nástupu",
-                //filters
-                obdobie: "výber obdobia", //singleChoice: tento deň. tento týždeň, minulý týždeň, tento mesiac, minulý mesiac, tento rok, minulý rok
-                obdobieTotal: "obdobie total", //singleChoice: tento mesiac, minulý mesiac, tento rok, minulý rok, Total
+                // Hodinová sadzba
+                hourlyRate: "Hodinovka", // double - aktuálna hodinová sadzba pre výpočty
 
-                telegramId: "Telegram ID",
-                telegramID: "Telegram ID",
-                // calculations
-                workedTime: "Odpracované", //sum atribút odpracované z denného záznamu dochádzky (filter obdobie)
-                workedOnOrders: "Na zákazkách", //sum atribút odpracované z dennéh záznamu prác
-                drivingTime: "Jazdy", // sum Čas jazdy zo záznamu knižnice Kniha jázd, filter obdobie
-                workTimeTotal: "Odpracované total", //sum atribút odpracované z denného záznamu dochádzky (filter obdobieTotal)
-                workedOnOrdersTotal: "Na zákazkách total",
-                drivingTimeTotal: "Jazdy total", // sum Čas jazdy zo záznamu knižnice Kniha jázd, filter obdobieTotal
-                wage: "Zarobené", // sum denná mzda z atribútu zamestnanca v zázname dochádzky (Filter obdobie)
-                wageTotal: "Zarobené total", // sum denná mzda z atribútu zamestnanca v zázrame dochádzky (Filter obdobieTotal)
-                paid: "Vyplatené", // sum vyplatené mzdy (z knižnice Pokladňa, filter obdobie)
-                paidTotal: "Vyplatené total", //sum vypletené mzdy (z knižnice Pokladňa, filter obdobieTotal)
-                unpaid: "Preplatok/Nedoplatok", // unpaid - paid
+                // Odpracované hodiny - aktuálne obdobie
+                workedTime: "Odpracované", // double - odpracované hodiny (filter obdobie)
+                workedOnOrders: "Odpracované na zákazkach", // double - hodiny na zákazkách
+                drivingTime: "Jazdy", // double - čas jazdy zo záznamu knihy jázd
+
+                // Odpracované hodiny - celkové
+                workTimeTotal: "Odpracované total", // double - celkové odpracované hodiny
+                workedOnOrdersTotal: "Odpracované na zákazkach total", // double - celkové hodiny na zákazkách
+                drivingTimeTotal: "Jazdy total", // double - celkový čas jazdy
+
+                // Finančné údaje - aktuálne obdobie
+                wage: "Zarobené", // currency - zarobené za obdobie (z dennej mzdy)
+                paid: "Vyplatené", // currency - vyplatené za obdobie
+                balance: "Preplatok/Nedoplatok", // currency - rozdiel zarobené/vyplatené
+
+                // Finančné údaje - celkové
+                wageTotal: "Zarobené total", // currency - celkové zarobené
+                paidTotal: "Vyplatené total", // currency - celkové vyplatené
+
+                // Počítadlá záznamov
+                attendanceCount: "Dochádzka", // int - počet záznamov dochádzky
+                orderCount: "Zákazky", // int - počet záznamov práce na zákazkách
+                totalCount: "Celkom", // int - celkový počet záznamov
+
+                // Štatistické filtre
+                periodFilter: "výber obdobia", // multichoice filter pre obdobie
+                totalPeriodFilter: "obdobie total", // multichoice filter pre celkové obdobie
+                seasonWorked: "Odpracované sezóny", // multichoice - sezónne odpracované
+                seasonFilter: "Výber sezóny na prepočet", // multichoice - filter sezóny
+
+                // Kontaktné údaje
+                mobile: "Mobil", // phone
+                email: "Email", // email
+                telegram: "Telegram", // text - Telegram username/ID
+                note: "Poznámka", // text
+
+                // Mapovanie starých názvov pre backward compatibility
+                telegramId: "Telegram ID", // DEPRECATED - use telegram
+                telegramID: "Telegram ID", // DEPRECATED - use telegram
+                phone: "Mobil", // DEPRECATED - use mobile
+                unpaid: "Preplatok/Nedoplatok", // DEPRECATED - use balance
+                workedOnOrdersTotal: "Odpracované na zákazkach total", // DEPRECATED - use workedOnOrdersTotal
+
+                // Dodatočné finančné polia (ak sú potrebné)
                 bonuses: "Prémie", // sum prémie (z knižnice Pokladňa)
-                obligations: "Záväzky", //sum záväzky
+                obligations: "Záväzky", // sum záväzky
                 receivables: "Pohľadávky", // sum pohľadávky
                 saldo: "Saldo", // Záväzky - Pohľadávky
             },
@@ -1195,6 +1232,10 @@ var MementoConfig = (function() {
         
         getIcon: function(name) {
             return CONFIG.icons[name] || "";
+        },
+
+        getLibraryId: function(name) {
+            return CONFIG.libraryIds[name] || null;
         },
         
         // Utility funkcie
