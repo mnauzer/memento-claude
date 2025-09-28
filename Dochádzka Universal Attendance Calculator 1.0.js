@@ -12,7 +12,7 @@
 
 // ===== INICIALIZÁCIA MODULOV =====
 var utils = MementoUtils;
-var config = utils.getConfig();
+var config = utils.config;
 var core = MementoCore;
 var business = MementoBusiness;
 
@@ -20,10 +20,25 @@ var business = MementoBusiness;
 var SCRIPT_CONFIG = {
     name: "Universal Attendance Calculator",
     version: "1.0",
-    fields: config.fields.attendance,
+
+    // Knižnice s fallbackmi
     libraries: {
-        primary: config.libraries.attendance,
-        employees: config.libraries.employees
+        primary: (config && config.libraries && config.libraries.attendance) || "Dochádzka",
+        employees: (config && config.libraries && config.libraries.employees) || "Zamestnanci"
+    },
+
+    // Polia s fallbackmi
+    fields: {
+        date: (config && config.fields && config.fields.attendance && config.fields.attendance.date) || "Dátum",
+        arrival: (config && config.fields && config.fields.attendance && config.fields.attendance.arrival) || "Príchod",
+        departure: (config && config.fields && config.fields.attendance && config.fields.attendance.departure) || "Odchod",
+        employees: (config && config.fields && config.fields.attendance && config.fields.attendance.employees) || "Zamestnanci",
+        workedHours: (config && config.fields && config.fields.attendance && config.fields.attendance.workedHours) || "Odpracované hodiny",
+
+        // Spoločné polia
+        debugLog: (config && config.fields && config.fields.common && config.fields.common.debugLog) || "Debug_Log",
+        errorLog: (config && config.fields && config.fields.common && config.fields.common.errorLog) || "Error_Log",
+        info: (config && config.fields && config.fields.common && config.fields.common.info) || "info"
     }
 };
 
@@ -151,14 +166,14 @@ function getAttendanceDataOptimized(attendanceEntry) {
     AttendanceCalculationData.attendanceRecord.entry = attendanceEntry;
     AttendanceCalculationData.attendanceRecord.date = core.safeGet(
         attendanceEntry,
-        config.fields.attendance.date,
+        SCRIPT_CONFIG.fields.date,
         null
     );
 
     // Získaj zamestnancov z aktuálneho záznamu dochádzky
     var employees = core.safeGet(
         attendanceEntry,
-        config.fields.attendance.employees,
+        SCRIPT_CONFIG.fields.employees,
         []
     );
 
@@ -187,8 +202,8 @@ function processAttendanceCalculations(attendanceData, resultObject) {
     var employees = attendanceData.employees;
 
     // Získaj časové údaje z aktuálneho záznamu dochádzky
-    var arrival = core.safeGet(attendanceEntry, config.fields.attendance.arrival, null);
-    var departure = core.safeGet(attendanceEntry, config.fields.attendance.departure, null);
+    var arrival = core.safeGet(attendanceEntry, SCRIPT_CONFIG.fields.arrival, null);
+    var departure = core.safeGet(attendanceEntry, SCRIPT_CONFIG.fields.departure, null);
 
     if (!arrival || !departure) {
         throw new Error("Chýba čas príchodu alebo odchodu v zázname dochádzky");
@@ -257,14 +272,14 @@ function getEmployeeTimeData(attendanceEntry, employee, defaultArrival, defaultD
     // Skús získať špecifické časy pre zamestnanca z atribútov
     var employeeArrival = core.safeGetAttribute(
         attendanceEntry,
-        config.fields.attendance.employees,
+        SCRIPT_CONFIG.fields.employees,
         "arrival",
         defaultArrival
     );
 
     var employeeDeparture = core.safeGetAttribute(
         attendanceEntry,
-        config.fields.attendance.employees,
+        SCRIPT_CONFIG.fields.employees,
         "departure",
         defaultDeparture
     );
@@ -272,7 +287,7 @@ function getEmployeeTimeData(attendanceEntry, employee, defaultArrival, defaultD
     return {
         arrival: employeeArrival || defaultArrival,
         departure: employeeDeparture || defaultDeparture,
-        date: core.safeGet(attendanceEntry, config.fields.attendance.date, null)
+        date: core.safeGet(attendanceEntry, SCRIPT_CONFIG.fields.date, null)
     };
 }
 
@@ -390,7 +405,7 @@ function validateEnvironment() {
     }
 
     // Kontrola poľa zamestnancov v aktuálnom zázname
-    var employees = core.safeGet(entry(), config.fields.attendance.employees, []);
+    var employees = core.safeGet(entry(), SCRIPT_CONFIG.fields.employees, []);
     if (!Array.isArray(employees) && !employees) {
         throw new Error("Pole Zamestnanci nie je dostupné v aktuálnom zázname dochádzky");
     }
