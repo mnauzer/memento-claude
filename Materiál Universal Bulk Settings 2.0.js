@@ -14,8 +14,8 @@
 // ===== INICIALIZÁCIA MODULOV =====
 var utils = MementoUtils;
 var config = utils.getConfig();
-var core = utils.getCore();
-var business = utils.getBusiness();
+var core = MementoCore;
+var business = MementoBusiness;
 
 // ===== KONFIGURÁCIA SCRIPTU =====
 var SCRIPT_CONFIG = {
@@ -157,7 +157,7 @@ function getBulkOperationDataOptimized() {
     var operationArguments = getValidatedArguments();
     BulkSettingsData.operation.arguments = operationArguments;
 
-    utils.addDebug(entry(), `Pripravená bulk operácia`, {
+    utils.addDebug(entry(), "Pripravená bulk operácia", {
         materialsCount: selectedMaterials.length,
         argumentsCount: Object.keys(operationArguments.validArguments).length
     });
@@ -192,7 +192,7 @@ function getSelectedMaterialsOptimized() {
         return validMaterials;
 
     } catch (error) {
-        utils.addError(entry(), `Chyba získania označených materiálov: ${error.message}`, "getSelectedMaterialsOptimized");
+        utils.addError(entry(), "Chyba získania označených materiálov: " + error.message, "getSelectedMaterialsOptimized");
         return [];
     }
 }
@@ -217,7 +217,7 @@ function getValidatedArguments() {
                     argumentsData.validArguments[argName] = validatedValue.value;
                     argumentsData.hasValidArguments = true;
                 } else {
-                    argumentsData.validationErrors.push(`${argName}: ${validatedValue.error}`);
+                    argumentsData.validationErrors.push(argName + ": " + validatedValue.error);
                     BulkSettingsData.flags.hasValidationErrors = true;
                 }
             }
@@ -230,7 +230,7 @@ function getValidatedArguments() {
         return argumentsData;
 
     } catch (error) {
-        throw new Error(`Chyba validácie argumentov: ${error.message}`);
+        throw new Error("Chyba validácie argumentov: " + error.message);
     }
 }
 
@@ -238,7 +238,7 @@ function getSafeArgumentValue(argName) {
     try {
         return arg(argName);
     } catch (error) {
-        utils.addError(entry(), `Chyba získania argumentu '${argName}': ${error.message}`, "getSafeArgumentValue");
+        utils.addError(entry(), "Chyba získania argumentu '" + argName + "': " + error.message, "getSafeArgumentValue");
         return null;
     }
 }
@@ -260,28 +260,28 @@ function validateArgumentValue(argName, value) {
             case "Prepočet ceny":
                 var validOptions = ["Pevná cena", "Podľa prirážky", "Neprepočítavať"];
                 if (!validOptions.includes(value)) {
-                    return { isValid: false, error: `Platné možnosti: ${validOptions.join(", ")}` };
+                    return { isValid: false, error: "Platné možnosti: " + validOptions.join(", ") };
                 }
                 return { isValid: true, value: value };
 
             case "Zaokrúhľovanie cien":
                 var validOptions = ["Nahor", "Nadol", "Nezaokrúhľovať", "Najbližšie"];
                 if (!validOptions.includes(value)) {
-                    return { isValid: false, error: `Platné možnosti: ${validOptions.join(", ")}` };
+                    return { isValid: false, error: "Platné možnosti: " + validOptions.join(", ") };
                 }
                 return { isValid: true, value: value };
 
             case "Hodnota zaokrúhenia":
                 var validOptions = ["Desatiny", "Jednotky", "Desiatky", "Stovky"];
                 if (!validOptions.includes(value)) {
-                    return { isValid: false, error: `Platné možnosti: ${validOptions.join(", ")}` };
+                    return { isValid: false, error: "Platné možnosti: " + validOptions.join(", ") };
                 }
                 return { isValid: true, value: value };
 
             case "Zmena nákupnej ceny":
                 var validOptions = ["Upozorniť", "Prepočítať", "Upozorniť a prepočítať", "Ignorovať"];
                 if (!validOptions.includes(value)) {
-                    return { isValid: false, error: `Platné možnosti: ${validOptions.join(", ")}` };
+                    return { isValid: false, error: "Platné možnosti: " + validOptions.join(", ") };
                 }
                 return { isValid: true, value: value };
 
@@ -289,7 +289,7 @@ function validateArgumentValue(argName, value) {
                 return { isValid: true, value: value };
         }
     } catch (error) {
-        return { isValid: false, error: `Chyba validácie: ${error.message}` };
+        return { isValid: false, error: "Chyba validácie: " + error.message };
     }
 }
 
@@ -316,7 +316,7 @@ function processBulkSettings(bulkData, resultObject) {
                 updateMaterialWithResults(material, materialResult, arguments);
             }
 
-            utils.addDebug(material, `Spracovaný materiál: ${materialInfo.name}`, {
+            utils.addDebug(material, "Spracovaný materiál: " + materialInfo.name, {
                 changes: materialResult.changes ? materialResult.changes.length : 0,
                 hasError: !!materialResult.error
             });
@@ -330,7 +330,7 @@ function processBulkSettings(bulkData, resultObject) {
 
             resultObject.addMaterialResult(material.id(), errorResult);
 
-            utils.addError(material, `Chyba spracovania materiálu na indexe ${index}: ${materialError.message}`, "processBulkSettings");
+            utils.addError(material, "Chyba spracovania materiálu na indexe " + index + ": " + materialError.message, "processBulkSettings");
         }
     });
 }
@@ -338,8 +338,8 @@ function processBulkSettings(bulkData, resultObject) {
 function getMaterialInfo(material) {
     return {
         id: material.id(),
-        name: core.safeFieldAccess(material, config.fields.items.name, "Neznámy materiál"),
-        category: core.safeFieldAccess(material, config.fields.items.category, ""),
+        name: core.safeGet(material, config.fields.items.name, "Neznámy materiál"),
+        category: core.safeGet(material, config.fields.items.category, ""),
         entry: material
     };
 }
@@ -390,10 +390,10 @@ function applyFieldSetting(material, argumentName, argumentValue) {
 
     var fieldName = fieldMapping[argumentName];
     if (!fieldName) {
-        throw new Error(`Neznámy argument: ${argumentName}`);
+        throw new Error("Neznámy argument: " + argumentName);
     }
 
-    var currentValue = core.safeFieldAccess(material, fieldName, "");
+    var currentValue = core.safeGet(material, fieldName, "");
     var hasChanged = false;
 
     // Porovnaj hodnoty podľa typu
@@ -411,7 +411,7 @@ function applyFieldSetting(material, argumentName, argumentValue) {
             wasChanged: true,
             previousValue: currentValue,
             newValue: argumentValue,
-            changeDescription: `${argumentName}: '${currentValue}' → '${argumentValue}'`
+            changeDescription: argumentName + ": '" + currentValue + "' → '" + argumentValue + "'"
         };
     }
 
@@ -436,22 +436,22 @@ function updateMaterialWithResults(material, materialResult, arguments) {
         }
 
     } catch (error) {
-        utils.addError(material, `Chyba aktualizácie materiálu: ${error.message}`, "updateMaterialWithResults");
+        utils.addError(material, "Chyba aktualizácie materiálu: " + error.message, "updateMaterialWithResults");
     }
 }
 
 function addMaterialSettingsIcon(material) {
     try {
         var iconsField = config.fields.items.icons || "icons";
-        var currentIcons = core.safeFieldAccess(material, iconsField, "");
+        var currentIcons = core.safeGet(material, iconsField, "");
         var settingsIcon = config.icons.settings;
 
         if (!currentIcons.includes(settingsIcon)) {
-            var updatedIcons = currentIcons ? `${currentIcons} ${settingsIcon}` : settingsIcon;
+            var updatedIcons = currentIcons ? currentIcons + " " + settingsIcon : settingsIcon;
             core.safeSet(material, iconsField, updatedIcons);
         }
     } catch (error) {
-        utils.addError(material, `Chyba pridania ikony: ${error.message}`, "addMaterialSettingsIcon");
+        utils.addError(material, "Chyba pridania ikony: " + error.message, "addMaterialSettingsIcon");
     }
 }
 
@@ -473,7 +473,7 @@ function createMaterialInfoRecord(material, materialResult, arguments) {
         });
 
     } catch (error) {
-        utils.addError(material, `Chyba vytvorenia info záznamu: ${error.message}`, "createMaterialInfoRecord");
+        utils.addError(material, "Chyba vytvorenia info záznamu: " + error.message, "createMaterialInfoRecord");
     }
 }
 
@@ -483,16 +483,16 @@ function showOperationResults(summary) {
         var isSuccess = results.errorMaterials === 0;
 
         var message = isSuccess ? "✅ BULK OPERÁCIA ÚSPEŠNÁ" : "⚠️ BULK OPERÁCIA S CHYBAMI";
-        message += `\n\n📦 Celkom materiálov: ${results.totalMaterials}`;
-        message += `\n✅ Aktualizované: ${results.updatedMaterials}`;
-        message += `\n➖ Preskočené: ${results.skippedMaterials}`;
+        message += "\n\n📦 Celkom materiálov: " + results.totalMaterials;
+        message += "\n✅ Aktualizované: " + results.updatedMaterials;
+        message += "\n➖ Preskočené: " + results.skippedMaterials;
 
         if (results.errorMaterials > 0) {
-            message += `\n❌ Chyby: ${results.errorMaterials}`;
+            message += "\n❌ Chyby: " + results.errorMaterials;
         }
 
         if (results.updatedMaterials > 0) {
-            message += `\n\nℹ️ Detaily v info poli každého aktualizovaného materiálu`;
+            message += "\n\nℹ️ Detaily v info poli každého aktualizovaného materiálu";
         }
 
         if (isSuccess) {
@@ -502,7 +502,7 @@ function showOperationResults(summary) {
         }
 
     } catch (error) {
-        utils.addError(entry(), `Chyba zobrazenia výsledkov: ${error.message}`, "showOperationResults");
+        utils.addError(entry(), "Chyba zobrazenia výsledkov: " + error.message, "showOperationResults");
         utils.showErrorDialog("Chyba zobrazenia výsledkov!\n\n" + error.toString());
     }
 }
@@ -515,7 +515,7 @@ function validateEnvironment() {
 
     // Kontrola knižnice materiálov
     if (!lib(SCRIPT_CONFIG.libraries.primary)) {
-        throw new Error(`Knižnica ${SCRIPT_CONFIG.libraries.primary} nie je dostupná`);
+        throw new Error("Knižnica " + SCRIPT_CONFIG.libraries.primary + " nie je dostupná");
     }
 
     // Kontrola selectedEntries funkcie

@@ -13,8 +13,8 @@
 // ===== INICIALIZÁCIA MODULOV =====
 var utils = MementoUtils;
 var config = utils.getConfig();
-var core = utils.getCore();
-var business = utils.getBusiness();
+var core = MementoCore;
+var business = MementoBusiness;
 
 // ===== KONFIGURÁCIA SCRIPTU =====
 var SCRIPT_CONFIG = {
@@ -149,14 +149,14 @@ function getAttendanceDataOptimized(attendanceEntry) {
 
     // Inicializuj dáta
     AttendanceCalculationData.attendanceRecord.entry = attendanceEntry;
-    AttendanceCalculationData.attendanceRecord.date = core.safeFieldAccess(
+    AttendanceCalculationData.attendanceRecord.date = core.safeGet(
         attendanceEntry,
         config.fields.attendance.date,
         null
     );
 
     // Získaj zamestnancov z aktuálneho záznamu dochádzky
-    var employees = core.safeFieldAccess(
+    var employees = core.safeGet(
         attendanceEntry,
         config.fields.attendance.employees,
         []
@@ -187,8 +187,8 @@ function processAttendanceCalculations(attendanceData, resultObject) {
     var employees = attendanceData.employees;
 
     // Získaj časové údaje z aktuálneho záznamu dochádzky
-    var arrival = core.safeFieldAccess(attendanceEntry, config.fields.attendance.arrival, null);
-    var departure = core.safeFieldAccess(attendanceEntry, config.fields.attendance.departure, null);
+    var arrival = core.safeGet(attendanceEntry, config.fields.attendance.arrival, null);
+    var departure = core.safeGet(attendanceEntry, config.fields.attendance.departure, null);
 
     if (!arrival || !departure) {
         throw new Error("Chýba čas príchodu alebo odchodu v zázname dochádzky");
@@ -238,9 +238,9 @@ function processAttendanceCalculations(attendanceData, resultObject) {
 }
 
 function getEmployeeInfo(employee) {
-    var firstName = core.safeFieldAccess(employee, "Meno", "");
-    var lastName = core.safeFieldAccess(employee, "Priezvisko", "");
-    var nick = core.safeFieldAccess(employee, "Nick", "");
+    var firstName = core.safeGet(employee, "Meno", "");
+    var lastName = core.safeGet(employee, "Priezvisko", "");
+    var nick = core.safeGet(employee, "Nick", "");
     var fullName = firstName + " " + lastName;
 
     return {
@@ -272,7 +272,7 @@ function getEmployeeTimeData(attendanceEntry, employee, defaultArrival, defaultD
     return {
         arrival: employeeArrival || defaultArrival,
         departure: employeeDeparture || defaultDeparture,
-        date: core.safeFieldAccess(attendanceEntry, config.fields.attendance.date, null)
+        date: core.safeGet(attendanceEntry, config.fields.attendance.date, null)
     };
 }
 
@@ -390,7 +390,7 @@ function validateEnvironment() {
     }
 
     // Kontrola poľa zamestnancov v aktuálnom zázname
-    var employees = core.safeFieldAccess(entry(), config.fields.attendance.employees, []);
+    var employees = core.safeGet(entry(), config.fields.attendance.employees, []);
     if (!Array.isArray(employees) && !employees) {
         throw new Error("Pole Zamestnanci nie je dostupné v aktuálnom zázname dochádzky");
     }
