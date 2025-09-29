@@ -65,7 +65,7 @@ var EmployeeCalculationData = {
         attendance: { worked: 0, earned: 0, records: 0 },
         workRecords: { worked: 0, records: 0 },
         drivingLog: { hours: 0, records: 0 },
-        cashRegister: { paid: 0, records: 0 },
+        cashRegister: { paid: 0, premium: 0, records: 0 },
         receivables: { amount: 0, records: 0 },
         liabilities: { amount: 0, records: 0 }
     },
@@ -75,7 +75,7 @@ var EmployeeCalculationData = {
         attendance: { worked: 0, earned: 0, records: 0 },
         workRecords: { worked: 0, records: 0 },
         drivingLog: { hours: 0, records: 0 },
-        cashRegister: { paid: 0, records: 0 }
+        cashRegister: { paid: 0, premium: 0, records: 0 }
     },
 
     // Finálne vypočítané hodnoty
@@ -328,11 +328,18 @@ function processLibraryData(employeeEntry, libraryName, fieldMappings, filter, i
                         var fieldName = fieldMappings.dataFields[fieldKey];
                         var fieldValue = utils.safeGet(record, fieldName, 0);
 
-                        // Špeciálne spracovanie pre pokladňa (len Mzda a Mzda záloha)
+                        // Špeciálne spracovanie pre pokladňa
                         if (libraryName === CONFIG.libraries.cashBook) {
                             var purpose = utils.safeGet(record, "Účel výdaja", "");
-                            if (purpose !== "Mzda" && purpose !== "Mzda záloha") {
-                                continue; // Preskočiť tento záznam
+
+                            // Pre pole "paid" (vyplatené) - len Mzda a Mzda záloha
+                            if (fieldKey === "paid" && purpose !== "Mzda" && purpose !== "Mzda záloha") {
+                                continue; // Preskočiť tento záznam pre vyplatené
+                            }
+
+                            // Pre pole "premium" (prémie) - len Mzda prémia
+                            if (fieldKey === "premium" && purpose !== "Mzda prémia") {
+                                continue; // Preskočiť tento záznam pre prémie
                             }
                         }
 
@@ -391,7 +398,8 @@ function getLibraryMappings() {
             linksFromField: CONFIG.fields.cashBook.employee,
             dateField: CONFIG.fields.cashBook.date,
             dataFields: {
-                paid: CONFIG.fields.cashBook.amount
+                paid: CONFIG.fields.cashBook.amount,
+                premium: CONFIG.fields.cashBook.amount
             }
         },
         receivables: {
@@ -419,8 +427,8 @@ function getCurrentHourlyRate(employeeEntry) {
     utils.addDebug(employeeEntry, "💰 Výpočet aktuálnej hodinovky", "money");
 
     try {
-        // Použij utils.findValidSalary (existujúca MementoUtils funkcia)
-        var hodinovka = utils.findValidSalary(currentEntry, employeeEntry, utils.safeGet(currentEntry, CONFIG.fields.attendance.date));
+        // Použij utils.findValidHourlyRate (opravená funkcia)
+        var hodinovka = utils.findValidHourlyRate(employeeEntry, new Date());
 
         if (!hodinovka || hodinovka <= 0) {
             utils.addDebug(employeeEntry, "⚠️ Nenájdená platná sadzba pre zamestnanca", "warning");
@@ -428,7 +436,7 @@ function getCurrentHourlyRate(employeeEntry) {
         }
 
         utils.addDebug(employeeEntry, "✅ Aktuálna hodinovka: " + hodinovka + " €/h", "money");
-        return hodinovka;
+        return parseFloat(hodinovka).toFixed(2);
 
     } catch (error) {
         utils.addError(employeeEntry, "Chyba pri získavaní hodinovky: " + error.toString(), "getCurrentHourlyRate");
@@ -586,27 +594,29 @@ function processAllLibraries() {
 function updateEmployeeFields() {
     var employeeEntry = EmployeeCalculationData.employee.entry;
 
-    // Definuj všetky polia na aktualizáciu
+    // Definuj všetky polia na aktualizáciu s zaokrúhľovaním
     var fieldsToUpdate = [
-        // Filtrované údaje (používa filter výber obdobia)
-        ["Odpracované", EmployeeCalculationData.filtered.attendance.worked],
-        ["Na zákazkách", EmployeeCalculationData.filtered.workRecords.worked],
-        ["Jazdy", EmployeeCalculationData.filtered.drivingLog.hours],
-        ["Zarobené", EmployeeCalculationData.filtered.attendance.earned],
-        ["Vyplatené", EmployeeCalculationData.filtered.cashRegister.paid],
+        // Filtrované údaje (používa filter výber obdobia) - zaokrúhliť na 2 desatinné miesta
+        ["Odpracované", parseFloat(EmployeeCalculationData.filtered.attendance.worked).toFixed(2)],
+        ["Na zákazkách", parseFloat(EmployeeCalculationData.filtered.workRecords.worked).toFixed(2)],
+        ["Jazdy", parseFloat(EmployeeCalculationData.filtered.drivingLog.hours).toFixed(2)],
+        ["Zarobené", parseFloat(EmployeeCalculationData.filtered.attendance.earned).toFixed(2)],
+        ["Vyplatené", parseFloat(EmployeeCalculationData.filtered.cashRegister.paid).toFixed(2)],
+        ["Prémie", parseFloat(EmployeeCalculationData.filtered.cashRegister.premium).toFixed(2)],
 
-        // Total údaje (používa filter obdobie total)
-        ["Odpracované total", EmployeeCalculationData.total.attendance.worked],
-        ["Na zákazkách total", EmployeeCalculationData.total.workRecords.worked],
-        ["Jazdy total", EmployeeCalculationData.total.drivingLog.hours],
-        ["Zarobené total", EmployeeCalculationData.total.attendance.earned],
-        ["Vyplatené total", EmployeeCalculationData.total.cashRegister.paid],
+        // Total údaje (používa filter obdobie total) - zaokrúhliť na 2 desatinné miesta
+        ["Odpracované total", parseFloat(EmployeeCalculationData.total.attendance.worked).toFixed(2)],
+        ["Na zákazkách total", parseFloat(EmployeeCalculationData.total.workRecords.worked).toFixed(2)],
+        ["Jazdy total", parseFloat(EmployeeCalculationData.total.drivingLog.hours).toFixed(2)],
+        ["Zarobené total", parseFloat(EmployeeCalculationData.total.attendance.earned).toFixed(2)],
+        ["Vyplatené total", parseFloat(EmployeeCalculationData.total.cashRegister.paid).toFixed(2)],
+        ["Prémie total", parseFloat(EmployeeCalculationData.total.cashRegister.premium).toFixed(2)],
 
-        // Financie (používajú filter výber obdobia)
-        ["Pohľadávky", EmployeeCalculationData.filtered.receivables.amount],
-        ["Záväzky", EmployeeCalculationData.filtered.liabilities.amount],
-        ["Saldo", EmployeeCalculationData.calculated.balance],
-        ["Preplatok/Nedoplatok", EmployeeCalculationData.calculated.paymentDifference],
+        // Financie (používajú filter výber obdobia) - zaokrúhliť na 2 desatinné miesta
+        ["Pohľadávky", parseFloat(EmployeeCalculationData.filtered.receivables.amount).toFixed(2)],
+        ["Záväzky", parseFloat(EmployeeCalculationData.filtered.liabilities.amount).toFixed(2)],
+        ["Saldo", parseFloat(EmployeeCalculationData.calculated.balance).toFixed(2)],
+        ["Preplatok/Nedoplatok", parseFloat(EmployeeCalculationData.calculated.paymentDifference).toFixed(2)],
 
         // Ostatné údaje
         ["Aktuálna hodinovka", EmployeeCalculationData.employee.currentHourlyRate]
@@ -654,24 +664,26 @@ function createInfoRecord() {
 
         infoMessage += "💰 MZDY A FINANCIE:\n";
         infoMessage += "───────────────────────────────────\n";
-        infoMessage += "• Aktuálna hodinovka: " + EmployeeCalculationData.employee.currentHourlyRate.toFixed(2) + " €/h\n";
-        infoMessage += "• Zarobené: " + summary.totals.earnedAmount.toFixed(2) + "€\n";
-        infoMessage += "• Zarobené total: " + EmployeeCalculationData.total.attendance.earned.toFixed(2) + "€\n";
-        infoMessage += "• Vyplatené: " + summary.totals.paidAmount.toFixed(2) + "€\n";
-        infoMessage += "• Vyplatené total: " + EmployeeCalculationData.total.cashRegister.paid.toFixed(2) + "€\n\n";
+        infoMessage += "• Aktuálna hodinovka: " + parseFloat(EmployeeCalculationData.employee.currentHourlyRate).toFixed(2) + " €/h\n";
+        infoMessage += "• Zarobené: " + parseFloat(summary.totals.earnedAmount).toFixed(2) + "€\n";
+        infoMessage += "• Zarobené total: " + parseFloat(EmployeeCalculationData.total.attendance.earned).toFixed(2) + "€\n";
+        infoMessage += "• Vyplatené: " + parseFloat(summary.totals.paidAmount).toFixed(2) + "€\n";
+        infoMessage += "• Vyplatené total: " + parseFloat(EmployeeCalculationData.total.cashRegister.paid).toFixed(2) + "€\n";
+        infoMessage += "• Prémie: " + parseFloat(EmployeeCalculationData.filtered.cashRegister.premium).toFixed(2) + "€\n";
+        infoMessage += "• Prémie total: " + parseFloat(EmployeeCalculationData.total.cashRegister.premium).toFixed(2) + "€\n\n";
 
         infoMessage += "📈 POHĽADÁVKY A ZÁVÄZKY (filter: výber obdobia):\n";
         infoMessage += "───────────────────────────────────\n";
-        infoMessage += "• Pohľadávky (zostatok): " + EmployeeCalculationData.filtered.receivables.amount.toFixed(2) + "€\n";
-        infoMessage += "• Záväzky (zostatok): " + EmployeeCalculationData.filtered.liabilities.amount.toFixed(2) + "€\n";
-        infoMessage += "• Saldo = Pohľadávky - Záväzky: " + summary.totals.balance.toFixed(2) + "€\n\n";
+        infoMessage += "• Pohľadávky (zostatok): " + parseFloat(EmployeeCalculationData.filtered.receivables.amount).toFixed(2) + "€\n";
+        infoMessage += "• Záväzky (zostatok): " + parseFloat(EmployeeCalculationData.filtered.liabilities.amount).toFixed(2) + "€\n";
+        infoMessage += "• Saldo = Pohľadávky - Záväzky: " + parseFloat(summary.totals.balance).toFixed(2) + "€\n\n";
 
         infoMessage += "🧮 VÝPOČTY:\n";
         infoMessage += "───────────────────────────────────\n";
         infoMessage += "• Preplatok/Nedoplatok = Zarobené - Vyplatené\n";
-        infoMessage += "• " + summary.totals.earnedAmount.toFixed(2) + "€ - " + summary.totals.paidAmount.toFixed(2) + "€ = " + summary.totals.paymentDifference.toFixed(2) + "€\n";
+        infoMessage += "• " + parseFloat(summary.totals.earnedAmount).toFixed(2) + "€ - " + parseFloat(summary.totals.paidAmount).toFixed(2) + "€ = " + parseFloat(summary.totals.paymentDifference).toFixed(2) + "€\n";
         infoMessage += "• Saldo = Pohľadávky - Záväzky (používa filter 'výber obdobia')\n";
-        infoMessage += "• " + EmployeeCalculationData.filtered.receivables.amount.toFixed(2) + "€ - " + EmployeeCalculationData.filtered.liabilities.amount.toFixed(2) + "€ = " + summary.totals.balance.toFixed(2) + "€\n\n";
+        infoMessage += "• " + parseFloat(EmployeeCalculationData.filtered.receivables.amount).toFixed(2) + "€ - " + parseFloat(EmployeeCalculationData.filtered.liabilities.amount).toFixed(2) + "€ = " + parseFloat(summary.totals.balance).toFixed(2) + "€\n\n";
 
         infoMessage += "📊 ŠTATISTIKY ZÁZNAMOV:\n";
         infoMessage += "───────────────────────────────────\n";
@@ -680,7 +692,8 @@ function createInfoRecord() {
         infoMessage += "• Kniha jázd: " + (EmployeeCalculationData.filtered.drivingLog.records || 0) + " záznamov\n";
         infoMessage += "• Pohľadávky: " + (EmployeeCalculationData.filtered.receivables.records || 0) + " záznamov\n";
         infoMessage += "• Záväzky: " + (EmployeeCalculationData.filtered.liabilities.records || 0) + " záznamov\n";
-        infoMessage += "• Pokladňa: " + (EmployeeCalculationData.filtered.cashRegister.records || 0) + " záznamov (len Mzda + Mzda záloha)\n\n";
+        infoMessage += "• Pokladňa (vyplatené): " + (EmployeeCalculationData.filtered.cashRegister.records || 0) + " záznamov (len Mzda + Mzda záloha)\n";
+        infoMessage += "• Pokladňa (prémie): záznamy s 'Mzda prémia'\n\n";
 
         infoMessage += "🔧 TECHNICKÉ INFO:\n";
         infoMessage += "• Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
