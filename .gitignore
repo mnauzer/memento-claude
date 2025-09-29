@@ -66,7 +66,14 @@ CLAUDE.md
 *.md
 *.txt
 poslednychat.txt
-
+#
+claude-*
+traefik-*
+nginx-*
+docker-compose.yml
+Dockerfile
+README.md
+.git*
 # Claude Code session súbory
 2025-*-*.txt
 
