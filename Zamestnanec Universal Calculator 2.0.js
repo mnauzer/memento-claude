@@ -295,9 +295,9 @@ function processLibraryData(employeeEntry, libraryName, fieldMappings, filter, i
     try {
         utils.addDebug(employeeEntry, "🗃️ Spracovanie knižnice: " + libraryName + " (" + (isTotal ? "TOTAL" : "FILTERED") + ")", "database");
 
-        // Získaj záznamy cez utils.safeGetLinksFrom (MementoUtils funkcia)
+        // Získaj záznamy cez utils.safeGetLinksTo (opravená funkcia)
         var linksFromField = fieldMappings.linksFromField;
-        var records = utils.safeGetLinksFrom(employeeEntry, libraryName, linksFromField);
+        var records = utils.safeGetLinksTo(employeeEntry, libraryName, linksFromField);
 
         if (!records || records.length === 0) {
             utils.addDebug(employeeEntry, "⚠️ Žiadne záznamy v knižnici " + libraryName, "warning");
@@ -328,18 +328,28 @@ function processLibraryData(employeeEntry, libraryName, fieldMappings, filter, i
                         var fieldName = fieldMappings.dataFields[fieldKey];
                         var fieldValue = utils.safeGet(record, fieldName, 0);
 
-                        // Špeciálne spracovanie pre pokladňa
+                        // Špeciálne spracovanie pre pokladňa (výdavky)
                         if (libraryName === CONFIG.libraries.cashBook) {
                             var purpose = utils.safeGet(record, "Účel výdaja", "");
+                            var recordType = utils.safeGet(record, "Typ", ""); // Príjem/Výdavok
+
+                            // Spracovávaj len výdavky
+                            if (recordType !== "Výdavok") {
+                                continue;
+                            }
 
                             // Pre pole "paid" (vyplatené) - len Mzda a Mzda záloha
-                            if (fieldKey === "paid" && purpose !== "Mzda" && purpose !== "Mzda záloha") {
-                                continue; // Preskočiť tento záznam pre vyplatené
+                            if (fieldKey === "paid") {
+                                if (purpose !== "Mzda" && purpose !== "Mzda záloha") {
+                                    continue; // Preskočiť tento záznam pre vyplatené
+                                }
                             }
 
                             // Pre pole "premium" (prémie) - len Mzda prémia
-                            if (fieldKey === "premium" && purpose !== "Mzda prémia") {
-                                continue; // Preskočiť tento záznam pre prémie
+                            if (fieldKey === "premium") {
+                                if (purpose !== "Mzda prémia") {
+                                    continue; // Preskočiť tento záznam pre prémie
+                                }
                             }
                         }
 
@@ -395,7 +405,7 @@ function getLibraryMappings() {
             }
         },
         cashRegister: {
-            linksFromField: CONFIG.fields.cashBook.employee,
+            linksFromField: "Zamestnanec", // Pole v knižnici Pokladňa
             dateField: CONFIG.fields.cashBook.date,
             dataFields: {
                 paid: CONFIG.fields.cashBook.amount,
@@ -403,17 +413,17 @@ function getLibraryMappings() {
             }
         },
         receivables: {
-            linksFromField: CONFIG.fields.receivables.employee,
+            linksFromField: "Zamestnanec", // Pole v knižnici Pohľadávky
             dateField: CONFIG.fields.receivables.date,
             dataFields: {
-                amount: CONFIG.fields.receivables.remainingAmount
+                amount: CONFIG.fields.receivables.balance // Zostatok namiesto remainingAmount
             }
         },
         liabilities: {
-            linksFromField: CONFIG.fields.obligations.employee,
+            linksFromField: "Zamestnanec", // Pole v knižnici Záväzky
             dateField: CONFIG.fields.obligations.date,
             dataFields: {
-                amount: CONFIG.fields.obligations.remainingAmount
+                amount: CONFIG.fields.obligations.balance // Zostatok namiesto remainingAmount
             }
         }
     };
@@ -459,7 +469,7 @@ function processAttendanceEarnings(employeeEntry, filter, isTotal) {
     };
 
     try {
-        var attendanceRecords = utils.safeGetLinksFrom(employeeEntry, CONFIG.libraries.attendance, CONFIG.fields.attendance.employees);
+        var attendanceRecords = utils.safeGetLinksTo(employeeEntry, CONFIG.libraries.attendance, CONFIG.fields.attendance.employees);
 
         if (!attendanceRecords || attendanceRecords.length === 0) {
             return result;
