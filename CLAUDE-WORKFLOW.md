@@ -96,6 +96,37 @@ ClaudeNotificationHelper.notifyTaskCompletion(
 3. **POVINNÉ** poslať Telegram notifikáciu s detailmi
 4. **KONTROLA** že všetky súbory sú v gite
 5. **BACKUP** - GitHub je hlavný backup systém
+6. **FUNKCIE** - VŽDY kontrolovať existenciu funkcií v MementoUtils pred použitím
+
+## 🔍 KONTROLA EXISTENCIE FUNKCIÍ
+
+### Pred použitím akejkoľvek funkcie z MementoUtils:
+
+1. **Skontroluj dostupné funkcie** v module
+2. **Overprecizovať názvy** funkcií (case sensitive)
+3. **Testovať** na malých vzorkách pred plnou implementáciou
+4. **Dokumentovať** použité funkcie v komentároch
+
+### Časté funkcie MementoUtils:
+```javascript
+// ✅ SPRÁVNE FUNKCIE (overené):
+utils.safeGetLinksFrom(entry, libraryName, fieldName)
+utils.safeGet(entry, fieldName, defaultValue)
+utils.safeSet(entry, fieldName, value)
+utils.addDebug(entry, message, type)
+utils.addError(entry, message, source, error)
+utils.findValidHourlyRate(employee, date)
+
+// ❌ NEEXISTUJÚCE FUNKCIE (nepoužívať):
+utils.safeGetLinksTo() // NEEXISTUJE!
+utils.findValidSalary() // MOŽNO NEEXISTUJE - OVERIŤ!
+```
+
+### Kontrolný postup:
+1. **Pred písaním scriptu** - preskúmaj dostupné funkcie
+2. **Počas písania** - overprecizovať názvy funkcií
+3. **Po dokončení** - test na funkčnosť všetkých volaní
+4. **Pri chybách** - prvá kontrola = existencia funkcií
 
 ## 📱 TELEGRAM BOT ÚDAJE
 
