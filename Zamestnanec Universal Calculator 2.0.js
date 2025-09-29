@@ -295,9 +295,9 @@ function processLibraryData(employeeEntry, libraryName, fieldMappings, filter, i
     try {
         utils.addDebug(employeeEntry, "🗃️ Spracovanie knižnice: " + libraryName + " (" + (isTotal ? "TOTAL" : "FILTERED") + ")", "database");
 
-        // Získaj záznamy cez utils.safeGetLinksTo (opravená funkcia)
+        // Získaj záznamy cez utils.safeGetLinksFrom (správna funkcia)
         var linksFromField = fieldMappings.linksFromField;
-        var records = utils.safeGetLinksTo(employeeEntry, libraryName, linksFromField);
+        var records = utils.safeGetLinksFrom(employeeEntry, libraryName, linksFromField);
 
         if (!records || records.length === 0) {
             utils.addDebug(employeeEntry, "⚠️ Žiadne záznamy v knižnici " + libraryName, "warning");
@@ -469,7 +469,7 @@ function processAttendanceEarnings(employeeEntry, filter, isTotal) {
     };
 
     try {
-        var attendanceRecords = utils.safeGetLinksTo(employeeEntry, CONFIG.libraries.attendance, CONFIG.fields.attendance.employees);
+        var attendanceRecords = utils.safeGetLinksFrom(employeeEntry, CONFIG.libraries.attendance, CONFIG.fields.attendance.employees);
 
         if (!attendanceRecords || attendanceRecords.length === 0) {
             return result;
