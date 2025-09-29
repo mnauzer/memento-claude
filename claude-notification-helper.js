@@ -16,7 +16,8 @@ var ClaudeNotificationHelper = (function() {
     // Konfigurácia
     var config = {
         n8nWebhookUrl: "http://localhost:5678/webhook/claude-completion",
-        telegramChatId: "7790148295",
+        telegramChatId: "-1003143784435",
+        telegramThreadId: "2",
         telegramBotToken: "7529072263:AAE60n5-i9iwwhuEHPoy67w9LWDF3ICnAB0",
         timeout: 10000
     };
@@ -150,6 +151,7 @@ var ClaudeNotificationHelper = (function() {
 
                 var telegramData = {
                     chat_id: config.telegramChatId,
+                    message_thread_id: config.telegramThreadId,
                     text: message,
                     parse_mode: "Markdown",
                     disable_web_page_preview: true
