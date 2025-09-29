@@ -27,7 +27,8 @@ git push origin main
 curl -X POST "https://api.telegram.org/bot7529072263:AAE60n5-i9iwwhuEHPoy67w9LWDF3ICnAB0/sendMessage" \
   -H "Content-Type: application/json" \
   -d '{
-    "chat_id": "7790148295",
+    "chat_id": "-1003143784435",
+    "message_thread_id": "2",
     "text": "🎉 *Claude Code dokončil úlohu!*\n\n📋 **Úloha:** [POPIS ÚLOHY]\n\n📝 **Výsledok:**\n[DETAILY ZMIEN]\n\n📁 **Súbory:**\n[ZOZNAM SÚBOROV]\n\n⏰ **Dokončené:** [TIMESTAMP]\n✅ **Status:** Úspešne dokončené\n\n🤖 _Claude Code Assistant_",
     "parse_mode": "Markdown",
     "disable_web_page_preview": true
@@ -131,7 +132,8 @@ utils.findValidSalary() // MOŽNO NEEXISTUJE - OVERIŤ!
 ## 📱 TELEGRAM BOT ÚDAJE
 
 - **Bot Token:** `7529072263:AAE60n5-i9iwwhuEHPoy67w9LWDF3ICnAB0`
-- **Chat ID:** `7790148295` (Rasťo)
+- **Chat ID:** `-1003143784435` (ClaudeCode skupina)
+- **Thread ID:** `2` (Notifikácie téma)
 - **Format:** Markdown
 - **Webhook URL:** `http://localhost:5678/webhook/claude-completion`
 
