@@ -19,47 +19,47 @@ memento-claude/
 │
 ├── libraries/                      # Knižnice Memento Database
 │   ├── dochadzka/                 # Dochádzka (Attendance)
-│   │   ├── Dochádzka Prepočet 7.js
-│   │   ├── Dochádzka Before Delete Cleanup.js
-│   │   ├── Dochádzka Individual Notifications 3.0.js
-│   │   ├── Dochádzka Universal Attendance Calculator 1.0.js
-│   │   └── Peter Babičenko Attendance Calculator 1.0.js
+│   │   ├── Doch.Calc.Main.js
+│   │   ├── Doch.Calc.Universal.js
+│   │   ├── Doch.Calc.Custom.PeterBabicenko.js
+│   │   ├── Doch.Trigger.BeforeDelete.js
+│   │   └── Doch.Notif.Individual.js
 │   │
 │   ├── kniha-jazd/                # Kniha jázd (Vehicle Logbook)
-│   │   ├── Kniha jázd Prepočet 9.js
-│   │   ├── Kniha jázd Nalinkuj zákazky.js
-│   │   └── Kniha jázd nastavenie Štart a Cieľ.js
+│   │   ├── Knij.Calc.Main.js
+│   │   ├── Knij.Action.LinkOrders.js
+│   │   └── Knij.Action.SetStartEnd.js
 │   │
 │   ├── material/                  # Materiál (Materials Management)
-│   │   ├── Príjemky materiálu Prepočet.js
-│   │   ├── Výdajky materiálu Prepočet.js
-│   │   ├── Materiál Nastavenie polí Action.js
-│   │   ├── Materiál Nastavenie polí Bulk Action.js
-│   │   ├── Materiál Nastavenie polí Bulk Action v1.1.js
-│   │   ├── Materiál Prepočet ceny Action.js
-│   │   ├── Materiál Prepočet ceny Bulk Action.js
-│   │   ├── Materiál Prepočet ceny Button.js
-│   │   └── Materiál Universal Bulk Settings 2.0.js
+│   │   ├── Mat.Calc.Receipts.js
+│   │   ├── Mat.Calc.Issues.js
+│   │   ├── Mat.Action.SetFields.js
+│   │   ├── Mat.Action.CalcPrice.js
+│   │   ├── Mat.BulkAction.SetFields.v1.0.js
+│   │   ├── Mat.BulkAction.SetFields.v1.1.js
+│   │   ├── Mat.BulkAction.UpdatePrices.js
+│   │   ├── Mat.BulkAction.UniversalSettings.js
+│   │   └── Mat.Button.CalcPrice.js
 │   │
 │   ├── pokladna/                  # Pokladňa (Cash Register)
-│   │   ├── Pokladňa prepočet dph.js
-│   │   └── Pokladňa Úhrada záväzkov.js
+│   │   ├── Pokl.Calc.VAT.js
+│   │   └── Pokl.Action.PayObligations.js
 │   │
 │   ├── zamestnanec/               # Zamestnanec (Employee)
-│   │   ├── Zamestnanec Prepočet.js
-│   │   └── Zamestnanec Universal Calculator 2.0.js
+│   │   ├── Zam.Calc.Main.js
+│   │   └── Zam.Calc.Universal.js
 │   │
 │   ├── zakazky/                   # Zákazky (Projects/Orders)
-│   │   └── Zákazky Prepočet.js
+│   │   └── Zak.Calc.Main.js
 │   │
 │   └── zaznam-prac/               # Záznam prác (Work Records)
-│       └── Záznam prác Prepočet.js
+│       └── Zazp.Calc.Main.js
 │
 ├── utils/                          # Všeobecné utility scripty
-│   ├── Notifications Delete Trigger.js
-│   ├── Extract Library IDs.js
-│   ├── Library Renumber Action.js
-│   └── Utils Prečísluj záznamy.js
+│   ├── Notif.Trigger.OnDelete.js
+│   ├── Utils.Action.ExtractLibraryIDs.js
+│   ├── Utils.Action.Renumber.js
+│   └── Utils.Action.RenumberRecords.js
 │
 └── templates/                      # Šablóny pre nové scripty
 ```
@@ -273,15 +273,29 @@ MementoTelegram (závisí od všetkých vyššie uvedených)
 - config/
 - Debug*, Test*, Template* súbory
 
+## Naming Convention
+
+**Formát názvu scriptu:** `[Knižnica].[Typ].[Názov].js`
+
+**Príklady:**
+- `Doch.Calc.Main.js` - Hlavný prepočet dochádzky
+- `Mat.Action.SetFields.js` - Akcia nastavenia polí materiálu
+- `Notif.Trigger.OnDelete.js` - Trigger cleanup notifikácií
+
+**Verzia** je uvedená v hlavičke scriptu, NIE v názve súboru!
+
+Pre úplnú konvenciu pomenovania pozri: **MEMENTO_NAMING_CONVENTION.md**
+
 ## Použitie v Claude Code
 
 Pri práci so scriptami referencovať:
 - `core/MementoCore7.js:123` - core utilities
-- `libraries/dochadzka/Dochádzka Prepočet 7.js:456` - attendance script
-- `libraries/material/Materiál Prepočet ceny Action.js:78` - material pricing
+- `libraries/dochadzka/Doch.Calc.Main.js:456` - attendance calculation
+- `libraries/material/Mat.Action.SetFields.js:78` - material fields setup
 
 Claude Code má prístup k tejto knowledge base a vie:
 1. Kde nájsť príslušné scripty
 2. Aké sú závislosti medzi modulmi
 3. Ktoré scripty spolu súvisia
 4. Kde pridávať nové funkcie
+5. Ako pomenovať nové scripty
