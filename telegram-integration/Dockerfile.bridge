@@ -1,0 +1,14 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy bridge server and dependencies
+COPY telegram-bridge-server.js .
+COPY package*.json ./
+
+# Install dependencies if package.json exists
+RUN if [ -f package.json ]; then npm install; fi
+
+EXPOSE 3001
+
+CMD ["node", "telegram-bridge-server.js"]
