@@ -1,11 +1,21 @@
 # ========================================
 # MEMENTO DATABASE - GIT SYNC CONFIGURATION
 # ========================================
-# SYNCHRONIZOVANÉ: Len produkčné scripty pre Memento Database
-# IGNOROVANÉ: Všetky interné vývojové súbory
+# SYNCHRONIZOVANÉ: Len Memento Database scripty
+# IGNOROVANÉ: Všetky pomocné súbory a adresáre
 
 # ========================================
-# INTERNÉ VÝVOJOVÉ SÚBORY - IGNOROVAŤ
+# IGNOROVANÉ ADRESÁRE
+# ========================================
+telegram-integration/
+python-utilities/
+workflows/
+logs-temp/
+kb-docs/
+config/
+
+# ========================================
+# INTERNÉ VÝVOJOVÉ SÚBORY
 # ========================================
 
 # Python development súbory
@@ -31,21 +41,8 @@ wheels/
 .installed.cfg
 *.egg
 
-# Field verification system
-field_verification_system.py
-memento_config_updater.py
-field_sync_system.py
-verification_workflow.py
-memento_api_client.py
-rate_limit_test.py
-analyze_library_structure.py
-
-# JSON analysis a dokumentácia
-asistanto.json
+# JSON súbory
 *.json
-links_analysis.json
-attendance_analysis.json
-diagnostics.json
 
 # Cache a temporary súbory
 .cache/
@@ -55,57 +52,32 @@ diagnostics.json
 *.temp
 *.log
 
-# Screenshots a dokumentácia
+# Screenshots
 screenshots/
 
-# Skryté adresáre a súbory
-.*/
+# Skryté adresáre
+.backup/
+.backup*/
+.claude/
+.conversations/
+.doc/
+.docs/
+.vscode/
 
-# Knowledge a dokumentačné súbory
-CLAUDE.md
+# Dokumentačné súbory
 *.md
 *.txt
-poslednychat.txt
-#
+
+# Claude/Docker/Config súbory
 claude-*
 traefik-*
 nginx-*
-docker-compose.yml
-Dockerfile
-README.md
-.git*
-# Claude Code session súbory
-2025-*-*.txt
-
-# Chat exporty a konverzácie
-*chat*
-*export*
-*conversation*
-chat_export_*
-conversation_*
-claude_chat_*
-ai_chat_*
-
-# Citlivé a bezpečnostné súbory
+docker-compose*.yml
+Dockerfile*
 *.env
 .env*
-*secret*
-*credential*
-*password*
-*token*
-*key*
-*api_key*
-*apikey*
-config.json
-settings.json
-secrets.json
-keys.json
 
-# Claude Code nastavenia a permissions
-.claude/
-*.local.json
-
-# Záložné a dočasné súbory
+# Záložné súbory
 *.backup
 *.bak
 *.old
@@ -113,23 +85,21 @@ keys.json
 \#*\#
 .#*
 
-# Database a exports
+# Database exports
 *.db
 *.sqlite
 *.csv
 *.xlsx
 *.xls
 
-# Privátne súbory
-private/
-confidential/
-sensitive/
-
 # Vývojové súbory
 debug.js
 test-*.js
 *-test.js
 playground.js
+
+# Shell scripty
+*.sh
 
 # ========================================
 # SYNCHRONIZOVANÉ SÚBORY - WHITELIST
