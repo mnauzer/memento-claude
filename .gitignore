@@ -66,6 +66,7 @@ screenshots/
 
 # Dokumentačné súbory
 *.md
+!MEMENTO_PROJECT_STRUCTURE.md
 *.txt
 
 # Claude/Docker/Config súbory
