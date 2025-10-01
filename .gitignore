@@ -68,6 +68,7 @@ screenshots/
 *.md
 !MEMENTO_PROJECT_STRUCTURE.md
 !MEMENTO_NAMING_CONVENTION.md
+!libraries/**/README.md
 *.txt
 
 # Claude/Docker/Config súbory
