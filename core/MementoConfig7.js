@@ -566,7 +566,6 @@ var MementoConfig = (function() {
                 telegramID: "Telegram ID", // DEPRECATED - use telegram
                 phone: "Mobil", // DEPRECATED - use mobile
                 unpaid: "Preplatok/Nedoplatok", // DEPRECATED - use balance
-                workedOnOrdersTotal: "Odpracované na zákazkach total", // DEPRECATED - use workedOnOrdersTotal
 
                 // Dodatočné finančné polia (ak sú potrebné)
                 bonuses: "Prémie", // sum prémie (z knižnice Pokladňa)
