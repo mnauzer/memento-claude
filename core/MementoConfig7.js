@@ -558,7 +558,7 @@ var MementoConfig = (function() {
                 // Kontaktné údaje
                 mobile: "Mobil", // phone
                 email: "Email", // email
-                telegram: "Telegram", // text - Telegram username/ID
+                telegram: "Telegram ID", // text - Telegram username/ID
                 note: "Poznámka", // text
 
                 // Mapovanie starých názvov pre backward compatibility
