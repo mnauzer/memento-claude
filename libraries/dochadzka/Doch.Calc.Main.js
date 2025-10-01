@@ -1,4 +1,3 @@
-
 // ==============================================
 // DOCHÁDZKA PREPOČET - AUTOMATICKÝ VÝPOČET
 // Verzia: 7.3 | Dátum: August 2025 | Autor: ASISTANTO
