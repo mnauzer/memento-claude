@@ -4,18 +4,14 @@
 
 ```
 memento-claude/
-├── core/                           # Základné moduly systému
+├── core/                           # Základné moduly systému (všetky v root core/)
 │   ├── MementoCore7.js            # Foundation utilities (logging, field access, validation)
-│   ├── config/
-│   │   └── MementoConfig7.js      # Centralized configuration management
-│   ├── utils/
-│   │   └── MementoUtils7.js       # Extended utilities and helper functions
-│   ├── business/
-│   │   └── MementoBusiness7.js    # Business logic (attendance, payroll calculations)
-│   └── integrations/
-│       ├── MementoAI7.js          # AI services integration (OpenAI, Claude)
-│       ├── MementoTelegram8.js    # Telegram Bot API integration
-│       └── MementoGPS.js          # GPS utilities
+│   ├── MementoConfig7.js          # Centralized configuration management
+│   ├── MementoUtils7.js           # Extended utilities and helper functions
+│   ├── MementoBusiness7.js        # Business logic (attendance, payroll calculations)
+│   ├── MementoAI7.js              # AI services integration (OpenAI, Claude)
+│   ├── MementoTelegram8.js        # Telegram Bot API integration
+│   └── MementoGPS.js              # GPS utilities
 │
 ├── libraries/                      # Knižnice Memento Database
 │   ├── dochadzka/                 # Dochádzka (Attendance)
@@ -174,43 +170,45 @@ MementoTelegram (závisí od všetkých vyššie uvedených)
 
 ## Core moduly - Popis
 
-### MementoCore7.js
+Všetky core moduly sú umiestnené priamo v `core/` adresári pre jednoduchú prístupnosť z Memento Database.
+
+### core/MementoCore7.js
 - Safe field access utilities
 - Logging functions
 - Validation utilities
 - Base utilities pre všetky scripty
 
-### MementoConfig7.js
+### core/MementoConfig7.js
 - Centrálna konfigurácia
 - Field name mappings
 - Library IDs
 - Nastavenia pre všetky moduly
 
-### MementoUtils7.js
+### core/MementoUtils7.js
 - Extended helper functions
 - Time calculations (15-minute rounding)
 - Date/time formatting
 - Common utilities
 
-### MementoBusiness7.js
+### core/MementoBusiness7.js
 - Business logic pre attendance
 - Payroll calculations
 - Work hours calculations
 - Rate calculations
 
-### MementoAI7.js
+### core/MementoAI7.js
 - OpenAI GPT-4 integration
 - Claude API integration
 - HTTP wrapper pre AI services
 - Image analysis
 
-### MementoTelegram8.js
+### core/MementoTelegram8.js
 - Telegram Bot API integration
 - Message sending/editing/deletion
 - Group and thread support
 - Notification aggregation
 
-### MementoGPS.js
+### core/MementoGPS.js
 - GPS coordinate utilities
 - Distance calculations
 - Location services
@@ -290,8 +288,11 @@ Pre úplnú konvenciu pomenovania pozri: **MEMENTO_NAMING_CONVENTION.md**
 
 Pri práci so scriptami referencovať:
 - `core/MementoCore7.js:123` - core utilities
+- `core/MementoConfig7.js:45` - configuration
 - `libraries/dochadzka/Doch.Calc.Main.js:456` - attendance calculation
 - `libraries/material/Mat.Action.SetFields.js:78` - material fields setup
+
+**Dôležité:** Všetky core moduly sú v `core/` adresári (bez podadresárov) pre jednoduchšiu prístupnosť z Memento Database.
 
 Claude Code má prístup k tejto knowledge base a vie:
 1. Kde nájsť príslušné scripty
@@ -299,3 +300,4 @@ Claude Code má prístup k tejto knowledge base a vie:
 3. Ktoré scripty spolu súvisia
 4. Kde pridávať nové funkcie
 5. Ako pomenovať nové scripty
+6. Že core moduly sú všetky v `core/` root adresári
