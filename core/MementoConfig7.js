@@ -238,6 +238,8 @@ var MementoConfig = (function() {
                     dailyWage: "denná mzda",
                     note: "poznámka"
                 },
+                // Povinné polia pre validáciu
+                requiredFields: ["date", "arrival", "departure", "employees"]
             },
             // Záznam práce polia
             workRecord: {
@@ -257,6 +259,8 @@ var MementoConfig = (function() {
                 endTime: "Do",
                 machinery: "Mechanizácia", // linkToEntry Mechanizácia
                 sumMachineryUsage: "Použitie mechanizácie", // linkToEntry Výkaz strojov
+                // Povinné polia pre validáciu
+                requiredFields: ["date", "order", "employees", "startTime", "endTime"]
             },
             // Kniha jázd polia
             rideLog: {
