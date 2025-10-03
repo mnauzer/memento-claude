@@ -18,7 +18,7 @@
 var MementoUtils = (function() {
     'use strict';
     
-    var version = "7.0";
+    var version = "7.0.1";  // Pridané createOrUpdateDailyReport
     
     // ==============================================
     // LAZY LOADING MODULOV
@@ -282,6 +282,9 @@ var MementoUtils = (function() {
         applyPriceRounding: lazyCall('business', 'applyPriceRounding'),
         createMaterialInfoRecord: lazyCall('business', 'createMaterialInfoRecord'),
         createOrUpdateMaterialPriceRecord: lazyCall('business', 'createOrUpdateMaterialPriceRecord'),
+
+        // === DAILY REPORT FUNKCIE (nové) ===
+        createOrUpdateDailyReport: lazyCall('business', 'createOrUpdateDailyReport'),
 
 
         // === GPS FUNKCIE (ak je modul dostupný) ===
