@@ -605,8 +605,146 @@ var MementoBusiness = (function() {
         }
     }
 
-    function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
-    
+    /**
+     * Univerzálne spracovanie jedného zamestnanca
+     * @param {Object} zamestnanec - Záznam zamestnanca
+     * @param {Number} pracovnaDobaHodiny - Počet hodín
+     * @param {Date} datum - Dátum záznamu
+     * @param {Number} index - Index v poli zamestnancov
+     * @param {Object} options - Voliteľné nastavenia
+     * @param {Object} options.entry - Aktuálny entry (default: currentEntry)
+     * @param {Object} options.config - Konfigurácia (default: CONFIG)
+     * @param {String} options.employeeFieldName - Názov poľa so zamestnancami
+     * @param {Object} options.attributes - Definície atribútov polí
+     * @param {Boolean} options.includeExtras - Zahrnúť príplatky/prémie/pokuty (default: false)
+     * @param {Boolean} options.processObligations - Spracovať záväzky (default: false)
+     * @param {Array} options.existingObligations - Existujúce záväzky pre update
+     * @returns {Object} {success, hodinovka, dennaMzda, priplatok, premia, pokuta, zamestnanec, ...}
+     */
+    function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index, options) {
+        var core = getCore();
+        options = options || {};
+
+        var entry = options.entry || currentEntry;
+        var config = options.config || CONFIG;
+        var includeExtras = options.includeExtras || false;
+        var processObligations = options.processObligations || false;
+
+        try {
+            // Nájdi platnú hodinovku
+            var hodinovka = findValidSalary(entry, zamestnanec, datum);
+
+            if (!hodinovka || hodinovka <= 0) {
+                core.addDebug(entry, "  ❌ Preskakujem - nemá platnú sadzbu");
+                return { success: false };
+            }
+
+            // Získaj pole zamestnancov
+            var employeeFieldName = options.employeeFieldName || config.fields.attendance.employees || config.fields.workRecord.employees;
+            var zamArray = entry.field(employeeFieldName);
+
+            if (!zamArray || zamArray.length <= index || !zamArray[index]) {
+                core.addError(entry, "Nepodarilo sa získať zamestnanca na indexe " + index, "processEmployee");
+                return { success: false };
+            }
+
+            var attributes = options.attributes || config.attributes || {};
+
+            // Nastav základné atribúty
+            if (attributes.workedHours || attributes.workRecordEmployees) {
+                var workedHoursAttr = attributes.workedHours || (attributes.workRecordEmployees && attributes.workRecordEmployees.workedHours);
+                if (workedHoursAttr) {
+                    core.safeSetAttribute(zamArray[index], workedHoursAttr, pracovnaDobaHodiny);
+                }
+            }
+
+            if (attributes.hourlyRate || attributes.workRecordEmployees) {
+                var hourlyRateAttr = attributes.hourlyRate || (attributes.workRecordEmployees && attributes.workRecordEmployees.hourlyRate);
+                if (hourlyRateAttr) {
+                    core.safeSetAttribute(zamArray[index], hourlyRateAttr, hodinovka);
+                }
+            }
+
+            // Spracuj príplatky, prémie, pokuty ak je požadované
+            var priplatok = 0;
+            var premia = 0;
+            var pokuta = 0;
+
+            if (includeExtras && attributes.bonus) {
+                priplatok = zamArray[index].attr(attributes.bonus) || 0;
+            }
+            if (includeExtras && attributes.premium) {
+                premia = zamArray[index].attr(attributes.premium) || 0;
+            }
+            if (includeExtras && attributes.penalty) {
+                pokuta = zamArray[index].attr(attributes.penalty) || 0;
+            }
+
+            // Vypočítaj dennú mzdu
+            var dennaMzda;
+            if (includeExtras) {
+                dennaMzda = (pracovnaDobaHodiny * (hodinovka + priplatok)) + premia - pokuta;
+            } else {
+                dennaMzda = pracovnaDobaHodiny * hodinovka;
+            }
+            dennaMzda = Math.round(dennaMzda * 100) / 100;
+
+            // Nastav dennú mzdu
+            if (attributes.dailyWage || attributes.workRecordEmployees) {
+                var dailyWageAttr = attributes.dailyWage || (attributes.workRecordEmployees && attributes.workRecordEmployees.wageCosts);
+                if (dailyWageAttr) {
+                    core.safeSetAttribute(zamArray[index], dailyWageAttr, dennaMzda);
+                }
+            }
+
+            var result = {
+                success: true,
+                hodinovka: hodinovka,
+                dennaMzda: dennaMzda,
+                priplatok: priplatok,
+                premia: premia,
+                pokuta: pokuta,
+                zamestnanec: zamestnanec
+            };
+
+            // Spracuj záväzky ak je požadované
+            if (processObligations && options.processObligation) {
+                var obligationResult = options.processObligation(datum, {
+                    entry: zamestnanec,
+                    dailyWage: dennaMzda,
+                    name: core.formatEmployeeName(zamestnanec)
+                }, options.existingObligations);
+
+                result.created = obligationResult.created;
+                result.updated = obligationResult.updated;
+                result.totalAmount = obligationResult.totalAmount;
+                result.errors = obligationResult.errors;
+                result.total = obligationResult.total;
+                result.obligationResult = obligationResult;
+            }
+
+            if (includeExtras) {
+                core.addDebug(entry, "  • Denná mzda: " + dennaMzda + " €");
+            } else {
+                core.addDebug(entry, "  • Mzdové náklady: " + dennaMzda + " €");
+            }
+            core.addDebug(entry, "Spracované úspešne", "success");
+
+            return result;
+
+        } catch (error) {
+            core.addError(entry, error.toString(), "processEmployee", error);
+            return { success: false };
+        }
+    }
+
+    function processEmployees(zamestnanci, pracovnaDobaHodiny, datum, options) {
+        var core = getCore();
+        options = options || {};
+
+        var entry = options.entry || currentEntry;
+        var config = options.config || CONFIG;
+
         try {
             var result = {
                 success: false,
@@ -614,41 +752,65 @@ var MementoBusiness = (function() {
                 odpracovaneTotal: 0,
                 pracovnaDoba: pracovnaDobaHodiny,
                 celkoveMzdy: 0,
-                detaily: []
+                detaily: [],
+                created: 0,
+                updated: 0,
+                totalAmount: 0
             };
-            
+
             // Ulož počet pracovníkov
-        utils.safeSet(currentEntry, CONFIG.fields.pocetPracovnikov, result.pocetPracovnikov);
-            
+            core.safeSet(entry, config.fields.pocetPracovnikov || config.fields.attendance.employeeCount || config.fields.workRecord.employeeCount, result.pocetPracovnikov);
+
+            // Získaj existujúce záväzky ak je požadované
+            if (options.processObligations && options.findLinkedObligations) {
+                options.existingObligations = options.findLinkedObligations(options.libraryType || 'attendance');
+                core.addDebug(entry, core.getIcon("document") + "  Nájdené existujúce záväzky: " + options.existingObligations.length);
+            }
+
             // Spracuj každého zamestnanca
             for (var i = 0; i < zamestnanci.length; i++) {
                 var zamestnanec = zamestnanci[i];
-                
+
                 if (!zamestnanec) {
-                    utils.addDebug(currentEntry, "Zamestnanec[" + i + "] je null - preskakujem", "warning");
+                    core.addDebug(entry, "Zamestnanec[" + i + "] je null - preskakujem", "warning");
                     continue;
                 }
-                
-                var employeeName = utils.formatEmployeeName(zamestnanec);
-                utils.addDebug(currentEntry, " [" + (i+1) + "/" + result.pocetPracovnikov + "] " + employeeName, "person");
-                
-                // Spracuj zamestnanca
-                var empResult = processEmployee(zamestnanec, pracovnaDobaHodiny, datum, i);
-                
+
+                var employeeName = core.formatEmployeeName(zamestnanec);
+                core.addDebug(entry, " [" + (i+1) + "/" + result.pocetPracovnikov + "] " + employeeName, "person");
+
+                // Spracuj zamestnanca s options
+                var empResult = processEmployee(zamestnanec, pracovnaDobaHodiny, datum, i, options);
+
                 if (empResult.success) {
                     result.odpracovaneTotal += pracovnaDobaHodiny;
                     result.celkoveMzdy += empResult.dennaMzda;
                     result.detaily.push(empResult);
                     result.success = true;
+
+                    // Agreguj výsledky záväzkov ak existujú
+                    if (empResult.created !== undefined) {
+                        result.created += empResult.created;
+                        result.updated += empResult.updated;
+                        result.totalAmount += empResult.totalAmount;
+                    }
                 } else {
                     result.success = false;
                 }
             }
-            
+
+            // Loguj súhrn záväzkov ak boli spracované
+            if (options.processObligations) {
+                core.addDebug(entry, core.getIcon("note") + "  Záväzky z tohto záznamu:");
+                core.addDebug(entry, core.getIcon("checkmark") + "    Vytvorené: " + result.created);
+                core.addDebug(entry, core.getIcon("update") + "    Aktualizované: " + result.updated);
+                core.addDebug(entry, core.getIcon("money") + "    Celková suma: " + core.formatMoney(result.totalAmount));
+            }
+
             return result;
-            
+
         } catch (error) {
-            utils.addError(currentEntry, error.toString(), "processEmployees", error);
+            core.addError(entry, error.toString(), "processEmployees", error);
             return { success: false };
         }
     }
@@ -1722,7 +1884,7 @@ var MementoBusiness = (function() {
         calculateDailyWage: calculateDailyWage,
         findValidHourlyRate: findValidHourlyRate,
         findValidSalary: findValidSalary,
-        //processEmployee: processEmployee,
+        processEmployee: processEmployee,
         processEmployees: processEmployees,
 
         // hľadanie cien
