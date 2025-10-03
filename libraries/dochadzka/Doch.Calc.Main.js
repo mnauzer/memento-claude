@@ -87,51 +87,30 @@ var CONFIG = {
 
 function validateInputData() {
     try {
-               
-        // Definuj povinné polia
-        var requiredFields = [
-            CONFIG.fields.attendance.date,
-            CONFIG.fields.attendance.arrival,
-            CONFIG.fields.attendance.departure,
-            CONFIG.fields.attendance.employees
-        ];
-        
-        // Validuj povinné polia
-        if (!utils.validateRequiredFields(currentEntry, requiredFields)) {
-            return { success: false, error: "Chýbajú povinné polia" };
-        }
-        
-        // Získaj hodnoty
-        var date = utils.safeGet(currentEntry, CONFIG.fields.attendance.date);
-        var arrival = utils.safeGet(currentEntry, CONFIG.fields.attendance.arrival);
-        var departure = utils.safeGet(currentEntry, CONFIG.fields.attendance.departure);
-        var employees = utils.safeGet(currentEntry, CONFIG.fields.attendance.employees);
-        
-        // Dodatočné kontroly
-        if (!date) {
-            return { success: false, error: "Dátum nie je vyplnený" };
-        }
-        
-        if (!arrival || !departure) {
-            return { success: false, error: "Príchod alebo odchod nie je vyplnený" };
-        }
-        
-        if (!employees || employees.length === 0) {
-            return { success: false, error: "Žiadni zamestnanci v zázname" };
-        }
-        
-        utils.addDebug(currentEntry, "  • Dátum: " + moment(date).format("DD.MM.YYYY") + " (" + utils.getDayNameSK(moment(date).day()).toUpperCase() + ")");
-        utils.addDebug(currentEntry, "  • Čas: " + moment(arrival).format("HH:mm") + " - " + moment(departure).format("HH:mm"));
-        utils.addDebug(currentEntry, "  • Počet zamestnancov: " + employees.length);
-        utils.addDebug(currentEntry, " Validácia úspešná", "success");
-        return {
-            success: true,
-            date: date,
-            arrival: arrival,
-            departure: departure,
-            employees: employees
+        // Použiť univerzálnu validáciu z MementoCore
+        var options = {
+            config: CONFIG,
+            customMessages: {
+                date: "Dátum nie je vyplnený",
+                arrival: "Príchod nie je vyplnený",
+                departure: "Odchod nie je vyplnený",
+                employees: "Žiadni zamestnanci v zázname"
+            }
         };
-        
+
+        var result = utils.validateInputData(currentEntry, "attendance", options);
+
+        if (!result.success) {
+            return result;
+        }
+
+        // Pridaj doplňujúce debug informácie
+        utils.addDebug(currentEntry, "  • Dátum: " + moment(result.data.date).format("DD.MM.YYYY") + " (" + utils.getDayNameSK(moment(result.data.date).day()).toUpperCase() + ")");
+        utils.addDebug(currentEntry, "  • Čas: " + moment(result.data.arrival).format("HH:mm") + " - " + moment(result.data.departure).format("HH:mm"));
+        utils.addDebug(currentEntry, "  • Počet zamestnancov: " + result.data.employees.length);
+
+        return result;
+
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "validateInputData", error);
         return { success: false, error: error.toString() };
@@ -483,7 +462,7 @@ function main() {
         // KROK 2: Výpočet pracovného času
         utils.addDebug(currentEntry, " KROK 2: Výpočet pracovnej doby", "update");
         
-        var workTimeResult = calculateWorkTime(validationResult.arrival,validationResult.departure);    
+        var workTimeResult = calculateWorkTime(validationResult.data.arrival, validationResult.data.departure);    
         if (!workTimeResult.success) {
             utils.addError(currentEntry, "Výpočet času zlyhal: " + workTimeResult.error, CONFIG.scriptName);
             return false;
@@ -492,7 +471,7 @@ function main() {
         
         // KROK 3: Spracovanie zamestnancov
         utils.addDebug(currentEntry, " KROK 3: Spracovanie zamestnancov", "group");
-        var employeeResult = processEmployees(validationResult.employees, workTimeResult.pracovnaDobaHodiny, validationResult.date);
+        var employeeResult = processEmployees(validationResult.data.employees, workTimeResult.pracovnaDobaHodiny, validationResult.data.date);
         if(employeeResult.success) {
             if (entryStatus.indexOf("Záväzky") === -1) {
                  entryStatus.push("Záväzky");
@@ -524,8 +503,8 @@ function main() {
         utils.addDebug(currentEntry, " KROK 9: Telegram notifikácie vynechané (refaktorizácia)", "note");
         steps.step9 = { success: true }; // Dummy výsledok pre kompatibilitu
         
-        var isHoliday = utils.isHoliday(validationResult.date);
-        var isWeekend = utils.isWeekend(validationResult.date);
+        var isHoliday = utils.isHoliday(validationResult.data.date);
+        var isWeekend = utils.isWeekend(validationResult.data.date);
          //var farba = "#FFFFFF"; // Biela - štandard
         if (isHoliday) {
             utils.setColor(currentEntry, "bg", "pastel blue")
