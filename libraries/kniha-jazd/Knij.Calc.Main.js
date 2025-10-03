@@ -595,7 +595,8 @@ function calculateWageCosts() {
             result.detaily.push({
                 meno: meno,
                 hodinovka: hodinovka,
-                mzda: mzda
+                mzda: mzda,
+                zamestnanecId: posadka[i].id
             });
             
             utils.addDebug(currentEntry, "    💵 Hodinovka: " + hodinovka + " €/h");
@@ -760,6 +761,7 @@ function autoLinkOrdersFromStops() {
                 var checkboxValue = zastavka.field(CONFIG.fields.place.isOrder);
                 jeZakazka = (checkboxValue === true);
                 utils.addDebug(currentEntry, "    🔍 Checkbox 'Zákazka': " + (jeZakazka ? "✅ TRUE" : "❌ FALSE"));
+                utils.addDebug(currentEntry, "    🔍 Field name: " + CONFIG.fields.place.isOrder);
             } catch (checkboxError) {
                 utils.addDebug(currentEntry, "    ⚠️ Chyba pri čítaní checkbox: " + checkboxError);
             }
@@ -773,7 +775,10 @@ function autoLinkOrdersFromStops() {
             
             // Nájdi zákazky pre toto miesto pomocou linksFrom
             try {
-                var zakazky = zastavka.linksFrom(CONFIG.libraries.zakazky || "Zákazky", CONFIG.fields.order.name);
+                utils.addDebug(currentEntry, "    🔍 LinksFrom parameters:");
+                utils.addDebug(currentEntry, "      Library: " + (CONFIG.libraries.orders || "Zákazky"));
+                utils.addDebug(currentEntry, "      Field: " + CONFIG.fields.order.place);
+                var zakazky = zastavka.linksFrom(CONFIG.libraries.orders || "Zákazky", CONFIG.fields.order.place);
                 
                 if (!zakazky || zakazky.length === 0) {
                     utils.addDebug(currentEntry, "    ❌ Žiadne zákazky nenájdené pre toto miesto");
@@ -1042,10 +1047,15 @@ function kombinujZakazky(existujuce, nove) {
 function nastavAtributyPoctu(countZakaziek) {
     try {
         utils.addDebug(currentEntry, "\n  🔢 NASTAVOVANIE ATRIBÚTOV POČTU:");
-        
+        utils.addDebug(currentEntry, "  📊 Počty zákaziek: " + JSON.stringify(countZakaziek));
+
         // Znovu načítaj Link to Entry pole
         var linknuteZakazky = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.orders);
-        if (!linknuteZakazky) return;
+        if (!linknuteZakazky) {
+            utils.addDebug(currentEntry, "  ❌ Žiadne linknuté zákazky nenájdené");
+            return;
+        }
+        utils.addDebug(currentEntry, "  📋 Počet linknutých zákaziek: " + linknuteZakazky.length);
         
         for (var i = 0; i < linknuteZakazky.length; i++) {
             var zakazkaObj = linknuteZakazky[i];
@@ -1087,6 +1097,53 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
             infoMessage += "- **Čas jazdy:** " + routeResult.casJazdy + " h\n";
             infoMessage += "- **Čas na zastávkach:** " + routeResult.casNaZastavkach + " h\n";
             infoMessage += "- **Celkový čas:** " + routeResult.celkovyCas + " h\n\n";
+
+            // Pridaj detaily trasy
+            infoMessage += "## 🛣️ DETAILY TRASY\n\n";
+
+            // Štart
+            var start = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.start) || [];
+            if (start.length > 0) {
+                var startName = utils.safeGet(start[0], CONFIG.fields.place.name, "N/A");
+                infoMessage += "### 🏁 ŠTART\n";
+                infoMessage += "- **Miesto:** " + startName + "\n\n";
+            }
+
+            // Zastávky
+            var stops = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.stops) || [];
+            if (stops.length > 0) {
+                infoMessage += "### 📍 ZASTÁVKY (" + stops.length + ")\n\n";
+                for (var i = 0; i < stops.length; i++) {
+                    var stop = stops[i];
+                    var stopName = utils.safeGet(stop, CONFIG.fields.place.name, "N/A");
+                    var stopKm = 0;
+                    var isOrderStop = false;
+
+                    try {
+                        stopKm = stop.attr(CONFIG.attributes.rideLogStops.km) || 0;
+                        isOrderStop = stop.field(CONFIG.fields.place.isOrder) === true;
+                    } catch (e) {}
+
+                    var orderMark = isOrderStop ? " 🏢" : "";
+                    infoMessage += (i + 1) + ". **" + stopName + "**" + orderMark + "\n";
+                    infoMessage += "   - Km od predošlého bodu: " + stopKm + " km\n\n";
+                }
+            }
+
+            // Cieľ
+            var destination = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.destination) || [];
+            if (destination.length > 0) {
+                var destName = utils.safeGet(destination[0], CONFIG.fields.place.name, "N/A");
+                var destKm = 0;
+
+                try {
+                    destKm = destination[0].attr(CONFIG.attributes.rideLogStops.km) || 0;
+                } catch (e) {}
+
+                infoMessage += "### 🎯 CIEĽ\n";
+                infoMessage += "- **Miesto:** " + destName + "\n";
+                infoMessage += "- **Km od poslednej zastávky:** " + destKm + " km\n\n";
+            }
         } else {
             infoMessage += "- **Trasa:** Neprepočítaná\n\n";
         }
@@ -1094,14 +1151,39 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
         // Vozidlo informácie
         if (vehicleResult && vehicleResult.success && vehicleResult.message !== "Žiadne vozidlo") {
             infoMessage += "## 🚐 VOZIDLO\n";
-            infoMessage += "- " + vehicleResult.message + "\n\n";
+            infoMessage += "- " + vehicleResult.message + "\n";
+
+            // Pridaj informácie o nákladovej cene
+            var vozidloField = currentEntry.field(CONFIG.fields.rideLog.vehicle);
+            if (vozidloField && vozidloField.length > 0) {
+                var vozidlo = vozidloField[0];
+                var nakladovaCena = utils.safeGet(vozidlo, CONFIG.fields.vehicle.costRate, 0);
+                if (nakladovaCena > 0) {
+                    infoMessage += "- **Nákladová cena:** " + nakladovaCena + " €/km\n";
+                    if (routeResult && routeResult.totalKm > 0) {
+                        var celkoveNaklady = nakladovaCena * routeResult.totalKm;
+                        infoMessage += "- **Náklady za trasu:** " + utils.formatMoney(celkoveNaklady) + " (" + routeResult.totalKm + " km × " + nakladovaCena + " €/km)\n";
+                    }
+                }
+            }
+            infoMessage += "\n";
+        }
+
+        // Spočítaj zákazky pomocou checkboxu v zastávkach
+        var customerStopsCount = 0;
+        var stops = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.stops) || [];
+        for (var s = 0; s < stops.length; s++) {
+            try {
+                var isCustomerStop = stops[s].field(CONFIG.fields.place.isOrder);
+                if (isCustomerStop === true) customerStopsCount++;
+            } catch (e) {}
         }
 
         // Zákazky informácie
         if (orderLinkResult && orderLinkResult.success && orderLinkResult.uniqueCustomers > 0) {
             var zakazkyForm = orderLinkResult.uniqueCustomers === 1 ? "zákazka" :
                              orderLinkResult.uniqueCustomers < 5 ? "zákazky" : "zákaziek";
-            infoMessage += "## 🏢 ZÁKAZKY (" + orderLinkResult.uniqueCustomers + " " + zakazkyForm + ")\n\n";
+            infoMessage += "## 🏢 ZÁKAZKY (" + customerStopsCount + " " + zakazkyForm + " podľa checkboxu)\n\n";
 
             var zakazky = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.orders) || [];
             for (var k = 0; k < Math.min(zakazky.length, 5); k++) {
@@ -1154,9 +1236,31 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
             infoMessage += "## 👥 POSÁDKA (" + wageResult.detaily.length + " " +
                           utils.getPersonCountForm(wageResult.detaily.length) + ")\n\n";
 
+            // Identifikuj vodiča zo záznamu alebo vozidla
+            var vodic = null;
+            var soferField = currentEntry.field(CONFIG.fields.rideLog.driver);
+            if (soferField && soferField.length > 0) {
+                vodic = soferField[0];
+            } else {
+                // Fallback - skús nájsť vodiča z vozidla
+                var vozidloField = currentEntry.field(CONFIG.fields.rideLog.vehicle);
+                if (vozidloField && vozidloField.length > 0) {
+                    var vozidlo = vozidloField[0];
+                    var vozidlaSofer = utils.safeGetLinks(vozidlo, CONFIG.fields.vehicle.driver);
+                    if (vozidlaSofer && vozidlaSofer.length > 0) {
+                        vodic = vozidlaSofer[0];
+                    }
+                }
+            }
+
+            var vodicId = vodic ? vodic.id : null;
+
             for (var i = 0; i < wageResult.detaily.length; i++) {
                 var detail = wageResult.detaily[i];
-                infoMessage += "### 👤 " + detail.meno + "\n";
+                var jeVodic = vodicId && detail.zamestnanecId === vodicId;
+                var vodicMark = jeVodic ? " 🚗 (Šofér)" : "";
+
+                infoMessage += "### 👤 " + detail.meno + vodicMark + "\n";
                 infoMessage += "- **Hodinovka:** " + detail.hodinovka + " €/h\n";
                 infoMessage += "- **Mzdové náklady:** " + utils.formatMoney(detail.mzda) + "\n\n";
             }
