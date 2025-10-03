@@ -18,7 +18,7 @@
 var MementoCore = (function() {
     'use strict';
     
-    var version = "7.0.1";
+    var version = "7.0.2";
     
     // Lazy loading pre MementoConfig
     var _config = null;
