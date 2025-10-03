@@ -1,8 +1,12 @@
 // ==============================================
 // MEMENTO DATABASE - ZÁZNAM PRÁC PREPOČET
-// Verzia: 8.2.0 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 8.3.0 | Dátum: október 2025 | Autor: ASISTANTO
 // Knižnica: Záznam práce | Trigger: Before Save
 // ==============================================
+// ✅ REFAKTOROVANÉ v8.3:
+//    - Pridaná integrácia s knižnicou Denný report
+//    - Automatické vytvorenie/aktualizácia záznamu pre deň
+//    - Používa createOrUpdateDailyReport z MementoBusiness
 // ✅ REFAKTOROVANÉ v8.2:
 //    - Použitie univerzálnej validateInputData z MementoCore
 //    - Použitie univerzálnej processEmployees z MementoBusiness
@@ -27,7 +31,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Záznam prác Prepočet",
-    version: "8.2.0",
+    version: "8.3.0",  // Pridaná integrácia s knižnicou Denný report
 
     // Referencie na centrálny config
     fields: {
@@ -72,7 +76,8 @@ function main() {
             step5: { success: false, name: "Spracovanie strojov" },
             step6: { success: false, name: "Celkové výpočty" },
             step7: { success: false, name: "Synchronizácia výkazu prác" },
-            step8: { success: false, name: "Vytvorenie info záznamov" }
+            step8: { success: false, name: "Vytvorenie info záznamov" },
+            step9: { success: false, name: "Spracovanie Denný report" }
         };
 
         // Krok 1: Validácia vstupných dát
@@ -126,7 +131,22 @@ function main() {
         // Krok 8: Vytvorenie info záznamov
         utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 8: Vytvorenie info záznamov");
         steps.step8.success = createInfoRecord(workTimeResult, employeeResult, hzsResult);
-          
+
+        // Krok 9: Vytvorenie/aktualizácia Denný report
+        utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 9: Spracovanie Denný report");
+        var dailyReportResult = utils.createOrUpdateDailyReport(currentEntry, 'workRecord', {
+            debugEntry: currentEntry,
+            createBackLink: false  // Zatiaľ bez spätného linku
+        });
+        steps.step9.success = dailyReportResult.success;
+
+        if (dailyReportResult.success) {
+            var action = dailyReportResult.created ? "vytvorený" : "aktualizovaný";
+            utils.addDebug(currentEntry, "✅ Denný report " + action + " úspešne");
+        } else {
+            utils.addDebug(currentEntry, "⚠️ Chyba pri spracovaní Denný report: " + (dailyReportResult.error || "Neznáma chyba"));
+        }
+
         utils.addDebug(currentEntry, utils.getIcon("success") + " === PREPOČET DOKONČENÝ ===");
 
         // Zobraz súhrn
