@@ -440,17 +440,50 @@ function setEntryFields(employeeResult, workLinkResult, rideLogLinkResult, cashB
     }
 }
 
-function zobrazSuhrn() {
-    var summaryData = {
-        success: true,
-        date: currentEntry.field(CONFIG.fields.attendance.date),
-        employeeCount: currentEntry.field(CONFIG.fields.attendance.employeeCount),
-        totalHours: currentEntry.field(CONFIG.fields.attendance.workedHours),
-        totalCosts: currentEntry.field(CONFIG.fields.attendance.wageCosts),
-        errors: [] // Môžeš pridať chyby ak ich máš
-    };
-    
-    utils.showProcessingSummary(currentEntry, summaryData, CONFIG);
+function logFinalSummary(steps) {
+    try {
+        utils.addDebug(currentEntry, "\n📊 === FINÁLNY SÚHRN ===");
+
+        var allSuccess = true;
+        for (var step in steps) {
+            var status = steps[step].success ? "✅" : "❌";
+            utils.addDebug(currentEntry, status + " " + steps[step].name);
+            if (!steps[step].success) {
+                allSuccess = false;
+            }
+        }
+
+        if (allSuccess) {
+            utils.addDebug(currentEntry, "\n✅ Všetky kroky dokončené úspešne!");
+
+            // Zobraz súhrn používateľovi
+            var date = utils.safeGet(currentEntry, CONFIG.fields.attendance.date);
+            var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
+            var employeeCount = utils.safeGet(currentEntry, CONFIG.fields.attendance.employeeCount, 0);
+            var totalHours = utils.safeGet(currentEntry, CONFIG.fields.attendance.workedHours, 0);
+            var totalCosts = utils.safeGet(currentEntry, CONFIG.fields.attendance.wageCosts, 0);
+
+            var summaryMsg = "✅ PREPOČET DOKONČENÝ\n\n";
+            summaryMsg += "📅 " + dateFormatted + "\n";
+            summaryMsg += "━━━━━━━━━━━━━━━━━━━━━\n";
+            summaryMsg += "👥 Počet zamestnancov: " + employeeCount + "\n";
+            summaryMsg += "⏱️ Odpracované: " + totalHours.toFixed(2) + " h\n";
+            summaryMsg += "💰 Mzdové náklady: " + utils.formatMoney(totalCosts) + "\n";
+            summaryMsg += "━━━━━━━━━━━━━━━━━━━━━\n";
+            summaryMsg += "ℹ️ Detaily v poli 'info'";
+
+            message(summaryMsg);
+        } else {
+            utils.addDebug(currentEntry, "\n⚠️ Niektoré kroky zlyhali!");
+            message("⚠️ Prepočet dokončený s chybami.\nSkontrolujte Debug Log.");
+        }
+
+        utils.addDebug(currentEntry, "⏱️ Čas ukončenia: " + moment().format("HH:mm:ss"));
+        utils.addDebug(currentEntry, "📋 === KONIEC " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
+
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "logFinalSummary", error);
+    }
 }
 
 // ==============================================
@@ -645,6 +678,10 @@ function main() {
             utils.setColor(currentEntry, "bg", "pastel orange")
         }
 
+        // Záverečný súhrn
+        logFinalSummary(steps);
+        utils.addDebug(currentEntry, "\n✅ === PREPOČET DOKONČENÝ ===");
+
         return true;
     } catch (error) {
         utils.addError(currentEntry, "Kritická chyba v hlavnej funkcii", "main", error);
@@ -664,7 +701,4 @@ var result = main();
 if (!result) {
     utils.addError(currentEntry, "Script zlyhal - zrušené uloženie", "main");
     cancel();
-} else {
-    // Zobraz súhrn užívateľovi
-    zobrazSuhrn();
 }
