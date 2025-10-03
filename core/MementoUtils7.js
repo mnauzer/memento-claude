@@ -274,6 +274,7 @@ var MementoUtils = (function() {
         processEmployees: lazyCall('business', 'processEmployees'),
         calculateProfitability: lazyCall('business', 'calculateProfitability'),
         getValidVatRate: lazyCall('business', 'getValidVatRate'),
+        calculateWorkTime: lazyCall('business', 'calculateWorkTime'),
 
         // === MATERIAL FUNKCIE (nové) ===
         calculateAndUpdateMaterialPrices: lazyCall('business', 'calculateAndUpdateMaterialPrices'),
