@@ -26,7 +26,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Dochádzka Prepočet",
-    version: "8.0.1",  // Pridané fallback hodnoty pre icons
+    version: "8.0.2",  // Pridané fallback hodnoty pre icons
     
     // Referencie na centrálny config
     fields: {
@@ -118,29 +118,34 @@ function validateInputData() {
 }
 
 function calculateWorkTime(arrival, departure) {
-    // Priprav options pre univerzálnu funkciu z business modulu
-    var options = {
-        entry: currentEntry,
-        config: CONFIG,
-        roundToQuarter: CONFIG.settings.roundToQuarterHour,
-        startFieldName: CONFIG.fields.attendance.arrival,
-        endFieldName: CONFIG.fields.attendance.departure,
-        workTimeFieldName: CONFIG.fields.attendance.workTime,
-        debugLabel: "Pracovná doba"
-    };
+    try {
+        // Priprav options pre univerzálnu funkciu z business modulu
+        var options = {
+            entry: currentEntry,
+            config: CONFIG,
+            roundToQuarter: CONFIG.settings.roundToQuarterHour,
+            startFieldName: CONFIG.fields.attendance.arrival,
+            endFieldName: CONFIG.fields.attendance.departure,
+            workTimeFieldName: CONFIG.fields.attendance.workTime,
+            debugLabel: "Pracovná doba"
+        };
 
-    // Volaj univerzálnu funkciu z business modulu cez utils
-    var result = utils.calculateWorkTime(arrival, departure, options);
+        // Volaj univerzálnu funkciu z business modulu cez utils
+        var result = utils.calculateWorkTime(arrival, departure, options);
 
-    // Pre spätnu kompatibilitu mapuj názvy výstupných polí
-    if (result.success) {
-        result.arrivalRounded = result.startTimeRounded;
-        result.departureRounded = result.endTimeRounded;
-        result.arrivalOriginal = result.startTimeOriginal;
-        result.departureOriginal = result.endTimeOriginal;
-    }
+        // Pre spätnu kompatibilitu mapuj názvy výstupných polí
+        if (result.success) {
+            result.arrivalRounded = result.startTimeRounded;
+            result.departureRounded = result.endTimeRounded;
+            result.arrivalOriginal = result.startTimeOriginal;
+            result.departureOriginal = result.endTimeOriginal;
+        }
 
-    return result;
+        return result;
+    }   catch (error) {
+        utils.addError(currentEntry, error.toString(), "calculateWorkTime", error);
+        return { success: false, error: error.toString() };
+    }   
 }
 // ==============================================
 // KROK 3: SPRACOVANIE ZAMESTNANCOV
