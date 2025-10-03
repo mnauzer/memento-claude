@@ -37,7 +37,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.7",
+        version: "7.0.8",
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -117,6 +117,7 @@ var MementoConfig = (function() {
         // === NÁZVY A ID KNIŽNÍC ===
         libraries: {
             // Evidencia - denné záznamy
+            dailyReport: "Denný report",
             attendance: "Dochádzka",
             workRecords: "Záznam prác",
             rideLog: "Kniha jázd",
@@ -173,6 +174,9 @@ var MementoConfig = (function() {
 
         // === ID KNIŽNÍC (pre API prístup) ===
         libraryIds: {
+            // Denné záznamy
+            dailyReport: "Tt4pxN4xQ", // Denný report
+
             // Aktuálne používané knižnice podľa API analýzy
             employees: "qU4Br5hU6", // Zamestnanci Semiramis (obsahuje všetky potrebné polia)
             employeesBackup: "nmDvBcEwg", // Zamestnanci Backup
@@ -203,6 +207,17 @@ var MementoConfig = (function() {
             },
 
             // === EVIDENCIA - DENNÉ ZÁZNAMY ===
+            // Denný report polia
+            dailyReport: {
+                date: "Dátum",
+                attendance: "Dochádzka", // linkToEntry: Dochádzka
+                workRecord: "Záznam prác", // linkToEntry: Záznam prác
+                rideLog: "Kniha jázd", // linkToEntry: Kniha jázd
+                cashBook: "Pokladňa", // linkToEntry: Pokladňa
+                description: "Popis", // richtext
+                // Povinné polia pre validáciu
+                requiredFields: ["date"]
+            },
             // Dochádzka polia
             attendance: {
                 date: "Dátum",
