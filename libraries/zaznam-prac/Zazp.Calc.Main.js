@@ -870,7 +870,7 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesRes
         var infoMessage = "# 📋 ZÁZNAM PRÁC - AUTOMATICKÝ PREPOČET\n\n";
 
         infoMessage += "## 📅 Základné údaje\n";
-        infoMessage += "- **Dátum:** " + dateFormatted + "\n";
+        infoMessage += "- **Dátum:** " + dateFormatted + " (" + dayName + ")" + "\n";
         infoMessage += "- **Pracovný čas:** " + moment(workTimeResult.startTimeRounded).format("HH:mm") +
                        " - " + moment(workTimeResult.endTimeRounded).format("HH:mm") + "\n";
         infoMessage += "- **Odpracované:** " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";

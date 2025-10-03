@@ -1098,36 +1098,39 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
             infoMessage += "- **Čas na zastávkach:** " + routeResult.casNaZastavkach + " h\n";
             infoMessage += "- **Celkový čas:** " + routeResult.celkovyCas + " h\n\n";
 
-            // Pridaj detaily trasy
+            // Pridaj detaily trasy v kompaktnom formáte
             infoMessage += "## 🛣️ DETAILY TRASY\n\n";
 
             // Štart
             var start = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.start) || [];
             if (start.length > 0) {
                 var startName = utils.safeGet(start[0], CONFIG.fields.place.name, "N/A");
-                infoMessage += "### 🏁 ŠTART\n";
-                infoMessage += "- **Miesto:** " + startName + "\n\n";
+                infoMessage += "**ŠTART:** " + startName + "\n\n";
             }
 
             // Zastávky
             var stops = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.stops) || [];
             if (stops.length > 0) {
-                infoMessage += "### 📍 ZASTÁVKY (" + stops.length + ")\n\n";
+                infoMessage += "**ZASTÁVKY:**\n";
                 for (var i = 0; i < stops.length; i++) {
                     var stop = stops[i];
                     var stopName = utils.safeGet(stop, CONFIG.fields.place.name, "N/A");
                     var stopKm = 0;
+                    var stopDuration = 0;
                     var isOrderStop = false;
 
                     try {
                         stopKm = stop.attr(CONFIG.attributes.rideLogStops.km) || 0;
+                        var stopDurationMs = stop.attr(CONFIG.attributes.rideLogStops.duration) || 0;
+                        stopDuration = utils.convertDurationToHours(stopDurationMs);
                         isOrderStop = stop.field(CONFIG.fields.place.isOrder) === true;
                     } catch (e) {}
 
                     var orderMark = isOrderStop ? " 🏢" : "";
-                    infoMessage += (i + 1) + ". **" + stopName + "**" + orderMark + "\n";
-                    infoMessage += "   - Km od predošlého bodu: " + stopKm + " km\n\n";
+                    infoMessage += (i + 1) + ". " + stopName + orderMark + " - " +
+                                  stopKm.toFixed(2) + " km / " + stopDuration.toFixed(2) + " h\n";
                 }
+                infoMessage += "\n";
             }
 
             // Cieľ
@@ -1135,15 +1138,20 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
             if (destination.length > 0) {
                 var destName = utils.safeGet(destination[0], CONFIG.fields.place.name, "N/A");
                 var destKm = 0;
+                var destDuration = 0;
 
                 try {
                     destKm = destination[0].attr(CONFIG.attributes.rideLogStops.km) || 0;
+                    var destDurationMs = destination[0].attr(CONFIG.attributes.rideLogStops.duration) || 0;
+                    destDuration = utils.convertDurationToHours(destDurationMs);
                 } catch (e) {}
 
-                infoMessage += "### 🎯 CIEĽ\n";
-                infoMessage += "- **Miesto:** " + destName + "\n";
-                infoMessage += "- **Km od poslednej zastávky:** " + destKm + " km\n\n";
+                infoMessage += "**CIEĽ:** " + destName + " - " + destKm.toFixed(2) + " km / " + destDuration.toFixed(2) + " h\n\n";
             }
+
+            // Súhrn
+            infoMessage += "**Najazdené celkom:** " + routeResult.totalKm.toFixed(2) + " km\n";
+            infoMessage += "**Čas:** " + routeResult.casJazdy.toFixed(2) + " h\n\n";
         } else {
             infoMessage += "- **Trasa:** Neprepočítaná\n\n";
         }
