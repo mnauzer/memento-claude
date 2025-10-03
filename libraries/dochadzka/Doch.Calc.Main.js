@@ -317,15 +317,15 @@ function createInfoRecord(workTimeResult, employeeResult) {
         var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
         var dayName = utils.getDayNameSK(moment(date).day()).toUpperCase();
 
-        var infoMessage = "## 📋 DOCHÁDZKA - AUTOMATICKÝ PREPOČET\n\n";
+        var infoMessage = "# 📋 DOCHÁDZKA - AUTOMATICKÝ PREPOČET\n\n";
 
-        infoMessage += "* 📅 Základné údaje *\n";
+        infoMessage += "## 📅 Základné údaje \n";
         infoMessage += "- **Dátum:** " + dateFormatted + " (" + dayName + ")\n";
         infoMessage += "- **Pracovný čas:** " + moment(workTimeResult.arrivalRounded).format("HH:mm") +
                        " - " + moment(workTimeResult.departureRounded).format("HH:mm") + "\n";
         infoMessage += "- **Pracovná doba:** " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
 
-        infoMessage += "* 👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + " " + utils.selectOsobaForm(employeeResult.pocetPracovnikov) + ")*\n\n";
+        infoMessage += "## 👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + " " + utils.selectOsobaForm(employeeResult.pocetPracovnikov) + ")\n\n";
 
         for (var i = 0; i < employeeResult.detaily.length; i++) {
             var detail = employeeResult.detaily[i];
@@ -337,11 +337,11 @@ function createInfoRecord(workTimeResult, employeeResult) {
             infoMessage += "- **Denná mzda:** " + detail.dennaMzda + " €\n\n";
         }
 
-        infoMessage += "* 💰 SÚHRN*\n"
+        infoMessage += "## 💰 SÚHRN\n"
         infoMessage += "- **Odpracované celkom:** " + employeeResult.odpracovaneTotal + " hodín\n";
         infoMessage += "- **Mzdové náklady:** " + utils.formatMoney(employeeResult.celkoveMzdy) + "\n\n";
 
-        infoMessage += "* 🔧 TECHNICKÉ INFORMÁCIE*\n";
+        infoMessage += "## 🔧 TECHNICKÉ INFORMÁCIE\n";
         infoMessage += "- **Script:** " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
         infoMessage += "- **Čas spracovania:** " + moment().format("HH:mm:ss") + "\n";
         infoMessage += "- **MementoUtils:** v" + (utils.version || "N/A") + "\n";
