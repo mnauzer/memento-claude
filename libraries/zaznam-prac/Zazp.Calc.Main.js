@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - ZÁZNAM PRÁC PREPOČET
-// Verzia: 8.3.1 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 8.3.2 | Dátum: október 2025 | Autor: ASISTANTO
 // Knižnica: Záznam práce | Trigger: Before Save
 // ==============================================
 // ✅ REFAKTOROVANÉ v8.3:
@@ -31,7 +31,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Záznam prác Prepočet",
-    version: "8.3.1",  // Opravené číslovanie krokov, návratové hodnoty a Markdown formátovanie info záznamu
+    version: "8.3.2",  // Opravený pracovný čas, pridané stroje a materiály do info záznamu
 
     // Referencie na centrálny config
     fields: {
@@ -132,7 +132,7 @@ function main() {
         
         // Krok 8: Vytvorenie info záznamov
         utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 8: Vytvorenie info záznamov");
-        steps.step8.success = createInfoRecord(workTimeResult, employeeResult, hzsResult);
+        steps.step8.success = createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesResult);
 
         // Krok 9: Vytvorenie/aktualizácia Denný report
         utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 9: Spracovanie Denný report");
@@ -859,17 +859,20 @@ function updateWorkReportInfo(workReport) {
 // INFO ZÁZNAMY
 // ==============================================
 
-function createInfoRecord(workTimeResult, employeeResult, hzsResult) {
+function createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesResult) {
     try {
         var date = currentEntry.field(CONFIG.fields.workRecord.date);
         var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
+
+        // Spracuj materiály ak existujú
+        var materialsResult = processMaterials();
 
         var infoMessage = "# 📋 ZÁZNAM PRÁC - AUTOMATICKÝ PREPOČET\n\n";
 
         infoMessage += "## 📅 Základné údaje\n";
         infoMessage += "- **Dátum:** " + dateFormatted + "\n";
-        infoMessage += "- **Pracovný čas:** " + utils.formatTime(workTimeResult.startTime) +
-                       " - " + utils.formatTime(workTimeResult.endTime) + "\n";
+        infoMessage += "- **Pracovný čas:** " + moment(workTimeResult.startTimeRounded).format("HH:mm") +
+                       " - " + moment(workTimeResult.endTimeRounded).format("HH:mm") + "\n";
         infoMessage += "- **Odpracované:** " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
 
         if (employeeResult.pocetPracovnikov > 0) {
@@ -892,6 +895,44 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult) {
             infoMessage += "- **Suma HZS:** " + utils.formatMoney(hzsResult.sum) + "\n\n";
         }
 
+        // Stroje a mechanizácia
+        if (machinesResult && machinesResult.success && machinesResult.count > 0) {
+            infoMessage += "## 🚜 STROJE A MECHANIZÁCIA (" + machinesResult.count + ")\n\n";
+
+            for (var i = 0; i < machinesResult.machines.length; i++) {
+                var machine = machinesResult.machines[i].machine;
+                infoMessage += "### 🚜 " + machine.name + "\n";
+
+                if (machine.calculationType === "mth") {
+                    infoMessage += "- **Typ účtovania:** Motohodiny\n";
+                    infoMessage += "- **Použité motohodiny:** " + machine.usedMth + " mth\n";
+                    infoMessage += "- **Cena za mth:** " + machine.priceMth + " €/mth\n";
+                } else if (machine.calculationType === "paušál") {
+                    infoMessage += "- **Typ účtovania:** Paušál\n";
+                    infoMessage += "- **Paušálna cena:** " + machine.flatRate + " €\n";
+                }
+
+                infoMessage += "- **Celková cena:** " + utils.formatMoney(machine.totalPrice) + "\n\n";
+            }
+
+            infoMessage += "**🚜 Celková suma za stroje:** " + utils.formatMoney(machinesResult.total) + "\n\n";
+        }
+
+        // Materiály
+        if (materialsResult && materialsResult.success && materialsResult.count > 0) {
+            infoMessage += "## 🧰 MATERIÁLY (" + materialsResult.count + ")\n\n";
+
+            for (var i = 0; i < materialsResult.materials.length; i++) {
+                var material = materialsResult.materials[i].material;
+                infoMessage += "### 🧰 " + material.name + "\n";
+                infoMessage += "- **Množstvo:** " + material.quantity + "\n";
+                infoMessage += "- **Jednotková cena:** " + material.price + " €\n";
+                infoMessage += "- **Celková cena:** " + utils.formatMoney(material.totalPrice) + "\n\n";
+            }
+
+            infoMessage += "**🧰 Celková suma za materiály:** " + utils.formatMoney(materialsResult.total) + "\n\n";
+        }
+
         var order = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.order);
         if (order && order.length > 0) {
             infoMessage += "## 📦 ZÁKAZKA\n";
@@ -902,6 +943,20 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult) {
         if (workDescription) {
             infoMessage += "## 🔨 VYKONANÉ PRÁCE\n";
             infoMessage += workDescription + "\n\n";
+        }
+
+        // Celkový súhrn nákladov
+        var totalCosts = employeeResult.celkoveMzdy + (hzsResult.sum || 0) +
+                        (machinesResult && machinesResult.total ? machinesResult.total : 0) +
+                        (materialsResult && materialsResult.total ? materialsResult.total : 0);
+
+        if (totalCosts > 0) {
+            infoMessage += "## 💰 CELKOVÝ SÚHRN NÁKLADOV\n";
+            infoMessage += "- **Mzdové náklady:** " + utils.formatMoney(employeeResult.celkoveMzdy) + "\n";
+            if (hzsResult.sum > 0) infoMessage += "- **HZS:** " + utils.formatMoney(hzsResult.sum) + "\n";
+            if (machinesResult && machinesResult.total > 0) infoMessage += "- **Stroje:** " + utils.formatMoney(machinesResult.total) + "\n";
+            if (materialsResult && materialsResult.total > 0) infoMessage += "- **Materiály:** " + utils.formatMoney(materialsResult.total) + "\n";
+            infoMessage += "- **CELKOM:** " + utils.formatMoney(totalCosts) + "\n\n";
         }
 
         infoMessage += "## 🔧 TECHNICKÉ INFORMÁCIE\n";
@@ -917,7 +972,7 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult) {
 
         currentEntry.set(CONFIG.fields.common.info, infoMessage);
 
-        utils.addDebug(currentEntry, "✅ Info záznam vytvorený s Markdown formátovaním");
+        utils.addDebug(currentEntry, "✅ Info záznam vytvorený s Markdown formátovaním a kompletným súhrnom");
 
         return true;
 
