@@ -2122,7 +2122,7 @@ var MementoBusiness = (function() {
                 }
             } else {
                 // Vytvor nový záznam v Denný report
-                var newDailyReport = dailyReportLib.create();
+                var newDailyReport = dailyReportLib.create({});
 
                 // Nastav dátum
                 core.safeSet(newDailyReport, config.fields.dailyReport.date, sourceDate);
