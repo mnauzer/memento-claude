@@ -26,7 +26,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Dochádzka Prepočet",
-    version: "8.0.2",  // Pridané fallback hodnoty pre icons
+    version: "8.1.0",  // Pridané Denný report integráciu
     
     // Referencie na centrálny config
     fields: {
@@ -450,7 +450,7 @@ function main() {
             step6: { success: false, name: "Linkovanie záznamov pokladne" },
             step7: { success: false, name: "Celkové výpočty" },
             step8: { success: false, name: "Vytvorenie info záznamu" },
-            step9: { success: false, name: "Vytvorenie Telegram notifikácie" },
+            step9: { success: false, name: "Spracovanie Denný report" },
         };
 
         // KROK 1: Načítanie a validácia dát
@@ -502,10 +502,21 @@ function main() {
         // KROK 8: Vytvorenie info záznamu
         utils.addDebug(currentEntry, " KROK 8: Vytvorenie info záznamu", "note");
         steps.step8.success = createInfoRecord(workTimeResult, employeeResult);
-            
-        // KROK 9: Telegram notifikácie (ODSTRÁNENÉ)
-        utils.addDebug(currentEntry, " KROK 9: Telegram notifikácie vynechané (refaktorizácia)", "note");
-        steps.step9 = { success: true }; // Dummy výsledok pre kompatibilitu
+
+        // KROK 9: Vytvorenie/aktualizácia Denný report
+        utils.addDebug(currentEntry, " KROK 9: Spracovanie Denný report", "note");
+        var dailyReportResult = utils.createOrUpdateDailyReport(currentEntry, 'attendance', {
+            debugEntry: currentEntry,
+            createBackLink: false  // Zatiaľ bez spätného linku
+        });
+        steps.step9.success = dailyReportResult.success;
+
+        if (dailyReportResult.success) {
+            var action = dailyReportResult.created ? "vytvorený" : "aktualizovaný";
+            utils.addDebug(currentEntry, "✅ Denný report " + action + " úspešne");
+        } else {
+            utils.addDebug(currentEntry, "⚠️ Chyba pri spracovaní Denný report: " + (dailyReportResult.error || "Neznáma chyba"));
+        }
         
         var isHoliday = utils.isHoliday(validationResult.data.date);
         var isWeekend = utils.isWeekend(validationResult.data.date);
