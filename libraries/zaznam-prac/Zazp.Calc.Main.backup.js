@@ -1,14 +1,8 @@
 // ==============================================
 // MEMENTO DATABASE - ZÁZNAM PRÁC PREPOČET
-// Verzia: 8.2.0 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 8.1.7 | Dátum: september 2025 | Autor: ASISTANTO
 // Knižnica: Záznam práce | Trigger: Before Save
 // ==============================================
-// ✅ REFAKTOROVANÉ v8.2:
-//    - Použitie univerzálnej validateInputData z MementoCore
-//    - Použitie univerzálnej processEmployees z MementoBusiness
-//    - Použitie univerzálnej calculateWorkTime z MementoBusiness
-//    - Configuration-driven validácia (requiredFields z config)
-//    - Odstránené duplicitné funkcie
 // ✅ REFAKTOROVANÉ v8.1:
 //    - Opravené chyby s undefined CONFIG
 //    - Použitie funkcií z MementoUtils/MementoBusiness
@@ -27,7 +21,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Záznam prác Prepočet",
-    version: "8.2.0",
+    version: "8.1.7",
     
     // Referencie na centrálny config
     fields: {
@@ -125,7 +119,8 @@ function main() {
 
         // Krok 3: Spracovanie zamestnancov
         utils.addDebug(currentEntry, utils.getIcon("group") + " KROK 3: Spracovanie zamestnancov");
-        var employeeResult = processEmployees(validationResult.employees, workTimeResult.pracovnaDobaHodiny, validationResult.date);
+        //var employeeResult = processEmployees(validationResult.employees, workTimeResult.pracovnaDobaHodiny, validationResult.date);
+        var employeeResult = utils.processEmployees(validationResult.employees, workTimeResult.pracovnaDobaHodiny, validationResult.date);
         steps.step3.success = employeeResult.success;
 
         // Krok 4: Spracovanie HZS
@@ -248,18 +243,95 @@ function calculateWorkTime(startTime, endTime) {
 }
 
 function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
-    // Použiť univerzálnu funkciu z MementoBusiness cez utils
-    var options = {
-        entry: currentEntry,
-        config: CONFIG,
-        employeeFieldName: CONFIG.fields.workRecord.employees,
-        attributes: CONFIG.attributes.workRecordEmployees,
-        includeExtras: false,  // Záznam prác nepoužíva bonusy/prémie/pokuty
-        processObligations: false,  // Záznam prác nevytvára záväzky
-        libraryType: 'workRecord'
-    };
+ 
+    try {
+        var result = {
+            success: false,
+            pocetPracovnikov: zamestnanci.length,
+            odpracovaneTotal: 0,
+            pracovnaDoba: pracovnaDobaHodiny,
+            celkoveMzdy: 0,
+            detaily: []
+        };
+        
+        // Ulož počet pracovníkov
+     utils.safeSet(currentEntry, CONFIG.fields.pocetPracovnikov, result.pocetPracovnikov);
+        
+        // Spracuj každého zamestnanca
+        for (var i = 0; i < zamestnanci.length; i++) {
+            var zamestnanec = zamestnanci[i];
+            
+            if (!zamestnanec) {
+                utils.addDebug(currentEntry, "Zamestnanec[" + i + "] je null - preskakujem", "warning");
+                continue;
+            }
+            
+            var employeeName = utils.formatEmployeeName(zamestnanec);
+            utils.addDebug(currentEntry, " [" + (i+1) + "/" + result.pocetPracovnikov + "] " + employeeName, "person");
+            
+            // Spracuj zamestnanca
+            var empResult = processEmployee(zamestnanec, pracovnaDobaHodiny, datum, i);
+            
+            if (empResult.success) {
+                result.odpracovaneTotal += pracovnaDobaHodiny;
+                result.celkoveMzdy += empResult.dennaMzda;
+                result.detaily.push(empResult);
+                result.success = true;
+            } else {
+                result.success = false;
+            }
+        }
+        
+        return result;
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "processEmployees", error);
+        return { success: false };
+    }
+}
 
-    return utils.processEmployees(zamestnanci, pracovnaDobaHodiny, datum, options);
+function processEmployee(zamestnanec, pracovnaDobaHodiny, datum, index) {
+    try {
+        // Nájdi platnú hodinovku
+        var hodinovka = utils.findValidSalary(currentEntry, zamestnanec, datum);
+        
+        if (!hodinovka || hodinovka <= 0) {
+            utils.addDebug(currentEntry, "  ❌ Preskakujem - nemá platnú sadzbu");
+            return { success: false };
+        }
+        
+        var zamArray = currentEntry.field(CONFIG.fields.workRecord.employees);
+        
+        if (zamArray && zamArray.length > index && zamArray[index]) {
+            // Nastav atribúty pomocou utils.safeSetAttribute
+            utils.safeSetAttribute(zamArray[index], CONFIG.attributes.workRecordEmployees.hourlyRate, hodinovka);
+            utils.safeSetAttribute(zamArray[index], CONFIG.attributes.workRecordEmployees.workedHours, pracovnaDobaHodiny);
+
+            // Vypočítaj dennú mzdu
+            var dennaMzda = (pracovnaDobaHodiny * hodinovka );
+            dennaMzda = Math.round(dennaMzda * 100) / 100;
+
+            // Nastav dennú mzdu
+            utils.safeSetAttribute(zamArray[index], CONFIG.attributes.workRecordEmployees.wageCosts, dennaMzda);
+            
+            utils.addDebug(currentEntry, "  • Mzdové náklady: " + dennaMzda + " €");
+            utils.addDebug(currentEntry, "Spracované úspešne", "success");
+            
+            return {
+                success: true,
+                hodinovka: hodinovka,
+                dennaMzda: dennaMzda,
+                zamestnanec: zamestnanec  // Pridané pre info záznam
+            };
+        } else {
+            utils.addError(currentEntry, "Nepodarilo sa získať zamesnanca na indexe " + index, "processEmployee");
+            return { success: false };
+        }
+        
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "processEmployee", error);
+        return { success: false };
+    }
 }
 
 function calculateTotals(employeeResult, hzsResult, machinesResult) {
@@ -883,7 +955,7 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult) {
                 var detail = employeeResult.detaily[i];
                 infoMessage += "👤 " + (i+1) + ": " + utils.formatEmployeeName(detail.zamestnanec) + "\n";
                 infoMessage += "  • Hodinovka: " + detail.hodinovka + " €/h\n";
-                infoMessage += "  • Mzdové náklady: " + detail.dennaMzda + " €\n\n";
+                infoMessage += "  • Mzdové náklady: " + detail.mzdoveNaklady + " €\n\n";
             }
             
             infoMessage += "💰 Celkové mzdové náklady: " + utils.formatMoney(employeeResult.celkoveMzdy) + "\n\n";
