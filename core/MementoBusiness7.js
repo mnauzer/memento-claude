@@ -864,7 +864,7 @@ var MementoBusiness = (function() {
                     continue;
                 }
 
-                var employeeName = core.formatEmployeeName(zamestnanec);
+                var employeeName = formatEmployeeName(zamestnanec);
                 core.addDebug(entry, " [" + (i+1) + "/" + result.pocetPracovnikov + "] " + employeeName, "person");
 
                 // Spracuj zamestnanca s options
