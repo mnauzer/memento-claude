@@ -846,8 +846,14 @@ var MementoBusiness = (function() {
                 totalAmount: 0
             };
 
-            // Ulož počet pracovníkov
-            core.safeSet(entry, config.fields.pocetPracovnikov || config.fields.attendance.employeeCount || config.fields.workRecord.employeeCount, result.pocetPracovnikov);
+            // Ulož počet pracovníkov - určuj pole pred použitím
+            var employeeCountField = config.fields.pocetPracovnikov ||
+                                   (config.fields.attendance ? config.fields.attendance.employeeCount : null) ||
+                                   (config.fields.workRecord ? config.fields.workRecord.employeeCount : null);
+
+            if (employeeCountField) {
+                core.safeSet(entry, employeeCountField, result.pocetPracovnikov);
+            }
 
             // Získaj existujúce záväzky ak je požadované
             if (options.processObligations && options.findLinkedObligations) {
