@@ -382,7 +382,6 @@ function createInfoRecord(workTimeResult, employeeResult) {
     }
 }
 
-
 // ==============================================
 // FINÁLNY SÚHRN
 // ==============================================
