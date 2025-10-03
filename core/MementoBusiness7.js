@@ -18,7 +18,7 @@
 var MementoBusiness = (function() {
     'use strict';
     
-    var version = "7.0.3";
+    var version = "7.1.0";  // Pridané createOrUpdateDailyReport
     
     // Lazy loading pre závislosti
     var _config = null;
@@ -1952,6 +1952,239 @@ var MementoBusiness = (function() {
     }
 
     // ==============================================
+    // DENNÝ REPORT MANAGEMENT
+    // ==============================================
+
+    /**
+     * Univerzálna funkcia pre vytvorenie alebo aktualizáciu záznamu v knižnici Denný report
+     * Funguje ako centrálny hub pre všetky denné záznamy (Dochádzka, Záznam prác, Kniha jázd, Pokladňa)
+     *
+     * @param {Entry} sourceEntry - Zdrojový záznam (Dochádzka, Záznam prác, atď.)
+     * @param {String} libraryType - Typ knižnice ('attendance', 'workRecord', 'rideLog', 'cashBook')
+     * @param {Object} options - Dodatočné nastavenia
+     * @returns {Object} Výsledok operácie s informáciou o vytvorení/aktualizácii
+     */
+    function createOrUpdateDailyReport(sourceEntry, libraryType, options) {
+        var core = getCore();
+        var config = getConfig();
+
+        try {
+            if (!sourceEntry || !libraryType) {
+                return {
+                    success: false,
+                    error: "Chýba sourceEntry alebo libraryType",
+                    created: false,
+                    updated: false
+                };
+            }
+
+            // Získaj dátum zo zdrojového záznamu
+            var sourceDate = null;
+            switch (libraryType) {
+                case 'attendance':
+                    sourceDate = core.safeGet(sourceEntry, config.fields.attendance.date);
+                    break;
+                case 'workRecord':
+                    sourceDate = core.safeGet(sourceEntry, config.fields.workRecord.date);
+                    break;
+                case 'rideLog':
+                    sourceDate = core.safeGet(sourceEntry, config.fields.rideLog.date);
+                    break;
+                case 'cashBook':
+                    sourceDate = core.safeGet(sourceEntry, config.fields.cashBook.date);
+                    break;
+                default:
+                    return {
+                        success: false,
+                        error: "Nepoznaný typ knižnice: " + libraryType,
+                        created: false,
+                        updated: false
+                    };
+            }
+
+            if (!sourceDate) {
+                return {
+                    success: false,
+                    error: "Nenašiel sa dátum v zdrojovom zázname",
+                    created: false,
+                    updated: false
+                };
+            }
+
+            var dateFormatted = moment(sourceDate).format('YYYY-MM-DD');
+
+            // Pridaj debug informácie ak sú dostupné
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "📅 Spracovávam Denný report pre " + dateFormatted + " (" + libraryType + ")");
+            }
+
+            // Nájdi existujúci záznam v Denný report pre daný dátum
+            var dailyReportLibrary = config.libraries.dailyReport;
+            var dailyReportEntries = libByName(dailyReportLibrary).entries();
+            var existingDailyReport = null;
+
+            for (var i = 0; i < dailyReportEntries.length; i++) {
+                var entry = dailyReportEntries[i];
+                var entryDate = core.safeGet(entry, config.fields.dailyReport.date);
+
+                if (entryDate && moment(entryDate).format('YYYY-MM-DD') === dateFormatted) {
+                    existingDailyReport = entry;
+                    break;
+                }
+            }
+
+            var result = {
+                success: false,
+                created: false,
+                updated: false,
+                dailyReportEntry: null,
+                backLinkCreated: false
+            };
+
+            // Ak existuje, aktualizuj link
+            if (existingDailyReport) {
+                // Aktualizuj príslušné pole podľa typu knižnice
+                var fieldToUpdate = null;
+                switch (libraryType) {
+                    case 'attendance':
+                        fieldToUpdate = config.fields.dailyReport.attendance;
+                        break;
+                    case 'workRecord':
+                        fieldToUpdate = config.fields.dailyReport.workRecord;
+                        break;
+                    case 'rideLog':
+                        fieldToUpdate = config.fields.dailyReport.rideLog;
+                        break;
+                    case 'cashBook':
+                        fieldToUpdate = config.fields.dailyReport.cashBook;
+                        break;
+                }
+
+                if (fieldToUpdate) {
+                    // Získaj existujúce linky
+                    var existingLinks = core.safeGetLinks(existingDailyReport, fieldToUpdate) || [];
+
+                    // Skontroluj či už link existuje
+                    var linkExists = false;
+                    for (var j = 0; j < existingLinks.length; j++) {
+                        if (existingLinks[j].field("ID") === sourceEntry.field("ID")) {
+                            linkExists = true;
+                            break;
+                        }
+                    }
+
+                    // Pridaj link ak neexistuje
+                    if (!linkExists) {
+                        existingLinks.push(sourceEntry);
+                        core.safeSet(existingDailyReport, fieldToUpdate, existingLinks);
+
+                        if (options && options.debugEntry && core.addDebug) {
+                            core.addDebug(options.debugEntry, "🔗 Aktualizovaný link v existujúcom Denný report");
+                        }
+                    }
+
+                    result.updated = true;
+                    result.dailyReportEntry = existingDailyReport;
+                }
+            } else {
+                // Vytvor nový záznam v Denný report
+                var newDailyReport = libByName(dailyReportLibrary).create();
+
+                // Nastav dátum
+                core.safeSet(newDailyReport, config.fields.dailyReport.date, sourceDate);
+
+                // Nastav príslušný link podľa typu knižnice
+                switch (libraryType) {
+                    case 'attendance':
+                        core.safeSet(newDailyReport, config.fields.dailyReport.attendance, [sourceEntry]);
+                        break;
+                    case 'workRecord':
+                        core.safeSet(newDailyReport, config.fields.dailyReport.workRecord, [sourceEntry]);
+                        break;
+                    case 'rideLog':
+                        core.safeSet(newDailyReport, config.fields.dailyReport.rideLog, [sourceEntry]);
+                        break;
+                    case 'cashBook':
+                        core.safeSet(newDailyReport, config.fields.dailyReport.cashBook, [sourceEntry]);
+                        break;
+                }
+
+                // Pridaj základný popis
+                var description = "Denný report pre " + dateFormatted;
+                core.safeSet(newDailyReport, config.fields.dailyReport.description, description);
+
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "📝 Vytvorený nový Denný report");
+                }
+
+                result.created = true;
+                result.dailyReportEntry = newDailyReport;
+            }
+
+            // Vytvor spätný link v zdrojovom zázname na Denný report (ak je požadovaný)
+            if (options && options.createBackLink && result.dailyReportEntry) {
+                var backLinkField = null;
+
+                // Urči pole pre spätný link podľa typu knižnice
+                // Poznámka: Týto polia musia existovať v konfiguračných schémach knižníc
+                switch (libraryType) {
+                    case 'attendance':
+                        // V Dochádzka môže byť pole "Denný report"
+                        backLinkField = options.backLinkField || "Denný report";
+                        break;
+                    case 'workRecord':
+                        backLinkField = options.backLinkField || "Denný report";
+                        break;
+                    case 'rideLog':
+                        backLinkField = options.backLinkField || "Denný report";
+                        break;
+                    case 'cashBook':
+                        backLinkField = options.backLinkField || "Denný report";
+                        break;
+                }
+
+                if (backLinkField) {
+                    try {
+                        core.safeSet(sourceEntry, backLinkField, [result.dailyReportEntry]);
+                        result.backLinkCreated = true;
+
+                        if (options && options.debugEntry && core.addDebug) {
+                            core.addDebug(options.debugEntry, "🔙 Vytvorený spätný link na Denný report");
+                        }
+                    } catch (backLinkError) {
+                        // Spätný link nie je kritický, pokračuj bez neho
+                        if (options && options.debugEntry && core.addDebug) {
+                            core.addDebug(options.debugEntry, "⚠️ Nemožno vytvoriť spätný link: " + backLinkError.toString());
+                        }
+                    }
+                }
+            }
+
+            result.success = result.created || result.updated;
+
+            if (options && options.debugEntry && core.addDebug) {
+                var action = result.created ? "vytvorený" : "aktualizovaný";
+                core.addDebug(options.debugEntry, "✅ Denný report " + action + " úspešne");
+            }
+
+            return result;
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, "Chyba pri spracovaní Denný report: " + error.toString(), "createOrUpdateDailyReport", error);
+            }
+
+            return {
+                success: false,
+                error: error.toString(),
+                created: false,
+                updated: false,
+                backLinkCreated: false
+            };
+        }
+    }
+
+    // ==============================================
     // PUBLIC API
     // ==============================================
 
@@ -2007,7 +2240,10 @@ var MementoBusiness = (function() {
         detectAllPriceChanges: detectAllPriceChanges,
         applyPriceRounding: applyPriceRounding,
         createMaterialInfoRecord: createMaterialInfoRecord,
-        createOrUpdateMaterialPriceRecord: createOrUpdateMaterialPriceRecord
+        createOrUpdateMaterialPriceRecord: createOrUpdateMaterialPriceRecord,
+
+        // Denný report - NOVÉ
+        createOrUpdateDailyReport: createOrUpdateDailyReport
     };
 })();
 
