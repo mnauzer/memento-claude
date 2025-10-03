@@ -18,7 +18,7 @@
 var MementoBusiness = (function() {
     'use strict';
     
-    var version = "7.0.2";
+    var version = "7.0.3";
     
     // Lazy loading pre závislosti
     var _config = null;
