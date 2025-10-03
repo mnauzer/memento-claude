@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - ZÁZNAM PRÁC PREPOČET
-// Verzia: 8.3.0 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 8.3.1 | Dátum: október 2025 | Autor: ASISTANTO
 // Knižnica: Záznam práce | Trigger: Before Save
 // ==============================================
 // ✅ REFAKTOROVANÉ v8.3:
@@ -31,7 +31,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Záznam prác Prepočet",
-    version: "8.3.0",  // Pridaná integrácia s knižnicou Denný report
+    version: "8.3.1",  // Opravené číslovanie krokov, návratové hodnoty a Markdown formátovanie info záznamu
 
     // Referencie na centrálny config
     fields: {
@@ -122,10 +122,12 @@ function main() {
         }
 // TODO Pridať výkaz strojov
         // Krok 7: Synchronizácia výkazu prác
+        utils.addDebug(currentEntry, utils.getIcon("update") + " KROK 7: Synchronizácia výkazu prác");
         if (validationResult.hasCustomer) {
-            utils.addDebug(currentEntry, utils.getIcon("update") + " KROK 6: Synchronizácia výkazu prác");
             steps.step7.success = synchronizeWorkReport(validationResult.customer, validationResult.date, employeeResult.odpracovaneTotal, hzsResult.price);
-       
+        } else {
+            utils.addDebug(currentEntry, "  ℹ️ Žiadna zákazka - preskakujem synchronizáciu výkazu");
+            steps.step7.success = true; // Nie je chyba ak nie je zákazka
         }
         
         // Krok 8: Vytvorenie info záznamov
@@ -689,19 +691,19 @@ function synchronizeWorkReport(customer, date, workedHours, hzsPrice) {
     try {
         if (!customer || customer.length === 0) {
             utils.addDebug(currentEntry, "  ℹ️ Žiadna zákazka - preskakujem výkaz");
-            return;
+            return true; // Nie je chyba ak nie je zákazka
         }
-        
+
         var customerObj = customer[0];
         var customerName = utils.safeGet(customerObj, "Názov", "N/A");
-        
+
         utils.addDebug(currentEntry, "  🔍 Hľadám výkaz pre zákazku: " + customerName);
 
         // Nájdi existujúci výkaz
         var existingReports = customerObj.linksFrom(CONFIG.libraries.workReport, CONFIG.fields.workReport.zakazka);
-        
+
         var workReport = null;
-        
+
         if (existingReports && existingReports.length > 0) {
             workReport = existingReports[0];
             utils.addDebug(currentEntry, "  " + utils.getIcon("update") + " Existujúci výkaz nájdený");
@@ -709,14 +711,20 @@ function synchronizeWorkReport(customer, date, workedHours, hzsPrice) {
             // Vytvor nový výkaz
             workReport = createNewWorkReport(customerObj, date, customerName);
         }
-        
+
         // Spracuj link na aktuálny záznam
         if (workReport) {
             updateWorkReportLink(workReport, workedHours, hzsPrice);
+            utils.addDebug(currentEntry, "  ✅ Synchronizácia výkazu dokončená úspešne");
+            return true;
+        } else {
+            utils.addDebug(currentEntry, "  ❌ Chyba pri vytváraní/aktualizácii výkazu");
+            return false;
         }
-        
+
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "synchronizeWorkReport", error);
+        return false;
     }
 }
 
@@ -855,62 +863,64 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult) {
     try {
         var date = currentEntry.field(CONFIG.fields.workRecord.date);
         var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
-        
-        var infoMessage = "📋 ZÁZNAM PRÁC - AUTOMATICKÝ PREPOČET\n";
-        infoMessage += "═══════════════════════════════════\n";
-        
-        infoMessage += "📅 Dátum: " + dateFormatted + "\n";
-        infoMessage += "⏰ Pracovný čas: " + utils.formatTime(workTimeResult.startTime) + 
+
+        var infoMessage = "# 📋 ZÁZNAM PRÁC - AUTOMATICKÝ PREPOČET\n\n";
+
+        infoMessage += "## 📅 Základné údaje\n";
+        infoMessage += "- **Dátum:** " + dateFormatted + "\n";
+        infoMessage += "- **Pracovný čas:** " + utils.formatTime(workTimeResult.startTime) +
                        " - " + utils.formatTime(workTimeResult.endTime) + "\n";
-        infoMessage += "⏱️ Odpracované: " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
-        
+        infoMessage += "- **Odpracované:** " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
+
         if (employeeResult.pocetPracovnikov > 0) {
-            infoMessage += "👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + " " + 
-                          utils.selectOsobaForm(employeeResult.pocetPracovnikov) + ")\n";
-            infoMessage += "───────────────────────────────────\n";
-            
+            infoMessage += "## 👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + " " +
+                          utils.selectOsobaForm(employeeResult.pocetPracovnikov) + ")\n\n";
+
             for (var i = 0; i < employeeResult.detaily.length; i++) {
                 var detail = employeeResult.detaily[i];
-                infoMessage += "👤 " + (i+1) + ": " + utils.formatEmployeeName(detail.zamestnanec) + "\n";
-                infoMessage += "  • Hodinovka: " + detail.hodinovka + " €/h\n";
-                infoMessage += "  • Mzdové náklady: " + detail.dennaMzda + " €\n\n";
+                infoMessage += "### 👤 " + utils.formatEmployeeName(detail.zamestnanec) + "\n";
+                infoMessage += "- **Hodinovka:** " + detail.hodinovka + " €/h\n";
+                infoMessage += "- **Mzdové náklady:** " + detail.dennaMzda + " €\n\n";
             }
-            
-            infoMessage += "💰 Celkové mzdové náklady: " + utils.formatMoney(employeeResult.celkoveMzdy) + "\n\n";
+
+            infoMessage += "**💰 Celkové mzdové náklady:** " + utils.formatMoney(employeeResult.celkoveMzdy) + "\n\n";
         }
-        
+
         if (hzsResult.price > 0) {
-            infoMessage += "💵 HODINOVÁ ZÚČTOVACIA SADZBA:\n";
-            infoMessage += "───────────────────────────────────\n";
-            infoMessage += "  • Sadzba: " + hzsResult.price + " €/h\n";
-            infoMessage += "  • Suma HZS: " + utils.formatMoney(hzsResult.sum) + "\n\n";
+            infoMessage += "## 💵 HODINOVÁ ZÚČTOVACIA SADZBA\n";
+            infoMessage += "- **Sadzba:** " + hzsResult.price + " €/h\n";
+            infoMessage += "- **Suma HZS:** " + utils.formatMoney(hzsResult.sum) + "\n\n";
         }
-        
+
         var order = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.order);
         if (order && order.length > 0) {
-            infoMessage += "📦 Zákazka: " + utils.safeGet(order[0], "Názov", "N/A") + "\n";
+            infoMessage += "## 📦 ZÁKAZKA\n";
+            infoMessage += "- **Názov:** " + utils.safeGet(order[0], "Názov", "N/A") + "\n\n";
         }
-        
+
         var workDescription = utils.safeGet(currentEntry, CONFIG.fields.workRecord.workDescription);
         if (workDescription) {
-            infoMessage += "\n🔨 VYKONANÉ PRÁCE:\n";
-            infoMessage += "───────────────────────────────────\n";
-            infoMessage += workDescription + "\n";
+            infoMessage += "## 🔨 VYKONANÉ PRÁCE\n";
+            infoMessage += workDescription + "\n\n";
         }
-        
-        infoMessage += "\n🔧 TECHNICKÉ INFO:\n";
-        infoMessage += "• Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
-        infoMessage += "• Čas spracovania: " + moment().format("HH:mm:ss") + "\n";
-        infoMessage += "• MementoUtils: v" + (utils.version || "N/A") + "\n";
-        
-        infoMessage += "\n✅ PREPOČET DOKONČENÝ ÚSPEŠNE";
+
+        infoMessage += "## 🔧 TECHNICKÉ INFORMÁCIE\n";
+        infoMessage += "- **Script:** " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
+        infoMessage += "- **Čas spracovania:** " + moment().format("HH:mm:ss") + "\n";
+        infoMessage += "- **MementoUtils:** v" + (utils.version || "N/A") + "\n";
+
+        if (typeof MementoConfig !== 'undefined') {
+            infoMessage += "- **MementoConfig:** v" + MementoConfig.version + "\n";
+        }
+
+        infoMessage += "\n---\n**✅ PREPOČET DOKONČENÝ ÚSPEŠNE**";
 
         currentEntry.set(CONFIG.fields.common.info, infoMessage);
-        
-        utils.addDebug(currentEntry, "✅ Info záznam vytvorený");
-        
+
+        utils.addDebug(currentEntry, "✅ Info záznam vytvorený s Markdown formátovaním");
+
         return true;
-        
+
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "createInfoRecord", error);
         return false;
