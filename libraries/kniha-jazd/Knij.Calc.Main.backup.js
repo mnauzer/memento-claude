@@ -1,13 +1,7 @@
 // ==============================================
 // MEMENTO DATABASE - KNIHA JÁZD (ROUTE CALCULATION & PAYROLL)
-// Verzia: 10.1.0 | Dátum: Október 2025 | Autor: ASISTANTO
+// Verzia: 10 | Dátum: September 2025 | Autor: ASISTANTO
 // Knižnica: Kniha jázd | Trigger: Before Save
-// ==============================================
-// ✅ REFAKTOROVANÉ v10.1:
-//    - Odstránené hardcoded názvy polí z CONFIG
-//    - Všetky polia teraz z centralConfig.fields
-//    - Odstránené zamestnancilFields, sadzbyFields
-//    - Použitie fields.employee, fields.wages z centr. configu
 // ==============================================
 // 📋 FUNKCIA:
 //    - Automatický prepočet vzdialenosti, času jazdy a miezd posádky
@@ -34,34 +28,58 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Kniha jázd Prepočet",
-    version: "10.1.0",
-
+    version: "10.0.2",
+    
     // Referencie na centrálny config
     fields: {
+        defaultZdrzanie: centralConfig.fields.defaults.defaultZdrzanie,
         place: centralConfig.fields.place,
         rideLog: centralConfig.fields.rideLog,
         rideReport: centralConfig.fields.rideReport,
         vehicle: centralConfig.fields.vehicle,
         common: centralConfig.fields.common,
         order: centralConfig.fields.order,
-        employee: centralConfig.fields.employee,
-        wages: centralConfig.fields.wages,
-        defaults: centralConfig.fields.defaults
+        start: "Štart",
+        zastavky: "Zastávky",
+        ciel: "Cieľ", 
+        km: "Km",
+        casJazdy: "Čas jazdy",
+        casNaZastavkach: "Čas na zastávkach",
+        celkovyCas: "Celkový čas",
+        posadka: "Posádka",
+        sofer: "Šofér",
+        datum: "Dátum",
+        mzdy: "Mzdové náklady",
+        info: centralConfig.fields.common.info
     },
-
+    
     // Atribúty
     attributes: {
         rideLogCrew: centralConfig.attributes.rideLogCrew,
         rideLogStops: centralConfig.attributes.rideLogStops,
-        rideReport: centralConfig.attributes.rideReport
+        rideReport: centralConfig.attributes.rideReport,  
     },
-
+    
     // Knižnice
-    libraries: centralConfig.libraries,
-
-    // Icons
-    icons: centralConfig.icons,
-
+    libraries: {
+        sadzby: centralConfig.libraries.rates,
+        miesta: centralConfig.libraries.places,
+        zamestnanci: centralConfig.libraries.employees,
+        defaults: centralConfig.libraries.defaults
+    },
+    
+    
+    sadzbyFields: {
+        zamestnanec: "Zamestnanec",
+        platnostOd: "Platnosť od",
+        sadzba: "Sadzba"
+    },
+    
+    zamestnancilFields: {
+        meno: "Meno",
+        nick: "Nick"
+    },
+     
     // Business pravidlá
     settings: {
         roundToQuarterHour: false,
@@ -262,13 +280,13 @@ var CONFIG = {
             }
             
             var soferObj = sofer[0];
-            var soferNick = utils.safeGet(soferObj, CONFIG.fields.employee.nick, "");
+            var soferNick = utils.safeGet(soferObj, CONFIG.zamestnancilFields.nick, "");
             
             utils.addDebug(currentEntry, "  👤 Šofér: " + utils.formatEmployeeName(soferObj));
             
             // Skontroluj či šofér nie je už v posádke
             for (var i = 0; i < posadka.length; i++) {
-                var clenNick = utils.safeGet(posadka[i], CONFIG.fields.employee.nick, "");
+                var clenNick = utils.safeGet(posadka[i], CONFIG.zamestnancilFields.nick, "");
                 if (clenNick === soferNick) {
                     result.soferInPosadke = true;
                     utils.addDebug(currentEntry, "  ✅ Šofér už je v posádke");
@@ -279,7 +297,7 @@ var CONFIG = {
             // Ak šofér nie je v posádke, pridaj ho
             if (!result.soferInPosadke) {
                 posadka.push(soferObj);
-                utils.safeSet(currentEntry, CONFIG.fields.rideLog.posadka, posadka);
+                utils.safeSet(currentEntry, CONFIG.fields.posadka, posadka);
                 utils.addDebug(currentEntry, "  ➕ Šofér pridaný do posádky");
             }
             
@@ -422,7 +440,7 @@ var CONFIG = {
             
             // Zaokrúhli a ulož celkové mzdy
             result.celkoveMzdy = Math.round(result.celkoveMzdy * 100) / 100;
-            utils.safeSet(currentEntry, CONFIG.fields.rideLog.mzdy, result.celkoveMzdy);
+            utils.safeSet(currentEntry, CONFIG.fields.mzdy, result.celkoveMzdy);
             
             utils.addDebug(currentEntry, "\n  💰 CELKOVÉ MZDY: " + utils.formatMoney(result.celkoveMzdy));
             
@@ -1231,60 +1249,26 @@ var CONFIG = {
 // FINÁLNY SÚHRN
 // ==============================================
 
-function logFinalSummary(steps, routeResult, wageResult, vehicleCostResult, vehicleResult, vykazResult) {
+function logFinalSummary(steps) {
     try {
         utils.addDebug(currentEntry, "\n📊 === FINÁLNY SÚHRN ===");
-
+        
         var allSuccess = true;
         for (var step in steps) {
             var status = steps[step].success ? "✅" : "❌";
             utils.addDebug(currentEntry, status + " " + steps[step].name);
-            if (!steps[step].success) {
-                allSuccess = false;
-            }
+            if (!steps[step].success) allSuccess = false;
         }
-
+        
         if (allSuccess) {
-            utils.addDebug(currentEntry, "\n✅ Všetky kroky dokončené úspešne!");
-
-            // Zobraz súhrn používateľovi
-            var msg = "✅ PREPOČET DOKONČENÝ\n\n";
-            if (routeResult && routeResult.totalKm) {
-                msg += "━━━━━━━━━━━━━━━━━━━━━\n";
-                msg += "📏 Vzdialenosť: " + routeResult.totalKm + " km\n";
-                msg += "⏱️ Celkový čas: " + routeResult.celkovyCas + " h\n";
-            }
-
-            if (wageResult && wageResult.success && wageResult.celkoveMzdy > 0) {
-                msg += "💰 Mzdové náklady: " + utils.formatMoney(wageResult.celkoveMzdy) + "\n";
-            }
-
-            if (vehicleCostResult && vehicleCostResult.success && vehicleCostResult.vehicleCosts > 0) {
-                msg += "🚗 Náklady vozidla: " + utils.formatMoney(vehicleCostResult.vehicleCosts) + "\n";
-            }
-
-            if (vehicleResult && vehicleResult.success && vehicleResult.message !== "Žiadne vozidlo") {
-                msg += "🚐 " + vehicleResult.message + "\n";
-            }
-
-            if (vykazResult && vykazResult.success && vykazResult.processedCount > 0) {
-                msg += "📊 Výkazy: " + vykazResult.processedCount + " (" +
-                       vykazResult.createdCount + " nových, " +
-                       vykazResult.updatedCount + " aktualizovaných)\n";
-            }
-
-            msg += "━━━━━━━━━━━━━━━━━━━━━\n";
-            msg += "ℹ️ Detaily v poli 'info'";
-
-            message(msg);
+            utils.addDebug(currentEntry, "\n🎉 === VŠETKY KROKY ÚSPEŠNÉ ===");
         } else {
             utils.addDebug(currentEntry, "\n⚠️ === NIEKTORÉ KROKY ZLYHALI ===");
-            message("⚠️ Prepočet dokončený s chybami\n\nPozrite Debug Log pre detaily.");
         }
-
+        
         utils.addDebug(currentEntry, "⏱️ Čas ukončenia: " + moment().format("HH:mm:ss"));
         utils.addDebug(currentEntry, "📋 === KONIEC " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
-
+        
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "logFinalSummary", error);
     }
@@ -1365,7 +1349,31 @@ function main() {
         steps.step8.success = vykazResult.success;
         
         // Finálny súhrn
-        logFinalSummary(steps, routeResult, wageResult, vehicleCostResult, vehicleResult, vykazResult);
+        logFinalSummary(steps);
+        
+        // Ak všetko prebehlo v poriadku
+        if (steps.step1.success) {
+            var msg = "✅ Prepočet dokončený\n\n";
+            msg += "📏 Vzdialenosť: " + routeResult.totalKm + " km\n";
+            msg += "⏱️ Celkový čas: " + routeResult.celkovyCas + " h\n";
+            if (wageResult.success && wageResult.celkoveMzdy > 0) {
+                msg += "💰 Mzdové náklady: " + utils.formatMoney(wageResult.celkoveMzdy) + "\n";
+            }
+            if (vehicleCostResult.success && vehicleCostResult.vehicleCosts > 0) {
+                msg += "🚗 Náklady vozidla: " + utils.formatMoney(vehicleCostResult.vehicleCosts) + "\n";
+            }
+            if (vehicleResult.success && vehicleResult.message !== "Žiadne vozidlo") {
+                msg += "🚐 " + vehicleResult.message + "\n";
+            }
+            if (vykazResult.success && vykazResult.processedCount > 0) {
+                msg += "📊 Výkazy: " + vykazResult.processedCount + " (" + 
+                       vykazResult.createdCount + " nových, " + 
+                       vykazResult.updatedCount + " aktualizovaných)";
+            }
+            message(msg);
+        } else {
+            message("⚠️ Prepočet dokončený s chybami\n\nPozrite Debug Log pre detaily.");
+        }
         
         return true;
         
