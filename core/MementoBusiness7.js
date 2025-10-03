@@ -800,7 +800,7 @@ var MementoBusiness = (function() {
                 var obligationResult = options.processObligation(datum, {
                     entry: zamestnanec,
                     dailyWage: dennaMzda,
-                    name: core.formatEmployeeName(zamestnanec)
+                    name: formatEmployeeName(zamestnanec)
                 }, options.existingObligations);
 
                 result.created = obligationResult.created;
