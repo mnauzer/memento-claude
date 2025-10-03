@@ -183,6 +183,7 @@ var MementoUtils = (function() {
         
         // Validácia
         validateRequiredFields: lazyCall('core', 'validateRequiredFields'),
+        validateInputData: lazyCall('core', 'validateInputData'),
         
         // Utility
         getSettings: lazyCall('core', 'getSettings'),

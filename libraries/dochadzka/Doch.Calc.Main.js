@@ -26,7 +26,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Dochádzka Prepočet",
-    version: "7.4.8",  // Pridané fallback hodnoty pre icons
+    version: "8.0.1",  // Pridané fallback hodnoty pre icons
     
     // Referencie na centrálny config
     fields: {
