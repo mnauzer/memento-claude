@@ -18,7 +18,7 @@
 var MementoBusiness = (function() {
     'use strict';
     
-    var version = "7.1.0";  // Pridané createOrUpdateDailyReport
+    var version = "7.1.1";  // Opravené chyby v createOrUpdateDailyReport
     
     // Lazy loading pre závislosti
     var _config = null;
@@ -2020,7 +2020,41 @@ var MementoBusiness = (function() {
 
             // Nájdi existujúci záznam v Denný report pre daný dátum
             var dailyReportLibrary = config.libraries.dailyReport;
-            var dailyReportEntries = libByName(dailyReportLibrary).entries();
+
+            // Kontrola či knižnica existuje
+            var dailyReportLib = libByName(dailyReportLibrary);
+            if (!dailyReportLib) {
+                var errorMsg = "Knižnica '" + dailyReportLibrary + "' neexistuje alebo nie je dostupná";
+
+                // Pridaj debug info o dostupných knižniciach
+                if (options && options.debugEntry && core.addDebug) {
+                    try {
+                        var availableLibs = [];
+                        for (var libName in lib()) {
+                            availableLibs.push(libName);
+                        }
+                        core.addDebug(options.debugEntry, "📚 Dostupné knižnice: " + availableLibs.slice(0, 10).join(", ") + (availableLibs.length > 10 ? "..." : ""));
+                    } catch (e) {
+                        core.addDebug(options.debugEntry, "⚠️ Nemožno načítať zoznam knižníc: " + e.toString());
+                    }
+                }
+
+                if (options && options.debugEntry && core.addError) {
+                    core.addError(options.debugEntry, errorMsg, "createOrUpdateDailyReport");
+                }
+                return {
+                    success: false,
+                    error: errorMsg,
+                    created: false,
+                    updated: false
+                };
+            }
+
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "✅ Knižnica '" + dailyReportLibrary + "' nájdená");
+            }
+
+            var dailyReportEntries = dailyReportLib.entries();
             var existingDailyReport = null;
 
             for (var i = 0; i < dailyReportEntries.length; i++) {
@@ -2088,7 +2122,7 @@ var MementoBusiness = (function() {
                 }
             } else {
                 // Vytvor nový záznam v Denný report
-                var newDailyReport = libByName(dailyReportLibrary).create();
+                var newDailyReport = dailyReportLib.create();
 
                 // Nastav dátum
                 core.safeSet(newDailyReport, config.fields.dailyReport.date, sourceDate);
