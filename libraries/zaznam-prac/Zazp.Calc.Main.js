@@ -28,28 +28,17 @@ var currentEntry = entry();
 var CONFIG = {
     scriptName: "Záznam prác Prepočet",
     version: "8.2.0",
-    
+
     // Referencie na centrálny config
     fields: {
         workReport: centralConfig.fields.workReport,
         workRecord: centralConfig.fields.workRecord,
         common: centralConfig.fields.common,
         employee: centralConfig.fields.employee,
-        workPrices: centralConfig.fields.workPrices ,
-        // Mapovanie pre časové polia
-        startTime: centralConfig.fields.workRecord.startTime || "Od",
-        endTime: centralConfig.fields.workRecord.endTime || "Do",
-        workTime: centralConfig.fields.workRecord.workTime || "Pracovná doba",
-        workedHours: centralConfig.fields.workRecord.workedHours || "Odpracované",
-        employeeCount: centralConfig.fields.workRecord.employeeCount || "Počet pracovníkov",
-        wageCosts: centralConfig.fields.workRecord.wageCosts || "Mzdové náklady",
-        hzsSum: centralConfig.fields.workRecord.hzsSum || "Suma HZS",
-        info: centralConfig.fields.common.info,
-        infoTelegram: centralConfig.fields.common.infoTelegram || "info_telegram",
-        defaults: centralConfig.fields.defaults,
+        workPrices: centralConfig.fields.workPrices,
         machine: centralConfig.fields.machine
     },
-    attributes:{ 
+    attributes:{
         workRecordHzs: centralConfig.attributes.workRecordHzs,
         workRecordEmployees: centralConfig.attributes.workRecordEmployees,
         workRecordMachines: centralConfig.attributes.workRecordMachines,
@@ -57,27 +46,12 @@ var CONFIG = {
     },
     libraries: centralConfig.libraries,
     icons: centralConfig.icons,
-    
+
     // Lokálne nastavenia
     settings: {
         roundToQuarterHour: true,
         defaultCurrency: "€"
-    },
-      
-    // Mapovanie pre výkaz prác
-    vykazFields: {
-        datum: "Dátum",
-        identifikator: "Identifikátor",
-        popis: "Popis",
-        typVykazu: "Typ výkazu",
-        cenyPocitat: "Ceny počítať",
-        cenovaPonuka: "Cenová ponuka",
-        vydane: "Vydané",
-        zakazka: "Zákazka",
-        praceHZS: "Práce HZS",
-        info: "info"
-    },
-    
+    }
 };
 
 // ==============================================
@@ -330,7 +304,7 @@ function processHZS(workedHours) {
         
         // Vypočítaj sumu
         var hzsSum = Math.round(workedHours * hzsPrice * 100) / 100;
-        utils.safeSet(currentEntry, CONFIG.fields.hzsSum, hzsSum);
+        utils.safeSet(currentEntry, CONFIG.fields.workRecord.hzsSum, hzsSum);
         
         utils.addDebug(currentEntry, "  " + utils.getIcon("money") + " HZS: " + workedHours + "h × " + hzsPrice + "€ = " + hzsSum + "€");
         
@@ -659,15 +633,15 @@ function createNewWorkReport(customerObj, date, customerName) {
         if (!reportLib) return null;
         
         var workReport = reportLib.create({});
-        
+
         // Nastav základné polia
-        utils.safeSet(workReport, CONFIG.vykazFields.datum, date);
-        utils.safeSet(workReport, CONFIG.vykazFields.identifikator, "VP-" + moment(date).format("YYYYMMDD"));
-        utils.safeSet(workReport, CONFIG.vykazFields.popis, "Výkaz prác - " + customerName);
-        utils.safeSet(workReport, CONFIG.vykazFields.typVykazu, "Podľa vykonaných prác");
-        utils.safeSet(workReport, CONFIG.vykazFields.cenyPocitat, "Z cenovej ponuky");
-        utils.safeSet(workReport, CONFIG.vykazFields.vydane, "Zákazka");
-        utils.safeSet(workReport, CONFIG.vykazFields.zakazka, [customerObj]);
+        utils.safeSet(workReport, CONFIG.fields.workReport.datum, date);
+        utils.safeSet(workReport, CONFIG.fields.workReport.identifikator, "VP-" + moment(date).format("YYYYMMDD"));
+        utils.safeSet(workReport, CONFIG.fields.workReport.popis, "Výkaz prác - " + customerName);
+        utils.safeSet(workReport, CONFIG.fields.workReport.typVykazu, "Podľa vykonaných prác");
+        utils.safeSet(workReport, CONFIG.fields.workReport.cenyPocitat, "Z cenovej ponuky");
+        utils.safeSet(workReport, CONFIG.fields.workReport.vydane, "Zákazka");
+        utils.safeSet(workReport, CONFIG.fields.workReport.zakazka, [customerObj]);
         
         // Info záznam
         var info = "📋 AUTOMATICKY VYTVORENÝ VÝKAZ\n";
@@ -678,8 +652,8 @@ function createNewWorkReport(customerObj, date, customerName) {
         info += "🔧 Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
         info += "📂 Zdroj: Knižnica Záznam práce\n\n";
         info += "✅ VÝKAZ VYTVORENÝ ÚSPEŠNE";
-        
-        utils.safeSet(workReport, CONFIG.vykazFields.info, info);
+
+        utils.safeSet(workReport, CONFIG.fields.workReport.info, info);
         
         utils.addDebug(currentEntry, "  " + utils.getIcon("create") + " Nový výkaz vytvorený");
         
@@ -702,9 +676,9 @@ function synchronizeWorkReport(customer, date, workedHours, hzsPrice) {
         var customerName = utils.safeGet(customerObj, "Názov", "N/A");
         
         utils.addDebug(currentEntry, "  🔍 Hľadám výkaz pre zákazku: " + customerName);
-        
+
         // Nájdi existujúci výkaz
-        var existingReports = customerObj.linksFrom(CONFIG.libraries.workReport, CONFIG.vykazFields.zakazka);
+        var existingReports = customerObj.linksFrom(CONFIG.libraries.workReport, CONFIG.fields.workReport.zakazka);
         
         var workReport = null;
         
@@ -728,7 +702,7 @@ function synchronizeWorkReport(customer, date, workedHours, hzsPrice) {
 
 function updateWorkReportLink(workReport, workedHours, hzsPrice) {
     try {
-        var praceHZS = utils.safeGetLinks(workReport, CONFIG.vykazFields.praceHZS) || [];
+        var praceHZS = utils.safeGetLinks(workReport, CONFIG.fields.workReport.praceHZS) || [];
         var currentEntryId = currentEntry.field("ID");
         
         // Nájdi index aktuálneho záznamu v poli
@@ -743,7 +717,7 @@ function updateWorkReportLink(workReport, workedHours, hzsPrice) {
         // Ak link neexistuje, pridaj ho
         if (existingIndex === -1) {
             praceHZS.push(currentEntry);
-            workReport.set(CONFIG.vykazFields.praceHZS, praceHZS);
+            workReport.set(CONFIG.fields.workReport.praceHZS, praceHZS);
             existingIndex = praceHZS.length - 1;
             utils.addDebug(currentEntry, "  " + utils.getIcon("create") + " Nový link pridaný do výkazu");
         } else {
@@ -763,7 +737,7 @@ function updateWorkReportLink(workReport, workedHours, hzsPrice) {
 
 function updateWorkReportAttributes(workReport, index, workedHours, hzsPrice) {
     try {
-        var vykazArray = workReport.field(CONFIG.vykazFields.praceHZS);
+        var vykazArray = workReport.field(CONFIG.fields.workReport.praceHZS);
         
         if (!vykazArray || !vykazArray[index]) {
             utils.addError(currentEntry, "Nepodarilo sa získať pole výkazu na indexe " + index, "updateWorkReportAttributes");
@@ -799,7 +773,7 @@ function updateWorkReportAttributes(workReport, index, workedHours, hzsPrice) {
 
 function recalculateWorkReportTotals(workReport) {
     try {
-        var vykazArray = workReport.field(CONFIG.vykazFields.praceHZS);
+        var vykazArray = workReport.field(CONFIG.fields.workReport.praceHZS);
         if (!vykazArray) return;
         
         var totalHours = 0;
@@ -833,7 +807,7 @@ function recalculateWorkReportTotals(workReport) {
 
 function updateWorkReportInfo(workReport) {
     try {
-        var existingInfo = utils.safeGet(workReport, CONFIG.vykazFields.info, "");
+        var existingInfo = utils.safeGet(workReport, CONFIG.fields.workReport.info, "");
         
         // Pridaj informáciu o aktualizácii
         var updateInfo = "\n\n🔄 AKTUALIZOVANÉ: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
@@ -845,8 +819,8 @@ function updateWorkReportInfo(workReport) {
         if (newInfo.length > 5000) {
             newInfo = "... (skrátené) ...\n" + newInfo.substring(newInfo.length - 4900);
         }
-        
-        workReport.set(CONFIG.vykazFields.info, newInfo);
+
+        workReport.set(CONFIG.fields.workReport.info, newInfo);
         
     } catch (error) {
         utils.addError(currentEntry, "Chyba pri aktualizácii info poľa: " + error.toString(), "updateWorkReportInfo", error);
@@ -910,8 +884,8 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult) {
         infoMessage += "• MementoUtils: v" + (utils.version || "N/A") + "\n";
         
         infoMessage += "\n✅ PREPOČET DOKONČENÝ ÚSPEŠNE";
-        
-        currentEntry.set(CONFIG.fields.info, infoMessage);
+
+        currentEntry.set(CONFIG.fields.common.info, infoMessage);
         
         utils.addDebug(currentEntry, "✅ Info záznam vytvorený");
         
@@ -946,7 +920,7 @@ function logFinalSummary(steps, employeeResult, hzsResult) {
             var date = utils.safeGet(currentEntry, CONFIG.fields.workRecord.date);
             var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
             var employeeCount = employeeResult.pocetPracovnikov;
-            var totalHours = utils.safeGet(currentEntry, CONFIG.fields.workedHours, 0);
+            var totalHours = utils.safeGet(currentEntry, CONFIG.fields.workRecord.workedHours, 0);
             var totalCosts = employeeResult.celkoveMzdy;
 
             var summaryMsg = "✅ PREPOČET DOKONČENÝ\n\n";
