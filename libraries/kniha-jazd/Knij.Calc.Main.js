@@ -91,7 +91,7 @@ function getDefaultZdrzanie() {
         
         var defaultsEntries = defaultsLib.entries();
         if (defaultsEntries.length > 0) {
-            var defaultZdrz = defaultsEntries[0].field(CONFIG.fields.defaultZdrzanie);
+            var defaultZdrz = defaultsEntries[0].field(CONFIG.fields.defaults.defaultZdrzanie);
             
             if (defaultZdrz !== null && defaultZdrz !== undefined) {
                 utils.addDebug("  📋 Našiel default zdržanie: " + defaultZdrz + " ms");
@@ -111,6 +111,166 @@ function getDefaultZdrzanie() {
 // ==============================================
 // HLAVNÉ FUNKCIE VÝPOČTU
 // ==============================================
+
+/**
+ * Kontroluje súčet km atribútov zo zastávok a cieľa
+ * @param {number} expectedTotal - Očakávaný celkový súčet km
+ * @param {Array} zastavky - Pole zastávok
+ * @param {Array} ciel - Pole cieľa
+ */
+function verifyKmAttributesSum(expectedTotal, zastavky, ciel) {
+    try {
+        var attributesSum = 0;
+        var segmentDetails = [];
+
+        // Spočítaj km atribúty zo zastávok
+        if (zastavky && zastavky.length > 0) {
+            for (var i = 0; i < zastavky.length; i++) {
+                try {
+                    var stopKm = zastavky[i].attr(CONFIG.attributes.rideLogStops.km) || 0;
+                    attributesSum += stopKm;
+                    var stopName = utils.safeGet(zastavky[i], CONFIG.fields.place.name, "Zastávka " + (i + 1));
+                    segmentDetails.push("Zastávka " + (i + 1) + " (" + stopName + "): " + stopKm + " km");
+                } catch (e) {
+                    utils.addError(currentEntry, "Chyba pri čítaní km atribútu zastávky " + (i + 1) + ": " + e.toString(), "verifyKmAttributesSum");
+                }
+            }
+        }
+
+        // Spočítaj km atribút z cieľa
+        if (ciel && ciel.length > 0) {
+            try {
+                var cielKm = ciel[0].attr(CONFIG.attributes.rideLogStops.km) || 0;
+                attributesSum += cielKm;
+                var cielName = utils.safeGet(ciel[0], CONFIG.fields.place.name, "Cieľ");
+                segmentDetails.push("Cieľ (" + cielName + "): " + cielKm + " km");
+            } catch (e) {
+                utils.addError(currentEntry, "Chyba pri čítaní km atribútu cieľa: " + e.toString(), "verifyKmAttributesSum");
+            }
+        }
+
+        // Zaokrúhli pre porovnanie
+        attributesSum = Math.round(attributesSum * 10) / 10;
+        var expectedRounded = Math.round(expectedTotal * 10) / 10;
+
+        utils.addDebug(currentEntry, "\n  🔍 === KONTROLA KM ATRIBÚTOV ===");
+        for (var j = 0; j < segmentDetails.length; j++) {
+            utils.addDebug(currentEntry, "  • " + segmentDetails[j]);
+        }
+        utils.addDebug(currentEntry, "  📊 Súčet atribútov: " + attributesSum + " km");
+        utils.addDebug(currentEntry, "  📊 Celkové km (pole): " + expectedRounded + " km");
+
+        if (Math.abs(attributesSum - expectedRounded) < 0.1) {
+            utils.addDebug(currentEntry, "  ✅ Kontrola km atribútov: OK");
+        } else {
+            var difference = Math.round((attributesSum - expectedRounded) * 10) / 10;
+            utils.addError(currentEntry, "Nesúlad km atribútov! Rozdiel: " + difference + " km", "verifyKmAttributesSum");
+            utils.addDebug(currentEntry, "  ❌ Kontrola km atribútov: CHYBA (rozdiel: " + difference + " km)");
+        }
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri kontrole km atribútov: " + error.toString(), "verifyKmAttributesSum", error);
+    }
+}
+
+/**
+ * Kontroluje súčet delay atribútov zo zastávok
+ * @param {number} expectedTotal - Očakávaný celkový súčet delay v hodinách
+ * @param {Array} zastavky - Pole zastávok
+ */
+function verifyDelayAttributesSum(expectedTotal, zastavky) {
+    try {
+        utils.addDebug(currentEntry, "🔍 Kontrolujem súčet delay atribútov...");
+
+        var calculatedSum = 0;
+
+        // Súčet delay zo zastávok
+        if (zastavky && zastavky.length > 0) {
+            for (var i = 0; i < zastavky.length; i++) {
+                try {
+                    var delayAttr = zastavky[i].attr(CONFIG.attributes.rideLogStops.delay) || 0;
+                    var delayInHours = utils.convertDurationToHours(delayAttr);
+                    calculatedSum += delayInHours;
+                    utils.addDebug(currentEntry, "  📍 Zastávka " + (i + 1) + " delay: " + delayInHours + " h (" + delayAttr + " ms)");
+                } catch (e) {
+                    utils.addError(currentEntry, "Chyba pri čítaní delay atribútu zastávky " + (i + 1) + ": " + e.toString(), "verifyDelayAttributesSum");
+                }
+            }
+        }
+
+        utils.addDebug(currentEntry, "📊 Porovnanie delay:");
+        utils.addDebug(currentEntry, "  • Očakávaný celkový: " + expectedTotal + " h");
+        utils.addDebug(currentEntry, "  • Súčet atribútov: " + calculatedSum + " h");
+
+        var difference = Math.abs(expectedTotal - calculatedSum);
+        if (difference > 0.01) { // tolerancia 0.01 h (36 sekúnd)
+            utils.addError(currentEntry, "Nesúlad delay atribútov! Rozdiel: " + difference + " h", "verifyDelayAttributesSum");
+            return false;
+        } else {
+            utils.addDebug(currentEntry, "✅ Delay atribúty sú konzistentné");
+            return true;
+        }
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri kontrole delay atribútov: " + error.toString(), "verifyDelayAttributesSum", error);
+    }
+}
+
+/**
+ * Kontroluje súčet duration atribútov zo zastávok a cieľa
+ * @param {number} expectedTotal - Očakávaný celkový súčet duration v hodinách
+ * @param {Array} zastavky - Pole zastávok
+ * @param {Array} ciel - Pole cieľa
+ */
+function verifyDurationAttributesSum(expectedTotal, zastavky, ciel) {
+    try {
+        utils.addDebug(currentEntry, "🔍 Kontrolujem súčet duration atribútov...");
+
+        var calculatedSum = 0;
+
+        // Súčet duration zo zastávok
+        if (zastavky && zastavky.length > 0) {
+            for (var i = 0; i < zastavky.length; i++) {
+                try {
+                    var durationAttr = zastavky[i].attr(CONFIG.attributes.rideLogStops.duration) || 0;
+                    var durationInHours = utils.convertDurationToHours(durationAttr);
+                    calculatedSum += durationInHours;
+                    utils.addDebug(currentEntry, "  📍 Zastávka " + (i + 1) + " duration: " + durationInHours + " h (" + durationAttr + " ms)");
+                } catch (e) {
+                    utils.addError(currentEntry, "Chyba pri čítaní duration atribútu zastávky " + (i + 1) + ": " + e.toString(), "verifyDurationAttributesSum");
+                }
+            }
+        }
+
+        // Súčet duration z cieľa
+        if (ciel && ciel.length > 0) {
+            try {
+                var cielDurationAttr = ciel[0].attr(CONFIG.attributes.rideLogStops.duration) || 0;
+                var cielDurationInHours = utils.convertDurationToHours(cielDurationAttr);
+                calculatedSum += cielDurationInHours;
+                utils.addDebug(currentEntry, "  🎯 Cieľ duration: " + cielDurationInHours + " h (" + cielDurationAttr + " ms)");
+            } catch (e) {
+                utils.addError(currentEntry, "Chyba pri čítaní duration atribútu cieľa: " + e.toString(), "verifyDurationAttributesSum");
+            }
+        }
+
+        utils.addDebug(currentEntry, "📊 Porovnanie duration:");
+        utils.addDebug(currentEntry, "  • Očakávaný celkový: " + expectedTotal + " h");
+        utils.addDebug(currentEntry, "  • Súčet atribútov: " + calculatedSum + " h");
+
+        var difference = Math.abs(expectedTotal - calculatedSum);
+        if (difference > 0.01) { // tolerancia 0.01 h (36 sekúnd)
+            utils.addError(currentEntry, "Nesúlad duration atribútov! Rozdiel: " + difference + " h", "verifyDurationAttributesSum");
+            return false;
+        } else {
+            utils.addDebug(currentEntry, "✅ Duration atribúty sú konzistentné");
+            return true;
+        }
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri kontrole duration atribútov: " + error.toString(), "verifyDurationAttributesSum", error);
+    }
+}
 
 /**
  * KROK 1: Výpočet trasy s atribútmi
@@ -173,19 +333,24 @@ function calculateRoute() {
                     // Nastav atribúty zastávky
                     try {
                         zastavky[j].setAttr(CONFIG.attributes.rideLogStops.km, Math.round(segment.km * 10) / 10);
-                        zastavky[j].setAttr(CONFIG.attributes.rideLogStops.duration, segment.duration);
+                        // Konvertuj trvanie z hodín na milisekundy pre atribút
+                        var durationInMs = utils.convertHoursToDuration(segment.duration);
+                        zastavky[j].setAttr(CONFIG.attributes.rideLogStops.duration, durationInMs);
+                        utils.addDebug(currentEntry, "    ⏱️ Nastavené trvanie: " + segment.duration + " h (" + durationInMs + " ms)");
                         
                         // Nastav zdržanie ak nie je nastavené
                         var existingZdrzanie = zastavky[j].attr(CONFIG.attributes.rideLogStops.delay);
                         var zdrz = 0;
-                        
+
                         if (!existingZdrzanie || existingZdrzanie === 0) {
-                            zastavky[j].setAttr(CONFIG.attributes.rideLogStops.delay, defaultZdrzanie);
+                            // Default zdržanie je už v hodinách, ale atribút sa ukladá v milisekundách
+                            var defaultInMs = utils.convertHoursToDuration(defaultZdrzanie);
+                            zastavky[j].setAttr(CONFIG.attributes.rideLogStops.delay, defaultInMs);
                             zdrz = defaultZdrzanie;
-                            utils.addDebug(currentEntry, "    ⏱️ Nastavené default zdržanie: " + defaultZdrzanie + " h");
+                            utils.addDebug(currentEntry, "    ⏱️ Nastavené default zdržanie: " + defaultZdrzanie + " h (" + defaultInMs + " ms)");
                         } else {
                             zdrz = utils.convertDurationToHours(existingZdrzanie);
-                            utils.addDebug(currentEntry, "    ⏱️ Existujúce zdržanie: " + zdrz + " h");
+                            utils.addDebug(currentEntry, "    ⏱️ Existujúce zdržanie: " + zdrz + " h (" + existingZdrzanie + " ms)");
                         }
                         
                         result.casNaZastavkach += zdrz;
@@ -209,7 +374,10 @@ function calculateRoute() {
             // Nastav atribúty cieľa
             try {
                 ciel[0].setAttr(CONFIG.attributes.rideLogStops.km, Math.round(lastSegment.km * 10) / 10);
-                ciel[0].setAttr(CONFIG.attributes.rideLogStops.duration, lastSegment.duration);
+                // Konvertuj trvanie z hodín na milisekundy pre atribút
+                var cielDurationInMs = utils.convertHoursToDuration(lastSegment.duration);
+                ciel[0].setAttr(CONFIG.attributes.rideLogStops.duration, cielDurationInMs);
+                utils.addDebug(currentEntry, "  🎯 Cieľ - nastavené trvanie: " + lastSegment.duration + " h (" + cielDurationInMs + " ms)");
             } catch (attrError) {
                 utils.addError(currentEntry, "Chyba pri nastavovaní atribútov cieľa: " + attrError.toString(), "calculateRoute");
             }
@@ -230,6 +398,15 @@ function calculateRoute() {
         utils.safeSet(currentEntry, CONFIG.fields.rideLog.stopTime, result.casNaZastavkach);
         utils.safeSet(currentEntry, CONFIG.fields.rideLog.totalTime, result.celkovyCas);
         
+        // Kontrola súčtu atribútov km
+        verifyKmAttributesSum(result.totalKm, zastavky, ciel);
+
+        // Kontrola súčtu atribútov delay
+        verifyDelayAttributesSum(result.casNaZastavkach, zastavky);
+
+        // Kontrola súčtu atribútov duration
+        verifyDurationAttributesSum(result.casJazdy, zastavky, ciel);
+
         utils.addDebug(currentEntry, "\n  📊 VÝSLEDKY:");
         utils.addDebug(currentEntry, "  • Vzdialenosť: " + result.totalKm + " km");
         utils.addDebug(currentEntry, "  • Čas jazdy: " + result.casJazdy + " h");
@@ -672,7 +849,7 @@ function autoLinkOrdersFromStops() {
             utils.addDebug(currentEntry, "  ✅ Zákazky úspešne nastavené");
             
             // Nastav atribúty s počtom výskytov
-            nastavAtributyPoctu(kombinovaneZakazky, countZakaziek);
+            nastavAtributyPoctu(countZakaziek);
         }
         
         result.success = true;
@@ -862,7 +1039,7 @@ function kombinujZakazky(existujuce, nove) {
 /**
  * Pomocná funkcia - nastaví atribúty počtu pre zákazky
  */
-function nastavAtributyPoctu(zakazky, countZakaziek) {
+function nastavAtributyPoctu(countZakaziek) {
     try {
         utils.addDebug(currentEntry, "\n  🔢 NASTAVOVANIE ATRIBÚTOV POČTU:");
         
