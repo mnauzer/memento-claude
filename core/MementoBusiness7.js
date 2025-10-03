@@ -46,7 +46,7 @@ var MementoBusiness = (function() {
         try {
             var start = moment(startTime);
             var end = moment(endTime);
-            
+
             if (!start.isValid() || !end.isValid()) {
                 return {
                     hours: 0,
@@ -55,24 +55,24 @@ var MementoBusiness = (function() {
                     error: "Invalid time format"
                 };
             }
-            
+
             var diffMinutes = end.diff(start, 'minutes');
             var crossesMidnight = false;
-            
+
             // Ak je rozdiel záporný, práca cez polnoc
             if (diffMinutes < 0) {
                 diffMinutes += 24 * 60;
                 crossesMidnight = true;
             }
-            
+
             var hours = Math.floor(diffMinutes / 60);
             var minutes = diffMinutes % 60;
 
-            
+
             // Výpočet nadčasov
             var regularHours = Math.min(hours + (minutes / 60), config.defaults.WorkHoursPerDay);
             var overtimeHours = Math.max(0, (hours + (minutes / 60)) - config.defaults.WorkHoursPerDay);
-            
+
             return {
                 hours: hours + (minutes / 60),
                 hoursOnly: hours,
@@ -83,7 +83,7 @@ var MementoBusiness = (function() {
                 crossesMidnight: crossesMidnight,
                 formatted: core.formatTime(hours * 60 + minutes)
             };
-                
+
         } catch (error) {
                 core.addError(entry(), error.toString(), "calculateWorkHours", error);
                 return {
@@ -91,6 +91,94 @@ var MementoBusiness = (function() {
                     minutes: 0,
                     error: error.toString()
                 };
+        }
+    }
+
+    /**
+     * Univerzálny výpočet pracovného času s parsing a zaokrúhľovaním
+     * @param {Date|String} startTime - Začiatok (príchod/začatie)
+     * @param {Date|String} endTime - Koniec (odchod/ukončenie)
+     * @param {Object} options - Voliteľné nastavenia
+     * @param {Object} options.entry - Aktuálny entry (default: currentEntry)
+     * @param {Object} options.config - Konfigurácia (default: CONFIG)
+     * @param {Boolean} options.roundToQuarter - Zaokrúhliť na štvrťhodiny (default: false)
+     * @param {String} options.startFieldName - Názov poľa pre začiatok (pre uloženie)
+     * @param {String} options.endFieldName - Názov poľa pre koniec (pre uloženie)
+     * @param {String} options.workTimeFieldName - Názov poľa pre pracovnú dobu (pre uloženie)
+     * @param {String} options.debugLabel - Label pre debug správy (default: "Pracovný čas")
+     * @returns {Object} {success, startTimeRounded, endTimeRounded, startTimeOriginal, endTimeOriginal, pracovnaDobaHodiny, workHours}
+     */
+    function calculateWorkTime(startTime, endTime, options) {
+        var core = getCore();
+        options = options || {};
+
+        var entry = options.entry || currentEntry;
+        var config = options.config || getConfig();
+        var roundToQuarter = options.roundToQuarter !== undefined ? options.roundToQuarter : false;
+        var debugLabel = options.debugLabel || "Pracovný čas";
+
+        try {
+            core.addDebug(entry, "  Výpočet " + debugLabel.toLowerCase(), "calculation");
+
+            // Spracuj časy cez core funkcie
+            var startTimeParsed = core.parseTimeInput(startTime);
+            var endTimeParsed = core.parseTimeInput(endTime);
+
+            if (!startTimeParsed || !endTimeParsed) {
+                return { success: false, error: "Nepodarilo sa spracovať časy" };
+            }
+
+            // Zaokrúhli časy ak je to povolené
+            var startTimeFinal = startTimeParsed;
+            var endTimeFinal = endTimeParsed;
+
+            if (roundToQuarter) {
+                startTimeFinal = core.roundTimeToQuarter(startTimeParsed);
+                endTimeFinal = core.roundTimeToQuarter(endTimeParsed);
+
+                core.addDebug(entry, "  Zaokrúhlenie aktivované:", "round");
+                core.addDebug(entry, "  • Od: " + core.formatTime(startTimeParsed) + " → " + core.formatTime(startTimeFinal));
+                core.addDebug(entry, "  • Do: " + core.formatTime(endTimeParsed) + " → " + core.formatTime(endTimeFinal));
+
+                // Ulož zaokrúhlené časy ak sú zadané názvy polí
+                if (options.startFieldName) {
+                    core.safeSet(entry, options.startFieldName, startTimeFinal.toDate());
+                }
+                if (options.endFieldName) {
+                    core.safeSet(entry, options.endFieldName, endTimeFinal.toDate());
+                }
+            }
+
+            // Výpočet hodín s novými časmi
+            var workHours = calculateWorkHours(startTimeFinal, endTimeFinal);
+
+            if (!workHours || workHours.error) {
+                return { success: false, error: workHours ? workHours.error : "Nepodarilo sa vypočítať hodiny" };
+            }
+
+            var pracovnaDobaHodiny = workHours.totalMinutes / 60;
+            pracovnaDobaHodiny = Math.round(pracovnaDobaHodiny * 100) / 100;
+
+            // Ulož do poľa ak je zadaný názov
+            if (options.workTimeFieldName) {
+                core.safeSet(entry, options.workTimeFieldName, pracovnaDobaHodiny);
+            }
+
+            core.addDebug(entry, "  • " + debugLabel + ": " + pracovnaDobaHodiny + " hodín");
+
+            return {
+                success: true,
+                startTimeRounded: startTimeFinal,
+                endTimeRounded: endTimeFinal,
+                startTimeOriginal: startTimeParsed,
+                endTimeOriginal: endTimeParsed,
+                pracovnaDobaHodiny: pracovnaDobaHodiny,
+                workHours: workHours
+            };
+
+        } catch (error) {
+            core.addError(entry, error.toString(), "calculateWorkTime", error);
+            return { success: false, error: error.toString() };
         }
     }
  
@@ -1872,6 +1960,7 @@ var MementoBusiness = (function() {
         
         // Časové výpočty
         calculateWorkHours: calculateWorkHours,
+        calculateWorkTime: calculateWorkTime,
         
         // Zamestnanci
         formatEmployeeName: formatEmployeeName,

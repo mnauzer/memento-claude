@@ -223,60 +223,19 @@ function validateInputData() {
 // ==============================================
 // VÝPOČET PRACOVNEJ DOBY
 function calculateWorkTime(startTime, endTime) {
-    try {
-        utils.addDebug(currentEntry, "  Výpočet pracovného času na zákazke", "calculation");
-        
-        // Spracuj časy cez nové funkcie
-        var startTimeParsed = utils.parseTimeInput(startTime);
-        var endTimeParsed = utils.parseTimeInput(endTime);
-        
-        if (!startTimeParsed || !endTimeParsed) {
-            return { success: false, error: "Nepodarilo sa spracovať časy" };
-        }
-        
-        // Zaokrúhli časy ak je to povolené
-        var startTimeFinal = startTimeParsed;
-        var endTimeFinal = endTimeParsed;
-        
-        if (CONFIG.settings.roundToQuarterHour) {
-            startTimeFinal = utils.roundTimeToQuarter(startTimeParsed); // Začiato zaokrúhli  
-            endTimeFinal = utils.roundTimeToQuarter(endTimeParsed); // Koniec zaokrúhli
-            
-            utils.addDebug(currentEntry, "  Zaokrúhlenie aktivované:", "round");
-            utils.addDebug(currentEntry, "  • Od: " + utils.formatTime(startTimeParsed) + " → " + utils.formatTime(startTimeFinal));
-            utils.addDebug(currentEntry, "  • Do: " + utils.formatTime(endTimeParsed) + " → " + utils.formatTime(endTimeFinal));
-            utils.safeSet(currentEntry, CONFIG.fields.workRecord.startTime, startTimeFinal.toDate());
-            utils.safeSet(currentEntry, CONFIG.fields.workRecord.endTime, endTimeFinal.toDate()); 
-        }
-        
-        // Výpočet hodín s novými časmi
-        var workHours = utils.calculateWorkHours(startTimeFinal, endTimeFinal);
-        
-        if (!workHours || workHours.error) {
-            return { success: false, error: workHours ? workHours.error : "Nepodarilo sa vypočítať hodiny" };
-        }
-        
-        var pracovnaDobaHodiny = workHours.totalMinutes / 60;
-        pracovnaDobaHodiny = Math.round(pracovnaDobaHodiny * 100) / 100;
-        
-        // Ulož do poľa
-        currentEntry.set(CONFIG.fields.workRecord.workTime, pracovnaDobaHodiny);
-        
-        utils.addDebug(currentEntry, "  • Pracovná doba na zákazke: " + pracovnaDobaHodiny + " hodín");
-        
-        return {
-            success: true,
-            startTimeRounded: startTimeFinal,
-            endTimeRounded: endTimeFinal,
-            startTimeOriginal: startTimeParsed,
-            endTimeOriginal: endTimeParsed,
-            pracovnaDobaHodiny: pracovnaDobaHodiny
-        };
-        
-    } catch (error) {
-        utils.addError(currentEntry, error.toString(), "calculateWorkTime", error);
-        return { success: false, error: error.toString() };
-    }
+    // Priprav options pre univerzálnu funkciu z business modulu
+    var options = {
+        entry: currentEntry,
+        config: CONFIG,
+        roundToQuarter: CONFIG.settings.roundToQuarterHour,
+        startFieldName: CONFIG.fields.workRecord.startTime,
+        endFieldName: CONFIG.fields.workRecord.endTime,
+        workTimeFieldName: CONFIG.fields.workRecord.workTime,
+        debugLabel: "Pracovná doba na zákazke"
+    };
+
+    // Volaj univerzálnu funkciu z business modulu cez utils
+    return utils.calculateWorkTime(startTime, endTime, options);
 }
 
 function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
