@@ -63,10 +63,7 @@ var CONFIG = {
         roundToQuarterHour: true,
         defaultCurrency: "€"
     },
-  
-  
-
-    
+      
     // Mapovanie pre výkaz prác
     vykazFields: {
         datum: "Dátum",
