@@ -513,17 +513,6 @@ function createInfoRecord(workTimeResult, employeeResult) {
     }
 }
 
-/**
- * Pomocná funkcia na zbieranie dát z linkovaných záznamov
- * @returns {Object} Objekt s agregovanými údajmi
- */
-// ==============================================
-// TELEGRAM NOTIFIKÁCIE - FUNKCIE ODSTRÁNENÉ (refaktorizácia)
-// ==============================================
-// Funkcie collectLinkedRecordsData(), prepareNotificationInfoRecord(),
-// getSumaFromCashRecord(), isTransactionInLinks() boli odstránené
-// kvôli refaktorizácii scriptu podľa požiadaviek.
-
 
 // ==============================================
 // FINÁLNY SÚHRN
@@ -534,32 +523,6 @@ function markCheckbox() {
         utils.addDebug(currentEntry, "☑️ Checkbox Záväzky označený");
     } catch (error) {
         utils.addError(currentEntry, "Chyba pri označovaní checkboxu: " + error.toString(), "markCheckbox");
-    }
-}
-
-function logFinalSummary(steps) {
-   
-    try {
-        utils.addDebug(currentEntry, "\n📊 === FINÁLNY SÚHRN ===");
-        
-        var allSuccess = true;
-        for (var step in steps) {
-            var status = steps[step].success ? "✅" : "❌";
-            utils.addDebug(currentEntry, status + " " + steps[step].name);
-            if (!steps[step].success) allSuccess = false;
-        }
-        
-        if (allSuccess) {
-            utils.addDebug(currentEntry, "\n🎉 === VŠETKY KROKY ÚSPEŠNÉ ===");
-        } else {
-            utils.addDebug(currentEntry, "\n⚠️ === NIEKTORÉ KROKY ZLYHALI ===");
-        }
-        
-        utils.addDebug(currentEntry, "⏱️ Čas ukončenia: " + moment().format("HH:mm:ss"));
-        utils.addDebug(currentEntry, "📋 === KONIEC " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
-        
-    } catch (error) {
-        utils.addError(currentEntry, error.toString(), "logFinalSummary", error);
     }
 }
 
