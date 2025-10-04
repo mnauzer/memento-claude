@@ -403,8 +403,6 @@ var MementoConfig = (function() {
                 totalHours: "Celkové hodiny",
                 hzsSum: "Suma HZS",
                 hzsCount: "Počet záznamov",
-                debug_log: "debug_log", // text
-                error_log: "error_log" // text
             },
             // Výkaz strojov polia
             machinesReport: {
@@ -421,8 +419,6 @@ var MementoConfig = (function() {
                 machineCount: "Počet strojov", // integer, počet záznamov
                 totalMth: "Motohodiny celkom", // real number, súčet motohodín
                 info: "info", // text
-                debug_log: "debug_log", // text
-                error_log: "error_log" // text
             },
             // Výkaz materiálu polia
             materialsReport: {
@@ -442,8 +438,6 @@ var MementoConfig = (function() {
                 sumWithVat: "Suma s DPH", // real number
                 materialCount: "Počet materiálov", // integer
                 info: "info", // text
-                debug_log: "debug_log", // text
-                error_log: "error_log" // text
             },
             // Výkaz dopravy polia
             rideReport: {
@@ -460,8 +454,6 @@ var MementoConfig = (function() {
                 wageCostsTotal: "Mzdové náklady celkom", // real number, súčet mzdových nákladov z výkazu dopravy
                 sum: "Suma celkom", // real number
                 ride: "Doprava", // linkToEntry Kniha jázd
-                debug_log: "debug_log", // text
-                error_log: "error_log" // text
             },
 
             // === CENNÍKY A SKLAD ===
