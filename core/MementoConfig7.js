@@ -406,37 +406,6 @@ var MementoConfig = (function() {
                 debug_log: "debug_log", // text
                 error_log: "error_log" // text
             },
-            // Výkaz materiálu polia
-            materialsReport: {
-                state: "Stav", // choice - stav výkazu
-                number: "Číslo", // text - identifikačné číslo výkazu
-                date: "Dátum", // date - hlavný dátum záznamu
-                customer: "Odberateľ", // text - názov odberu
-                description: "Popis", // text - popis výkazu
-                reportType: "Typ výkazu", // radio - typ výkazu materiálu
-                priceCalculation: "Ceny počítať", // radio - spôsob počítania cien
-                issued: "Vydané", // choice - stav vydania
-                client: "Klient", // linkToEntry: Klienti
-                partner: "Partner", // linkToEntry: Partneri
-                order: "Zákazka", // linkToEntry: Zákazky
-                isIssued: "Vyskladnené", // boolean - či je materiál vyskladnený
-                sum: "Suma", // currency - suma bez DPH
-                vat: "DPH", // currency - DPH suma
-                sumWithVat: "Suma s DPH", // currency - celková suma s DPH
-                material: "Materiál", // linkToEntry: Materiál
-                costPriceSum: "CP Suma", // currency - nákupná cena suma
-                costPriceVat: "CP DPH", // currency - nákupná cena DPH
-                costPriceSumWithVat: "CP Suma s DPH", // currency - nákupná cena s DPH
-                sumInCostPrice: "Suma v NC", // currency - suma v nákupných cenách
-                vatCostPrice: "DPH NC", // currency - DPH z nákupných cien
-                sumInCostPriceWithVat: "Suma v NC s DPH", // currency - suma v NC s DPH
-                margin: "Marža", // double - marža v percentách
-                profit: "Zisk", // currency - zisk
-                priceCalculationMethod: "Počítanie cien", // radio - metóda počítania
-                view: "view", // radio
-                // Povinné polia pre validáciu
-                requiredFields: ["date", "client", "material"]
-            },
             // Výkaz strojov polia
             machinesReport: {
                 date: "Dátum",
@@ -997,23 +966,6 @@ var MementoConfig = (function() {
                 rideTime: "čas jazdy",
                 stopTime: "čas na zastávkach",
                 totalTime: "celkový čas"
-            },
-            // Výkaz strojov - atribúty strojov
-            machinesReportMachines: {
-                calculationType: "účtovanie", // singleChoice: paušál, mth
-                usedMth: "mth", // real number, použité motohodiny
-                priceMth: "sadzba", // real number, cena za motohodinu
-                flatRate: "paušál", // real number, paušálna cena
-                totalPrice: "účtovaná suma" // real number, celková cena za stroj
-            },
-            // Výkaz materiálu - atribúty materiálu
-            materialsReportMaterial: {
-                quantity: "množstvo", // real number
-                pricePerUnit: "cena za mj", // real number
-                purchasePrice: "nákupná cena", // real number
-                vatRate: "DPH sadzba", // real number
-                totalPrice: "cena celkom", // real number
-                margin: "marža" // real number
             },
             // Výdajky materiálu - atribúty položiek
             materialExpensesItems: {
