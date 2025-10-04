@@ -1,6 +1,14 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0 | Dátum: August 2025 | Autor: ASISTANTO
+// Verzia: 7.0.10 | Dátum: October 2025 | Autor: ASISTANTO
+// ==============================================
+// 🔧 CHANGELOG v7.0.10 (2025-10-04):
+//    - Opravená konfigurácia knižnice "Výkaz strojov" (uCRaUwsTo)
+//    - Aktualizované field IDs podľa skutočnej API štruktúry
+//    - Field 103: "Stroje" (opravené z field 120)
+//    - Field 68: "Suma" (opravené z "Suma bez DPH")
+//    - Aktualizované atribúty LinkToEntry poľa "Stroje"
+//    - Pridané všetky polia z API (Stav, Názov záznamu, Číslo, atď.)
 // ==============================================
 // 📋 ÚČEL:
 //    - Centrálny CONFIG pre všetky scripty
@@ -37,7 +45,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.9",
+        version: "7.0.10",
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -118,11 +126,11 @@ var MementoConfig = (function() {
             },
             machines: {
                 library: "machinesReport",
-                sourceField: "machines",
+                sourceField: "workRecord",  // Správne pole pre spätný link
                 prefix: "VS",
-                attributes: ["calculationType", "usedMth", "priceMth", "flatRate", "totalPrice"],
-                summaryFields: ["sumWithoutVat", "vat", "sumWithVat", "machineCount", "totalMth"],
-                requiredFields: ["date", "order"]
+                attributes: ["mth", "pausalPocet", "cenaMth", "cenaPausal", "cenaCelkom"],  // Aktualizované atribúty
+                summaryFields: ["sumWithoutVat", "vat", "sumWithVat"],  // Hlavné súčty
+                requiredFields: ["date", "order", "machines"]
             },
             materials: {
                 library: "materialsReport",
@@ -404,21 +412,40 @@ var MementoConfig = (function() {
                 hzsSum: "Suma HZS",
                 hzsCount: "Počet záznamov",
             },
-            // Výkaz strojov polia
+            // Výkaz strojov polia - aktualizované podľa API analýzy (2025-10-04)
             machinesReport: {
-                date: "Dátum",
-                state: "Stav", // singleChoice: Čakajúce, Prebieha, Ukončené, Vyúčtované, Zaplatené
-                number: "Číslo", // text unique
-                description: "Popis", // text
-                order: "Zákazka", // linkToEntry Zákazky
-                machines: "Stroje", // linkToEntry Mechanizácia
-                workRecord: "Záznam práce", // linkToEntry Záznam prác
-                sumWithoutVat: "Suma bez DPH", // real number
-                vat: "DPH", // real number
-                sumWithVat: "Suma s DPH", // real number
-                machineCount: "Počet strojov", // integer, počet záznamov
-                totalMth: "Motohodiny celkom", // real number, súčet motohodín
-                info: "info", // text
+                // Systémové polia
+                view: "view", // radio - systémové (field 117)
+                vyuctovane: "Vyúčtované", // boolean - stav účtovania (field 119)
+
+                // Hlavné polia
+                date: "Dátum", // date - hlavný dátum záznamu (field 2)
+                order: "Zákazka", // linkToEntry: Zákazky (field 65)
+                description: "Popis", // text - popis výkazu (field 72)
+                machines: "Stroje", // linkToEntry: Mechanizácia (field 103) - OPRAVENÉ z 120 na 103
+                workRecord: "Záznam práce", // linkToEntry: Záznam prác (field 121)
+
+                // Finančné polia - názvy podľa skutočnej API štruktúry
+                sumWithoutVat: "Suma", // currency - hlavná suma bez DPH (field 68) - OPRAVENÉ z "Suma bez DPH"
+                vat: "DPH", // currency - DPH suma (field 73)
+                sumWithVat: "Suma s DPH", // currency - celková suma s DPH (field 69)
+
+                // Ďalšie polia z API
+                stav: "Stav", // choice - stav záznamu (field 126)
+                nazovZaznamu: "Názov záznamu", // text (field 129)
+                cislo: "Číslo", // int (field 127)
+                identifikator: "Identifikátor", // text (field 128)
+                pocetZaznamov: "Počet záznamov", // int (field 130)
+                pocetStrojov: "Počet strojov", // int (field 131)
+                info: "info", // richtext (field 124)
+                aktualizacia: "aktualizácia", // richtext (field 134)
+
+                // Duplicitné polia pre kompatibilitu - odstrániť po aktualizácii všetkých skriptov
+                zakazka: "zakazka", // entries (field 132) - duplicitné pole
+                orderDuplicate: "order", // entries (field 133) - duplicitné pole
+
+                // Povinné polia pre validáciu
+                requiredFields: ["date", "order", "machines"]
             },
             // Výkaz materiálu polia
             materialsReport: {
@@ -971,15 +998,23 @@ var MementoConfig = (function() {
                 price: "cena", // real number
                 totalPrice: "cena celkom" // real number
             },
-            // Výkaz strojov - atribúty strojov
+            // Výkaz strojov - atribúty strojov (field 103) - aktualizované podľa API (2025-10-04)
             machinesReportMachines: {
-                calculationType: "účtovanie", // options: paušál, mth
-                usedMth: "mth", // motohodiny
-                priceMth: "sadzba", // cena za motohodinu
-                flatRate: "paušál", // cena za celoddenné použitie
-                totalPrice: "účtovaná suma", // celková účtovaná suma
-                description: "popis použitia", // popis použitia stroja
-                workTime: "pracovný čas" // odpracovaný čas v hodinách
+                // Skutočné atribúty podľa API
+                mth: "mth", // double - motohodiny (attr id: 1)
+                pausalPocet: "paušál počet", // int - počet paušálov (attr id: 6)
+                cenaMth: "cena mth", // currency - cena za motohodinu (attr id: 4)
+                cenaPausal: "cena paušál", // currency - cena za paušál (attr id: 5)
+                cenaCelkom: "cena celkom", // currency - celková cena (attr id: 3)
+
+                // DEPRECATED - staré názvy pre kompatibilitu, odstránit po aktualizácii všetkých skriptov
+                calculationType: "účtovanie", // DEPRECATED - nahradiť logickou kombinatiou mth/pausal
+                usedMth: "mth", // DEPRECATED - použiť priamo "mth"
+                priceMth: "cena mth", // DEPRECATED - použiť priamo "cenaMth"
+                flatRate: "cena paušál", // DEPRECATED - použiť priamo "cenaPausal"
+                totalPrice: "cena celkom", // DEPRECATED - použiť priamo "cenaCelkom"
+                description: "popis použitia", // DEPRECATED - nie je v API atribútoch
+                workTime: "pracovný čas" // DEPRECATED - nie je v API atribútoch
             },
             // Výkaz materiálu - atribúty materiálu
             materialsReportMaterial: {
