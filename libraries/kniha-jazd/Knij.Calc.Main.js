@@ -1332,7 +1332,12 @@ function synchronizeRideReport(routeResult, wageResult, vehicleCostResult) {
         var zakazky = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.orders) || [];
         utils.addDebug(currentEntry, "\n📝 === KROK 8: SYNCHRONIZÁCIA VÝKAZOV JÁZD ===");
         var datum = utils.safeGet(currentEntry, CONFIG.fields.rideLog.date, new Date());
-        
+
+        utils.addDebug(currentEntry, "  🔍 Debug info:");
+        utils.addDebug(currentEntry, "    - Pole zákaziek: " + CONFIG.fields.rideLog.orders);
+        utils.addDebug(currentEntry, "    - Počet zákaziek: " + (zakazky ? zakazky.length : 0));
+        utils.addDebug(currentEntry, "    - Dátum: " + utils.formatDate(datum));
+
         if (!zakazky || zakazky.length === 0) {
             utils.addDebug(currentEntry, "  ℹ️ Žiadna zákazka - preskakujem výkaz");
             result.success = true;
@@ -1349,10 +1354,17 @@ function synchronizeRideReport(routeResult, wageResult, vehicleCostResult) {
             utils.addDebug(currentEntry, "\n  [" + (i + 1) + "/" + zakazky.length + "] Spracovávam zákazku: " + zakazkaName);
             
             // Nájdi existujúci výkaz
-            var existingReports = zakazkaObj.linksFrom("Výkaz dopravy", "Zákazka");
+            utils.addDebug(currentEntry, "    🔍 LinksFrom hľadanie:");
+            utils.addDebug(currentEntry, "      - Library: " + (CONFIG.libraries.rideReport || "Výkaz dopravy"));
+            utils.addDebug(currentEntry, "      - Field: " + (CONFIG.fields.rideReport.order || "Zákazka"));
+            utils.addDebug(currentEntry, "      - Zákazka ID: " + zakazkaObj.id);
+
+            var existingReports = zakazkaObj.linksFrom(CONFIG.libraries.rideReport || "Výkaz dopravy", CONFIG.fields.rideReport.order || "Zákazka");
+            utils.addDebug(currentEntry, "      - Nájdené výkazy: " + (existingReports ? existingReports.length : 0));
+
             var rideReport = null;
             var action = "none";
-            
+
             if (existingReports && existingReports.length > 0) {
                 rideReport = existingReports[0];
                 utils.addDebug(currentEntry, "    ✅ Existujúci výkaz nájdený");
@@ -1360,34 +1372,43 @@ function synchronizeRideReport(routeResult, wageResult, vehicleCostResult) {
                 result.updatedCount++;
             } else {
                 // Vytvor nový výkaz
+                utils.addDebug(currentEntry, "    🆕 Vytvárám nový výkaz pre zákazku: " + zakazkaName);
                 rideReport = createNewRideReport(zakazkaObj, datum, zakazkaName);
                 if (rideReport) {
                     action = "create";
                     result.createdCount++;
-                    utils.addDebug(currentEntry, "    ✨ Nový výkaz vytvorený");
+                    utils.addDebug(currentEntry, "    ✨ Nový výkaz vytvorený úspešne");
+                } else {
+                    utils.addError(currentEntry, "Nepodarilo sa vytvoriť výkaz pre zákazku: " + zakazkaName, "synchronizeRideReport");
                 }
             }
             
             if (rideReport) {
+                utils.addDebug(currentEntry, "    📋 Spracovávam výkaz: " + (rideReport.id || "unknown ID"));
                 var zakaziekCount = zakazky.length;
 
                 // Aktualizuj link na aktuálny záznam
+                utils.addDebug(currentEntry, "    🔗 Linkujem aktuálny záznam...");
                 linkCurrentRecordToReport(rideReport);
-                
+
                 // Aktualizuj atribúty s pomernými hodnotami
+                utils.addDebug(currentEntry, "    📊 Aktualizujem atribúty...");
                 updateRideReportAttributesProportional(rideReport, routeResult, wageResult, vehicleCostResult, zakaziekCount);
-                
+
                 // Aktualizuj info pole
+                utils.addDebug(currentEntry, "    📝 Aktualizujem info...");
                 updateRideReportInfo(rideReport);
-                
+
                 result.rideReports.push(rideReport);
                 result.actions.push({
                     zakazka: zakazkaName,
                     action: action
                 });
                 result.processedCount++;
-                
+
                 utils.addDebug(currentEntry, "    ✅ Výkaz " + (action === "create" ? "vytvorený" : "aktualizovaný"));
+            } else {
+                utils.addDebug(currentEntry, "    ❌ rideReport je null - nemôžem pokračovať");
             }
         }
         
@@ -1471,57 +1492,93 @@ function updateRideReportAttributesProportional(rideReport, routeResult, wageRes
  */
 function createNewRideReport(zakazkaObj, datum, zakazkaName) {
     try {
+        utils.addDebug(currentEntry, "    🔍 DEBUG createNewRideReport:");
+        utils.addDebug(currentEntry, "      - zakazkaName: " + zakazkaName);
+        utils.addDebug(currentEntry, "      - datum: " + utils.formatDate(datum));
+        utils.addDebug(currentEntry, "      - zakazkaObj ID: " + (zakazkaObj ? zakazkaObj.id : "null"));
+
         var reportLib = libByName("Výkaz dopravy");
+        utils.addDebug(currentEntry, "      - reportLib hľadanie: libByName('Výkaz dopravy')");
+        utils.addDebug(currentEntry, "      - reportLib result: " + (reportLib ? "FOUND" : "NOT FOUND"));
+
         if (!reportLib) {
             utils.addError(currentEntry, "Knižnica 'Výkaz dopravy' nenájdená", "createNewRideReport");
+            utils.addDebug(currentEntry, "      - ❌ CHYBA: Knižnica 'Výkaz dopravy' nenájdená");
+            return null;
+        }
+
+        utils.addDebug(currentEntry, "      - Pokúšam sa vytvoriť nový výkaz...");
+
+        // Vytvor nový výkaz
+        var rideReport = reportLib.create({});
+        utils.addDebug(currentEntry, "      - rideReport.create result: " + (rideReport ? "SUCCESS" : "FAILED"));
+
+        if (!rideReport) {
+            utils.addError(currentEntry, "Nepodarilo sa vytvoriť nový výkaz", "createNewRideReport");
             return null;
         }
         
-        // Vytvor nový výkaz
-        var rideReport = reportLib.create({});
-        
+        utils.addDebug(currentEntry, "      - Nastavujem základné polia...");
+
         // Nastav základné polia
-        utils.safeSet(rideReport, CONFIG.fields.rideReport.date, datum);
-        utils.safeSet(rideReport, CONFIG.fields.rideReport.number, "VD-" + moment(datum).format("YYYYMMDD"));
-        utils.safeSet(rideReport, CONFIG.fields.rideReport.description, "Výkaz dopravy - " + zakazkaName);
-        utils.safeSet(rideReport, CONFIG.fields.rideReport.reportType, "% zo zákazky");
-        utils.safeSet(rideReport, CONFIG.fields.rideReport.order, [zakazkaObj]);
-        
-        // Info záznam s Markdown formátovaním
-        var timestamp = utils.formatDate(moment(), "DD.MM.YYYY HH:mm:ss");
         var reportNumber = "VD-" + moment(datum).format("YYYYMMDD");
+        utils.addDebug(currentEntry, "      - reportNumber: " + reportNumber);
 
-        var info = "# 📊 VÝKAZ DOPRAVY - AUTOMATICKY GENEROVANÝ\n\n";
+        utils.safeSet(rideReport, CONFIG.fields.rideReport.date, datum);
+        utils.addDebug(currentEntry, "        ✅ Dátum nastavený: " + CONFIG.fields.rideReport.date);
 
-        info += "## 📋 ZÁKLADNÉ ÚDAJE\n";
+        utils.safeSet(rideReport, CONFIG.fields.rideReport.number, reportNumber);
+        utils.addDebug(currentEntry, "        ✅ Číslo nastavené: " + CONFIG.fields.rideReport.number);
+
+        utils.safeSet(rideReport, CONFIG.fields.rideReport.description, "Výkaz dopravy - " + zakazkaName);
+        utils.addDebug(currentEntry, "        ✅ Popis nastavený: " + CONFIG.fields.rideReport.description);
+
+        utils.safeSet(rideReport, CONFIG.fields.rideReport.reportType, "% zo zákazky");
+        utils.addDebug(currentEntry, "        ✅ Typ výkazu nastavený: " + CONFIG.fields.rideReport.reportType);
+
+        utils.safeSet(rideReport, CONFIG.fields.rideReport.order, [zakazkaObj]);
+        utils.addDebug(currentEntry, "        ✅ Zákazka nastavená: " + CONFIG.fields.rideReport.order);
+        
+        // Info záznam podľa štandardu MementoUtils ekosystému
+
+        var info = "# 🚗 VÝKAZ DOPRAVY - AUTOMATICKÝ PREPOČET\n\n";
+
+        info += "## 📅 Základné údaje\n";
         info += "- **Číslo výkazu:** " + reportNumber + "\n";
         info += "- **Dátum:** " + utils.formatDate(datum, "DD.MM.YYYY") + "\n";
-        info += "- **Popis:** Výkaz dopravy - " + zakazkaName + "\n";
         info += "- **Zákazka:** " + zakazkaName + "\n";
         info += "- **Počet jázd:** 0 (bude aktualizované)\n\n";
 
-        info += "## 📈 SÚHRN NÁKLADOV\n";
+        info += "## 📊 SÚHRN\n";
         info += "- **Celkové km:** 0 km (bude aktualizované)\n";
         info += "- **Celkové hodiny:** 0 h (bude aktualizované)\n";
         info += "- **Mzdové náklady:** 0 € (bude aktualizované)\n";
         info += "- **Náklady vozidla:** 0 € (bude aktualizované)\n\n";
 
-        info += "## 🔄 AKTUALIZÁCIE\n";
-        info += "- **" + timestamp + ":** Výkaz vytvorený (" + CONFIG.scriptName + " v" + CONFIG.version + ")\n\n";
-
         info += "## 🔧 TECHNICKÉ INFORMÁCIE\n";
-        info += "- **Generované:** " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
-        info += "- **Zdroj:** Knižnica Kniha jázd\n";
-        info += "- **Vytvorené:** " + timestamp + "\n";
+        info += "- **Script:** " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
+        info += "- **Čas spracovania:** " + moment().format("HH:mm:ss") + "\n";
+        info += "- **MementoUtils:** v" + (utils.version || "N/A") + "\n";
+
+        if (typeof MementoConfig !== 'undefined') {
+            info += "- **MementoConfig:** v" + MementoConfig.version + "\n";
+        }
+
+        info += "\n---\n**✅ VÝKAZ VYTVORENÝ ÚSPEŠNE**";
 
         utils.safeSet(rideReport, CONFIG.fields.common.info, info);
-        
-        utils.addDebug(currentEntry, "  ✅ Nový výkaz vytvorený");
-        
+        utils.addDebug(currentEntry, "        ✅ Info nastavené: " + CONFIG.fields.common.info);
+
+        utils.addDebug(currentEntry, "      ✅ Všetky polia úspešne nastavené");
+        utils.addDebug(currentEntry, "      ✅ rideReport ID: " + (rideReport ? rideReport.id : "null"));
+
+        utils.addDebug(currentEntry, "  ✅ Nový výkaz vytvorený úspešne!");
+
         return rideReport;
         
     } catch (error) {
-        utils.addError(currentEntry, error.toString(), "createNewRideReport", error);
+        utils.addError(currentEntry, "CHYBA v createNewRideReport: " + error.toString(), "createNewRideReport", error);
+        utils.addDebug(currentEntry, "      ❌ EXCEPTION: " + error.toString());
         return null;
     }
 }
@@ -1545,7 +1602,7 @@ function linkCurrentRecordToReport(rideReport) {
         
         if (!isLinked) {
             dopravaPole.push(currentEntry);
-            rideReport.set(CONFIG.fields.rideLog.ride, dopravaPole);
+            rideReport.set(CONFIG.fields.rideReport.ride, dopravaPole);
             utils.addDebug(currentEntry, "  🔗 Záznam prepojený s výkazom");
         } else {
             utils.addDebug(currentEntry, "  ✅ Záznam už je prepojený");
@@ -1660,21 +1717,8 @@ function updateRideReportInfo(rideReport) {
     try {
         var existingInfo = utils.safeGet(rideReport, CONFIG.fields.common.info, "");
 
-        // Ak už má Markdown format, pridaj len aktualizáciu
-        if (existingInfo.indexOf("## 🔄 AKTUALIZÁCIE") !== -1) {
-            // Nájdi sekciu aktualizácií a pridaj novú položku
-            var timestamp = utils.formatDate(moment(), "DD.MM.YYYY HH:mm:ss");
-            var entryId = currentEntry.field("ID") || "N/A";
-            var newUpdate = "- **" + timestamp + ":** Kniha jázd #" + entryId + " aktualizovaná (" + CONFIG.scriptName + " v" + CONFIG.version + ")\n";
-
-            // Pridaj na koniec existujúcich aktualizácií
-            var insertPos = existingInfo.lastIndexOf("\n## 🔧 TECHNICKÉ INFORMÁCIE");
-            if (insertPos === -1) {
-                existingInfo += "\n" + newUpdate;
-            } else {
-                existingInfo = existingInfo.substring(0, insertPos) + newUpdate + existingInfo.substring(insertPos);
-            }
-        } else {
+        // Regeneruj kompletný info záznam podľa štandardu MementoUtils
+        if (true) {  // Vždy regeneruj kompletný info
             // Vytvor kompletný Markdown info záznam
             var timestamp = utils.formatDate(moment(), "DD.MM.YYYY HH:mm:ss");
             var entryId = currentEntry.field("ID") || "N/A";
@@ -1689,48 +1733,39 @@ function updateRideReportInfo(rideReport) {
             var totalVehicleCosts = utils.safeGet(rideReport, CONFIG.fields.rideReport.vehicleCostsTotal || "Celkové náklady vozidla", 0);
             var rideCount = utils.safeGet(rideReport, CONFIG.fields.rideReport.rideCount, 0);
 
-            var newInfo = "# 📊 VÝKAZ DOPRAVY - AUTOMATICKY GENEROVANÝ\n\n";
+            var newInfo = "# 🚗 VÝKAZ DOPRAVY - AUTOMATICKÝ PREPOČET\n\n";
 
-            newInfo += "## 📋 ZÁKLADNÉ ÚDAJE\n";
+            newInfo += "## 📅 Základné údaje\n";
             newInfo += "- **Číslo výkazu:** " + reportNumber + "\n";
             newInfo += "- **Dátum:** " + utils.formatDate(reportDate, "DD.MM.YYYY") + "\n";
             newInfo += "- **Popis:** " + reportDescription + "\n";
             newInfo += "- **Počet jázd:** " + rideCount + "\n\n";
 
             if (totalKm > 0 || totalHours > 0 || totalWageCosts > 0) {
-                newInfo += "## 📈 SÚHRN NÁKLADOV\n";
-                if (totalKm > 0) newInfo += "- **Celkové km:** " + totalKm + " km\n";
-                if (totalHours > 0) newInfo += "- **Celkové hodiny:** " + totalHours + " h\n";
+                newInfo += "## 📊 SÚHRN\n";
+                if (totalKm > 0) newInfo += "- **Celkové km:** " + totalKm.toFixed(2) + " km\n";
+                if (totalHours > 0) newInfo += "- **Celkové hodiny:** " + totalHours.toFixed(2) + " h\n";
                 if (totalWageCosts > 0) newInfo += "- **Mzdové náklady:** " + utils.formatMoney(totalWageCosts) + "\n";
                 if (totalVehicleCosts > 0) newInfo += "- **Náklady vozidla:** " + utils.formatMoney(totalVehicleCosts) + "\n";
                 newInfo += "\n";
             }
 
-            newInfo += "## 🔄 AKTUALIZÁCIE\n";
-            newInfo += "- **" + timestamp + ":** Kniha jázd #" + entryId + " aktualizovaná (" + CONFIG.scriptName + " v" + CONFIG.version + ")\n\n";
-
             newInfo += "## 🔧 TECHNICKÉ INFORMÁCIE\n";
-            newInfo += "- **Generované:** " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
-            newInfo += "- **Posledná aktualizácia:** " + timestamp + "\n";
+            newInfo += "- **Script:** " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
+            newInfo += "- **Čas spracovania:** " + moment().format("HH:mm:ss") + "\n";
+            newInfo += "- **MementoUtils:** v" + (utils.version || "N/A") + "\n";
+
+            if (typeof MementoConfig !== 'undefined') {
+                newInfo += "- **MementoConfig:** v" + MementoConfig.version + "\n";
+            }
+
+            newInfo += "- **Posledná aktualizácia:** Kniha jázd #" + entryId + " (" + timestamp + ")\n";
+            newInfo += "\n---\n**✅ PREPOČET DOKONČENÝ ÚSPEŠNE**";
 
             existingInfo = newInfo;
         }
 
-        // Obmedz dĺžku info poľa
-        if (existingInfo.length > 8000) {
-            var header = existingInfo.substring(0, existingInfo.indexOf("## 🔄 AKTUALIZÁCIE"));
-            var updates = existingInfo.substring(existingInfo.indexOf("## 🔄 AKTUALIZÁCIE"));
-            var tech = existingInfo.substring(existingInfo.indexOf("## 🔧 TECHNICKÉ INFORMÁCIE"));
-
-            // Skráť aktualizácie ak sú príliš dlhé
-            if (updates.length > 3000) {
-                var lines = updates.split('\n');
-                updates = lines.slice(0, 1).join('\n') + '\n- **...(staršie aktualizácie skrátené)...**\n' +
-                         lines.slice(-5).join('\n') + '\n';
-            }
-
-            existingInfo = header + updates + tech;
-        }
+        // Obmedzenie dĺžky nie je potrebné pri kompletnej regenerácii
 
         utils.safeSet(rideReport, CONFIG.fields.common.info, existingInfo);
 
@@ -1881,9 +1916,21 @@ function main() {
         // KROK 7: Vytvorenie info záznamu
         steps.step7.success = createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostResult, orderLinkResult);
         
-        // KROK 8: Synchronizácia výkazu jázd
+        // KROK 8: Synchronizácia výkazu jázd (TESTOVANIE NOVEJ ARCHITEKTÚRY)
         utils.addDebug(currentEntry, "\n📊 === KROK 8: SYNCHRONIZÁCIA VÝKAZU JÁZD ===");
+        utils.addDebug(currentEntry, "🧪 TESTOVANIE: Porovnávam starú a novú architektúru...");
+
+        // Stará architektúra
         var vykazResult = synchronizeRideReport(routeResult, wageResult, vehicleCostResult);
+
+        // NOVÁ ARCHITEKTÚRA - TEST
+        var newResult = testNewReportArchitecture(routeResult, wageResult, vehicleCostResult);
+
+        // Porovnanie výsledkov
+        utils.addDebug(currentEntry, "\n🔍 POROVNANIE VÝSLEDKOV:");
+        utils.addDebug(currentEntry, "  📊 Stará architektúra: " + (vykazResult.success ? "✅" : "❌") + " (" + vykazResult.processedCount + " spracovaných)");
+        utils.addDebug(currentEntry, "  🚀 Nová architektúra: " + (newResult.success ? "✅" : "❌") + " (" + newResult.processedCount + " spracovaných)");
+
         steps.step8.success = vykazResult.success;
 
         // KROK 9: Synchronizácia denného reportu
@@ -1912,6 +1959,69 @@ function main() {
         utils.addError(currentEntry, error.toString(), "main", error);
         message("❌ Kritická chyba!\n\nPozrite Error Log pre detaily.");
         return false;
+    }
+}
+
+// ==============================================
+// TESTOVANIE NOVEJ ARCHITEKTÚRY PRE VÝKAZY
+// ==============================================
+
+/**
+ * Testuje novú univerzálnu architektúru pre výkazy
+ */
+function testNewReportArchitecture(routeResult, wageResult, vehicleCostResult) {
+    var result = {
+        success: false,
+        processedCount: 0,
+        createdCount: 0,
+        updatedCount: 0,
+        actions: []
+    };
+
+    try {
+        utils.addDebug(currentEntry, "\n🚀 === TESTOVANIE NOVEJ ARCHITEKTÚRY PRE VÝKAZY ===");
+
+        // Priprav calculatedData pre novú architektúru
+        var calculatedData = {
+            // Základné polia pre súčty
+            kmTotal: routeResult ? routeResult.totalKm : 0,
+            hoursTotal: routeResult ? routeResult.celkovyCas : 0,
+            rideCount: 1,
+            wageCostsTotal: wageResult ? wageResult.celkoveMzdy : 0,
+            sum: (wageResult ? wageResult.celkoveMzdy : 0) + (vehicleCostResult ? vehicleCostResult.vehicleCosts : 0),
+
+            // Atribúty pre jednotlivé záznamy
+            km: routeResult ? routeResult.totalKm : 0,
+            description: utils.safeGet(currentEntry, CONFIG.fields.rideLog.rideDescription, ""),
+            wageCosts: wageResult ? wageResult.celkoveMzdy : 0,
+            vehicleCosts: vehicleCostResult ? vehicleCostResult.vehicleCosts : 0,
+            rideTime: routeResult ? routeResult.casJazdy : 0,
+            stopTime: routeResult ? routeResult.casNaZastavkach : 0,
+            totalTime: routeResult ? routeResult.celkovyCas : 0
+        };
+
+        // Test novej architektúry
+        var reportResult = utils.createOrUpdateReport(currentEntry, 'ride', calculatedData, {
+            debugEntry: currentEntry
+        });
+
+        if (reportResult.success) {
+            result.success = true;
+            result.processedCount = 1;
+            if (reportResult.created) result.createdCount = 1;
+            if (reportResult.updated) result.updatedCount = 1;
+
+            utils.addDebug(currentEntry, "  ✅ Nová architektúra funguje: " +
+                         (reportResult.created ? "vytvorený" : "aktualizovaný") + " výkaz");
+        } else {
+            utils.addError(currentEntry, "❌ Nová architektúra zlyhala: " + reportResult.error, "testNewReportArchitecture");
+        }
+
+        return result;
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri testovaní novej architektúry: " + error.toString(), "testNewReportArchitecture", error);
+        return result;
     }
 }
 
