@@ -1,14 +1,18 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.10 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.11 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.11 (2025-10-04):
+//    - Aktualizované polia všetkých typov výkazov podľa najnovších zmien
+//    - Pridané ID pre všetky výkazové knižnice (workReport, rideReport)
+//    - Aktualizované field names pre Výkaz prác a Výkaz dopravy
+//    - Pridané nové atribúty pre workReportWorkRecords a rideReportRides
+//    - Aktualizované reportConfigs s fieldMapping pre vytvorenie výkazov
+//    - Opravené LinkToEntry pole názvy (workRecords, rides)
+//    - Pridané všetky súčtové polia pre agregované dáta
 // 🔧 CHANGELOG v7.0.10 (2025-10-04):
 //    - Opravená konfigurácia knižnice "Výkaz strojov" (uCRaUwsTo)
 //    - Aktualizované field IDs podľa skutočnej API štruktúry
-//    - Field 103: "Stroje" (opravené z field 120)
-//    - Field 68: "Suma" (opravené z "Suma bez DPH")
-//    - Aktualizované atribúty LinkToEntry poľa "Stroje"
-//    - Pridané všetky polia z API (Stav, Názov záznamu, Číslo, atď.)
 // ==============================================
 // 📋 ÚČEL:
 //    - Centrálny CONFIG pre všetky scripty
@@ -45,7 +49,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.10",
+        version: "7.0.11",
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -108,22 +112,41 @@ var MementoConfig = (function() {
         // === KONFIGURÁCIA VÝKAZOV ===
         // Spoločná konfigurácia pre všetky typy výkazov
         reportConfigs: {
+            // Výkaz prác konfigurácia - aktualizované (2025-10-04)
             work: {
                 library: "workReport",
-                sourceField: "praceHZS",
+                sourceField: "workRecords", // LinkToEntry pole pre spätný link
                 prefix: "VP",
-                attributes: ["workDescription", "hoursCount", "billedRate", "totalPrice"],
+                attributes: ["workDescription", "hoursCount", "billedRate", "totalPrice"], // z workReportWorkRecords
                 summaryFields: ["totalHours", "hzsSum", "hzsCount"],
-                requiredFields: ["date", "order"]
+                requiredFields: ["date", "order"],
+                // Mapovanie polí pre vytvorenie výkazu
+                fieldMapping: {
+                    date: "date",
+                    identifier: "identifier",
+                    description: "description",
+                    reportType: "reportType",
+                    order: "order"
+                }
             },
+            // Výkaz dopravy konfigurácia - aktualizované (2025-10-04)
             ride: {
                 library: "rideReport",
-                sourceField: "ride",
+                sourceField: "rides", // LinkToEntry pole pre spätný link
                 prefix: "VD",
-                attributes: ["km", "description", "wageCosts", "vehicleCosts", "rideTime", "stopTime", "totalTime"],
-                summaryFields: ["kmTotal", "hoursTotal", "rideCount", "wageCostsTotal", "sum"],
-                requiredFields: ["date", "order"]
+                attributes: ["km", "description", "wageCosts", "vehicleCosts", "rideTime", "stopTime", "totalTime"], // z rideReportRides
+                summaryFields: ["kmTotal", "hoursTotal", "rideCount", "wageCostsTotal", "transportCosts", "sum"],
+                requiredFields: ["date", "order"],
+                // Mapovanie polí pre vytvorenie výkazu
+                fieldMapping: {
+                    date: "date",
+                    number: "number",
+                    description: "description",
+                    reportType: "reportType",
+                    order: "order"
+                }
             },
+            // Výkaz strojov konfigurácia - už aktualizované
             machines: {
                 library: "machinesReport",
                 sourceField: "workRecord",  // Správne pole pre spätný link
@@ -132,6 +155,7 @@ var MementoConfig = (function() {
                 summaryFields: ["sumWithoutVat", "vat", "sumWithVat"],  // Hlavné súčty
                 requiredFields: ["date", "order", "machines"]
             },
+            // Výkaz materiálu konfigurácia - zachované
             materials: {
                 library: "materialsReport",
                 sourceField: "material",
@@ -224,6 +248,8 @@ var MementoConfig = (function() {
             dailyReport: "Tt4pxN4xQ", // Denný report
 
             // Výkazy a reporty
+            workReport: null, // Výkaz prác - ID sa získa runtime
+            rideReport: null, // Výkaz dopravy - ID sa získa runtime
             machinesReport: "uCRaUwsTo", // Výkaz strojov
             materialsReport: "z3sxkUHgT", // Výkaz materiálu
 
@@ -396,21 +422,31 @@ var MementoConfig = (function() {
             },
 
             // === EVIDENCIA POMOCNÉ ===
-            // Výkaz prác polia
+            // Výkaz prác polia - aktualizované podľa kódu (2025-10-04)
             workReport: {
-                datum: "Dátum",
-                identifikator: "Identifikátor",
-                popis: "Popis",
-                typVykazu: "Typ výkazu",
-                cenyPocitat: "Ceny počítať",
-                cenovaPonuka: "Cenová ponuka",
-                vydane: "Vydané",
-                zakazka: "Zákazka",
-                praceHZS: "Práce HZS",
-                info: "info",
-                totalHours: "Celkové hodiny",
-                hzsSum: "Suma HZS",
-                hzsCount: "Počet záznamov",
+                // Základné polia
+                date: "Dátum", // date - hlavný dátum (aktualizované z 'datum')
+                identifier: "Identifikátor", // text - jedinečný identifikátor
+                description: "Popis", // text - popis výkazu
+                reportType: "Typ výkazu", // choice - typ výkazu
+                priceCalculation: "Ceny počítať", // choice - spôsob počítania cien
+                quote: "Cenová ponuka", // linkToEntry: Cenové ponuky
+                issued: "Vydané", // choice - komu vydané
+                order: "Zákazka", // linkToEntry: Zákazky
+
+                // LinkToEntry polia
+                workRecords: "Práce HZS", // linkToEntry: Záznam prác (spätný link)
+
+                // Súčtové polia
+                totalHours: "Celkové hodiny", // real - súčet hodín
+                hzsSum: "Suma HZS", // currency - suma HZS
+                hzsCount: "Počet záznamov", // int - počet záznamov
+
+                // Systémové polia
+                info: "info", // richtext - dodatočné informácie
+
+                // Povinné polia pre validáciu
+                requiredFields: ["date", "order"]
             },
             // Výkaz strojov polia - aktualizované podľa API analýzy (2025-10-04)
             machinesReport: {
@@ -466,21 +502,33 @@ var MementoConfig = (function() {
                 materialCount: "Počet materiálov", // integer
                 info: "info", // text
             },
-            // Výkaz dopravy polia
+            // Výkaz dopravy polia - aktualizované podľa kódu (2025-10-04)
             rideReport: {
-                date: "Dátum",
-                state: "Stav", // singleChoice: Čakajúce, Prebieha, Ukončené, Vyúčtované, Zaplatené
-                number: "Číslo", // text unique
-                description: "Popis", // text
-                reportType: "Typ výkazu", // options: % zo zákazky, Pevná suma, Cena za km, Počet jazd x paušál
-                priceCalculation: "Ceny počítať", // singleChoice: Z cenovej ponuky, z cenníka
-                order: "Zákazka", // linkToEntry Zákazky
-                kmTotal: "Km celkom", // real number, súčet km z výkazu dopravy
-                hoursTotal: "Hodiny celkom", // real number, súčet hodín z výkazu dopravy
-                rideCount: "Počet jázd", // integer, počet záznamov z výkazu dopravy
-                wageCostsTotal: "Mzdové náklady celkom", // real number, súčet mzdových nákladov z výkazu dopravy
-                sum: "Suma celkom", // real number
-                ride: "Doprava", // linkToEntry Kniha jázd
+                // Základné polia
+                date: "Dátum", // date - hlavný dátum
+                state: "Stav", // choice: Čakajúce, Prebieha, Ukončené, Vyúčtované, Zaplatené
+                number: "Číslo", // text unique - identifikačné číslo
+                description: "Popis", // text - popis výkazu
+                reportType: "Typ výkazu", // choice: % zo zákazky, Pevná suma, Cena za km, Počet jazd x paušál
+                priceCalculation: "Ceny počítať", // choice: Z cenovej ponuky, z cenníka
+
+                // LinkToEntry polia
+                order: "Zákazka", // linkToEntry: Zákazky
+                rides: "Doprava", // linkToEntry: Kniha jázd (spätný link)
+
+                // Súčtové polia - agregované z prepojených jázd
+                kmTotal: "Km celkom", // real - súčet km z knihy jázd
+                hoursTotal: "Hodiny celkom", // real - súčet hodín z knihy jázd
+                rideCount: "Počet jázd", // int - počet prepojených záznamov
+                wageCostsTotal: "Mzdové náklady celkom", // currency - súčet mzdových nákladov
+                transportCosts: "Náklady doprava", // currency - náklady na dopravu
+                sum: "Suma celkom", // currency - celková fakturovaná suma
+
+                // Systémové polia
+                info: "info", // richtext - dodatočné informácie
+
+                // Povinné polia pre validáciu
+                requiredFields: ["date", "order"]
             },
 
             // === CENNÍKY A SKLAD ===
@@ -1027,6 +1075,23 @@ var MementoConfig = (function() {
                 vatRate: "sadzba DPH", // text - sadzba DPH
                 description: "poznámka", // text - poznámka k položke
                 specification: "špecifikácia" // text - špecifikácia materiálu
+            },
+            // Výkaz prác - atribúty záznamov prác (workRecords LinkToEntry pole)
+            workReportWorkRecords: {
+                workDescription: "vykonané práce", // text - popis vykonaných prác
+                hoursCount: "počet hodín", // real - počet odpracovaných hodín
+                billedRate: "účtovaná sadzba", // currency - sadzba za hodinu
+                totalPrice: "cena celkom" // currency - celková cena za práce
+            },
+            // Výkaz dopravy - atribúty jázd (rides LinkToEntry pole)
+            rideReportRides: {
+                km: "km", // real - najazdené kilometre
+                description: "popis jazdy", // text - popis účelu jazdy
+                wageCosts: "mzdové náklady", // currency - náklady na posádku
+                vehicleCosts: "náklady vozidlo", // currency - náklady na vozidlo
+                rideTime: "čas jazdy", // real - čas strávený jazdou v hodinách
+                stopTime: "čas na zastávkach", // real - čas na zastávkach
+                totalTime: "celkový čas" // real - celkový čas jazdy
             }
 
         },
