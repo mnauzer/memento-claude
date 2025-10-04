@@ -2304,8 +2304,14 @@ var MementoBusiness = (function() {
                 // Prepoj zdrojový záznam s výkazom
                 linkSourceToReport(report, sourceEntry, reportConfig, calculatedData, options);
 
-                // Aktualizuj súčty a atribúty
+                // Špeciálne linkovanie pre výkaz strojov
+                if (reportType === 'machines' && options && options.machines) {
+                    linkMachinesToReport(report, sourceEntry, options.machines, options);
+                }
+
+                // Aktualizuj súčty a atribúty a počty
                 updateReportSummary(report, reportConfig, calculatedData, options);
+                updateReportCounts(report, reportConfig, reportType, options);
 
                 // Aktualizuj info záznam
                 updateReportInfo(report, reportType, reportConfig, calculatedData, options);
@@ -2725,8 +2731,345 @@ var MementoBusiness = (function() {
         linkSourceToReport: linkSourceToReport,
         updateReportSummary: updateReportSummary,
         updateReportInfo: updateReportInfo,
-        createReportInfo: createReportInfo
+        createReportInfo: createReportInfo,
+        linkMachinesToReport: linkMachinesToReport,
+        updateReportCounts: updateReportCounts
     };
+
+    /**
+     * Linkuje stroje do výkazu strojov s agregovanými atribútmi
+     */
+    function linkMachinesToReport(machinesReport, sourceEntry, machinesResult, options) {
+        var core = getCore();
+        var config = getConfig();
+        try {
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "🔗 Linkujem stroje do výkazu strojov");
+            }
+
+            // 1. Vytvor spätný link na sourceEntry (pole Záznam práce)
+            var workRecordField = core.safeGetLinks(machinesReport, config.fields.machinesReport.workRecord) || [];
+            var sourceEntryId = core.safeGet(sourceEntry, "ID");
+
+            // Skontroluj či link už existuje
+            var linkExists = false;
+            for (var i = 0; i < workRecordField.length; i++) {
+                if (workRecordField[i] && core.safeGet(workRecordField[i], "ID") === sourceEntryId) {
+                    linkExists = true;
+                    break;
+                }
+            }
+
+            if (!linkExists) {
+                workRecordField.push(sourceEntry);
+                core.safeSet(machinesReport, config.fields.machinesReport.workRecord, workRecordField);
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "  ✅ Spätný link na záznam práce pridaný");
+                }
+            } else {
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "  ℹ️ Spätný link už existuje");
+                }
+            }
+
+            // 2. Linkuj stroje s agregovanými atribútmi
+            var aggregatedMachines = aggregateMachinesData(machinesResult, options);
+            linkAggregatedMachines(machinesReport, aggregatedMachines, options);
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, error.toString(), "linkMachinesToReport", error);
+            }
+        }
+    }
+
+    /**
+     * Agreguje dáta strojov podľa ID
+     */
+    function aggregateMachinesData(machinesResult, options) {
+        var core = getCore();
+        var aggregated = {};
+
+        try {
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "📊 Agregovanie dát strojov");
+            }
+
+            // Prejdi všetky stroje a agreguj ich dáta
+            for (var i = 0; i < machinesResult.machines.length; i++) {
+                var machineEntry = machinesResult.machines[i].machine;  // Memento objekt
+                var machineData = machinesResult.machines[i].machineData;  // Naše dáta
+                var machineId = machineData.id;
+
+                if (!aggregated[machineId]) {
+                    // Nový stroj
+                    aggregated[machineId] = {
+                        machineEntry: machineEntry,  // Memento objekt
+                        machineData: machineData,    // Naše dáta
+                        totalMth: 0,
+                        totalFlatRate: 0,
+                        priceMth: machineData.priceMth || 0,
+                        flatRatePrice: machineData.flatRate || 0,
+                        totalPrice: 0,
+                        flatRateCount: 0,
+                        description: []
+                    };
+                }
+
+                var agg = aggregated[machineId];
+
+                // Agreguj hodnoty podľa typu účtovania
+                if (machineData.calculationType === "mth") {
+                    agg.totalMth += machineData.usedMth || 0;
+                    agg.totalPrice += machineData.totalPrice || 0;
+                } else if (machineData.calculationType === "paušál") {
+                    agg.flatRateCount += 1;
+                    agg.totalPrice += machineData.totalPrice || 0;
+                }
+
+                // Pridaj popis ak existuje
+                if (machineData.description) {
+                    agg.description.push(machineData.description);
+                }
+            }
+
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "  📈 Agregovaných strojov: " + Object.keys(aggregated).length);
+            }
+
+            return aggregated;
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, error.toString(), "aggregateMachinesData", error);
+            }
+            return {};
+        }
+    }
+
+    /**
+     * Linkuje agregované stroje do výkazu
+     */
+    function linkAggregatedMachines(machinesReport, aggregatedMachines, options) {
+        var core = getCore();
+        var config = getConfig();
+        try {
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "🚜 Vytváram LinkToEntry pre stroje vo výkaze");
+            }
+
+            // Získaj súčasné linky na stroje vo výkaze
+            var existingMachines = core.safeGetLinks(machinesReport, config.fields.machinesReport.machines) || [];
+            var updatedMachines = [];
+
+            // Skopíruj existujúce linky
+            for (var i = 0; i < existingMachines.length; i++) {
+                updatedMachines.push(existingMachines[i]);
+            }
+
+            // Spracuj agregované stroje
+            for (var machineId in aggregatedMachines) {
+                var aggData = aggregatedMachines[machineId];
+                var machineEntry = aggData.machineEntry;
+
+                // Skontroluj či už existuje link na tento stroj
+                var existingIndex = -1;
+                for (var j = 0; j < updatedMachines.length; j++) {
+                    if (updatedMachines[j] && core.safeGet(updatedMachines[j], "ID") === machineId) {
+                        existingIndex = j;
+                        break;
+                    }
+                }
+
+                if (existingIndex === -1) {
+                    // Pridaj nový link
+                    updatedMachines.push(machineEntry);
+                    existingIndex = updatedMachines.length - 1;
+                    if (options && options.debugEntry && core.addDebug) {
+                        core.addDebug(options.debugEntry, "  ➕ Pridaný nový link na stroj: " + aggData.machineData.name);
+                    }
+                } else {
+                    if (options && options.debugEntry && core.addDebug) {
+                        core.addDebug(options.debugEntry, "  🔄 Aktualizujem existujúci link na stroj: " + aggData.machineData.name);
+                    }
+                }
+            }
+
+            // Nastav aktualizované pole strojov
+            core.safeSet(machinesReport, config.fields.machinesReport.machines, updatedMachines);
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "✅ Pole Stroje nastavené s " + updatedMachines.length + " linkmi");
+            }
+
+            // Teraz nastav atribúty pre každý stroj
+            setMachineAttributes(machinesReport, aggregatedMachines, options);
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, error.toString(), "linkAggregatedMachines", error);
+            }
+        }
+    }
+
+    /**
+     * Nastavuje atribúty pre stroje vo výkaze
+     */
+    function setMachineAttributes(machinesReport, aggregatedMachines, options) {
+        var core = getCore();
+        var config = getConfig();
+        try {
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "🔧 Nastavujem atribúty strojov");
+            }
+
+            // Získaj aktuálne pole strojov pre nastavenie atribútov
+            var machinesArray = core.safeGet(machinesReport, config.fields.machinesReport.machines);
+
+            if (!machinesArray || machinesArray.length === 0) {
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "⚠️ Pole strojov je prázdne alebo sa nepodarilo načítať");
+                }
+                // Pokús sa znovu načítať pole
+                try {
+                    machinesArray = core.safeGetLinks(machinesReport, config.fields.machinesReport.machines);
+                    if (!machinesArray || machinesArray.length === 0) {
+                        if (options && options.debugEntry && core.addDebug) {
+                            core.addDebug(options.debugEntry, "❌ Nie je možné načítať pole strojov");
+                        }
+                        return;
+                    }
+                    if (options && options.debugEntry && core.addDebug) {
+                        core.addDebug(options.debugEntry, "✅ Pole strojov úspešne načítané: " + machinesArray.length + " položiek");
+                    }
+                } catch (err) {
+                    if (options && options.debugEntry && core.addError) {
+                        core.addError(options.debugEntry, "Chyba pri načítaní poľa strojov: " + err.toString());
+                    }
+                    return;
+                }
+            }
+
+            // Pre každý stroj nastav atribúty
+            for (var i = 0; i < machinesArray.length; i++) {
+                var machineInArray = machinesArray[i];
+
+                if (!machineInArray) {
+                    if (options && options.debugEntry && core.addDebug) {
+                        core.addDebug(options.debugEntry, "⚠️ Prázdny stroj na pozícii " + i);
+                    }
+                    continue;
+                }
+
+                var machineId = core.safeGet(machineInArray, "ID");
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "  🔍 Spracúvam stroj ID: " + machineId);
+                }
+
+                // Nájdi agregované dáta pre tento stroj
+                var aggData = aggregatedMachines[machineId];
+
+                if (aggData) {
+                    var attributes = config.attributes.machinesReportMachines;
+
+                    // Nastav atribúty podľa typu účtovania
+                    // Použij skutočnú celkovú cenu z agregovaných dát
+                    var totalCelkom = aggData.totalPrice || 0;
+
+                    try {
+                        if (aggData.totalMth > 0) {
+                            // Účtovanie podľa motohodín
+                            machineInArray.setAttr(attributes.mth, aggData.totalMth);
+                            machineInArray.setAttr(attributes.cenaMth, aggData.priceMth);
+                            if (options && options.debugEntry && core.addDebug) {
+                                core.addDebug(options.debugEntry, "    📊 MTH: " + aggData.totalMth + " × " + aggData.priceMth + "€");
+                            }
+                        }
+
+                        if (aggData.flatRateCount > 0) {
+                            // Účtovanie paušálom
+                            machineInArray.setAttr(attributes.pausalPocet, aggData.flatRateCount);
+                            machineInArray.setAttr(attributes.cenaPausal, aggData.flatRatePrice);
+                            if (options && options.debugEntry && core.addDebug) {
+                                core.addDebug(options.debugEntry, "    📊 Paušál: " + aggData.flatRateCount + " × " + aggData.flatRatePrice + "€");
+                            }
+                        }
+
+                        // Nastav celkovú cenu z agregovaných dát
+                        machineInArray.setAttr(attributes.cenaCelkom, totalCelkom);
+
+                    } catch (attrError) {
+                        if (options && options.debugEntry && core.addError) {
+                            core.addError(options.debugEntry, "Chyba pri nastavovaní atribútov pre stroj " + machineId + ": " + attrError.toString());
+                        }
+                    }
+
+                    if (options && options.debugEntry && core.addDebug) {
+                        core.addDebug(options.debugEntry, "    ✅ " + aggData.machineData.name + " - celkom: " + totalCelkom + "€");
+                    }
+                } else {
+                    if (options && options.debugEntry && core.addDebug) {
+                        core.addDebug(options.debugEntry, "  ⚠️ Nenašli sa agregované dáta pre stroj ID: " + machineId);
+                    }
+                }
+            }
+
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "🔗 Nastavenie atribútov dokončené pre " + machinesArray.length + " strojov");
+            }
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, error.toString(), "setMachineAttributes", error);
+            }
+        }
+    }
+
+    /**
+     * Aktualizuje počítacie polia vo výkazoch
+     */
+    function updateReportCounts(report, reportConfig, reportType, options) {
+        var core = getCore();
+        var config = getConfig();
+        try {
+            var reportFields = config.fields[reportConfig.library];
+            if (!reportFields) {
+                return;
+            }
+
+            // Počet záznamov (LinkToEntry z Záznam prác)
+            if (reportFields.pocetZaznamov && reportFields.workRecord) {
+                var workRecords = core.safeGetLinks(report, reportFields.workRecord) || [];
+                core.safeSet(report, reportFields.pocetZaznamov, workRecords.length);
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "  📊 Počet záznamov: " + workRecords.length);
+                }
+            }
+
+            // Počet strojov (LinkToEntry z Mechanizácia) - iba pre výkaz strojov
+            if (reportType === 'machines' && reportFields.pocetStrojov && reportFields.machines) {
+                var machines = core.safeGetLinks(report, reportFields.machines) || [];
+                core.safeSet(report, reportFields.pocetStrojov, machines.length);
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "  📊 Počet strojov: " + machines.length);
+                }
+            }
+
+            // Počet záznamov pre výkaz prác (LinkToEntry z workRecords)
+            if (reportType === 'work' && reportFields.hzsCount && reportFields.workRecords) {
+                var workRecordsCount = core.safeGetLinks(report, reportFields.workRecords) || [];
+                core.safeSet(report, reportFields.hzsCount, workRecordsCount.length);
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "  📊 HZS Count: " + workRecordsCount.length);
+                }
+            }
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, "Chyba pri aktualizácii počtov: " + error.toString(), "updateReportCounts", error);
+            }
+        }
+    }
+
 })();
 
 // // Potom v Dochádzka Prepočet 7 môžeš používať:
