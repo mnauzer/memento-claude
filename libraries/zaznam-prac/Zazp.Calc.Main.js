@@ -120,14 +120,24 @@ function main() {
         if (employeeResult.success && hzsResult.success) {
             steps.step6.success = calculateTotals(employeeResult, hzsResult, machinesResult);
         }
-// TODO Pridať výkaz strojov
-        // Krok 7: Synchronizácia výkazu prác
-        utils.addDebug(currentEntry, utils.getIcon("update") + " KROK 7: Synchronizácia výkazu prác");
+        // Krok 7: Vytvorenie/aktualizácia výkazu prác
+        utils.addDebug(currentEntry, utils.getIcon("update") + " KROK 7: Vytvorenie/aktualizácia výkazu prác (nová architektúra)");
         if (validationResult.hasCustomer) {
-            steps.step7.success = synchronizeWorkReport(validationResult.customer, validationResult.date, employeeResult.odpracovaneTotal, hzsResult.price);
+            steps.step7.success = createOrUpdateWorkReport(employeeResult, hzsResult, machinesResult, validationResult);
         } else {
-            utils.addDebug(currentEntry, "  ℹ️ Žiadna zákazka - preskakujem synchronizáciu výkazu");
+            utils.addDebug(currentEntry, "  ℹ️ Žiadna zákazka - preskakujem výkaz prác");
             steps.step7.success = true; // Nie je chyba ak nie je zákazka
+        }
+
+        // Krok 7.1: Vytvorenie/aktualizácia výkazu strojov (ak sú použité stroje)
+        if (machinesResult && machinesResult.success && machinesResult.count > 0 && validationResult.hasCustomer) {
+            utils.addDebug(currentEntry, utils.getIcon("heavy_machine") + " KROK 7.1: Vytvorenie/aktualizácia výkazu strojov");
+            var machinesReportResult = createOrUpdateMachinesReport(machinesResult, validationResult);
+            if (machinesReportResult) {
+                utils.addDebug(currentEntry, "  ✅ Výkaz strojov spracovaný úspešne");
+            } else {
+                utils.addDebug(currentEntry, "  ⚠️ Chyba pri spracovaní výkazu strojov");
+            }
         }
         
         // Krok 8: Vytvorenie info záznamov
@@ -687,7 +697,89 @@ function createNewWorkReport(customerObj, date, customerName) {
     }
 }
 
-function synchronizeWorkReport(customer, date, workedHours, hzsPrice) {
+// ==============================================
+// NOVÁ UNIVERZÁLNA ARCHITEKTÚRA PRE VÝKAZY
+// ==============================================
+
+function createOrUpdateWorkReport(employeeResult, hzsResult, machinesResult, validationResult) {
+    try {
+        utils.addDebug(currentEntry, "=== TESTOVANIE NOVEJ ARCHITEKTÚRY VÝKAZOV ===");
+
+        // Priprav calculatedData pre work report
+        var calculatedData = {
+            totalHours: employeeResult.odpracovaneTotal,
+            hzsSum: hzsResult.sum,
+            hzsCount: 1  // Jeden záznam práce
+        };
+
+        // Vytvor výkaz pomocou novej univerzálnej architektúry
+        var reportResult = utils.createOrUpdateReport(currentEntry, 'work', calculatedData, {
+            debugEntry: currentEntry,
+            date: validationResult.date
+        });
+
+        if (reportResult.success) {
+            utils.addDebug(currentEntry, "✅ Nová architektúra - výkaz prác: " + reportResult.action);
+            utils.addDebug(currentEntry, "📊 Výkaz: " + (reportResult.report ? reportResult.report.field("Číslo") || "N/A" : "N/A"));
+            utils.addDebug(currentEntry, "🔗 Súčty: hodiny=" + calculatedData.totalHours + ", suma=" + calculatedData.hzsSum);
+            return true;
+        } else {
+            utils.addDebug(currentEntry, "❌ Nová architektúra zlyhala: " + (reportResult.errors ? reportResult.errors.join(", ") : "Neznáma chyba"));
+            // Fallback na starú implementáciu
+            utils.addDebug(currentEntry, "🔄 Fallback na starú implementáciu");
+            return synchronizeWorkReportOld(validationResult.customer, validationResult.date, employeeResult.odpracovaneTotal, hzsResult.price);
+        }
+
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "createOrUpdateWorkReport", error);
+        return false;
+    }
+}
+
+function createOrUpdateMachinesReport(machinesResult, validationResult) {
+    try {
+        utils.addDebug(currentEntry, "=== TESTOVANIE VÝKAZU STROJOV ===");
+
+        // Priprav calculatedData pre machines report
+        var calculatedData = {
+            totalHours: 0,
+            totalCost: machinesResult.total,
+            machineCount: machinesResult.count
+        };
+
+        // Spočítaj celkové motohodiny
+        for (var i = 0; i < machinesResult.machines.length; i++) {
+            var machine = machinesResult.machines[i].machine;
+            if (machine.calculationType === "mth") {
+                calculatedData.totalHours += machine.usedMth || 0;
+            }
+        }
+
+        // Vytvor výkaz strojov pomocou novej univerzálnej architektúry
+        var reportResult = utils.createOrUpdateReport(currentEntry, 'machines', calculatedData, {
+            debugEntry: currentEntry,
+            date: validationResult.date,
+            machines: machinesResult.machines  // Dodatočné dáta pre LinkToEntry
+        });
+
+        if (reportResult.success) {
+            utils.addDebug(currentEntry, "✅ Výkaz strojov: " + reportResult.action);
+            utils.addDebug(currentEntry, "📊 Výkaz: " + (reportResult.report ? reportResult.report.field("Číslo") || "N/A" : "N/A"));
+            utils.addDebug(currentEntry, "🔗 Súčty: mth=" + calculatedData.totalHours + ", suma=" + calculatedData.totalCost);
+            return true;
+        } else {
+            utils.addDebug(currentEntry, "❌ Výkaz strojov zlyhal: " + (reportResult.errors ? reportResult.errors.join(", ") : "Neznáma chyba"));
+            return false;
+        }
+
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "createOrUpdateMachinesReport", error);
+        return false;
+    }
+}
+
+// Stará implementácia ako fallback
+function synchronizeWorkReportOld(customer, date, workedHours, hzsPrice) {
     try {
         if (!customer || customer.length === 0) {
             utils.addDebug(currentEntry, "  ℹ️ Žiadna zákazka - preskakujem výkaz");
@@ -723,7 +815,7 @@ function synchronizeWorkReport(customer, date, workedHours, hzsPrice) {
         }
 
     } catch (error) {
-        utils.addError(currentEntry, error.toString(), "synchronizeWorkReport", error);
+        utils.addError(currentEntry, error.toString(), "synchronizeWorkReportOld", error);
         return false;
     }
 }
@@ -870,6 +962,7 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesRes
         var infoMessage = "# 📋 ZÁZNAM PRÁC - AUTOMATICKÝ PREPOČET\n\n";
 
         infoMessage += "## 📅 Základné údaje\n";
+        var dayName = utils.getDayNameSK(moment(date).day()).toUpperCase();
         infoMessage += "- **Dátum:** " + dateFormatted + " (" + dayName + ")" + "\n";
         infoMessage += "- **Pracovný čas:** " + moment(workTimeResult.startTimeRounded).format("HH:mm") +
                        " - " + moment(workTimeResult.endTimeRounded).format("HH:mm") + "\n";
