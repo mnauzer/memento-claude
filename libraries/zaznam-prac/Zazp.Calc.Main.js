@@ -492,22 +492,20 @@ function processMachines() {
                 var calculationType = null;
                 var usedMth = 1;
                 
-                // Čítaj atribúty priamo z machine objektu (bezpečne)
-                try {
-                    hasMachinePrice = machine.attr(CONFIG.attributes.workRecordMachines.totalPrice) || 0;
-                    calculationType = machine.attr(CONFIG.attributes.workRecordMachines.calculationType);
-                    // Ak je calculationType null, nastav default hodnotu
-                    if (!calculationType || calculationType === null) {
-                        calculationType = "mth"; // default hodnota
-                        utils.addDebug(currentEntry, "    ⚠️ calculationType bol null, nastavujem default: mth");
-                    }
-                    usedMth = machine.attr(CONFIG.attributes.workRecordMachines.usedMth) || 1;
-                } catch (error) {
-                    utils.addError(currentEntry, "Chyba pri čítaní atribútov z machine objektu: " + error.toString(), "processMachines");
-                    // Fallback hodnoty
-                    hasMachinePrice = 0;
-                    calculationType = "mth";
-                    usedMth = 1;
+                // Čítaj atribúty pomocou utils.safeGetAttribute (vráti pole pre multi-select)
+                var totalPrices = utils.safeGetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.totalPrice, []);
+                var calculationTypes = utils.safeGetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.calculationType, []);
+                var usedMths = utils.safeGetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.usedMth, []);
+
+                // Získaj hodnoty pre aktuálny index
+                hasMachinePrice = (totalPrices && totalPrices[i] !== undefined) ? totalPrices[i] : 0;
+                calculationType = (calculationTypes && calculationTypes[i] !== undefined) ? calculationTypes[i] : null;
+                usedMth = (usedMths && usedMths[i] !== undefined) ? usedMths[i] : 1;
+
+                // Ak je calculationType null, nastav default hodnotu
+                if (!calculationType || calculationType === null) {
+                    calculationType = "mth"; // default hodnota
+                    utils.addDebug(currentEntry, "    ⚠️ calculationType bol null, nastavujem default: mth");
                 }            
 
                 var totalPrice = 0;
