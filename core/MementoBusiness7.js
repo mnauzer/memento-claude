@@ -2854,11 +2854,29 @@ var MementoBusiness = (function() {
                         // Použij správne názvy atribútov z currentEntry (workRecordMachines)
                         var workRecordAttrs = config.attributes.workRecordMachines;
 
+                        if (options && options.debugEntry && core.addDebug) {
+                            core.addDebug(options.debugEntry, "  🔍 DEBUG getMachinesFromCurrentEntry - názvy atribútov:");
+                            core.addDebug(options.debugEntry, "    - calculationType: '" + workRecordAttrs.calculationType + "'");
+                            core.addDebug(options.debugEntry, "    - usedMth: '" + workRecordAttrs.usedMth + "'");
+                            core.addDebug(options.debugEntry, "    - priceMth: '" + workRecordAttrs.priceMth + "'");
+                            core.addDebug(options.debugEntry, "    - flatRate: '" + workRecordAttrs.flatRate + "'");
+                            core.addDebug(options.debugEntry, "    - totalPrice: '" + workRecordAttrs.totalPrice + "'");
+                        }
+
                         var rawCalculationType = machineryArray[i].attr(workRecordAttrs.calculationType);
                         var rawMth = machineryArray[i].attr(workRecordAttrs.usedMth);
                         var rawPriceMth = machineryArray[i].attr(workRecordAttrs.priceMth);
                         var rawFlatRate = machineryArray[i].attr(workRecordAttrs.flatRate);
                         var rawTotalPrice = machineryArray[i].attr(workRecordAttrs.totalPrice);
+
+                        if (options && options.debugEntry && core.addDebug) {
+                            core.addDebug(options.debugEntry, "  📊 Prečítané hodnoty atribútov:");
+                            core.addDebug(options.debugEntry, "    - rawCalculationType: " + rawCalculationType);
+                            core.addDebug(options.debugEntry, "    - rawMth: " + rawMth);
+                            core.addDebug(options.debugEntry, "    - rawPriceMth: " + rawPriceMth);
+                            core.addDebug(options.debugEntry, "    - rawFlatRate: " + rawFlatRate);
+                            core.addDebug(options.debugEntry, "    - rawTotalPrice: " + rawTotalPrice);
+                        }
 
                         machineAttrs.calculationType = rawCalculationType || "mth";
                         machineAttrs.mth = parseFloat(rawMth) || 1;
@@ -3325,6 +3343,7 @@ var MementoBusiness = (function() {
                 var newMth = existingMth + newAttrs.mth;
                 linkObject.setAttr(attrs.mth, newMth);
                 linkObject.setAttr(attrs.cenaMth, newAttrs.cenaMth); // Prepíš cenu
+                linkObject.setAttr(attrs.calculationType, newAttrs.calculationType); // Nastav typ účtovania
 
                 // Vypočítaj novú celkovú cenu
                 var newTotal = newMth * newAttrs.cenaMth;
@@ -3339,6 +3358,7 @@ var MementoBusiness = (function() {
                 var newPausal = existingPausal + newAttrs.pausalPocet;
                 linkObject.setAttr(attrs.pausalPocet, newPausal);
                 linkObject.setAttr(attrs.cenaPausal, newAttrs.cenaPausal); // Prepíš cenu
+                linkObject.setAttr(attrs.calculationType, newAttrs.calculationType); // Nastav typ účtovania
 
                 // Vypočítaj novú celkovú cenu
                 var newTotal = newPausal * newAttrs.cenaPausal;
@@ -3380,11 +3400,26 @@ var MementoBusiness = (function() {
             var newlyAddedMachine = existingMachines[existingMachines.length - 1];
             var attrs = config.attributes.machinesReportMachines;
 
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "  🔍 DEBUG createNewMachineLink - názvy atribútov výkazu:");
+                core.addDebug(options.debugEntry, "    - mth: '" + attrs.mth + "'");
+                core.addDebug(options.debugEntry, "    - cenaMth: '" + attrs.cenaMth + "'");
+                core.addDebug(options.debugEntry, "    - pausalPocet: '" + attrs.pausalPocet + "'");
+                core.addDebug(options.debugEntry, "    - cenaPausal: '" + attrs.cenaPausal + "'");
+                core.addDebug(options.debugEntry, "    - cenaCelkom: '" + attrs.cenaCelkom + "'");
+                core.addDebug(options.debugEntry, "    - calculationType: '" + attrs.calculationType + "'");
+                core.addDebug(options.debugEntry, "  📥 Hodnoty na zápis:");
+                core.addDebug(options.debugEntry, "    - newAttrs.calculationType: " + newAttrs.calculationType);
+                core.addDebug(options.debugEntry, "    - newAttrs.mth: " + newAttrs.mth);
+                core.addDebug(options.debugEntry, "    - newAttrs.cenaMth: " + newAttrs.cenaMth);
+            }
+
             if (newAttrs.calculationType === "mth") {
                 newlyAddedMachine.setAttr(attrs.mth, newAttrs.mth);
                 newlyAddedMachine.setAttr(attrs.cenaMth, newAttrs.cenaMth);
                 newlyAddedMachine.setAttr(attrs.pausalPocet, 0); // Vynuluj paušál
                 newlyAddedMachine.setAttr(attrs.cenaPausal, 0);
+                newlyAddedMachine.setAttr(attrs.calculationType, newAttrs.calculationType); // Nastav typ účtovania
 
                 var totalPrice = newAttrs.mth * newAttrs.cenaMth;
                 newlyAddedMachine.setAttr(attrs.cenaCelkom, totalPrice);
@@ -3398,6 +3433,7 @@ var MementoBusiness = (function() {
                 newlyAddedMachine.setAttr(attrs.cenaPausal, newAttrs.cenaPausal);
                 newlyAddedMachine.setAttr(attrs.mth, 0); // Vynuluj MTH
                 newlyAddedMachine.setAttr(attrs.cenaMth, 0);
+                newlyAddedMachine.setAttr(attrs.calculationType, newAttrs.calculationType); // Nastav typ účtovania
 
                 var totalPrice = newAttrs.pausalPocet * newAttrs.cenaPausal;
                 newlyAddedMachine.setAttr(attrs.cenaCelkom, totalPrice);
