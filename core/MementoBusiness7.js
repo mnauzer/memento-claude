@@ -738,18 +738,26 @@ var MementoBusiness = (function() {
 
             var attributes = options.attributes || config.attributes || {};
 
+            // Debug: Kontrola atribútov
+            core.addDebug(entry, "  📋 Nastavujem atribúty:");
+            core.addDebug(entry, "    • Index: " + index);
+            core.addDebug(entry, "    • zamArray.length: " + zamArray.length);
+            core.addDebug(entry, "    • attributes: " + JSON.stringify(attributes));
+
             // Nastav základné atribúty
             if (attributes.workedHours || attributes.workRecordEmployees) {
                 var workedHoursAttr = attributes.workedHours || (attributes.workRecordEmployees && attributes.workRecordEmployees.workedHours);
                 if (workedHoursAttr) {
-                    core.safeSetAttribute(zamArray[index], workedHoursAttr, pracovnaDobaHodiny);
+                    core.addDebug(entry, "    ✅ Nastavujem '" + workedHoursAttr + "' = " + pracovnaDobaHodiny);
+                    zamArray[index].setAttr(workedHoursAttr, pracovnaDobaHodiny);
                 }
             }
 
             if (attributes.hourlyRate || attributes.workRecordEmployees) {
                 var hourlyRateAttr = attributes.hourlyRate || (attributes.workRecordEmployees && attributes.workRecordEmployees.hourlyRate);
                 if (hourlyRateAttr) {
-                    core.safeSetAttribute(zamArray[index], hourlyRateAttr, hodinovka);
+                    core.addDebug(entry, "    ✅ Nastavujem '" + hourlyRateAttr + "' = " + hodinovka);
+                    zamArray[index].setAttr(hourlyRateAttr, hodinovka);
                 }
             }
 
@@ -781,7 +789,8 @@ var MementoBusiness = (function() {
             if (attributes.dailyWage || attributes.workRecordEmployees) {
                 var dailyWageAttr = attributes.dailyWage || (attributes.workRecordEmployees && attributes.workRecordEmployees.wageCosts);
                 if (dailyWageAttr) {
-                    core.safeSetAttribute(zamArray[index], dailyWageAttr, dennaMzda);
+                    core.addDebug(entry, "    ✅ Nastavujem '" + dailyWageAttr + "' = " + dennaMzda);
+                    zamArray[index].setAttr(dailyWageAttr, dennaMzda);
                 }
             }
 

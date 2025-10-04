@@ -1237,19 +1237,19 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesRes
             infoMessage += "## 🚜 STROJE A MECHANIZÁCIA (" + machinesResult.count + ")\n\n";
 
             for (var i = 0; i < machinesResult.machines.length; i++) {
-                var machine = machinesResult.machines[i].machine;
-                infoMessage += "### 🚜 " + machine.name + "\n";
+                var machineData = machinesResult.machines[i].machineData;
+                infoMessage += "### 🚜 " + machineData.name + "\n";
 
-                if (machine.calculationType === "mth") {
+                if (machineData.calculationType === "mth") {
                     infoMessage += "- **Typ účtovania:** Motohodiny\n";
-                    infoMessage += "- **Použité motohodiny:** " + machine.usedMth + " mth\n";
-                    infoMessage += "- **Cena za mth:** " + machine.priceMth + " €/mth\n";
-                } else if (machine.calculationType === "paušál") {
+                    infoMessage += "- **Použité motohodiny:** " + machineData.usedMth + " mth\n";
+                    infoMessage += "- **Cena za mth:** " + machineData.priceMth + " €/mth\n";
+                } else if (machineData.calculationType === "paušál") {
                     infoMessage += "- **Typ účtovania:** Paušál\n";
-                    infoMessage += "- **Paušálna cena:** " + machine.flatRate + " €\n";
+                    infoMessage += "- **Paušálna cena:** " + machineData.flatRate + " €\n";
                 }
 
-                infoMessage += "- **Celková cena:** " + utils.formatMoney(machine.totalPrice) + "\n\n";
+                infoMessage += "- **Celková cena:** " + utils.formatMoney(machineData.totalPrice) + "\n\n";
             }
 
             infoMessage += "**🚜 Celková suma za stroje:** " + utils.formatMoney(machinesResult.total) + "\n\n";
@@ -1286,19 +1286,19 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesRes
         }
 
         var order = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.order);
+        var workDescription = utils.safeGet(currentEntry, CONFIG.fields.workRecord.workDescription);
+
         if (order && order.length > 0) {
             infoMessage += "## 📦 ZÁKAZKA\n";
-            infoMessage += "- **Názov:** " + utils.safeGet(order[0], "Názov", "N/A") + "\n\n";
+            infoMessage += "- **Názov:** " + utils.safeGet(order[0], "Názov", "N/A") + "\n";
+            if (workDescription) {
+                infoMessage += "- **Popis prác:** " + workDescription + "\n";
+            }
+            infoMessage += "\n";
         }
 
-        var workDescription = utils.safeGet(currentEntry, CONFIG.fields.workRecord.workDescription);
-        if (workDescription) {
-            infoMessage += "## 🔨 VYKONANÉ PRÁCE\n";
-            infoMessage += workDescription + "\n\n";
-        }
-
-        // Celkový súhrn nákladov
-        var totalCosts = employeeResult.celkoveMzdy + (hzsResult.sum || 0) +
+        // Celkový súhrn nákladov (bez HZS - to je výnosová položka)
+        var totalCosts = employeeResult.celkoveMzdy +
                         (machinesResult && machinesResult.total ? machinesResult.total : 0) +
                         (workItemsResult && workItemsResult.totalSum ? workItemsResult.totalSum : 0) +
                         (materialsResult && materialsResult.total ? materialsResult.total : 0);
@@ -1306,8 +1306,8 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesRes
         if (totalCosts > 0) {
             infoMessage += "## 💰 CELKOVÝ SÚHRN NÁKLADOV\n";
             infoMessage += "- **Mzdové náklady:** " + utils.formatMoney(employeeResult.celkoveMzdy) + "\n";
-            if (hzsResult.sum > 0) infoMessage += "- **HZS:** " + utils.formatMoney(hzsResult.sum) + "\n";
             if (machinesResult && machinesResult.total > 0) infoMessage += "- **Stroje:** " + utils.formatMoney(machinesResult.total) + "\n";
+            if (workItemsResult && workItemsResult.totalSum > 0) infoMessage += "- **Položky prác:** " + utils.formatMoney(workItemsResult.totalSum) + "\n";
             if (materialsResult && materialsResult.total > 0) infoMessage += "- **Materiály:** " + utils.formatMoney(materialsResult.total) + "\n";
             infoMessage += "- **CELKOM:** " + utils.formatMoney(totalCosts) + "\n\n";
         }
