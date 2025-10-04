@@ -439,8 +439,8 @@ var MementoBusiness = (function() {
             // Nájdi najnovšiu platnú sadzbu
             for (var i = 0; i < rates.length; i++) {
                 var rate = rates[i];
-                var validFrom = rate.field(fields.validFrom);
-                var hourlyRate = rate.field(fields.hourlyRate);
+                var validFrom = core.safeGet(rate, fields.validFrom);
+                var hourlyRate = core.safeGet(rate, fields.hourlyRate);
                 
                 if (validFrom && hourlyRate && moment(validFrom).isSameOrBefore(date)) {
                     if (!latestValidFrom || moment(validFrom).isAfter(latestValidFrom)) {
@@ -454,7 +454,7 @@ var MementoBusiness = (function() {
             
         } catch (error) {
             if (core) {
-                core.addError(item, "Chyba pri hľadaní sadzby: " + error.toString() + ", Line: " + error.lineNumber, "findValidHourlyRate", error);
+                core.addError(employee, "Chyba pri hľadaní sadzby: " + error.toString() + ", Line: " + error.lineNumber, "findValidHourlyRate", error);
             }
             return null;
         }
@@ -2339,9 +2339,15 @@ var MementoBusiness = (function() {
         var core = getCore();
 
         try {
-            // Získaj zákazku
+            var config = getConfig();
+
+            // Získaj zákazku - používaj správne názvy polí z konfigurácie
             var customerField = null;
-            var customerFieldNames = ["order", "zakazka", "Zákazka"];
+            var customerFieldNames = [
+                config.fields.workRecord ? config.fields.workRecord.order : null,
+                config.fields.rideLog ? config.fields.rideLog.orders : null,
+                "Zákazka"  // fallback
+            ].filter(function(name) { return name; }); // odstráň null hodnoty
 
             for (var i = 0; i < customerFieldNames.length; i++) {
                 var fieldName = customerFieldNames[i];
@@ -2363,8 +2369,14 @@ var MementoBusiness = (function() {
             var customer = customerField[0];
             var customerName = core.safeGet(customer, "Názov", "N/A");
 
-            // Získaj dátum
-            var dateFieldNames = ["date", "datum", "Dátum"];
+            // Získaj dátum - používaj správne názvy polí z konfigurácie
+            var dateFieldNames = [
+                config.fields.workRecord ? config.fields.workRecord.date : null,
+                config.fields.rideLog ? config.fields.rideLog.date : null,
+                config.fields.attendance ? config.fields.attendance.date : null,
+                "Dátum"  // fallback
+            ].filter(function(name) { return name; }); // odstráň null hodnoty
+
             var date = null;
 
             for (var j = 0; j < dateFieldNames.length; j++) {
