@@ -31,7 +31,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Záznam prác Prepočet",
-    version: "8.3.2",  // Opravený pracovný čas, pridané stroje a materiály do info záznamu
+    version: "8.4.1",  // Pridané spracovanie Práce Položky + nový formát info výkazu prác
 
     // Referencie na centrálny config
     fields: {
@@ -46,7 +46,9 @@ var CONFIG = {
         workRecordHzs: centralConfig.attributes.workRecordHzs,
         workRecordEmployees: centralConfig.attributes.workRecordEmployees,
         workRecordMachines: centralConfig.attributes.workRecordMachines,
-        workReport: centralConfig.attributes.workReport
+        workRecordWorkItems: centralConfig.attributes.workRecordWorkItems,
+        workReport: centralConfig.attributes.workReport,
+        workReportWorkItems: centralConfig.attributes.workReportWorkItems
     },
     libraries: centralConfig.libraries,
     icons: centralConfig.icons,
@@ -114,11 +116,17 @@ function main() {
         var machinesResult = processMachines();
         steps.step5.success = machinesResult.success;
 
+        // Krok 5.1: Spracovanie Práce Položky
+        utils.addDebug(currentEntry, utils.getIcon("calculation") + " KROK 5.1: Spracovanie Práce Položky");
+        var workItemsResult = processWorkItems();
+        if (!workItemsResult.success) {
+            utils.addDebug(currentEntry, "  ⚠️ Spracovanie položiek prác zlyhalo");
+        }
 
          // KROK 6: Celkové výpočty
         utils.addDebug(currentEntry, " KROK 6: Celkové výpočty", "calculation");
         if (employeeResult.success && hzsResult.success) {
-            steps.step6.success = calculateTotals(employeeResult, hzsResult, machinesResult);
+            steps.step6.success = calculateTotals(employeeResult, hzsResult, machinesResult, workItemsResult);
         }
         // Krok 7: Vytvorenie/aktualizácia výkazu prác
         utils.addDebug(currentEntry, utils.getIcon("update") + " KROK 7: Vytvorenie/aktualizácia výkazu prác (nová architektúra)");
@@ -142,7 +150,7 @@ function main() {
         
         // Krok 8: Vytvorenie info záznamov
         utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 8: Vytvorenie info záznamov");
-        steps.step8.success = createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesResult);
+        steps.step8.success = createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesResult, workItemsResult);
 
         // Krok 9: Vytvorenie/aktualizácia Denný report
         utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 9: Spracovanie Denný report");
@@ -264,7 +272,7 @@ function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
     return utils.processEmployees(zamestnanci, pracovnaDobaHodiny, datum, options);
 }
 
-function calculateTotals(employeeResult, hzsResult, machinesResult) {
+function calculateTotals(employeeResult, hzsResult, machinesResult, workItemsResult) {
     try {
         // Ulož celkové hodnoty
         utils.safeSet(currentEntry, CONFIG.fields.workRecord.employeeCount, employeeResult.pocetPracovnikov);
@@ -276,6 +284,12 @@ function calculateTotals(employeeResult, hzsResult, machinesResult) {
         if (machinesResult && machinesResult.total) {
             utils.safeSet(currentEntry, CONFIG.fields.workRecord.machinesSum, machinesResult.total);
             utils.addDebug(currentEntry, "  • Suma strojov: " + utils.formatMoney(machinesResult.total));
+        }
+
+        // Ulož sumu položiek prác ak existuje
+        if (workItemsResult && workItemsResult.totalSum) {
+            utils.safeSet(currentEntry, CONFIG.fields.workRecord.workItemsSum, workItemsResult.totalSum);
+            utils.addDebug(currentEntry, "  • Suma položiek prác: " + utils.formatMoney(workItemsResult.totalSum));
         }
 
         utils.addDebug(currentEntry, "  • Počet zamestnancov: " + employeeResult.pocetPracovnikov);
@@ -617,9 +631,126 @@ function processMachines() {
         return usedMachines;
     }
 }
+
+// ==============================================
+// SPRACOVANIE PRÁCE POLOŽIEK (vo Výkaze prác)
+// ==============================================
+
+function processWorkItems() {
+    try {
+        utils.addDebug(currentEntry, utils.getIcon("calculation") + " Spracovanie Práce Položky vo Výkaze prác");
+
+        var workItemsResult = {
+            success: false,
+            count: 0,
+            processed: 0,
+            totalSum: 0,
+            items: []
+        };
+
+        // Získaj linkovaný výkaz prác
+        var workReportLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.workReport);
+        if (!workReportLinks || workReportLinks.length === 0) {
+            utils.addDebug(currentEntry, "  ℹ️ Žiadny linkovaný výkaz prác - preskakujem spracovanie položiek");
+            workItemsResult.success = true;
+            return workItemsResult;
+        }
+
+        var workReport = workReportLinks[0];
+        utils.addDebug(currentEntry, "  📊 Našiel som výkaz prác: " + utils.safeGet(workReport, "Číslo", "N/A"));
+
+        // Získaj pole Práce Položky z výkazu prác
+        var workItemsField = utils.safeGetLinks(workReport, CONFIG.fields.workReport.workItems);
+        if (!workItemsField || workItemsField.length === 0) {
+            utils.addDebug(currentEntry, "  ℹ️ Žiadne položky prác vo výkaze");
+            utils.safeSet(workReport, CONFIG.fields.workReport.workItemsSum, 0);
+            workItemsResult.success = true;
+            return workItemsResult;
+        }
+
+        workItemsResult.count = workItemsField.length;
+        utils.addDebug(currentEntry, "  📦 Počet položiek: " + workItemsResult.count);
+
+        // Získaj pole s atribútmi cez field()
+        var workItemsFieldArray = workReport.field(CONFIG.fields.workReport.workItems);
+        var currentDate = utils.safeGet(currentEntry, CONFIG.fields.workRecord.date);
+
+        // Prejdi všetky položky
+        for (var i = 0; i < workItemsField.length; i++) {
+            var workItem = workItemsField[i]; // Entry objekt (na získanie linksFrom)
+            var workItemWithAttrs = workItemsFieldArray[i]; // LinkEntry objekt (na atribúty)
+
+            var itemName = utils.safeGet(workItem, CONFIG.fields.workPrices.name, "Neznáma položka");
+            utils.addDebug(currentEntry, "  📋 [" + (i + 1) + "/" + workItemsResult.count + "] " + itemName);
+
+            try {
+                // 1. Čítaj množstvo (ručne zadané)
+                var quantity = parseFloat(workItemWithAttrs.attr(CONFIG.attributes.workReportWorkItems.quantity)) || 0;
+                utils.addDebug(currentEntry, "    • Množstvo: " + quantity);
+
+                // 2. Získaj cenu - buď ručne zadanú alebo z cenníka
+                var price = parseFloat(workItemWithAttrs.attr(CONFIG.attributes.workReportWorkItems.price)) || 0;
+
+                if (price === 0) {
+                    // Cena nie je zadaná ručne - získaj z cenníka (linksFrom)
+                    utils.addDebug(currentEntry, "    🔍 Cena nie je zadaná, hľadám v cenníku...");
+                    price = utils.findValidWorkPrice(workItem, currentDate);
+
+                    if (price > 0) {
+                        // Nastav cenu do atribútu
+                        workItemWithAttrs.setAttr(CONFIG.attributes.workReportWorkItems.price, price);
+                        utils.addDebug(currentEntry, "    ✅ Nastavená cena z cenníka: " + price + " €");
+                    } else {
+                        utils.addDebug(currentEntry, "    ⚠️ Cena nenájdená v cenníku");
+                    }
+                } else {
+                    utils.addDebug(currentEntry, "    💰 Cena zadaná ručne: " + price + " €");
+                }
+
+                // 3. Vypočítaj cenu celkom
+                var itemTotal = Math.round(quantity * price * 100) / 100;
+                workItemWithAttrs.setAttr(CONFIG.attributes.workReportWorkItems.totalPrice, itemTotal);
+                utils.addDebug(currentEntry, "    📊 Cena celkom: " + quantity + " × " + price + " = " + itemTotal + " €");
+
+                // 4. Agreguj celkovú sumu
+                workItemsResult.totalSum += itemTotal;
+                workItemsResult.processed++;
+
+                workItemsResult.items.push({
+                    name: itemName,
+                    quantity: quantity,
+                    price: price,
+                    total: itemTotal
+                });
+
+            } catch (itemError) {
+                utils.addError(currentEntry, "Chyba pri spracovaní položky '" + itemName + "': " + itemError.toString(), "processWorkItems");
+            }
+        }
+
+        // Ulož celkovú sumu do poľa Suma vo výkaze prác
+        utils.safeSet(workReport, CONFIG.fields.workReport.workItemsSum, workItemsResult.totalSum);
+        utils.addDebug(currentEntry, "  ✅ Uložená suma položiek do výkazu prác (Suma): " + workItemsResult.totalSum + " €");
+        utils.addDebug(currentEntry, "  📦 Spracovaných položiek: " + workItemsResult.processed + "/" + workItemsResult.count);
+
+        workItemsResult.success = true;
+        return workItemsResult;
+
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "processWorkItems", error);
+        return {
+            success: false,
+            count: 0,
+            processed: 0,
+            totalSum: 0,
+            items: []
+        };
+    }
+}
+
 // ==============================================
 // SPRACOVANIE MATERIÁLOV
-// ==============================================   
+// ==============================================
 
 function processMaterials() {
     try {
@@ -974,23 +1105,111 @@ function recalculateWorkReportTotals(workReport) {
     }
 }
 
-function updateWorkReportInfo(workReport) {
+function generateWorkReportInfo(workReport) {
     try {
-        var existingInfo = utils.safeGet(workReport, CONFIG.fields.workReport.info, "");
-        
-        // Pridaj informáciu o aktualizácii
-        var updateInfo = "\n\n🔄 AKTUALIZOVANÉ: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
-        updateInfo += "• Záznam práce #" + currentEntry.field("ID") + " bol aktualizovaný\n";
-        updateInfo += "• Script: " + CONFIG.scriptName + " v" + CONFIG.version;
-        
-        // Obmedz dĺžku info poľa (zachovaj posledných 5000 znakov)
-        var newInfo = existingInfo + updateInfo;
-        if (newInfo.length > 5000) {
-            newInfo = "... (skrátené) ...\n" + newInfo.substring(newInfo.length - 4900);
+        // Získaj všetky záznamy prác z výkazu
+        var workRecords = utils.safeGetLinks(workReport, CONFIG.fields.workReport.workRecords) || [];
+        var workItems = utils.safeGetLinks(workReport, CONFIG.fields.workReport.workItems) || [];
+
+        var info = "# 📋 VÝKAZ PRÁC\n\n";
+
+        // Sekcia Hodinovka (HZS)
+        if (workRecords.length > 0) {
+            info += "## ⏱️ HODINOVKA\n\n";
+
+            var totalHours = 0;
+            var totalHzsSum = 0;
+
+            // Získaj atribúty cez field()
+            var workRecordsWithAttrs = workReport.field(CONFIG.fields.workReport.workRecords);
+
+            for (var i = 0; i < workRecords.length; i++) {
+                var record = workRecords[i];
+                var recordWithAttrs = workRecordsWithAttrs[i];
+
+                var recordDate = utils.safeGet(record, CONFIG.fields.workRecord.date);
+                var dateFormatted = utils.formatDate(recordDate, "DD.MM.YYYY");
+
+                var hours = parseFloat(recordWithAttrs.attr(CONFIG.attributes.workReport.hoursCount)) || 0;
+                var rate = parseFloat(recordWithAttrs.attr(CONFIG.attributes.workReport.billedRate)) || 0;
+                var price = parseFloat(recordWithAttrs.attr(CONFIG.attributes.workReport.totalPrice)) || 0;
+
+                totalHours += hours;
+                totalHzsSum += price;
+
+                info += (i + 1) + ". **" + dateFormatted + "** | ";
+                info += hours.toFixed(2) + " h | ";
+                info += rate.toFixed(2) + " €/h | ";
+                info += "**" + price.toFixed(2) + " €**\n";
+            }
+
+            info += "\n**📊 Súhrn Hodinovka:**\n";
+            info += "- Celkové hodiny: **" + totalHours.toFixed(2) + " h**\n";
+            info += "- Celková suma: **" + totalHzsSum.toFixed(2) + " €**\n\n";
         }
 
-        workReport.set(CONFIG.fields.workReport.info, newInfo);
-        
+        // Sekcia Položky
+        if (workItems.length > 0) {
+            info += "## 📋 POLOŽKY\n\n";
+
+            var totalItemsSum = 0;
+
+            // Získaj atribúty cez field()
+            var workItemsWithAttrs = workReport.field(CONFIG.fields.workReport.workItems);
+
+            for (var i = 0; i < workItems.length; i++) {
+                var item = workItems[i];
+                var itemWithAttrs = workItemsWithAttrs[i];
+
+                var itemName = utils.safeGet(item, CONFIG.fields.workPrices.name, "Neznáma položka");
+                var quantity = parseFloat(itemWithAttrs.attr(CONFIG.attributes.workReportWorkItems.quantity)) || 0;
+                var price = parseFloat(itemWithAttrs.attr(CONFIG.attributes.workReportWorkItems.price)) || 0;
+                var total = parseFloat(itemWithAttrs.attr(CONFIG.attributes.workReportWorkItems.totalPrice)) || 0;
+
+                totalItemsSum += total;
+
+                info += (i + 1) + ". **" + itemName + "** | ";
+                info += quantity.toFixed(2) + " | ";
+                info += price.toFixed(2) + " €/j | ";
+                info += "**" + total.toFixed(2) + " €**\n";
+            }
+
+            info += "\n**📊 Súhrn Položky:**\n";
+            info += "- Celková suma: **" + totalItemsSum.toFixed(2) + " €**\n\n";
+        }
+
+        // Celkový súhrn
+        var grandTotal = (totalHzsSum || 0) + (totalItemsSum || 0);
+        if (grandTotal > 0) {
+            info += "## 💰 CELKOVÝ SÚHRN\n";
+            if (workRecords.length > 0) {
+                info += "- Hodinovka: " + (totalHzsSum || 0).toFixed(2) + " €\n";
+            }
+            if (workItems.length > 0) {
+                info += "- Položky: " + (totalItemsSum || 0).toFixed(2) + " €\n";
+            }
+            info += "- **Celkom: " + grandTotal.toFixed(2) + " €**\n\n";
+        }
+
+        // Metainfo
+        info += "---\n";
+        info += "*Vygenerované: " + moment().format("DD.MM.YYYY HH:mm") + "*\n";
+        info += "*Script: " + CONFIG.scriptName + " v" + CONFIG.version + "*";
+
+        return info;
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri generovaní info: " + error.toString(), "generateWorkReportInfo", error);
+        return "Chyba pri generovaní info záznamu";
+    }
+}
+
+function updateWorkReportInfo(workReport) {
+    try {
+        // Vygeneruj nové kompletné info
+        var newInfo = generateWorkReportInfo(workReport);
+        utils.safeSet(workReport, CONFIG.fields.workReport.info, newInfo);
+
     } catch (error) {
         utils.addError(currentEntry, "Chyba pri aktualizácii info poľa: " + error.toString(), "updateWorkReportInfo", error);
     }
@@ -1000,7 +1219,7 @@ function updateWorkReportInfo(workReport) {
 // INFO ZÁZNAMY
 // ==============================================
 
-function createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesResult) {
+function createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesResult, workItemsResult) {
     try {
         var date = currentEntry.field(CONFIG.fields.workRecord.date);
         var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
@@ -1060,6 +1279,21 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesRes
             infoMessage += "**🚜 Celková suma za stroje:** " + utils.formatMoney(machinesResult.total) + "\n\n";
         }
 
+        // Práce Položky
+        if (workItemsResult && workItemsResult.success && workItemsResult.count > 0) {
+            infoMessage += "## 📋 PRÁCE POLOŽKY (" + workItemsResult.count + ")\n\n";
+
+            for (var i = 0; i < workItemsResult.items.length; i++) {
+                var item = workItemsResult.items[i];
+                infoMessage += "### 📋 " + item.name + "\n";
+                infoMessage += "- **Množstvo:** " + item.quantity + "\n";
+                infoMessage += "- **Cena:** " + item.price + " €\n";
+                infoMessage += "- **Celková cena:** " + utils.formatMoney(item.total) + "\n\n";
+            }
+
+            infoMessage += "**📋 Celková suma za položky prác:** " + utils.formatMoney(workItemsResult.totalSum) + "\n\n";
+        }
+
         // Materiály
         if (materialsResult && materialsResult.success && materialsResult.count > 0) {
             infoMessage += "## 🧰 MATERIÁLY (" + materialsResult.count + ")\n\n";
@@ -1090,6 +1324,7 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesRes
         // Celkový súhrn nákladov
         var totalCosts = employeeResult.celkoveMzdy + (hzsResult.sum || 0) +
                         (machinesResult && machinesResult.total ? machinesResult.total : 0) +
+                        (workItemsResult && workItemsResult.totalSum ? workItemsResult.totalSum : 0) +
                         (materialsResult && materialsResult.total ? materialsResult.total : 0);
 
         if (totalCosts > 0) {

@@ -352,10 +352,12 @@ var MementoConfig = (function() {
                 wageCosts: "Mzdové náklady",
                 hzsSum: "Suma HZS",
                 machinesSum: "Suma stroje",
+                workItemsSum: "Suma", // currency - suma z Práce Položky
                 startTime: "Od",
                 endTime: "Do",
                 machinery: "Mechanizácia", // linkToEntry Mechanizácia
                 sumMachineryUsage: "Použitie mechanizácie", // linkToEntry Výkaz strojov
+                workItems: "Práce Položky", // linkToEntry: Cenník prác
                 // Povinné polia pre validáciu
                 requiredFields: ["date", "order", "employees", "startTime", "endTime"]
             },
@@ -442,10 +444,12 @@ var MementoConfig = (function() {
 
                 // LinkToEntry polia
                 workRecords: "Práce HZS", // linkToEntry: Záznam prác (spätný link)
+                workItems: "Práce Položky", // linkToEntry: Cenník prác
 
                 // Súčtové polia
                 totalHours: "Celkové hodiny", // real - súčet hodín
                 hzsSum: "Suma HZS", // currency - suma HZS
+                workItemsSum: "Suma", // currency - suma z Práce Položky
                 hzsCount: "Počet záznamov", // int - počet záznamov
 
                 // Systémové polia
@@ -1005,6 +1009,11 @@ var MementoConfig = (function() {
                 flatRate: "paušál", // cena za celoddenné použitie stroja - attr 6 (double) - OPRAVENÉ z "cena paušál"
                 totalPrice: "účtovaná suma" // suma ktorá sa účtuje za použitie stroja - attr 7 (double) - OPRAVENÉ z "cena celkom"
             },
+            workRecordWorkItems: {
+                quantity: "množstvo", // real number - množstvo jednotiek
+                price: "cena", // currency - cena za jednotku
+                totalPrice: "cena celkom" // currency - celková cena (množstvo × cena)
+            },
             workReport: {
                 workDescription: "vykonané práce",
                 hoursCount: "počet hodín",
@@ -1088,6 +1097,12 @@ var MementoConfig = (function() {
                 hoursCount: "počet hodín", // real - počet odpracovaných hodín
                 billedRate: "účtovaná sadzba", // currency - sadzba za hodinu
                 totalPrice: "cena celkom" // currency - celková cena za práce
+            },
+            // Výkaz prác - atribúty položiek prác (workItems LinkToEntry pole)
+            workReportWorkItems: {
+                quantity: "množstvo", // real number - množstvo jednotiek
+                price: "cena", // currency - cena za jednotku
+                totalPrice: "cena celkom" // currency - celková cena (množstvo × cena)
             },
             // Výkaz dopravy - atribúty jázd (rides LinkToEntry pole)
             rideReportRides: {
