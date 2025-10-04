@@ -2963,6 +2963,23 @@ var MementoBusiness = (function() {
 
             if (options && options.debugEntry && core.addDebug) {
                 core.addDebug(options.debugEntry, "  📦 Existujúcich linkov: " + existingMachinesEntries.length);
+
+                // Debug: Výpis existujúcich strojov
+                for (var debugIdx = 0; debugIdx < existingMachinesEntries.length; debugIdx++) {
+                    var debugEntry = existingMachinesEntries[debugIdx];
+                    var debugWithAttrs = existingMachinesWithAttrs[debugIdx];
+                    var debugId = core.safeGet(debugEntry, "ID");
+                    var debugName = core.safeGet(debugEntry, "name") || "???";
+                    var debugCalcType = "";
+                    try {
+                        if (debugWithAttrs && typeof debugWithAttrs.attr === 'function') {
+                            debugCalcType = debugWithAttrs.attr(config.attributes.machinesReportMachines.calculationType) || "null";
+                        }
+                    } catch (e) {
+                        debugCalcType = "error";
+                    }
+                    core.addDebug(options.debugEntry, "    🔹 [" + debugIdx + "] " + debugName + " (ID:" + debugId + ", typ:" + debugCalcType + ")");
+                }
             }
 
             // Pre každý stroj z currentEntry
@@ -2979,11 +2996,22 @@ var MementoBusiness = (function() {
                 // Nájdi existujúci link na tento stroj
                 var existingLink = findExistingMachineLink(existingMachinesEntries, existingMachinesWithAttrs, machineId, newAttrs.calculationType, options);
 
-                if (existingLink.found) {
-                    // Aktualizuj existujúci link
+                if (existingLink.found && existingLink.canAggregate) {
+                    // Aktualizuj existujúci link (rovnaký stroj + rovnaký typ účtovania)
+                    if (options && options.debugEntry && core.addDebug) {
+                        core.addDebug(options.debugEntry, "    ♻️  Aktualizujem existujúci link");
+                    }
                     updateExistingMachineLink(existingLink.linkObject, newAttrs, machineName, options);
+                } else if (existingLink.found && !existingLink.canAggregate) {
+                    // Nájdený stroj s INÝM typom účtovania - SKIP (alebo warning)
+                    if (options && options.debugEntry && core.addDebug) {
+                        core.addDebug(options.debugEntry, "    ⚠️  Stroj existuje ale s iným typom účtovania (" + existingLink.existingType + " vs " + newAttrs.calculationType + ") - preskakujem");
+                    }
                 } else {
                     // Vytvor nový link
+                    if (options && options.debugEntry && core.addDebug) {
+                        core.addDebug(options.debugEntry, "    ➕ Vytváram nový link");
+                    }
                     createNewMachineLink(machinesReport, currentMachine.machineEntry, newAttrs, machineName, options);
                 }
             }
@@ -3012,6 +3040,11 @@ var MementoBusiness = (function() {
                 var existingMachineEntry = existingMachinesEntries[i]; // Entry objekt (na porovnanie ID)
                 var existingMachineWithAttrs = existingMachinesWithAttrs[i]; // LinkEntry objekt (na čítanie atribútov)
                 var existingMachineId = core.safeGet(existingMachineEntry, "ID");
+
+                // Debug: porovnanie ID
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "      🔍 Porovnávam ID: " + existingMachineId + " vs " + machineId);
+                }
 
                 if (existingMachineId === machineId) {
                     if (options && options.debugEntry && core.addDebug) {
