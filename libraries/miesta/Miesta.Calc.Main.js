@@ -238,7 +238,7 @@ function generateName() {
         utils.addDebug(currentEntry, "  ✅ Nick: " + nick);
 
         // Získaj Lokalitu
-        var locality = utils.safeGet(currentEntry, CONFIG.fields.place.locality, "");
+        var locality = utils.safeGet(currentEntry, CONFIG.fields.place.locality, "").trim();
         if (!locality) {
             utils.addDebug(currentEntry, "  ℹ️ Lokalita nie je vyplnená");
             // Názov bude len Nick

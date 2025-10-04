@@ -1,7 +1,21 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.12 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.17 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.17 (2025-10-04):
+//    - Pridané atribúty pre rideLogOrders (počet, km)
+//    - Atribút km = vzdialenosť tam a nazad (2× vzdialenosť miesta)
+// 🔧 CHANGELOG v7.0.16 (2025-10-04):
+//    - Pridané kompletné field definitions pre client, supplier, partner, employee z API
+//    - Opravené place polia (distance, nick, locality)
+//    - Pridané rideLog ikony a dailyReport field
+// 🔧 CHANGELOG v7.0.15 (2025-10-04):
+//    - Opravená place fields definícia (distantce → distance)
+// 🔧 CHANGELOG v7.0.14 (2025-10-04):
+//    - Pridané workRecord ikony a dailyReport field
+// 🔧 CHANGELOG v7.0.13 (2025-10-04):
+//    - Pridané polia costPriceMth, costPriceFlatRate pre machines
+//    - Pridané pole machinesCosts pre workRecord
 // 🔧 CHANGELOG v7.0.12 (2025-10-04):
 //    - KRITICKÁ OPRAVA: Atribúty workRecordMachines overené cez Memento API
 //    - Opravené názvy atribútov v workRecordMachines (sadzba, paušál, účtovaná suma)
@@ -393,7 +407,9 @@ var MementoConfig = (function() {
                 destination: "Cieľ",
                 stops: "Zastávky",
                 trasa: "",
-                vehicleCosts: "Náklady vozidlo"
+                vehicleCosts: "Náklady vozidlo",
+                icons: "ikony záznamu", // text (emoji) - ikony pre vizuálnu indikáciu
+                dailyReport: "Denný report" // linkToEntry Denný report
             },
             // Pokladňa polia
             cashBook: {
@@ -1094,6 +1110,10 @@ var MementoConfig = (function() {
                 duration: "trvanie",
                 delay: "zdržanie",
                 description: "popis jazdy"
+            },
+            rideLogOrders: {
+                count: "počet", // int - počet výskytov zákazky na trase
+                km: "km" // real number - vzdialenosť tam a nazad (2× vzdialenosť miesta)
             },
             crew: {
                 hourlyRate: "hodinovka",
