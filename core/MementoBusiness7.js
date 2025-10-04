@@ -785,12 +785,12 @@ var MementoBusiness = (function() {
             }
             dennaMzda = Math.round(dennaMzda * 100) / 100;
 
-            // Nastav dennú mzdu
-            if (attributes.dailyWage || attributes.workRecordEmployees) {
-                var dailyWageAttr = attributes.dailyWage || (attributes.workRecordEmployees && attributes.workRecordEmployees.wageCosts);
-                if (dailyWageAttr) {
-                    core.addDebug(entry, "    ✅ Nastavujem '" + dailyWageAttr + "' = " + dennaMzda);
-                    zamArray[index].setAttr(dailyWageAttr, dennaMzda);
+            // Nastav mzdové náklady (dennú mzdu)
+            if (attributes.wageCosts || attributes.workRecordEmployees) {
+                var wageCostsAttr = attributes.wageCosts || (attributes.workRecordEmployees && attributes.workRecordEmployees.wageCosts);
+                if (wageCostsAttr) {
+                    core.addDebug(entry, "    ✅ Nastavujem '" + wageCostsAttr + "' = " + dennaMzda);
+                    zamArray[index].setAttr(wageCostsAttr, dennaMzda);
                 }
             }
 
