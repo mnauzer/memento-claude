@@ -492,40 +492,31 @@ function processMachines() {
                 var calculationType = null;
                 var usedMth = 1;
                 
-                // DEBUG: Výpis všetkých dostupných atribútov
-                utils.addDebug(currentEntry, "  🔍 DEBUG - Názvy atribútov z CONFIG:");
-                utils.addDebug(currentEntry, "    - totalPrice: '" + CONFIG.attributes.workRecordMachines.totalPrice + "'");
-                utils.addDebug(currentEntry, "    - calculationType: '" + CONFIG.attributes.workRecordMachines.calculationType + "'");
-                utils.addDebug(currentEntry, "    - usedMth: '" + CONFIG.attributes.workRecordMachines.usedMth + "'");
-                utils.addDebug(currentEntry, "    - priceMth: '" + CONFIG.attributes.workRecordMachines.priceMth + "'");
+                // Čítaj atribúty priamo cez field() - správny prístup pre LinkToEntry
+                try {
+                    var machineryFieldArray = currentEntry.field(CONFIG.fields.workRecord.machinery);
 
-                // Čítaj atribúty pomocou utils.safeGetAttribute (vráti pole pre multi-select)
-                var totalPrices = utils.safeGetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.totalPrice, []);
-                var calculationTypes = utils.safeGetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.calculationType, []);
-                var usedMths = utils.safeGetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.usedMth, []);
-                var priceMths = utils.safeGetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.priceMth, []);
+                    if (machineryFieldArray && machineryFieldArray[i]) {
+                        hasMachinePrice = machineryFieldArray[i].attr(CONFIG.attributes.workRecordMachines.totalPrice) || 0;
+                        calculationType = machineryFieldArray[i].attr(CONFIG.attributes.workRecordMachines.calculationType);
+                        usedMth = machineryFieldArray[i].attr(CONFIG.attributes.workRecordMachines.usedMth) || 1;
 
-                utils.addDebug(currentEntry, "  📊 Prečítané pole atribútov pre index " + i + ":");
-                utils.addDebug(currentEntry, "    - totalPrices[" + i + "]: " + (totalPrices ? totalPrices[i] : "undefined"));
-                utils.addDebug(currentEntry, "    - calculationTypes[" + i + "]: " + (calculationTypes ? calculationTypes[i] : "undefined"));
-                utils.addDebug(currentEntry, "    - usedMths[" + i + "]: " + (usedMths ? usedMths[i] : "undefined"));
-                utils.addDebug(currentEntry, "    - priceMths[" + i + "]: " + (priceMths ? priceMths[i] : "undefined"));
-
-                // Získaj hodnoty pre aktuálny index
-                hasMachinePrice = (totalPrices && totalPrices[i] !== undefined) ? totalPrices[i] : 0;
-                calculationType = (calculationTypes && calculationTypes[i] !== undefined) ? calculationTypes[i] : null;
-                usedMth = (usedMths && usedMths[i] !== undefined) ? usedMths[i] : 1;
+                        utils.addDebug(currentEntry, "  ✅ Prečítané atribúty z field()[" + i + "]:");
+                        utils.addDebug(currentEntry, "    - hasMachinePrice: " + hasMachinePrice);
+                        utils.addDebug(currentEntry, "    - calculationType: " + calculationType);
+                        utils.addDebug(currentEntry, "    - usedMth: " + usedMth);
+                    } else {
+                        utils.addDebug(currentEntry, "  ⚠️ machineryFieldArray[" + i + "] neexistuje");
+                    }
+                } catch (attrError) {
+                    utils.addError(currentEntry, "Chyba pri čítaní atribútov: " + attrError.toString(), "processMachines");
+                }
 
                 // Ak je calculationType null, nastav default hodnotu
                 if (!calculationType || calculationType === null) {
                     calculationType = "mth"; // default hodnota
                     utils.addDebug(currentEntry, "    ⚠️ calculationType bol null, nastavujem default: mth");
-                }
-
-                utils.addDebug(currentEntry, "  ✅ Finálne hodnoty:");
-                utils.addDebug(currentEntry, "    - hasMachinePrice: " + hasMachinePrice);
-                utils.addDebug(currentEntry, "    - calculationType: " + calculationType);
-                utils.addDebug(currentEntry, "    - usedMth: " + usedMth);            
+                }            
 
                 var totalPrice = 0;
 
