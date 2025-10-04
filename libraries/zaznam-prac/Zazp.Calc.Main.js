@@ -514,24 +514,32 @@ function processMachines() {
                 var totalPrice = 0;
 
                 if (!hasMachinePrice || hasMachinePrice == 0) {
+                    // Skontroluj či je machinePrice platný
+                    if (!machinePrice || typeof machinePrice !== 'object') {
+                        utils.addError(currentEntry, "Nenašiel sa platný cenník pre stroj: " + machineName, "processMachines");
+                        continue; // preskočíme tento stroj
+                    }
+
                     // vypočítaj sumu za tento stroj
-                  
                     if (calculationType === "mth") {
-                        utils.addDebug(currentEntry, "  • Účtujem motohodiny: " + usedMth + " mth" + " × " + machinePrice.priceMth + " €/mth");
+                        var priceMth = machinePrice.priceMth || 0;
+                        utils.addDebug(currentEntry, "  • Účtujem motohodiny: " + usedMth + " mth" + " × " + priceMth + " €/mth");
                         machineryArray[i].setAttr( CONFIG.workRecordMachines.usedMth, usedMth);
-                        machineryArray[i].setAttr( CONFIG.workRecordMachines.priceMth, machinePrice.priceMth);
-                        totalPrice = machinePrice.priceMth * usedMth;
-                        
+                        machineryArray[i].setAttr( CONFIG.workRecordMachines.priceMth, priceMth);
+                        totalPrice = priceMth * usedMth;
+
                     } else if (calculationType === "paušál") {
-                        utils.addDebug(currentEntry, "  • Účtujem paušál: " + machinePrice.flatRate + " €");
-                        //machineryArray[i].setAttr( CONFIG.workRecordMachines.flatRate, machinePrice.flatRate);
-                        totalPrice = machinePrice.flatRate;
+                        var flatRate = machinePrice.flatRate || 0;
+                        utils.addDebug(currentEntry, "  • Účtujem paušál: " + flatRate + " €");
+                        //machineryArray[i].setAttr( CONFIG.workRecordMachines.flatRate, flatRate);
+                        totalPrice = flatRate;
                     } else {
                         utils.addDebug(currentEntry, "  ⚠️ Nezadaný typ účtovania: '" + calculationType + "', nastavujem 'mth'");
                         calculationType = "mth";
+                        var priceMth = machinePrice.priceMth || 0;
                         machineryArray[i].setAttr( CONFIG.workRecordMachines.usedMth, usedMth);
-                        machineryArray[i].setAttr( CONFIG.workRecordMachines.priceMth, machinePrice.priceMth);
-                        totalPrice = machinePrice.priceMth * usedMth;
+                        machineryArray[i].setAttr( CONFIG.workRecordMachines.priceMth, priceMth);
+                        totalPrice = priceMth * usedMth;
                     }
 
                  
