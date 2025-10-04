@@ -880,64 +880,133 @@ function aggregateMachinesData(machinesResult) {
 
 function linkAggregatedMachines(machinesReport, aggregatedMachines) {
     try {
-        var machinesField = utils.safeGetLinks(machinesReport, CONFIG.fields.machinesReport.machines) || [];
-        var machinesArray = machinesReport.field(CONFIG.fields.machinesReport.machines) || [];
+        utils.addDebug(currentEntry, "🚜 Vytváram LinkToEntry pre stroje vo výkaze");
 
-        utils.addDebug(currentEntry, "🚜 Linkujem agregované stroje");
+        // Získaj súčasné linky na stroje vo výkaze
+        var existingMachines = utils.safeGetLinks(machinesReport, CONFIG.fields.machinesReport.machines) || [];
+        var updatedMachines = [];
 
+        // Skopíruj existujúce linky
+        for (var i = 0; i < existingMachines.length; i++) {
+            updatedMachines.push(existingMachines[i]);
+        }
+
+        // Spracuj agregované stroje
         for (var machineId in aggregatedMachines) {
             var aggData = aggregatedMachines[machineId];
             var machineEntry = aggData.machineEntry;
 
-            // Nájdi existujúci link alebo pridaj nový
+            // Skontroluj či už existuje link na tento stroj
             var existingIndex = -1;
-            for (var i = 0; i < machinesField.length; i++) {
-                if (machinesField[i] && machinesField[i].field("ID") === machineId) {
-                    existingIndex = i;
+            for (var j = 0; j < updatedMachines.length; j++) {
+                if (updatedMachines[j] && updatedMachines[j].field("ID") === machineId) {
+                    existingIndex = j;
                     break;
                 }
             }
 
             if (existingIndex === -1) {
                 // Pridaj nový link
-                machinesField.push(machineEntry);
-                machinesReport.set(CONFIG.fields.machinesReport.machines, machinesField);
-                existingIndex = machinesField.length - 1;
-                utils.addDebug(currentEntry, "  ➕ Pridaný stroj: " + aggData.machineData.name);
+                updatedMachines.push(machineEntry);
+                existingIndex = updatedMachines.length - 1;
+                utils.addDebug(currentEntry, "  ➕ Pridaný nový link na stroj: " + aggData.machineData.name);
             } else {
-                utils.addDebug(currentEntry, "  🔄 Aktualizujem existujúci stroj: " + aggData.machineData.name);
-            }
-
-            // Aktualizuj pole pre atribúty
-            machinesArray = machinesReport.field(CONFIG.fields.machinesReport.machines);
-
-            if (machinesArray && machinesArray[existingIndex]) {
-                // Nastav agregované atribúty
-                var attributes = CONFIG.attributes.machinesReportMachines;
-
-                // Nastav atribúty podľa skutočnej API štruktúry
-                if (aggData.totalMth > 0) {
-                    // Účtovanie podľa motohodín
-                    machinesArray[existingIndex].setAttr(attributes.mth, aggData.totalMth);
-                    machinesArray[existingIndex].setAttr(attributes.cenaMth, aggData.priceMth);
-                    machinesArray[existingIndex].setAttr(attributes.cenaCelkom, aggData.priceMth * aggData.totalMth);
-                }
-
-                if (aggData.flatRateCount > 0) {
-                    // Účtovanie paušálom
-                    machinesArray[existingIndex].setAttr(attributes.pausalPocet, aggData.flatRateCount);
-                    machinesArray[existingIndex].setAttr(attributes.cenaPausal, aggData.flatRatePrice);
-                    machinesArray[existingIndex].setAttr(attributes.cenaCelkom, aggData.flatRatePrice * aggData.flatRateCount);
-                }
-
-                utils.addDebug(currentEntry, "    ✅ Atribúty nastavené - cena: " + aggData.totalPrice + " €");
+                utils.addDebug(currentEntry, "  🔄 Aktualizujem existujúci link na stroj: " + aggData.machineData.name);
             }
         }
 
-        utils.addDebug(currentEntry, "🔗 Linkovanie strojov dokončené");
+        // Nastav aktualizované pole strojov
+        machinesReport.set(CONFIG.fields.machinesReport.machines, updatedMachines);
+        utils.addDebug(currentEntry, "✅ Pole Stroje nastavené s " + updatedMachines.length + " linkmi");
+
+        // Počkaj na uloženie poľa pred nastavením atribútov
+        utils.addDebug(currentEntry, "⏳ Ukladám výkaz pred nastavením atribútov...");
+
+        // Teraz nastav atribúty pre každý stroj
+        setMachineAttributes(machinesReport, aggregatedMachines);
 
     } catch (error) {
         utils.addError(currentEntry, error.toString(), "linkAggregatedMachines", error);
+    }
+}
+
+function setMachineAttributes(machinesReport, aggregatedMachines) {
+    try {
+        utils.addDebug(currentEntry, "🔧 Nastavujem atribúty strojov");
+
+        // Získaj aktuálne pole strojov pre nastavenie atribútov
+        var machinesArray = machinesReport.field(CONFIG.fields.machinesReport.machines);
+
+        if (!machinesArray || machinesArray.length === 0) {
+            utils.addDebug(currentEntry, "⚠️ Pole strojov je prázdne alebo sa nepodarilo načítať");
+            // Pokús sa znovu načítať pole
+            try {
+                machinesArray = utils.safeGetLinks(machinesReport, CONFIG.fields.machinesReport.machines);
+                if (!machinesArray || machinesArray.length === 0) {
+                    utils.addDebug(currentEntry, "❌ Nie je možné načítať pole strojov");
+                    return;
+                }
+                utils.addDebug(currentEntry, "✅ Pole strojov úspešne načítané: " + machinesArray.length + " položiek");
+            } catch (err) {
+                utils.addError(currentEntry, "Chyba pri načítaní poľa strojov: " + err.toString());
+                return;
+            }
+        }
+
+        // Pre každý stroj nastav atribúty
+        for (var i = 0; i < machinesArray.length; i++) {
+            var machineInArray = machinesArray[i];
+
+            if (!machineInArray) {
+                utils.addDebug(currentEntry, "⚠️ Prázdny stroj na pozícii " + i);
+                continue;
+            }
+
+            var machineId = machineInArray.field("ID");
+            utils.addDebug(currentEntry, "  🔍 Spracúvam stroj ID: " + machineId);
+
+            // Nájdi agregované dáta pre tento stroj
+            var aggData = aggregatedMachines[machineId];
+
+            if (aggData) {
+                var attributes = CONFIG.attributes.machinesReportMachines;
+
+                // Nastav atribúty podľa typu účtovania
+                // Použij skutočnú celkovú cenu z agregovaných dát
+                var totalCelkom = aggData.totalPrice || 0;
+
+                try {
+                    if (aggData.totalMth > 0) {
+                        // Účtovanie podľa motohodín
+                        machineInArray.setAttr(attributes.mth, aggData.totalMth);
+                        machineInArray.setAttr(attributes.cenaMth, aggData.priceMth);
+                        utils.addDebug(currentEntry, "    📊 MTH: " + aggData.totalMth + " × " + aggData.priceMth + "€");
+                    }
+
+                    if (aggData.flatRateCount > 0) {
+                        // Účtovanie paušálom
+                        machineInArray.setAttr(attributes.pausalPocet, aggData.flatRateCount);
+                        machineInArray.setAttr(attributes.cenaPausal, aggData.flatRatePrice);
+                        utils.addDebug(currentEntry, "    📊 Paušál: " + aggData.flatRateCount + " × " + aggData.flatRatePrice + "€");
+                    }
+
+                    // Nastav celkovú cenu z agregovaných dát
+                    machineInArray.setAttr(attributes.cenaCelkom, totalCelkom);
+
+                } catch (attrError) {
+                    utils.addError(currentEntry, "Chyba pri nastavovaní atribútov pre stroj " + machineId + ": " + attrError.toString());
+                }
+
+                utils.addDebug(currentEntry, "    ✅ " + aggData.machineData.name + " - celkom: " + totalCelkom + "€");
+            } else {
+                utils.addDebug(currentEntry, "  ⚠️ Nenašli sa agregované dáta pre stroj ID: " + machineId);
+            }
+        }
+
+        utils.addDebug(currentEntry, "🔗 Nastavenie atribútov dokončené pre " + machinesArray.length + " strojov");
+
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "setMachineAttributes", error);
     }
 }
 
