@@ -2879,14 +2879,35 @@ var MementoBusiness = (function() {
                         }
 
                         machineAttrs.calculationType = rawCalculationType || "mth";
-                        machineAttrs.mth = parseFloat(rawMth) || 1;
-                        machineAttrs.cenaMth = parseFloat(rawPriceMth) || 0;
-                        machineAttrs.cenaPausal = parseFloat(rawFlatRate) || 0;
-                        machineAttrs.totalPrice = parseFloat(rawTotalPrice) || 0;
 
-                        if (machineAttrs.calculationType === "paušál") {
-                            machineAttrs.pausalPocet = 1;
+                        var totalPrice = parseFloat(rawTotalPrice) || 0;
+                        var priceMth = parseFloat(rawPriceMth) || 0;
+                        var flatRate = parseFloat(rawFlatRate) || 0;
+
+                        // Pre MTH: vypočítaj motohodiny z účtovanej sumy a sadzby
+                        if (machineAttrs.calculationType === "mth") {
+                            if (priceMth > 0 && totalPrice > 0) {
+                                machineAttrs.mth = totalPrice / priceMth; // napr. 100 / 20 = 5 mth
+                            } else {
+                                machineAttrs.mth = parseFloat(rawMth) || 1; // fallback
+                            }
+                            machineAttrs.cenaMth = priceMth;
+                            machineAttrs.cenaPausal = 0;
+                            machineAttrs.pausalPocet = 0;
                         }
+                        // Pre PAUŠÁL: vypočítaj počet paušálov z účtovanej sumy a ceny paušálu
+                        else if (machineAttrs.calculationType === "paušál") {
+                            if (flatRate > 0 && totalPrice > 0) {
+                                machineAttrs.pausalPocet = Math.round(totalPrice / flatRate); // napr. 80 / 16 = 5
+                            } else {
+                                machineAttrs.pausalPocet = 1; // fallback
+                            }
+                            machineAttrs.cenaPausal = flatRate;
+                            machineAttrs.mth = 0;
+                            machineAttrs.cenaMth = 0;
+                        }
+
+                        machineAttrs.totalPrice = totalPrice;
 
                         if (options && options.debugEntry && core.addDebug) {
                             core.addDebug(options.debugEntry, "  🔧 " + machineName + " - typ: " + machineAttrs.calculationType +
@@ -3339,33 +3360,51 @@ var MementoBusiness = (function() {
 
             // Aktualizuj hodnoty podľa typu účtovania
             if (newAttrs.calculationType === "mth") {
+                // Sčítaj motohodiny (agregácia)
                 var newMth = existingMth + newAttrs.mth;
                 linkObject.setAttr(attrs.mth, newMth);
-                linkObject.setAttr(attrs.cenaMth, newAttrs.cenaMth); // Prepíš cenu
-                linkObject.setAttr(attrs.calculationType, newAttrs.calculationType); // Nastav typ účtovania
 
-                // Vypočítaj novú celkovú cenu
-                var newTotal = newMth * newAttrs.cenaMth;
+                // Porovnaj a aktualizuj cenu (použij novšiu cenu ak sa zmenila)
+                var finalCenaMth = newAttrs.cenaMth;
+                if (existingCenaMth > 0 && existingCenaMth !== newAttrs.cenaMth) {
+                    if (options && options.debugEntry && core.addDebug) {
+                        core.addDebug(options.debugEntry, "      ⚠️ Cena MTH sa zmenila: " + existingCenaMth + "€ → " + newAttrs.cenaMth + "€");
+                    }
+                }
+                linkObject.setAttr(attrs.cenaMth, finalCenaMth);
+                linkObject.setAttr(attrs.calculationType, newAttrs.calculationType);
+
+                // Prepočítaj celkovú cenu z agregovaných hodnôt
+                var newTotal = newMth * finalCenaMth;
                 linkObject.setAttr(attrs.cenaCelkom, newTotal);
 
                 if (options && options.debugEntry && core.addDebug) {
-                    core.addDebug(options.debugEntry, "      📊 MTH: " + existingMth + " + " + newAttrs.mth + " = " + newMth +
-                                ", cena: " + newAttrs.cenaMth + "€, celkom: " + newTotal + "€");
+                    core.addDebug(options.debugEntry, "      📊 MTH agregácia: " + existingMth + "+" + newAttrs.mth + "=" + newMth +
+                                " mth × " + finalCenaMth + "€ = " + newTotal + "€");
                 }
 
             } else if (newAttrs.calculationType === "paušál") {
+                // Sčítaj počet paušálov (agregácia)
                 var newPausal = existingPausal + newAttrs.pausalPocet;
                 linkObject.setAttr(attrs.pausalPocet, newPausal);
-                linkObject.setAttr(attrs.cenaPausal, newAttrs.cenaPausal); // Prepíš cenu
-                linkObject.setAttr(attrs.calculationType, newAttrs.calculationType); // Nastav typ účtovania
 
-                // Vypočítaj novú celkovú cenu
-                var newTotal = newPausal * newAttrs.cenaPausal;
+                // Porovnaj a aktualizuj cenu (použij novšiu cenu ak sa zmenila)
+                var finalCenaPausal = newAttrs.cenaPausal;
+                if (existingCenaPausal > 0 && existingCenaPausal !== newAttrs.cenaPausal) {
+                    if (options && options.debugEntry && core.addDebug) {
+                        core.addDebug(options.debugEntry, "      ⚠️ Cena paušál sa zmenila: " + existingCenaPausal + "€ → " + newAttrs.cenaPausal + "€");
+                    }
+                }
+                linkObject.setAttr(attrs.cenaPausal, finalCenaPausal);
+                linkObject.setAttr(attrs.calculationType, newAttrs.calculationType);
+
+                // Prepočítaj celkovú cenu z agregovaných hodnôt
+                var newTotal = newPausal * finalCenaPausal;
                 linkObject.setAttr(attrs.cenaCelkom, newTotal);
 
                 if (options && options.debugEntry && core.addDebug) {
-                    core.addDebug(options.debugEntry, "      📊 Paušál: " + existingPausal + " + " + newAttrs.pausalPocet + " = " + newPausal +
-                                ", cena: " + newAttrs.cenaPausal + "€, celkom: " + newTotal + "€");
+                    core.addDebug(options.debugEntry, "      📊 Paušál agregácia: " + existingPausal + "+" + newAttrs.pausalPocet + "=" + newPausal +
+                                " ks × " + finalCenaPausal + "€ = " + newTotal + "€");
                 }
             }
 
@@ -3417,29 +3456,31 @@ var MementoBusiness = (function() {
             if (newAttrs.calculationType === "mth") {
                 newlyAddedMachine.setAttr(attrs.mth, newAttrs.mth);
                 newlyAddedMachine.setAttr(attrs.cenaMth, newAttrs.cenaMth);
-                newlyAddedMachine.setAttr(attrs.pausalPocet, 0); // Vynuluj paušál
+                newlyAddedMachine.setAttr(attrs.pausalPocet, 0);
                 newlyAddedMachine.setAttr(attrs.cenaPausal, 0);
-                newlyAddedMachine.setAttr(attrs.calculationType, newAttrs.calculationType); // Nastav typ účtovania
+                newlyAddedMachine.setAttr(attrs.calculationType, newAttrs.calculationType);
 
+                // Prepočítaj celkovú cenu
                 var totalPrice = newAttrs.mth * newAttrs.cenaMth;
                 newlyAddedMachine.setAttr(attrs.cenaCelkom, totalPrice);
 
                 if (options && options.debugEntry && core.addDebug) {
-                    core.addDebug(options.debugEntry, "      📊 Nový MTH link: " + newAttrs.mth + " × " + newAttrs.cenaMth + "€ = " + totalPrice + "€");
+                    core.addDebug(options.debugEntry, "      📊 Nový MTH link: " + newAttrs.mth + " mth × " + newAttrs.cenaMth + "€ = " + totalPrice + "€");
                 }
 
             } else if (newAttrs.calculationType === "paušál") {
                 newlyAddedMachine.setAttr(attrs.pausalPocet, newAttrs.pausalPocet);
                 newlyAddedMachine.setAttr(attrs.cenaPausal, newAttrs.cenaPausal);
-                newlyAddedMachine.setAttr(attrs.mth, 0); // Vynuluj MTH
+                newlyAddedMachine.setAttr(attrs.mth, 0);
                 newlyAddedMachine.setAttr(attrs.cenaMth, 0);
-                newlyAddedMachine.setAttr(attrs.calculationType, newAttrs.calculationType); // Nastav typ účtovania
+                newlyAddedMachine.setAttr(attrs.calculationType, newAttrs.calculationType);
 
+                // Prepočítaj celkovú cenu
                 var totalPrice = newAttrs.pausalPocet * newAttrs.cenaPausal;
                 newlyAddedMachine.setAttr(attrs.cenaCelkom, totalPrice);
 
                 if (options && options.debugEntry && core.addDebug) {
-                    core.addDebug(options.debugEntry, "      📊 Nový paušál link: " + newAttrs.pausalPocet + " × " + newAttrs.cenaPausal + "€ = " + totalPrice + "€");
+                    core.addDebug(options.debugEntry, "      📊 Nový paušál link: " + newAttrs.pausalPocet + " ks × " + newAttrs.cenaPausal + "€ = " + totalPrice + "€");
                 }
             }
 
