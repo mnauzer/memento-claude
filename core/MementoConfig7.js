@@ -406,24 +406,6 @@ var MementoConfig = (function() {
                 debug_log: "debug_log", // text
                 error_log: "error_log" // text
             },
-            // Výkaz strojov polia
-            machinesReport: {
-                view: "view", // radio
-                vyuctovane: "Vyúčtované", // boolean
-                date: "Dátum", // date - hlavný dátum záznamu
-                order: "Zákazka", // linkToEntry: Zákazky
-                description: "Popis", // text - popis výkazu
-                machines: "Stroje", // linkToEntry: Mechanizácia
-                workRecord: "Záznam práce", // linkToEntry: Záznam prác
-                sumWithoutVat: "Suma bez DPH", // currency - hlavná suma
-                vat: "DPH", // currency - DPH suma
-                sumWithVat: "Suma s DPH", // currency - celková suma s DPH
-                machines2: "Stroje", // linkToEntry: Mechanizácia (duplicitné pole)
-                season: "sezóna", // text - sezónne označenie
-                number: "number", // int - poradové číslo
-                // Povinné polia pre validáciu
-                requiredFields: ["date", "order", "machines"]
-            },
             // Výkaz materiálu polia
             materialsReport: {
                 state: "Stav", // choice - stav výkazu
