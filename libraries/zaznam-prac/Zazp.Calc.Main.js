@@ -494,14 +494,14 @@ function processMachines() {
                 
                 // Čítaj atribúty priamo z machine objektu (bezpečne)
                 try {
-                    hasMachinePrice = machine.attr(CONFIG.workRecordMachines.totalPrice) || 0;
-                    calculationType = machine.attr(CONFIG.workRecordMachines.calculationType);
+                    hasMachinePrice = machine.attr(CONFIG.attributes.workRecordMachines.totalPrice) || 0;
+                    calculationType = machine.attr(CONFIG.attributes.workRecordMachines.calculationType);
                     // Ak je calculationType null, nastav default hodnotu
                     if (!calculationType || calculationType === null) {
                         calculationType = "mth"; // default hodnota
                         utils.addDebug(currentEntry, "    ⚠️ calculationType bol null, nastavujem default: mth");
                     }
-                    usedMth = machine.attr(CONFIG.workRecordMachines.usedMth) || 1;
+                    usedMth = machine.attr(CONFIG.attributes.workRecordMachines.usedMth) || 1;
                 } catch (error) {
                     utils.addError(currentEntry, "Chyba pri čítaní atribútov z machine objektu: " + error.toString(), "processMachines");
                     // Fallback hodnoty
