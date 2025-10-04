@@ -993,11 +993,11 @@ var MementoConfig = (function() {
                 price: "cena",
             },
             workRecordMachines: {
-                calculationType: "účtovanie", // options: paušál, mth 
-                usedMth: "mth", // motohodiny
-                priceMth: "sadzba", // cena za motohodinu - doplní sa z cenníka mechanizácie
-                flatRate: "paušál", // cena za celoddenné použitie stroja - doplní sa z cenníka mechanizácie
-                totalPrice: "účtovaná suma" // suma ktorá sa účtuje za použitie stroja buď podľa motohodín alebo paušálu
+                calculationType: "účtovanie", // options: paušál, mth
+                usedMth: "mth", // motohodiny - attr 1
+                priceMth: "cena mth", // cena za motohodinu - attr 4 (OPRAVENÉ z "sadzba")
+                flatRate: "cena paušál", // cena za celoddenné použitie stroja - attr 5 (OPRAVENÉ z "paušál")
+                totalPrice: "cena celkom" // suma ktorá sa účtuje za použitie stroja - attr 3 (OPRAVENÉ z "účtovaná suma")
             },
             workReport: {
                 workDescription: "vykonané práce",
