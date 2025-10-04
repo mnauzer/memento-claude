@@ -1,7 +1,13 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.11 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.12 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.12 (2025-10-04):
+//    - KRITICKÁ OPRAVA: Atribúty workRecordMachines overené cez Memento API
+//    - Opravené názvy atribútov v workRecordMachines (sadzba, paušál, účtovaná suma)
+//    - API Library ID pre Záznam prác: ArdaPo5TU
+//    - API Field ID pre Mechanizácia: 130
+//    - Atribúty overené: účtovanie(3), mth(0), sadzba(5), paušál(6), účtovaná suma(7)
 // 🔧 CHANGELOG v7.0.11 (2025-10-04):
 //    - Aktualizované polia všetkých typov výkazov podľa najnovších zmien
 //    - Pridané ID pre všetky výkazové knižnice (workReport, rideReport)
@@ -189,15 +195,15 @@ var MementoConfig = (function() {
             // Evidencia - denné záznamy
             dailyReport: "Denný report",
             attendance: "Dochádzka",
-            workRecords: "Záznam prác",
+            workRecords: "Záznam prác",  // API ID: ArdaPo5TU
             rideLog: "Kniha jázd",
             cashBook: "Pokladňa",
-    
+
             // Evidencia pomocné
             workReport: "Výkaz prác",
             materialsReport: "Výkaz materiálu",
             rideReport: "Výkaz dopravy",
-            machinesReport: "Výkaz strojov",
+            machinesReport: "Výkaz strojov",  // API ID: uCRaUwsTo
             
             // Cenníky a sklad
             priceList: "Cenník prác",
@@ -993,11 +999,11 @@ var MementoConfig = (function() {
                 price: "cena",
             },
             workRecordMachines: {
-                calculationType: "účtovanie", // options: paušál, mth
-                usedMth: "mth", // motohodiny - attr 1
-                priceMth: "cena mth", // cena za motohodinu - attr 4 (OPRAVENÉ z "sadzba")
-                flatRate: "cena paušál", // cena za celoddenné použitie stroja - attr 5 (OPRAVENÉ z "paušál")
-                totalPrice: "cena celkom" // suma ktorá sa účtuje za použitie stroja - attr 3 (OPRAVENÉ z "účtovaná suma")
+                calculationType: "účtovanie", // options: paušál, mth - attr 3 (radio)
+                usedMth: "mth", // motohodiny - attr 0 (double)
+                priceMth: "sadzba", // cena za motohodinu - attr 5 (double) - OPRAVENÉ z "cena mth"
+                flatRate: "paušál", // cena za celoddenné použitie stroja - attr 6 (double) - OPRAVENÉ z "cena paušál"
+                totalPrice: "účtovaná suma" // suma ktorá sa účtuje za použitie stroja - attr 7 (double) - OPRAVENÉ z "cena celkom"
             },
             workReport: {
                 workDescription: "vykonané práce",
