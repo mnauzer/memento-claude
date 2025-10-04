@@ -649,7 +649,7 @@ function processWorkItems() {
         };
 
         // Získaj linkovaný výkaz prác
-        var workReportLinks = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.workReport);
+        var workReportLinks = utils.safeGetLinksFrom(currentEntry, CONFIG.libraries.workReports, CONFIG.fields.workReport.workRecords);
         if (!workReportLinks || workReportLinks.length === 0) {
             utils.addDebug(currentEntry, "  ℹ️ Žiadny linkovaný výkaz prác - preskakujem spracovanie položiek");
             workItemsResult.success = true;
