@@ -137,17 +137,6 @@ function main() {
             steps.step7.success = true; // Nie je chyba ak nie je zákazka
         }
 
-        // Krok 7.1: Vytvorenie/aktualizácia výkazu strojov (ak sú použité stroje)
-        if (machinesResult && machinesResult.success && machinesResult.count > 0 && validationResult.hasCustomer) {
-            utils.addDebug(currentEntry, utils.getIcon("heavy_machine") + " KROK 7.1: Vytvorenie/aktualizácia výkazu strojov");
-            var machinesReportResult = createOrUpdateMachinesReport(machinesResult, validationResult);
-            if (machinesReportResult) {
-                utils.addDebug(currentEntry, "  ✅ Výkaz strojov spracovaný úspešne");
-            } else {
-                utils.addDebug(currentEntry, "  ⚠️ Chyba pri spracovaní výkazu strojov");
-            }
-        }
-        
         // Krok 8: Vytvorenie info záznamov
         utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 8: Vytvorenie info záznamov");
         steps.step8.success = createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesResult, workItemsResult);
@@ -906,57 +895,6 @@ function createOrUpdateWorkReport(employeeResult, hzsResult, machinesResult, val
     }
 }
 
-function createOrUpdateMachinesReport(machinesResult, validationResult) {
-    try {
-        utils.addDebug(currentEntry, "=== TESTOVANIE VÝKAZU STROJOV ===");
-
-        // Priprav calculatedData pre machines report
-        var calculatedData = {
-            totalHours: 0,
-            totalCost: machinesResult.total,
-            machineCount: machinesResult.count
-        };
-
-        // Spočítaj celkové motohodiny
-        for (var i = 0; i < machinesResult.machines.length; i++) {
-            var machineData = machinesResult.machines[i].machineData;
-            if (machineData.calculationType === "mth") {
-                calculatedData.totalHours += machineData.usedMth || 0;
-            }
-        }
-
-        // Priprav správne dáta pre súčty vo výkaze
-        var reportSummary = {
-            sumWithoutVat: machinesResult.total,  // Suma bez DPH
-            machineCount: machinesResult.count,   // Počet strojov
-            totalMth: calculatedData.totalHours   // Celkové motohodiny
-        };
-
-        // Vytvor výkaz strojov pomocou novej univerzálnej architektúry
-        var reportResult = utils.createOrUpdateReport(currentEntry, 'machines', reportSummary, {
-            debugEntry: currentEntry,
-            date: validationResult.date,
-            machines: machinesResult.machines  // Dodatočné dáta pre LinkToEntry
-        });
-
-        if (reportResult.success) {
-            utils.addDebug(currentEntry, "✅ Výkaz strojov: " + reportResult.action);
-            utils.addDebug(currentEntry, "📊 Výkaz: " + (reportResult.report ? utils.safeGet(reportResult.report, "Identifikátor", "N/A") : "N/A"));
-            utils.addDebug(currentEntry, "🔗 Súčty: mth=" + calculatedData.totalHours + ", suma=" + machinesResult.total);
-
-            // Linkovanie strojov je teraz súčasťou utils.createOrUpdateReport
-
-            return true;
-        } else {
-            utils.addDebug(currentEntry, "❌ Výkaz strojov zlyhal: " + (reportResult.errors ? reportResult.errors.join(", ") : "Neznáma chyba"));
-            return false;
-        }
-
-    } catch (error) {
-        utils.addError(currentEntry, error.toString(), "createOrUpdateMachinesReport", error);
-        return false;
-    }
-}
 
 // Stará implementácia ako fallback
 function synchronizeWorkReportOld(customer, date, workedHours, hzsPrice) {
