@@ -492,10 +492,24 @@ function processMachines() {
                 var calculationType = null;
                 var usedMth = 1;
                 
+                // DEBUG: Výpis všetkých dostupných atribútov
+                utils.addDebug(currentEntry, "  🔍 DEBUG - Názvy atribútov z CONFIG:");
+                utils.addDebug(currentEntry, "    - totalPrice: '" + CONFIG.attributes.workRecordMachines.totalPrice + "'");
+                utils.addDebug(currentEntry, "    - calculationType: '" + CONFIG.attributes.workRecordMachines.calculationType + "'");
+                utils.addDebug(currentEntry, "    - usedMth: '" + CONFIG.attributes.workRecordMachines.usedMth + "'");
+                utils.addDebug(currentEntry, "    - priceMth: '" + CONFIG.attributes.workRecordMachines.priceMth + "'");
+
                 // Čítaj atribúty pomocou utils.safeGetAttribute (vráti pole pre multi-select)
                 var totalPrices = utils.safeGetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.totalPrice, []);
                 var calculationTypes = utils.safeGetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.calculationType, []);
                 var usedMths = utils.safeGetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.usedMth, []);
+                var priceMths = utils.safeGetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.priceMth, []);
+
+                utils.addDebug(currentEntry, "  📊 Prečítané pole atribútov pre index " + i + ":");
+                utils.addDebug(currentEntry, "    - totalPrices[" + i + "]: " + (totalPrices ? totalPrices[i] : "undefined"));
+                utils.addDebug(currentEntry, "    - calculationTypes[" + i + "]: " + (calculationTypes ? calculationTypes[i] : "undefined"));
+                utils.addDebug(currentEntry, "    - usedMths[" + i + "]: " + (usedMths ? usedMths[i] : "undefined"));
+                utils.addDebug(currentEntry, "    - priceMths[" + i + "]: " + (priceMths ? priceMths[i] : "undefined"));
 
                 // Získaj hodnoty pre aktuálny index
                 hasMachinePrice = (totalPrices && totalPrices[i] !== undefined) ? totalPrices[i] : 0;
@@ -506,7 +520,12 @@ function processMachines() {
                 if (!calculationType || calculationType === null) {
                     calculationType = "mth"; // default hodnota
                     utils.addDebug(currentEntry, "    ⚠️ calculationType bol null, nastavujem default: mth");
-                }            
+                }
+
+                utils.addDebug(currentEntry, "  ✅ Finálne hodnoty:");
+                utils.addDebug(currentEntry, "    - hasMachinePrice: " + hasMachinePrice);
+                utils.addDebug(currentEntry, "    - calculationType: " + calculationType);
+                utils.addDebug(currentEntry, "    - usedMth: " + usedMth);            
 
                 var totalPrice = 0;
 
