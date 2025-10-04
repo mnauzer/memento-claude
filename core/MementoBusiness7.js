@@ -2935,10 +2935,13 @@ var MementoBusiness = (function() {
             }
 
             // Získaj existujúce linky na stroje vo výkaze
-            var existingMachinesArray = core.safeGet(machinesReport, config.fields.machinesReport.machines) || [];
+            // Používame safeGetLinks pre získanie Entry objektov (na porovnanie ID)
+            var existingMachinesEntries = core.safeGetLinks(machinesReport, config.fields.machinesReport.machines) || [];
+            // Ale aj field() pre LinkEntry objekty s atribútmi
+            var existingMachinesWithAttrs = machinesReport.field(config.fields.machinesReport.machines) || [];
 
             if (options && options.debugEntry && core.addDebug) {
-                core.addDebug(options.debugEntry, "  📦 Existujúcich linkov: " + existingMachinesArray.length);
+                core.addDebug(options.debugEntry, "  📦 Existujúcich linkov: " + existingMachinesEntries.length);
             }
 
             // Pre každý stroj z currentEntry
@@ -2953,7 +2956,7 @@ var MementoBusiness = (function() {
                 }
 
                 // Nájdi existujúci link na tento stroj
-                var existingLink = findExistingMachineLink(existingMachinesArray, machineId, newAttrs.calculationType, options);
+                var existingLink = findExistingMachineLink(existingMachinesEntries, existingMachinesWithAttrs, machineId, newAttrs.calculationType, options);
 
                 if (existingLink.found) {
                     // Aktualizuj existujúci link
@@ -2974,7 +2977,7 @@ var MementoBusiness = (function() {
     /**
      * Nájde existujúci link na stroj s kompatibilným typom účtovania
      */
-    function findExistingMachineLink(existingMachinesArray, machineId, calculationType, options) {
+    function findExistingMachineLink(existingMachinesEntries, existingMachinesWithAttrs, machineId, calculationType, options) {
         var core = getCore();
         var config = getConfig();
 
@@ -2984,22 +2987,30 @@ var MementoBusiness = (function() {
             }
 
             // Prejdi existujúce linky na stroje vo výkaze
-            for (var i = 0; i < existingMachinesArray.length; i++) {
-                var existingMachine = existingMachinesArray[i];
-                var existingMachineId = core.safeGet(existingMachine, "ID");
+            for (var i = 0; i < existingMachinesEntries.length; i++) {
+                var existingMachineEntry = existingMachinesEntries[i]; // Entry objekt (na porovnanie ID)
+                var existingMachineWithAttrs = existingMachinesWithAttrs[i]; // LinkEntry objekt (na čítanie atribútov)
+                var existingMachineId = core.safeGet(existingMachineEntry, "ID");
 
                 if (existingMachineId === machineId) {
                     if (options && options.debugEntry && core.addDebug) {
                         core.addDebug(options.debugEntry, "  ✅ Nájdený existujúci link pre stroj ID: " + machineId);
                     }
 
-                    // Skontroluj typ účtovania z atribútov výkazu strojov (DEPRECATED ale funkčný)
-                    var existingCalculationType = core.safeGetAttribute(
-                        existingMachine,
-                        config.fields.machinesReport.machines,
-                        config.attributes.machinesReportMachines.calculationType,
-                        null
-                    );
+                    // Skontroluj typ účtovania priamym prístupom k atribútu
+                    var existingCalculationType = null;
+                    try {
+                        if (existingMachineWithAttrs && typeof existingMachineWithAttrs.attr === 'function') {
+                            existingCalculationType = existingMachineWithAttrs.attr(config.attributes.machinesReportMachines.calculationType);
+                            if (options && options.debugEntry && core.addDebug) {
+                                core.addDebug(options.debugEntry, "    📊 Existujúci calculationType: " + existingCalculationType);
+                            }
+                        }
+                    } catch (e) {
+                        if (options && options.debugEntry && core.addDebug) {
+                            core.addDebug(options.debugEntry, "    ⚠️ Chyba pri čítaní calculationType: " + e.toString());
+                        }
+                    }
 
                     // Ak je typ kompatibilný (rovnaký alebo nevyplnený), môžeme agregova
                     var canAggregate = !existingCalculationType || existingCalculationType === calculationType;
@@ -3007,8 +3018,9 @@ var MementoBusiness = (function() {
                     return {
                         found: true,
                         canAggregate: canAggregate,
-                        linkObject: existingMachine,
-                        existingType: existingCalculationType
+                        linkObject: existingMachineWithAttrs, // Vráť LinkEntry objekt s atribútmi!
+                        existingType: existingCalculationType,
+                        index: i
                     };
                 }
             }
