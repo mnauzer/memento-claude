@@ -1963,69 +1963,6 @@ function main() {
 }
 
 // ==============================================
-// TESTOVANIE NOVEJ ARCHITEKTÚRY PRE VÝKAZY
-// ==============================================
-
-/**
- * Testuje novú univerzálnu architektúru pre výkazy
- */
-function testNewReportArchitecture(routeResult, wageResult, vehicleCostResult) {
-    var result = {
-        success: false,
-        processedCount: 0,
-        createdCount: 0,
-        updatedCount: 0,
-        actions: []
-    };
-
-    try {
-        utils.addDebug(currentEntry, "\n🚀 === TESTOVANIE NOVEJ ARCHITEKTÚRY PRE VÝKAZY ===");
-
-        // Priprav calculatedData pre novú architektúru
-        var calculatedData = {
-            // Základné polia pre súčty
-            kmTotal: routeResult ? routeResult.totalKm : 0,
-            hoursTotal: routeResult ? routeResult.celkovyCas : 0,
-            rideCount: 1,
-            wageCostsTotal: wageResult ? wageResult.celkoveMzdy : 0,
-            sum: (wageResult ? wageResult.celkoveMzdy : 0) + (vehicleCostResult ? vehicleCostResult.vehicleCosts : 0),
-
-            // Atribúty pre jednotlivé záznamy
-            km: routeResult ? routeResult.totalKm : 0,
-            description: utils.safeGet(currentEntry, CONFIG.fields.rideLog.rideDescription, ""),
-            wageCosts: wageResult ? wageResult.celkoveMzdy : 0,
-            vehicleCosts: vehicleCostResult ? vehicleCostResult.vehicleCosts : 0,
-            rideTime: routeResult ? routeResult.casJazdy : 0,
-            stopTime: routeResult ? routeResult.casNaZastavkach : 0,
-            totalTime: routeResult ? routeResult.celkovyCas : 0
-        };
-
-        // Test novej architektúry
-        var reportResult = utils.createOrUpdateReport(currentEntry, 'ride', calculatedData, {
-            debugEntry: currentEntry
-        });
-
-        if (reportResult.success) {
-            result.success = true;
-            result.processedCount = 1;
-            if (reportResult.created) result.createdCount = 1;
-            if (reportResult.updated) result.updatedCount = 1;
-
-            utils.addDebug(currentEntry, "  ✅ Nová architektúra funguje: " +
-                         (reportResult.created ? "vytvorený" : "aktualizovaný") + " výkaz");
-        } else {
-            utils.addError(currentEntry, "❌ Nová architektúra zlyhala: " + reportResult.error, "testNewReportArchitecture");
-        }
-
-        return result;
-
-    } catch (error) {
-        utils.addError(currentEntry, "Chyba pri testovaní novej architektúry: " + error.toString(), "testNewReportArchitecture", error);
-        return result;
-    }
-}
-
-// ==============================================
 // SPUSTENIE SCRIPTU
 // ==============================================
 

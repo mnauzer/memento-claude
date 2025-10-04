@@ -2745,17 +2745,39 @@ var MementoBusiness = (function() {
     };
 
     /**
-     * Linkuje stroje do výkazu strojov s agregovanými atribútmi
+     * Linkuje stroje do výkazu strojov s komplexnou logiku atribútov
      */
     function linkMachinesToReport(machinesReport, sourceEntry, machinesResult, options) {
         var core = getCore();
         var config = getConfig();
         try {
             if (options && options.debugEntry && core.addDebug) {
-                core.addDebug(options.debugEntry, "🔗 Linkujem stroje do výkazu strojov");
+                core.addDebug(options.debugEntry, "🔗 Linkujem stroje do výkazu strojov - NOVÁ LOGIKA");
             }
 
             // 1. Vytvor spätný link na sourceEntry (pole Záznam práce)
+            createWorkRecordBacklink(machinesReport, sourceEntry, options);
+
+            // 2. Získaj stroje z currentEntry s atribútmi
+            var currentMachines = getMachinesFromCurrentEntry(sourceEntry, options);
+
+            // 3. Linkuj stroje s komplexnou logikou atribútov
+            linkMachinesWithComplexLogic(machinesReport, currentMachines, options);
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, error.toString(), "linkMachinesToReport", error);
+            }
+        }
+    }
+
+    /**
+     * Vytvorí spätný link na záznam práce
+     */
+    function createWorkRecordBacklink(machinesReport, sourceEntry, options) {
+        var core = getCore();
+        var config = getConfig();
+        try {
             var workRecordField = core.safeGetLinks(machinesReport, config.fields.machinesReport.workRecord) || [];
             var sourceEntryId = core.safeGet(sourceEntry, "ID");
 
@@ -2779,22 +2801,162 @@ var MementoBusiness = (function() {
                     core.addDebug(options.debugEntry, "  ℹ️ Spätný link už existuje");
                 }
             }
-
-            // 2. Linkuj stroje s agregovanými atribútmi
-            var aggregatedMachines = aggregateMachinesData(machinesResult, options);
-            linkAggregatedMachines(machinesReport, aggregatedMachines, options);
-
         } catch (error) {
             if (options && options.debugEntry && core.addError) {
-                core.addError(options.debugEntry, error.toString(), "linkMachinesToReport", error);
+                core.addError(options.debugEntry, "Chyba pri vytváraní spätného linku: " + error.toString());
             }
         }
     }
 
     /**
-     * Agreguje dáta strojov podľa ID
+     * Získa stroje z currentEntry s ich atribútmi
      */
-    function aggregateMachinesData(machinesResult, options) {
+    function getMachinesFromCurrentEntry(sourceEntry, options) {
+        var core = getCore();
+        var config = getConfig();
+        var machines = [];
+
+        try {
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "📋 Získavam stroje z záznamu práce");
+            }
+
+            // Získaj pole strojov z currentEntry
+            var machineryField = core.safeGetLinks(sourceEntry, config.fields.workRecord.machinery);
+
+            if (!machineryField || machineryField.length === 0) {
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "  ℹ️ Žiadne stroje v zázname práce");
+                }
+                return machines;
+            }
+
+            // Získaj pole ako array pre čítanie atribútov
+            var machineryArray = core.safeGet(sourceEntry, config.fields.workRecord.machinery);
+
+            for (var i = 0; i < machineryField.length; i++) {
+                var machineEntry = machineryField[i];
+                var machineId = core.safeGet(machineEntry, "ID");
+                var machineName = core.safeGet(machineEntry, "Názov", "Neznámy stroj");
+
+                // Čítaj atribúty z arrayového prístupu
+                var machineAttrs = {
+                    mth: 0,
+                    pausalPocet: 0,
+                    cenaMth: 0,
+                    cenaPausal: 0,
+                    totalPrice: 0,
+                    calculationType: null
+                };
+
+                if (machineryArray && machineryArray.length > i && machineryArray[i]) {
+                    try {
+                        // Použij správne názvy atribútov z currentEntry (workRecordMachines)
+                        var workRecordAttrs = config.attributes.workRecordMachines;
+
+                        var rawCalculationType = machineryArray[i].getAttr(workRecordAttrs.calculationType);
+                        var rawMth = machineryArray[i].getAttr(workRecordAttrs.usedMth);
+                        var rawPriceMth = machineryArray[i].getAttr(workRecordAttrs.priceMth);
+                        var rawFlatRate = machineryArray[i].getAttr(workRecordAttrs.flatRate);
+                        var rawTotalPrice = machineryArray[i].getAttr(workRecordAttrs.totalPrice);
+
+                        machineAttrs.calculationType = rawCalculationType || "mth";
+                        machineAttrs.mth = parseFloat(rawMth) || 1;
+                        machineAttrs.cenaMth = parseFloat(rawPriceMth) || 0;
+                        machineAttrs.cenaPausal = parseFloat(rawFlatRate) || 0;
+                        machineAttrs.totalPrice = parseFloat(rawTotalPrice) || 0;
+
+                        if (machineAttrs.calculationType === "paušál") {
+                            machineAttrs.pausalPocet = 1;
+                        }
+
+                        if (options && options.debugEntry && core.addDebug) {
+                            core.addDebug(options.debugEntry, "  🔧 " + machineName + " - typ: " + machineAttrs.calculationType +
+                                        ", mth: " + machineAttrs.mth + ", cenaMth: " + machineAttrs.cenaMth +
+                                        ", cenaPausal: " + machineAttrs.cenaPausal + ", totalPrice: " + machineAttrs.totalPrice);
+                        }
+
+                    } catch (attrError) {
+                        if (options && options.debugEntry && core.addError) {
+                            core.addError(options.debugEntry, "Chyba pri čítaní atribútov stroja " + machineName + ": " + attrError.toString());
+                        }
+                    }
+                }
+
+                machines.push({
+                    machineEntry: machineEntry,
+                    machineId: machineId,
+                    machineName: machineName,
+                    attributes: machineAttrs
+                });
+            }
+
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "  📊 Získaných strojov: " + machines.length);
+            }
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, "Chyba pri získavaní strojov: " + error.toString());
+            }
+        }
+
+        return machines;
+    }
+
+    /**
+     * Linkuje stroje s komplexnou logikou atribútov
+     */
+    function linkMachinesWithComplexLogic(machinesReport, currentMachines, options) {
+        var core = getCore();
+        var config = getConfig();
+
+        try {
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "⚙️ Linkujem stroje s komplexnou logikou");
+            }
+
+            // Získaj existujúce linky na stroje vo výkaze
+            var existingMachinesArray = core.safeGet(machinesReport, config.fields.machinesReport.machines) || [];
+
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "  📦 Existujúcich linkov: " + existingMachinesArray.length);
+            }
+
+            // Pre každý stroj z currentEntry
+            for (var i = 0; i < currentMachines.length; i++) {
+                var currentMachine = currentMachines[i];
+                var machineId = currentMachine.machineId;
+                var machineName = currentMachine.machineName;
+                var newAttrs = currentMachine.attributes;
+
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "  🚜 Spracúvam stroj: " + machineName + " (ID: " + machineId + ")");
+                }
+
+                // Nájdi existujúci link na tento stroj
+                var existingLink = findExistingMachineLink(existingMachinesArray, machineId, newAttrs.calculationType, options);
+
+                if (existingLink.found) {
+                    // Aktualizuj existujúci link
+                    updateExistingMachineLink(existingLink.linkObject, newAttrs, machineName, options);
+                } else {
+                    // Vytvor nový link
+                    createNewMachineLink(machinesReport, currentMachine.machineEntry, newAttrs, machineName, options);
+                }
+            }
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, "Chyba pri linkovaní strojov: " + error.toString());
+            }
+        }
+    }
+
+    /**
+     * Nájde existujúci link na stroj s kompatibilným typom účtovania
+     */
+    function findExistingMachineLink(existingMachinesArray, machineId, calculationType, options) {
         var core = getCore();
         var aggregated = {};
 
@@ -3090,6 +3252,166 @@ var MementoBusiness = (function() {
         } catch (error) {
             if (options && options.debugEntry && core.addError) {
                 core.addError(options.debugEntry, "Chyba pri aktualizácii počtov: " + error.toString(), "updateReportCounts", error);
+            }
+        }
+    }
+
+    /**
+     * Nájde existujúci link na stroj s kompatibilným typom účtovania
+     */
+    function findExistingMachineLink(existingMachinesArray, machineId, calculationType, options) {
+        var core = getCore();
+        var config = getConfig();
+
+        try {
+            for (var i = 0; i < existingMachinesArray.length; i++) {
+                var existingMachine = existingMachinesArray[i];
+                var existingMachineId = core.safeGet(existingMachine, "ID");
+
+                if (existingMachineId === machineId) {
+                    // Skontroluj typ účtovania v existujúcom linku
+                    var attrs = config.attributes.machinesReportMachines;
+                    var existingMth = existingMachine.getAttr(attrs.mth) || 0;
+                    var existingPausal = existingMachine.getAttr(attrs.pausalPocet) || 0;
+
+                    var existingType = (existingMth > 0) ? "mth" : "paušál";
+
+                    if (options && options.debugEntry && core.addDebug) {
+                        core.addDebug(options.debugEntry, "    🔍 Existujúci link - typ: " + existingType +
+                                    ", nový typ: " + calculationType);
+                    }
+
+                    // Ak je typ kompatibilný, vráť tento link
+                    if (existingType === calculationType) {
+                        return {
+                            found: true,
+                            linkObject: existingMachine,
+                            index: i
+                        };
+                    }
+                }
+            }
+
+            return { found: false };
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, "Chyba pri hľadaní existujúceho linku: " + error.toString());
+            }
+            return { found: false };
+        }
+    }
+
+    /**
+     * Aktualizuje existujúci link na stroj
+     */
+    function updateExistingMachineLink(linkObject, newAttrs, machineName, options) {
+        var core = getCore();
+        var config = getConfig();
+
+        try {
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "    🔄 Aktualizujem existujúci link pre: " + machineName);
+            }
+
+            var attrs = config.attributes.machinesReportMachines;
+
+            // Získaj existujúce hodnoty
+            var existingMth = parseFloat(linkObject.getAttr(attrs.mth)) || 0;
+            var existingPausal = parseFloat(linkObject.getAttr(attrs.pausalPocet)) || 0;
+            var existingCenaMth = parseFloat(linkObject.getAttr(attrs.cenaMth)) || 0;
+            var existingCenaPausal = parseFloat(linkObject.getAttr(attrs.cenaPausal)) || 0;
+
+            // Aktualizuj hodnoty podľa typu účtovania
+            if (newAttrs.calculationType === "mth") {
+                var newMth = existingMth + newAttrs.mth;
+                linkObject.setAttr(attrs.mth, newMth);
+                linkObject.setAttr(attrs.cenaMth, newAttrs.cenaMth); // Prepíš cenu
+
+                // Vypočítaj novú celkovú cenu
+                var newTotal = newMth * newAttrs.cenaMth;
+                linkObject.setAttr(attrs.cenaCelkom, newTotal);
+
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "      📊 MTH: " + existingMth + " + " + newAttrs.mth + " = " + newMth +
+                                ", cena: " + newAttrs.cenaMth + "€, celkom: " + newTotal + "€");
+                }
+
+            } else if (newAttrs.calculationType === "paušál") {
+                var newPausal = existingPausal + newAttrs.pausalPocet;
+                linkObject.setAttr(attrs.pausalPocet, newPausal);
+                linkObject.setAttr(attrs.cenaPausal, newAttrs.cenaPausal); // Prepíš cenu
+
+                // Vypočítaj novú celkovú cenu
+                var newTotal = newPausal * newAttrs.cenaPausal;
+                linkObject.setAttr(attrs.cenaCelkom, newTotal);
+
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "      📊 Paušál: " + existingPausal + " + " + newAttrs.pausalPocet + " = " + newPausal +
+                                ", cena: " + newAttrs.cenaPausal + "€, celkom: " + newTotal + "€");
+                }
+            }
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, "Chyba pri aktualizácii existujúceho linku: " + error.toString());
+            }
+        }
+    }
+
+    /**
+     * Vytvorí nový link na stroj vo výkaze
+     */
+    function createNewMachineLink(machinesReport, machineEntry, newAttrs, machineName, options) {
+        var core = getCore();
+        var config = getConfig();
+
+        try {
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "    ➕ Vytváram nový link pre: " + machineName);
+            }
+
+            // Získaj existujúce pole strojov
+            var existingMachines = core.safeGetLinks(machinesReport, config.fields.machinesReport.machines) || [];
+
+            // Pridaj nový stroj
+            existingMachines.push(machineEntry);
+            core.safeSet(machinesReport, config.fields.machinesReport.machines, existingMachines);
+
+            // Nastav atribúty na novo pridanom stroji
+            var newlyAddedMachine = existingMachines[existingMachines.length - 1];
+            var attrs = config.attributes.machinesReportMachines;
+
+            if (newAttrs.calculationType === "mth") {
+                newlyAddedMachine.setAttr(attrs.mth, newAttrs.mth);
+                newlyAddedMachine.setAttr(attrs.cenaMth, newAttrs.cenaMth);
+                newlyAddedMachine.setAttr(attrs.pausalPocet, 0); // Vynuluj paušál
+                newlyAddedMachine.setAttr(attrs.cenaPausal, 0);
+
+                var totalPrice = newAttrs.mth * newAttrs.cenaMth;
+                newlyAddedMachine.setAttr(attrs.cenaCelkom, totalPrice);
+
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "      📊 Nový MTH link: " + newAttrs.mth + " × " + newAttrs.cenaMth + "€ = " + totalPrice + "€");
+                }
+
+            } else if (newAttrs.calculationType === "paušál") {
+                newlyAddedMachine.setAttr(attrs.pausalPocet, newAttrs.pausalPocet);
+                newlyAddedMachine.setAttr(attrs.cenaPausal, newAttrs.cenaPausal);
+                newlyAddedMachine.setAttr(attrs.mth, 0); // Vynuluj MTH
+                newlyAddedMachine.setAttr(attrs.cenaMth, 0);
+
+                var totalPrice = newAttrs.pausalPocet * newAttrs.cenaPausal;
+                newlyAddedMachine.setAttr(attrs.cenaCelkom, totalPrice);
+
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "      📊 Nový paušál link: " + newAttrs.pausalPocet + " × " + newAttrs.cenaPausal + "€ = " + totalPrice + "€");
+                }
+            }
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, "Chyba pri vytváraní nového linku: " + error.toString());
             }
         }
     }
