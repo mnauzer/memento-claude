@@ -2523,12 +2523,16 @@ var MementoBusiness = (function() {
                 return;
             }
 
+            // DÔLEŽITÉ: Toto funkcia prepája iba zdrojový záznam (napr. Záznam prác)
+            // do správneho spätného poľa vo výkaze (napr. "workRecord" v machines report)
+            // Linkovanie strojov sa rieši samostatne v linkMachinesToReport()
+
             var sourceRecords = core.safeGetLinks(report, sourceFieldName) || [];
 
             // Skontroluj či už nie je prepojený
             var isLinked = false;
             for (var i = 0; i < sourceRecords.length; i++) {
-                if (sourceRecords[i].id === sourceEntry.id) {
+                if (sourceRecords[i] && core.safeGet(sourceRecords[i], "ID") === core.safeGet(sourceEntry, "ID")) {
                     isLinked = true;
                     break;
                 }
@@ -2540,6 +2544,10 @@ var MementoBusiness = (function() {
 
                 if (options && options.debugEntry && core.addDebug) {
                     core.addDebug(options.debugEntry, "  🔗 Záznam prepojený s výkazom cez pole: " + sourceFieldName);
+                }
+            } else {
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "  ℹ️ Záznam už je prepojený s výkazom");
                 }
             }
 
@@ -2872,6 +2880,16 @@ var MementoBusiness = (function() {
                 var aggData = aggregatedMachines[machineId];
                 var machineEntry = aggData.machineEntry;
 
+                // DEBUG: Overenie typov a obsahu
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "  🔍 DEBUG machineEntry ID: " + machineId);
+                    core.addDebug(options.debugEntry, "  🔍 DEBUG machineEntry type: " + (typeof machineEntry));
+                    if (machineEntry && typeof machineEntry === 'object') {
+                        core.addDebug(options.debugEntry, "  🔍 DEBUG machineEntry ID field: " + core.safeGet(machineEntry, "ID"));
+                        core.addDebug(options.debugEntry, "  🔍 DEBUG machineEntry name: " + core.safeGet(machineEntry, "Názov"));
+                    }
+                }
+
                 // Skontroluj či už existuje link na tento stroj
                 var existingIndex = -1;
                 for (var j = 0; j < updatedMachines.length; j++) {
@@ -2882,11 +2900,17 @@ var MementoBusiness = (function() {
                 }
 
                 if (existingIndex === -1) {
-                    // Pridaj nový link
-                    updatedMachines.push(machineEntry);
-                    existingIndex = updatedMachines.length - 1;
-                    if (options && options.debugEntry && core.addDebug) {
-                        core.addDebug(options.debugEntry, "  ➕ Pridaný nový link na stroj: " + aggData.machineData.name);
+                    // Pridaj nový link - ale iba ak je machineEntry validný
+                    if (machineEntry && typeof machineEntry === 'object') {
+                        updatedMachines.push(machineEntry);
+                        existingIndex = updatedMachines.length - 1;
+                        if (options && options.debugEntry && core.addDebug) {
+                            core.addDebug(options.debugEntry, "  ➕ Pridaný nový link na stroj: " + aggData.machineData.name);
+                        }
+                    } else {
+                        if (options && options.debugEntry && core.addError) {
+                            core.addError(options.debugEntry, "❌ Nevalidný machineEntry pre ID: " + machineId);
+                        }
                     }
                 } else {
                     if (options && options.debugEntry && core.addDebug) {
