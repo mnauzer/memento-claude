@@ -269,10 +269,14 @@ function calculateTotals(employeeResult, hzsResult, machinesResult, workItemsRes
         utils.safeSet(currentEntry, CONFIG.fields.workRecord.wageCosts, employeeResult.celkoveMzdy);
         utils.safeSet(currentEntry, CONFIG.fields.workRecord.hzsSum, hzsResult.sum);
 
-        // Ulož sumu strojov ak existuje
+        // Ulož sumu a náklady strojov ak existujú
         if (machinesResult && machinesResult.total) {
             utils.safeSet(currentEntry, CONFIG.fields.workRecord.machinesSum, machinesResult.total);
             utils.addDebug(currentEntry, "  • Suma strojov: " + utils.formatMoney(machinesResult.total));
+        }
+        if (machinesResult && machinesResult.totalCosts) {
+            utils.safeSet(currentEntry, CONFIG.fields.workRecord.machinesCosts, machinesResult.totalCosts);
+            utils.addDebug(currentEntry, "  • Náklady strojov: " + utils.formatMoney(machinesResult.totalCosts));
         }
 
         // Ulož sumu položiek prác ak existuje
@@ -1320,7 +1324,11 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesRes
 
         if (order && order.length > 0) {
             infoMessage += "## 📦 ZÁKAZKA\n";
+            var orderNumber = utils.safeGet(order[0], "Číslo", "");
             infoMessage += "- **Názov:** " + utils.safeGet(order[0], "Názov", "N/A") + "\n";
+            if (orderNumber) {
+                infoMessage += "- **Číslo zákazky:** " + orderNumber + "\n";
+            }
             if (workDescription) {
                 infoMessage += "- **Popis prác:** " + workDescription + "\n";
             }
@@ -1340,11 +1348,31 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesRes
         infoMessage += "- **NÁKLADY CELKOM:** " + utils.formatMoney(totalCosts) + "\n\n";
 
         infoMessage += "### Výnosy\n";
+        var totalRevenue = hzsResult.sum || 0;
+
         if (hzsResult.sum > 0) {
-            infoMessage += "- **Výnosy HZS:** " + utils.formatMoney(hzsResult.sum) + "\n\n";
-        } else {
-            infoMessage += "- **Výnosy HZS:** 0.00 €\n\n";
+            infoMessage += "- **Výnosy HZS:** " + utils.formatMoney(hzsResult.sum) + "\n";
         }
+
+        if (machinesResult && machinesResult.total > 0) {
+            infoMessage += "- **Výnosy stroje:** " + utils.formatMoney(machinesResult.total) + "\n";
+            totalRevenue += machinesResult.total;
+        }
+
+        if (materialsResult && materialsResult.total > 0) {
+            infoMessage += "- **Výnosy materiál:** " + utils.formatMoney(materialsResult.total) + "\n";
+            totalRevenue += materialsResult.total;
+        }
+
+        infoMessage += "- **VÝNOSY CELKOM:** " + utils.formatMoney(totalRevenue) + "\n\n";
+
+        // Vyhodnotenie
+        var grossProfit = totalRevenue - totalCosts;
+        var margin = totalRevenue > 0 ? (grossProfit / totalRevenue * 100) : 0;
+
+        infoMessage += "### Vyhodnotenie\n";
+        infoMessage += "- **Hrubý zisk:** " + utils.formatMoney(grossProfit) + "\n";
+        infoMessage += "- **Marža:** " + margin.toFixed(2) + " %\n\n";
 
         infoMessage += "## 🔧 TECHNICKÉ INFORMÁCIE\n";
         infoMessage += "- **Script:** " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
