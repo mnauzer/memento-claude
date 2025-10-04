@@ -498,14 +498,14 @@ function processMachines() {
                 if (machineryArray && machineryArray.length > i && machineryArray[i]) {
                     try {
                         
-                        hasMachinePrice = machineryArray[i].attr(CONFIG.attributes.workRecordMachines.totalPrice) || 0;
-                        calculationType = machineryArray[i].attr(CONFIG.attributes.workRecordMachines.calculationType);
+                        hasMachinePrice = machineryArray[i].attr(CONFIG.workRecordMachines.totalPrice) || 0;
+                        calculationType = machineryArray[i].attr(CONFIG.workRecordMachines.calculationType);
                         // Ak je calculationType null, nastav default hodnotu
                         if (!calculationType || calculationType === null) {
                             calculationType = "mth"; // default hodnota
                             utils.addDebug(currentEntry, "    ⚠️ calculationType bol null, nastavujem default: mth");
                         }
-                        usedMth = machineryArray[i].attr(CONFIG.attributes.workRecordMachines.usedMth) || 1;
+                        usedMth = machineryArray[i].attr(CONFIG.workRecordMachines.usedMth) || 1;
                     } catch (error) {
                         utils.addError(currentEntry, "Chyba pri čítaní atribútov z currentEntry: " + error.toString(), "processMachines");
                     }
@@ -518,25 +518,25 @@ function processMachines() {
                   
                     if (calculationType === "mth") {
                         utils.addDebug(currentEntry, "  • Účtujem motohodiny: " + usedMth + " mth" + " × " + machinePrice.priceMth + " €/mth");
-                        machineryArray[i].setAttr( CONFIG.attributes.workRecordMachines.usedMth, usedMth);
-                        machineryArray[i].setAttr( CONFIG.attributes.workRecordMachines.priceMth, machinePrice.priceMth);
+                        machineryArray[i].setAttr( CONFIG.workRecordMachines.usedMth, usedMth);
+                        machineryArray[i].setAttr( CONFIG.workRecordMachines.priceMth, machinePrice.priceMth);
                         totalPrice = machinePrice.priceMth * usedMth;
                         
                     } else if (calculationType === "paušál") {
                         utils.addDebug(currentEntry, "  • Účtujem paušál: " + machinePrice.flatRate + " €");
-                        //machineryArray[i].setAttr( CONFIG.attributes.workRecordMachines.flatRate, machinePrice.flatRate);
+                        //machineryArray[i].setAttr( CONFIG.workRecordMachines.flatRate, machinePrice.flatRate);
                         totalPrice = machinePrice.flatRate;
                     } else {
                         utils.addDebug(currentEntry, "  ⚠️ Nezadaný typ účtovania: '" + calculationType + "', nastavujem 'mth'");
                         calculationType = "mth";
-                        machineryArray[i].setAttr( CONFIG.attributes.workRecordMachines.usedMth, usedMth);
-                        machineryArray[i].setAttr( CONFIG.attributes.workRecordMachines.priceMth, machinePrice.priceMth);
+                        machineryArray[i].setAttr( CONFIG.workRecordMachines.usedMth, usedMth);
+                        machineryArray[i].setAttr( CONFIG.workRecordMachines.priceMth, machinePrice.priceMth);
                         totalPrice = machinePrice.priceMth * usedMth;
                     }
 
                  
 
-                        machineryArray[i].setAttr( CONFIG.attributes.workRecordMachines.totalPrice, totalPrice);
+                        machineryArray[i].setAttr( CONFIG.workRecordMachines.totalPrice, totalPrice);
                         utils.addDebug(currentEntry, "    ✅ totalPrice nastavené");
                  
 
