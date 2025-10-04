@@ -55,7 +55,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.14",  // Pridané polia icons a dailyReport do workRecord + ikony material, daily_report
+        version: "7.0.15",  // Opravené place polia (distance), pridané nick, locality, view, debugLog, errorLog
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -788,15 +788,19 @@ var MementoConfig = (function() {
             place: {
                 category: "Kategória", // singleChoice: Klient, Dodávateľ, Partner, Zamestnanec, Iné
                 active: "Aktívny", // checkbox
-                name: "Názov",
+                name: "Názov", // text - formát: Nick (Lokalita)
+                nick: "Nick", // text - vygenerované z linku podľa kategórie
+                locality: "Lokalita", // text
                 customer: "Klient", // linkToEntry Klienti
                 supplier: "Dodávateľ", // linkToEntry Dodávatelia
                 partner: "Partner", // linkToEntry Partneri
                 employee: "Zamestnanec", // linkToEntry Zamestnanci
-                distantce: "Vzdialenosť",
-                address: "Adresa",
-                gps: "GPS",
-                location: "Lokalita",
+                distance: "Vzdialenosť", // real number - km od východzej adresy
+                address: "Adresa", // text
+                gps: "GPS", // JSGeolocation
+                view: "view", // singleChoice: Editácia, Debug
+                debugLog: "Debug_Log", // text/memo
+                errorLog: "Error_Log", // text/memo
                 isOrder: "Zákazka" // checkbox
             },
             // Účty (Accounts)
