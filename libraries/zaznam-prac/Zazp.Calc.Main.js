@@ -513,13 +513,13 @@ function processMachines() {
 
                 var totalPrice = 0;
 
-                if (!hasMachinePrice || hasMachinePrice == 0) {
-                    // Skontroluj či je machinePrice platný
-                    if (!machinePrice || typeof machinePrice !== 'object') {
-                        utils.addError(currentEntry, "Nenašiel sa platný cenník pre stroj: " + machineName, "processMachines");
-                        continue; // preskočíme tento stroj
-                    }
+                // Skontroluj či je machinePrice platný pred akýmkoľvek výpočtom
+                if (!machinePrice || typeof machinePrice !== 'object') {
+                    utils.addError(currentEntry, "Nenašiel sa platný cenník pre stroj: " + machineName, "processMachines");
+                    continue; // preskočíme tento stroj
+                }
 
+                if (!hasMachinePrice || hasMachinePrice == 0) {
                     // vypočítaj sumu za tento stroj
                     if (calculationType === "mth") {
                         var priceMth = machinePrice.priceMth || 0;
