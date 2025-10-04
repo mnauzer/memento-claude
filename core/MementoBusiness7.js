@@ -3136,31 +3136,18 @@ var MementoBusiness = (function() {
                 core.addDebug(options.debugEntry, "🔧 Nastavujem atribúty strojov");
             }
 
-            // Získaj aktuálne pole strojov pre nastavenie atribútov
-            var machinesArray = core.safeGet(machinesReport, config.fields.machinesReport.machines);
+            // DÔLEŽITÉ: Pre nastavenie atribútov MUSÍME použiť field() aby sme získali LinkEntry objekty
+            var machinesArray = machinesReport.field(config.fields.machinesReport.machines);
 
             if (!machinesArray || machinesArray.length === 0) {
                 if (options && options.debugEntry && core.addDebug) {
-                    core.addDebug(options.debugEntry, "⚠️ Pole strojov je prázdne alebo sa nepodarilo načítať");
+                    core.addDebug(options.debugEntry, "⚠️ Pole strojov je prázdne");
                 }
-                // Pokús sa znovu načítať pole
-                try {
-                    machinesArray = core.safeGetLinks(machinesReport, config.fields.machinesReport.machines);
-                    if (!machinesArray || machinesArray.length === 0) {
-                        if (options && options.debugEntry && core.addDebug) {
-                            core.addDebug(options.debugEntry, "❌ Nie je možné načítať pole strojov");
-                        }
-                        return;
-                    }
-                    if (options && options.debugEntry && core.addDebug) {
-                        core.addDebug(options.debugEntry, "✅ Pole strojov úspešne načítané: " + machinesArray.length + " položiek");
-                    }
-                } catch (err) {
-                    if (options && options.debugEntry && core.addError) {
-                        core.addError(options.debugEntry, "Chyba pri načítaní poľa strojov: " + err.toString());
-                    }
-                    return;
-                }
+                return;
+            }
+
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "✅ Pole strojov načítané cez field(): " + machinesArray.length + " položiek");
             }
 
             // Pre každý stroj nastav atribúty
@@ -3401,15 +3388,16 @@ var MementoBusiness = (function() {
                 core.addDebug(options.debugEntry, "    ➕ Vytváram nový link pre: " + machineName);
             }
 
-            // Získaj existujúce pole strojov
+            // Získaj existujúce pole strojov (Entry objekty pre pridanie)
             var existingMachines = core.safeGetLinks(machinesReport, config.fields.machinesReport.machines) || [];
 
             // Pridaj nový stroj
             existingMachines.push(machineEntry);
             core.safeSet(machinesReport, config.fields.machinesReport.machines, existingMachines);
 
-            // Nastav atribúty na novo pridanom stroji
-            var newlyAddedMachine = existingMachines[existingMachines.length - 1];
+            // DÔLEŽITÉ: Teraz musíme získať LinkEntry objekt cez field() pre nastavenie atribútov
+            var machinesFieldWithAttrs = machinesReport.field(config.fields.machinesReport.machines);
+            var newlyAddedMachine = machinesFieldWithAttrs[machinesFieldWithAttrs.length - 1];
             var attrs = config.attributes.machinesReportMachines;
 
             if (options && options.debugEntry && core.addDebug) {
