@@ -55,7 +55,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.15",  // Opravené place polia (distance), pridané nick, locality, view, debugLog, errorLog
+        version: "7.0.16",  // Pridané kompletné definície client, supplier, partner z API
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -697,7 +697,63 @@ var MementoConfig = (function() {
             },
 
             // === FIREMNÉ KNIŽNICE ===
-            // Zamestnanci polia - aktualizované podľa API analýzy (Zamestnanci Semiramis: qU4Br5hU6)
+            // Klienti polia - získané z API (Klienti: rh7YHaVRM)
+            client: {
+                view: "view", // singleChoice: Editácia, Tlač, Debug
+                type: "Firma/Osoba", // singleChoice: Osoba, Firma
+                active: "Aktívny", // checkbox
+                firstName: "Meno", // text
+                lastName: "Priezvisko", // text
+                title: "Titul", // text
+                company: "Firma", // text
+                nick: "Nick", // text, role: name
+                identifier: "Identifikátor", // text
+                contact: "Kontakt", // contact
+                street: "Ulica", // text
+                postalCode: "PSČ", // text
+                city: "Mesto", // text
+                email: "Email", // email
+                mobile: "Mobil", // text
+                note: "Poznámka", // text
+                ico: "IČO", // text
+                vatPayer: "Platca DPH", // checkbox
+                icDph: "IČ DPH", // text
+                // Deprecated/backward compatibility
+                name: "Meno" // DEPRECATED - use firstName
+            },
+
+            // Dodávatelia polia - získané z API (Dodávatelia: 3FSQN0reH)
+            supplier: {
+                name: "Názov", // text
+                nick: "Názov", // alias for name
+                description: "Popis", // text
+                info: "info", // text
+                street: "Ulica", // text
+                postalCode: "PSČ", // text
+                city: "Mesto", // text
+                www: "www", // url
+                email: "Email", // text
+                debugLog: "Debug_Log", // text
+                errorLog: "Error_Log" // text
+            },
+
+            // Partneri polia - získané z API (Partneri: NffZSLRKU)
+            partner: {
+                view: "view", // singleChoice
+                type: "Firma/Osoba", // singleChoice: Osoba, Firma
+                active: "Aktívny", // checkbox
+                nick: "Nick", // text
+                name: "Názov", // text
+                firstName: "Meno", // text
+                lastName: "Priezvisko", // text
+                contact: "Kontakt", // contact
+                // Linky na iné knižnice
+                partnerLink: "Partner", // linkToEntry Partneri
+                supplierLink: "Dodávateľ", // linkToEntry Dodávatelia
+                clientLink: "Klient" // linkToEntry Klienti
+            },
+
+            // Zamestnanci polia - aktualizované podľa API analýzy (Zamestnanci: nWb00Nogf)
             employee: {
                 // Základné identifikačné polia
                 nick: "Nick", // text: unique identifier
