@@ -18,7 +18,7 @@
 var MementoUtils = (function() {
     'use strict';
     
-    var version = "7.0.1";  // Pridané createOrUpdateDailyReport
+    var version = "7.1.0";  // Pridaná univerzálna architektúra pre výkazy
     
     // ==============================================
     // LAZY LOADING MODULOV
@@ -285,6 +285,16 @@ var MementoUtils = (function() {
 
         // === DAILY REPORT FUNKCIE (nové) ===
         createOrUpdateDailyReport: lazyCall('business', 'createOrUpdateDailyReport'),
+
+        // === UNIVERZÁLNA ARCHITEKTÚRA PRE VÝKAZY (nové) ===
+        createOrUpdateReport: lazyCall('business', 'createOrUpdateReport'),
+        validateReportData: lazyCall('business', 'validateReportData'),
+        findExistingReport: lazyCall('business', 'findExistingReport'),
+        createGenericReport: lazyCall('business', 'createGenericReport'),
+        linkSourceToReport: lazyCall('business', 'linkSourceToReport'),
+        updateReportSummary: lazyCall('business', 'updateReportSummary'),
+        updateReportInfo: lazyCall('business', 'updateReportInfo'),
+        createReportInfo: lazyCall('business', 'createReportInfo'),
 
 
         // === GPS FUNKCIE (ak je modul dostupný) ===

@@ -37,7 +37,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.8",
+        version: "7.0.9",
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -96,6 +96,44 @@ var MementoConfig = (function() {
                 permissionField: "Zákazky skupinové notifikácie"
             }
         },
+
+        // === KONFIGURÁCIA VÝKAZOV ===
+        // Spoločná konfigurácia pre všetky typy výkazov
+        reportConfigs: {
+            work: {
+                library: "workReport",
+                sourceField: "praceHZS",
+                prefix: "VP",
+                attributes: ["workDescription", "hoursCount", "billedRate", "totalPrice"],
+                summaryFields: ["totalHours", "hzsSum", "hzsCount"],
+                requiredFields: ["date", "order"]
+            },
+            ride: {
+                library: "rideReport",
+                sourceField: "ride",
+                prefix: "VD",
+                attributes: ["km", "description", "wageCosts", "vehicleCosts", "rideTime", "stopTime", "totalTime"],
+                summaryFields: ["kmTotal", "hoursTotal", "rideCount", "wageCostsTotal", "sum"],
+                requiredFields: ["date", "order"]
+            },
+            machines: {
+                library: "machinesReport",
+                sourceField: "machines",
+                prefix: "VS",
+                attributes: ["calculationType", "usedMth", "priceMth", "flatRate", "totalPrice"],
+                summaryFields: ["sumWithoutVat", "vat", "sumWithVat", "machineCount", "totalMth"],
+                requiredFields: ["date", "order"]
+            },
+            materials: {
+                library: "materialsReport",
+                sourceField: "material",
+                prefix: "VM",
+                attributes: ["quantity", "pricePerUnit", "purchasePrice", "vatRate", "totalPrice", "margin"],
+                summaryFields: ["totalQuantity", "purchasePriceTotal", "sellPriceTotal", "marginTotal", "vatTotal", "sumWithVat", "materialCount"],
+                requiredFields: ["date", "order"]
+            }
+        },
+
         // Defaultné hodnoty pre globálne nastavenia
         defaults: {
             debug: false, // Predvolený debug mód
@@ -176,6 +214,10 @@ var MementoConfig = (function() {
         libraryIds: {
             // Denné záznamy
             dailyReport: "Tt4pxN4xQ", // Denný report
+
+            // Výkazy a reporty
+            machinesReport: "uCRaUwsTo", // Výkaz strojov
+            materialsReport: "z3sxkUHgT", // Výkaz materiálu
 
             // Aktuálne používané knižnice podľa API analýzy
             employees: "qU4Br5hU6", // Zamestnanci Semiramis (obsahuje všetky potrebné polia)
@@ -360,7 +402,97 @@ var MementoConfig = (function() {
                 info: "info",
                 totalHours: "Celkové hodiny",
                 hzsSum: "Suma HZS",
-                hzsCount: "Počet záznamov"
+                hzsCount: "Počet záznamov",
+                debug_log: "debug_log", // text
+                error_log: "error_log" // text
+            },
+            // Výkaz strojov polia
+            machinesReport: {
+                view: "view", // radio
+                vyuctovane: "Vyúčtované", // boolean
+                date: "Dátum", // date - hlavný dátum záznamu
+                order: "Zákazka", // linkToEntry: Zákazky
+                description: "Popis", // text - popis výkazu
+                machines: "Stroje", // linkToEntry: Mechanizácia
+                workRecord: "Záznam práce", // linkToEntry: Záznam prác
+                sumWithoutVat: "Suma bez DPH", // currency - hlavná suma
+                vat: "DPH", // currency - DPH suma
+                sumWithVat: "Suma s DPH", // currency - celková suma s DPH
+                machines2: "Stroje", // linkToEntry: Mechanizácia (duplicitné pole)
+                season: "sezóna", // text - sezónne označenie
+                number: "number", // int - poradové číslo
+                // Povinné polia pre validáciu
+                requiredFields: ["date", "order", "machines"]
+            },
+            // Výkaz materiálu polia
+            materialsReport: {
+                state: "Stav", // choice - stav výkazu
+                number: "Číslo", // text - identifikačné číslo výkazu
+                date: "Dátum", // date - hlavný dátum záznamu
+                customer: "Odberateľ", // text - názov odberu
+                description: "Popis", // text - popis výkazu
+                reportType: "Typ výkazu", // radio - typ výkazu materiálu
+                priceCalculation: "Ceny počítať", // radio - spôsob počítania cien
+                issued: "Vydané", // choice - stav vydania
+                client: "Klient", // linkToEntry: Klienti
+                partner: "Partner", // linkToEntry: Partneri
+                order: "Zákazka", // linkToEntry: Zákazky
+                isIssued: "Vyskladnené", // boolean - či je materiál vyskladnený
+                sum: "Suma", // currency - suma bez DPH
+                vat: "DPH", // currency - DPH suma
+                sumWithVat: "Suma s DPH", // currency - celková suma s DPH
+                material: "Materiál", // linkToEntry: Materiál
+                costPriceSum: "CP Suma", // currency - nákupná cena suma
+                costPriceVat: "CP DPH", // currency - nákupná cena DPH
+                costPriceSumWithVat: "CP Suma s DPH", // currency - nákupná cena s DPH
+                sumInCostPrice: "Suma v NC", // currency - suma v nákupných cenách
+                vatCostPrice: "DPH NC", // currency - DPH z nákupných cien
+                sumInCostPriceWithVat: "Suma v NC s DPH", // currency - suma v NC s DPH
+                margin: "Marža", // double - marža v percentách
+                profit: "Zisk", // currency - zisk
+                priceCalculationMethod: "Počítanie cien", // radio - metóda počítania
+                view: "view", // radio
+                // Povinné polia pre validáciu
+                requiredFields: ["date", "client", "material"]
+            },
+            // Výkaz strojov polia
+            machinesReport: {
+                date: "Dátum",
+                state: "Stav", // singleChoice: Čakajúce, Prebieha, Ukončené, Vyúčtované, Zaplatené
+                number: "Číslo", // text unique
+                description: "Popis", // text
+                order: "Zákazka", // linkToEntry Zákazky
+                machines: "Stroje", // linkToEntry Mechanizácia
+                workRecord: "Záznam práce", // linkToEntry Záznam prác
+                sumWithoutVat: "Suma bez DPH", // real number
+                vat: "DPH", // real number
+                sumWithVat: "Suma s DPH", // real number
+                machineCount: "Počet strojov", // integer, počet záznamov
+                totalMth: "Motohodiny celkom", // real number, súčet motohodín
+                info: "info", // text
+                debug_log: "debug_log", // text
+                error_log: "error_log" // text
+            },
+            // Výkaz materiálu polia
+            materialsReport: {
+                date: "Dátum",
+                state: "Stav", // singleChoice: Čakajúce, Prebieha, Ukončené, Vyúčtované, Zaplatené
+                number: "Číslo", // text unique
+                description: "Popis", // text
+                client: "Klient", // linkToEntry Klienti
+                partner: "Partner", // linkToEntry Partneri
+                order: "Zákazka", // linkToEntry Zákazky
+                material: "Materiál", // linkToEntry Materiál
+                totalQuantity: "Množstvo celkom", // real number
+                purchasePriceTotal: "Nákupná cena celkom", // real number
+                sellPriceTotal: "Predajná cena celkom", // real number
+                marginTotal: "Marža celkom", // real number
+                vatTotal: "DPH celkom", // real number
+                sumWithVat: "Suma s DPH", // real number
+                materialCount: "Počet materiálov", // integer
+                info: "info", // text
+                debug_log: "debug_log", // text
+                error_log: "error_log" // text
             },
             // Výkaz dopravy polia
             rideReport: {
@@ -377,6 +509,8 @@ var MementoConfig = (function() {
                 wageCostsTotal: "Mzdové náklady celkom", // real number, súčet mzdových nákladov z výkazu dopravy
                 sum: "Suma celkom", // real number
                 ride: "Doprava", // linkToEntry Kniha jázd
+                debug_log: "debug_log", // text
+                error_log: "error_log" // text
             },
 
             // === CENNÍKY A SKLAD ===
@@ -882,6 +1016,23 @@ var MementoConfig = (function() {
                 stopTime: "čas na zastávkach",
                 totalTime: "celkový čas"
             },
+            // Výkaz strojov - atribúty strojov
+            machinesReportMachines: {
+                calculationType: "účtovanie", // singleChoice: paušál, mth
+                usedMth: "mth", // real number, použité motohodiny
+                priceMth: "sadzba", // real number, cena za motohodinu
+                flatRate: "paušál", // real number, paušálna cena
+                totalPrice: "účtovaná suma" // real number, celková cena za stroj
+            },
+            // Výkaz materiálu - atribúty materiálu
+            materialsReportMaterial: {
+                quantity: "množstvo", // real number
+                pricePerUnit: "cena za mj", // real number
+                purchasePrice: "nákupná cena", // real number
+                vatRate: "DPH sadzba", // real number
+                totalPrice: "cena celkom", // real number
+                margin: "marža" // real number
+            },
             // Výdajky materiálu - atribúty položiek
             materialExpensesItems: {
                 quantity: "množstvo", // real number
@@ -893,6 +1044,28 @@ var MementoConfig = (function() {
                 quantity: "množstvo", // real number
                 price: "cena", // real number
                 totalPrice: "cena celkom" // real number
+            },
+            // Výkaz strojov - atribúty strojov
+            machinesReportMachines: {
+                calculationType: "účtovanie", // options: paušál, mth
+                usedMth: "mth", // motohodiny
+                priceMth: "sadzba", // cena za motohodinu
+                flatRate: "paušál", // cena za celoddenné použitie
+                totalPrice: "účtovaná suma", // celková účtovaná suma
+                description: "popis použitia", // popis použitia stroja
+                workTime: "pracovný čas" // odpracovaný čas v hodinách
+            },
+            // Výkaz materiálu - atribúty materiálu
+            materialsReportMaterial: {
+                quantity: "množstvo", // real number - vydané množstvo
+                unit: "mj", // text - merná jednotka
+                pricePerUnit: "cena za mj", // currency - cena za jednotku
+                costPrice: "nákupná cena", // currency - nákupná cena za jednotku
+                totalPrice: "cena celkom", // currency - celková predajná cena
+                totalCostPrice: "NC celkom", // currency - celková nákupná cena
+                vatRate: "sadzba DPH", // text - sadzba DPH
+                description: "poznámka", // text - poznámka k položke
+                specification: "špecifikácia" // text - špecifikácia materiálu
             }
 
         },
@@ -1287,9 +1460,37 @@ var MementoConfig = (function() {
         hasLibrary: function(name) {
             return CONFIG.libraries.hasOwnProperty(name);
         },
-        
+
         hasField: function(category, field) {
             return CONFIG.fields[category] && CONFIG.fields[category].hasOwnProperty(field);
+        },
+
+        // === NOVÉ API PRE VÝKAZY ===
+
+        /**
+         * Získa konfiguráciu pre konkrétny typ výkazu
+         * @param {string} reportType - Typ výkazu (work, ride, machines, materials)
+         * @returns {Object} Konfigurácia výkazu alebo null
+         */
+        getReportConfig: function(reportType) {
+            return CONFIG.reportConfigs[reportType] || null;
+        },
+
+        /**
+         * Získa všetky dostupné typy výkazov
+         * @returns {Array} Zoznam typov výkazov
+         */
+        getAllReportTypes: function() {
+            return Object.keys(CONFIG.reportConfigs);
+        },
+
+        /**
+         * Kontrola existencie konfigurácie výkazu
+         * @param {string} reportType - Typ výkazu
+         * @returns {boolean} True ak existuje konfigurácia
+         */
+        hasReportConfig: function(reportType) {
+            return CONFIG.reportConfigs.hasOwnProperty(reportType);
         }
     };
 })();

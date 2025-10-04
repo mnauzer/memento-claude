@@ -18,7 +18,7 @@
 var MementoBusiness = (function() {
     'use strict';
     
-    var version = "7.1.1";  // Opravené chyby v createOrUpdateDailyReport
+    var version = "7.2.0";  // Pridaná univerzálna architektúra pre výkazy
     
     // Lazy loading pre závislosti
     var _config = null;
@@ -2225,6 +2225,426 @@ var MementoBusiness = (function() {
     }
 
     // ==============================================
+    // UNIVERZÁLNA ARCHITEKTÚRA PRE VÝKAZY
+    // ==============================================
+
+    /**
+     * Univerzálna funkcia pre vytvorenie/aktualizáciu výkazov
+     * @param {Entry} sourceEntry - Zdrojový záznam (Kniha jázd, Záznam prác, atď.)
+     * @param {string} reportType - Typ výkazu ('work', 'ride', 'machines', 'materials')
+     * @param {Object} calculatedData - Prepočítané dáta pre výkaz
+     * @param {Object} options - Dodatočné nastavenia
+     * @returns {Object} Výsledok operácie
+     */
+    function createOrUpdateReport(sourceEntry, reportType, calculatedData, options) {
+        var core = getCore();
+        var config = getConfig();
+
+        try {
+            if (!sourceEntry || !reportType) {
+                return {
+                    success: false,
+                    error: "Chýba sourceEntry alebo reportType",
+                    created: false,
+                    updated: false
+                };
+            }
+
+            // Získaj konfiguráciu pre typ výkazu
+            var reportConfig = config.reportConfigs ? config.reportConfigs[reportType] : null;
+            if (!reportConfig) {
+                return {
+                    success: false,
+                    error: "Neznámy typ výkazu: " + reportType,
+                    created: false,
+                    updated: false
+                };
+            }
+
+            // Validácia povinných dát
+            var validationResult = validateReportData(sourceEntry, reportConfig, calculatedData, options);
+            if (!validationResult.success) {
+                return validationResult;
+            }
+
+            var customer = validationResult.customer;
+            var date = validationResult.date;
+
+            // Vyhľadaj existujúci výkaz
+            var existingReport = findExistingReport(customer, reportConfig, date, options);
+
+            var report = null;
+            var action = "none";
+
+            if (existingReport) {
+                report = existingReport;
+                action = "update";
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "  ✅ Existujúci " + reportType + " výkaz nájdený");
+                }
+            } else {
+                // Vytvor nový výkaz
+                report = createGenericReport(reportConfig, customer, date, validationResult.customerName, options);
+                if (report) {
+                    action = "create";
+                    if (options && options.debugEntry && core.addDebug) {
+                        core.addDebug(options.debugEntry, "  ✨ Nový " + reportType + " výkaz vytvorený");
+                    }
+                } else {
+                    return {
+                        success: false,
+                        error: "Nepodarilo sa vytvoriť " + reportType + " výkaz",
+                        created: false,
+                        updated: false
+                    };
+                }
+            }
+
+            if (report) {
+                // Prepoj zdrojový záznam s výkazom
+                linkSourceToReport(report, sourceEntry, reportConfig, calculatedData, options);
+
+                // Aktualizuj súčty a atribúty
+                updateReportSummary(report, reportConfig, calculatedData, options);
+
+                // Aktualizuj info záznam
+                updateReportInfo(report, reportType, reportConfig, calculatedData, options);
+
+                return {
+                    success: true,
+                    report: report,
+                    action: action,
+                    created: action === "create",
+                    updated: action === "update"
+                };
+            }
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, "Chyba pri spracovaní " + reportType + " výkazu: " + error.toString(), "createOrUpdateReport", error);
+            }
+            return {
+                success: false,
+                error: error.toString(),
+                created: false,
+                updated: false
+            };
+        }
+    }
+
+    /**
+     * Validuje vstupné dáta pre výkaz
+     */
+    function validateReportData(sourceEntry, reportConfig, calculatedData, options) {
+        var core = getCore();
+
+        try {
+            // Získaj zákazku
+            var customerField = null;
+            var customerFieldNames = ["order", "zakazka", "Zákazka"];
+
+            for (var i = 0; i < customerFieldNames.length; i++) {
+                var fieldName = customerFieldNames[i];
+                var testField = core.safeGetLinks(sourceEntry, fieldName);
+                if (testField && testField.length > 0) {
+                    customerField = testField;
+                    break;
+                }
+            }
+
+            if (!customerField || customerField.length === 0) {
+                return {
+                    success: false,
+                    error: "Zdrojový záznam nemá zákazku",
+                    hasCustomer: false
+                };
+            }
+
+            var customer = customerField[0];
+            var customerName = core.safeGet(customer, "Názov", "N/A");
+
+            // Získaj dátum
+            var dateFieldNames = ["date", "datum", "Dátum"];
+            var date = null;
+
+            for (var j = 0; j < dateFieldNames.length; j++) {
+                var fieldName = dateFieldNames[j];
+                var testDate = core.safeGet(sourceEntry, fieldName);
+                if (testDate) {
+                    date = testDate;
+                    break;
+                }
+            }
+
+            if (!date) {
+                return {
+                    success: false,
+                    error: "Zdrojový záznam nemá dátum",
+                    hasCustomer: true,
+                    customer: customer
+                };
+            }
+
+            return {
+                success: true,
+                hasCustomer: true,
+                customer: customer,
+                customerName: customerName,
+                date: date
+            };
+
+        } catch (error) {
+            return {
+                success: false,
+                error: "Chyba pri validácii: " + error.toString(),
+                hasCustomer: false
+            };
+        }
+    }
+
+    /**
+     * Vyhľadá existujúci výkaz pre zákazku
+     */
+    function findExistingReport(customer, reportConfig, date, options) {
+        var core = getCore();
+        var config = getConfig();
+
+        try {
+            var reportLibraryName = config.libraries[reportConfig.library];
+            if (!reportLibraryName) {
+                if (options && options.debugEntry && core.addError) {
+                    core.addError(options.debugEntry, "Knižnica " + reportConfig.library + " nenájdená v konfigurácii", "findExistingReport");
+                }
+                return null;
+            }
+
+            var orderFieldName = config.fields[reportConfig.library] ? config.fields[reportConfig.library].order : "Zákazka";
+            var existingReports = customer.linksFrom(reportLibraryName, orderFieldName);
+
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "  🔍 Hľadanie výkazu: " + reportLibraryName + " cez pole " + orderFieldName);
+                core.addDebug(options.debugEntry, "  📦 Nájdené výkazy: " + (existingReports ? existingReports.length : 0));
+            }
+
+            if (existingReports && existingReports.length > 0) {
+                return existingReports[0];
+            }
+
+            return null;
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, "Chyba pri hľadaní výkazu: " + error.toString(), "findExistingReport", error);
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Vytvorí nový výkaz s základnými poľami
+     */
+    function createGenericReport(reportConfig, customer, date, customerName, options) {
+        var core = getCore();
+        var config = getConfig();
+
+        try {
+            var reportLibraryName = config.libraries[reportConfig.library];
+            var reportLib = libByName(reportLibraryName);
+
+            if (!reportLib) {
+                if (options && options.debugEntry && core.addError) {
+                    core.addError(options.debugEntry, "Knižnica '" + reportLibraryName + "' nenájdená", "createGenericReport");
+                }
+                return null;
+            }
+
+            var report = reportLib.create({});
+            var reportFields = config.fields[reportConfig.library];
+
+            if (!reportFields) {
+                if (options && options.debugEntry && core.addError) {
+                    core.addError(options.debugEntry, "Polia pre " + reportConfig.library + " nenájdené v konfigurácii", "createGenericReport");
+                }
+                return null;
+            }
+
+            // Nastav základné polia
+            var reportNumber = reportConfig.prefix + "-" + moment(date).format("YYYYMMDD");
+
+            if (reportFields.date) core.safeSet(report, reportFields.date, date);
+            if (reportFields.number) core.safeSet(report, reportFields.number, reportNumber);
+            if (reportFields.description) core.safeSet(report, reportFields.description, "Výkaz " + reportConfig.library + " - " + customerName);
+            if (reportFields.order) core.safeSet(report, reportFields.order, [customer]);
+            if (reportFields.state) core.safeSet(report, reportFields.state, "Čakajúce");
+
+            return report;
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, "Chyba pri vytváraní výkazu: " + error.toString(), "createGenericReport", error);
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Prepojí zdrojový záznam s výkazom
+     */
+    function linkSourceToReport(report, sourceEntry, reportConfig, calculatedData, options) {
+        var core = getCore();
+        var config = getConfig();
+
+        try {
+            var reportFields = config.fields[reportConfig.library];
+            var sourceFieldName = reportFields[reportConfig.sourceField];
+
+            if (!sourceFieldName) {
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "  ⚠️ Pole " + reportConfig.sourceField + " nenájdené, preskakujem prepojenie");
+                }
+                return;
+            }
+
+            var sourceRecords = core.safeGetLinks(report, sourceFieldName) || [];
+
+            // Skontroluj či už nie je prepojený
+            var isLinked = false;
+            for (var i = 0; i < sourceRecords.length; i++) {
+                if (sourceRecords[i].id === sourceEntry.id) {
+                    isLinked = true;
+                    break;
+                }
+            }
+
+            if (!isLinked) {
+                sourceRecords.push(sourceEntry);
+                core.safeSet(report, sourceFieldName, sourceRecords);
+
+                if (options && options.debugEntry && core.addDebug) {
+                    core.addDebug(options.debugEntry, "  🔗 Záznam prepojený s výkazom cez pole: " + sourceFieldName);
+                }
+            }
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, "Chyba pri prepájaní: " + error.toString(), "linkSourceToReport", error);
+            }
+        }
+    }
+
+    /**
+     * Aktualizuje súčty na výkaze
+     */
+    function updateReportSummary(report, reportConfig, calculatedData, options) {
+        var core = getCore();
+        var config = getConfig();
+
+        try {
+            var reportFields = config.fields[reportConfig.library];
+
+            if (!reportFields || !reportConfig.summaryFields) {
+                return;
+            }
+
+            // Aktualizuj súčtové polia z calculatedData
+            for (var i = 0; i < reportConfig.summaryFields.length; i++) {
+                var summaryField = reportConfig.summaryFields[i];
+                var fieldName = reportFields[summaryField];
+
+                if (fieldName && calculatedData[summaryField] !== undefined) {
+                    core.safeSet(report, fieldName, calculatedData[summaryField]);
+
+                    if (options && options.debugEntry && core.addDebug) {
+                        core.addDebug(options.debugEntry, "  📊 " + fieldName + " = " + calculatedData[summaryField]);
+                    }
+                }
+            }
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, "Chyba pri aktualizácii súčtov: " + error.toString(), "updateReportSummary", error);
+            }
+        }
+    }
+
+    /**
+     * Vytvorí alebo aktualizuje info záznam výkazu
+     */
+    function updateReportInfo(report, reportType, reportConfig, calculatedData, options) {
+        var core = getCore();
+        var config = getConfig();
+
+        try {
+            var reportFields = config.fields[reportConfig.library];
+            var infoFieldName = reportFields ? reportFields.info : null;
+
+            if (!infoFieldName) {
+                return;
+            }
+
+            var reportNumber = core.safeGet(report, reportFields.number, "N/A");
+            var customerName = "N/A";
+
+            // Získaj názov zákazky
+            var customerField = core.safeGetLinks(report, reportFields.order);
+            if (customerField && customerField.length > 0) {
+                customerName = core.safeGet(customerField[0], "Názov", "N/A");
+            }
+
+            var info = createReportInfo(reportType, reportNumber, customerName, calculatedData, options);
+            core.safeSet(report, infoFieldName, info);
+
+            if (options && options.debugEntry && core.addDebug) {
+                core.addDebug(options.debugEntry, "  📝 Info záznam aktualizovaný");
+            }
+
+        } catch (error) {
+            if (options && options.debugEntry && core.addError) {
+                core.addError(options.debugEntry, "Chyba pri aktualizácii info záznamu: " + error.toString(), "updateReportInfo", error);
+            }
+        }
+    }
+
+    /**
+     * Vytvorí štandardný Markdown info záznam pre výkaz
+     */
+    function createReportInfo(reportType, reportNumber, customerName, calculatedData, options) {
+        try {
+            var info = "# 📊 VÝKAZ " + reportType.toUpperCase() + " - AUTOMATICKÝ PREPOČET\n\n";
+            info += "## 📅 Základné údaje\n";
+            info += "- **Číslo výkazu:** " + reportNumber + "\n";
+            info += "- **Zákazka:** " + customerName + "\n";
+            info += "- **Dátum:** " + moment().format("DD.MM.YYYY") + "\n\n";
+
+            info += "## 📊 SÚHRN\n";
+
+            // Pridaj súčty z calculatedData
+            if (calculatedData) {
+                for (var key in calculatedData) {
+                    if (calculatedData[key] !== null && calculatedData[key] !== undefined) {
+                        var value = calculatedData[key];
+                        var displayValue = typeof value === 'number' ?
+                                         (key.toLowerCase().includes('sum') || key.toLowerCase().includes('total') || key.toLowerCase().includes('costs') ?
+                                          value.toFixed(2) + " €" : value.toString()) :
+                                         value.toString();
+                        info += "- **" + key + ":** " + displayValue + "\n";
+                    }
+                }
+            }
+
+            info += "\n## 🔧 TECHNICKÉ INFORMÁCIE\n";
+            info += "- **Čas spracovania:** " + moment().format("HH:mm:ss") + "\n";
+            info += "- **MementoBusiness:** v" + version + "\n";
+            info += "\n---\n**✅ VÝKAZ AKTUALIZOVANÝ ÚSPEŠNE**";
+
+            return info;
+
+        } catch (error) {
+            return "# 📊 VÝKAZ " + reportType.toUpperCase() + "\n\n❌ Chyba pri generovaní info záznamu: " + error.toString();
+        }
+    }
+
+    // ==============================================
     // PUBLIC API
     // ==============================================
 
@@ -2283,7 +2703,17 @@ var MementoBusiness = (function() {
         createOrUpdateMaterialPriceRecord: createOrUpdateMaterialPriceRecord,
 
         // Denný report - NOVÉ
-        createOrUpdateDailyReport: createOrUpdateDailyReport
+        createOrUpdateDailyReport: createOrUpdateDailyReport,
+
+        // === UNIVERZÁLNA ARCHITEKTÚRA PRE VÝKAZY - NOVÉ ===
+        createOrUpdateReport: createOrUpdateReport,
+        validateReportData: validateReportData,
+        findExistingReport: findExistingReport,
+        createGenericReport: createGenericReport,
+        linkSourceToReport: linkSourceToReport,
+        updateReportSummary: updateReportSummary,
+        updateReportInfo: updateReportInfo,
+        createReportInfo: createReportInfo
     };
 })();
 
