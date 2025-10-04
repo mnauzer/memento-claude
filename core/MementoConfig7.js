@@ -352,6 +352,7 @@ var MementoConfig = (function() {
                 wageCosts: "Mzdové náklady",
                 hzsSum: "Suma HZS",
                 machinesSum: "Suma stroje",
+                machinesCosts: "Náklady stroje", // currency - náklady za stroje
                 workItemsSum: "Suma", // currency - suma z Práce Položky
                 startTime: "Od",
                 endTime: "Do",
@@ -777,7 +778,9 @@ var MementoConfig = (function() {
                 owner: "Vlastník",
                 mth: "MTH", // motohodiny
                 hzs: "HZS", // linkToEntry: Cenník prác
-                flatRate: "Paušál" // linkToEntry: Cenník prác
+                flatRate: "Paušál", // linkToEntry: Cenník prác
+                costPriceMth: "Nákladová cena mth", // real number, nákladová cena za motohodinu
+                costPriceFlatRate: "Nákladová cena paušál" // real number, nákladová paušálna cena
             },
             // Miesto
             place: {

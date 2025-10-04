@@ -468,13 +468,15 @@ function processMachines() {
             count: machineryField ? machineryField.length : 0,
             processed: 0,
             total: 0,
+            totalCosts: 0,
             machines: []
         };
         // Ak nie sú žiadne stroje
         if (!machineryField || machineryField.length === 0) {
             utils.addDebug(currentEntry, "  ℹ️ Žiadne stroje ani mechanizácia dnes neboli použité...");
-            // Napriek tomu nastav pole Suma Stroje na 0
+            // Napriek tomu nastav polia na 0
             utils.safeSet(currentEntry, CONFIG.fields.workRecord.machinesSum, 0);
+            utils.safeSet(currentEntry, CONFIG.fields.workRecord.machinesCosts, 0);
             utils.addDebug(currentEntry, "  ✅ Uložená suma strojov do poľa: 0 €");
             usedMachines.success = true;
             return usedMachines;
@@ -549,6 +551,11 @@ function processMachines() {
                     continue; // preskočíme tento stroj
                 }
 
+                // Vypočítaj náklady za stroj
+                var costPriceMth = utils.safeGet(machine, CONFIG.fields.machine.costPriceMth, 0);
+                var costPriceFlatRate = utils.safeGet(machine, CONFIG.fields.machine.costPriceFlatRate, 0);
+                var totalCost = 0;
+
                 if (!hasMachinePrice || hasMachinePrice == 0) {
                     // vypočítaj sumu za tento stroj
                     if (calculationType === "mth") {
@@ -558,6 +565,7 @@ function processMachines() {
                         machineryFieldArray[i].setAttr(CONFIG.attributes.workRecordMachines.usedMth, usedMth);
                         machineryFieldArray[i].setAttr(CONFIG.attributes.workRecordMachines.priceMth, priceMth);
                         totalPrice = priceMth * usedMth;
+                        totalCost = costPriceMth * usedMth;
 
                     } else if (calculationType === "paušál") {
                         var flatRate = machinePrice.flatRate || 0;
@@ -565,6 +573,7 @@ function processMachines() {
                         machineryFieldArray[i].setAttr(CONFIG.attributes.workRecordMachines.calculationType, calculationType);
                         machineryFieldArray[i].setAttr(CONFIG.attributes.workRecordMachines.flatRate, flatRate);
                         totalPrice = flatRate;
+                        totalCost = costPriceFlatRate;
                     } else {
                         utils.addDebug(currentEntry, "  ⚠️ Nezadaný typ účtovania: '" + calculationType + "', nastavujem 'mth'");
                         calculationType = "mth";
@@ -573,20 +582,29 @@ function processMachines() {
                         machineryFieldArray[i].setAttr(CONFIG.attributes.workRecordMachines.usedMth, usedMth);
                         machineryFieldArray[i].setAttr(CONFIG.attributes.workRecordMachines.priceMth, priceMth);
                         totalPrice = priceMth * usedMth;
+                        totalCost = costPriceMth * usedMth;
                     }
 
                     machineryFieldArray[i].setAttr(CONFIG.attributes.workRecordMachines.totalPrice, totalPrice);
                     utils.addDebug(currentEntry, "    ✅ Atribúty nastavené:");
                     utils.addDebug(currentEntry, "      - calculationType: " + calculationType);
                     utils.addDebug(currentEntry, "      - totalPrice: " + totalPrice);
+                    utils.addDebug(currentEntry, "      - totalCost: " + totalCost);
 
 
                 } else {
                     utils.addDebug(currentEntry, "  ✅ Cena atribútu ceny je už nastavená: " + hasMachinePrice + " €");
                     utils.addDebug(currentEntry, "  • ak je potrebné prepočítať túto cenu, vymaž hodnotu a ulož záznam...");
                     totalPrice = hasMachinePrice;
+                    // Prepočítaj náklady aj keď cena už je nastavená
+                    if (calculationType === "mth") {
+                        totalCost = costPriceMth * usedMth;
+                    } else {
+                        totalCost = costPriceFlatRate;
+                    }
                 }
                 usedMachines.total += totalPrice;
+                usedMachines.totalCosts += totalCost;
                 usedMachines.processed += 1;
                 usedMachines.machines.push({
                     machine: machine,  // Skutočný Memento objekt
@@ -597,16 +615,22 @@ function processMachines() {
                         calculationType: calculationType,
                         priceMth: machinePrice.priceMth,
                         flatRate: machinePrice.flatRate,
-                        totalPrice: totalPrice
+                        costPriceMth: costPriceMth,
+                        costPriceFlatRate: costPriceFlatRate,
+                        totalPrice: totalPrice,
+                        totalCost: totalCost
                     }
                 });
                 usedMachines.success = true;
-                utils.addDebug(currentEntry, "  • Cena za stroje: " + totalPrice + " €");    
+                utils.addDebug(currentEntry, "  • Cena za stroje: " + totalPrice + " €");
+                utils.addDebug(currentEntry, "  • Náklady za stroje: " + totalCost + " €");
             }
 
-            // Vypočítaj sumu a ulož do poľa
+            // Vypočítaj sumu a ulož do polí
             utils.safeSet(currentEntry, CONFIG.fields.workRecord.machinesSum, usedMachines.total);
+            utils.safeSet(currentEntry, CONFIG.fields.workRecord.machinesCosts, usedMachines.totalCosts);
             utils.addDebug(currentEntry, "  ✅ Uložená suma strojov do poľa: " + usedMachines.total + " €");
+            utils.addDebug(currentEntry, "  ✅ Uložené náklady strojov do poľa: " + usedMachines.totalCosts + " €");
 
             utils.addDebug(currentEntry, "  " + utils.getIcon("rate") + " Suma za stroje: " + usedMachines.total + "€");
             utils.addDebug(currentEntry, "  " + utils.getIcon("machine_use") + " Použítých strojov: " + usedMachines.count);
@@ -1207,10 +1231,12 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesRes
 
         infoMessage += "## 📅 Základné údaje\n";
         var dayName = utils.getDayNameSK(moment(date).day()).toUpperCase();
+        var workedHours = utils.safeGet(currentEntry, CONFIG.fields.workRecord.workedHours, 0);
         infoMessage += "- **Dátum:** " + dateFormatted + " (" + dayName + ")" + "\n";
         infoMessage += "- **Pracovný čas:** " + moment(workTimeResult.startTimeRounded).format("HH:mm") +
                        " - " + moment(workTimeResult.endTimeRounded).format("HH:mm") + "\n";
-        infoMessage += "- **Odpracované:** " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
+        infoMessage += "- **Pracovná doba:** " + workTimeResult.pracovnaDobaHodiny + " hodín\n";
+        infoMessage += "- **Odpracované:** " + workedHours.toFixed(2) + " hodín\n\n";
 
         if (employeeResult.pocetPracovnikov > 0) {
             infoMessage += "## 👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + " " +
@@ -1244,15 +1270,19 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesRes
                     infoMessage += "- **Typ účtovania:** Motohodiny\n";
                     infoMessage += "- **Použité motohodiny:** " + machineData.usedMth + " mth\n";
                     infoMessage += "- **Cena za mth:** " + machineData.priceMth + " €/mth\n";
+                    infoMessage += "- **Nákladová cena za mth:** " + machineData.costPriceMth + " €/mth\n";
                 } else if (machineData.calculationType === "paušál") {
                     infoMessage += "- **Typ účtovania:** Paušál\n";
                     infoMessage += "- **Paušálna cena:** " + machineData.flatRate + " €\n";
+                    infoMessage += "- **Nákladová paušálna cena:** " + machineData.costPriceFlatRate + " €\n";
                 }
 
-                infoMessage += "- **Celková cena:** " + utils.formatMoney(machineData.totalPrice) + "\n\n";
+                infoMessage += "- **Celková cena:** " + utils.formatMoney(machineData.totalPrice) + "\n";
+                infoMessage += "- **Celkové náklady:** " + utils.formatMoney(machineData.totalCost) + "\n\n";
             }
 
-            infoMessage += "**🚜 Celková suma za stroje:** " + utils.formatMoney(machinesResult.total) + "\n\n";
+            infoMessage += "**🚜 Celková suma za stroje:** " + utils.formatMoney(machinesResult.total) + "\n";
+            infoMessage += "**🚜 Celkové náklady za stroje:** " + utils.formatMoney(machinesResult.totalCosts) + "\n\n";
         }
 
         // Práce Položky
@@ -1297,28 +1327,41 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesRes
             infoMessage += "\n";
         }
 
-        // Celkový súhrn nákladov (bez HZS - to je výnosová položka)
+        // Súhrn nákladov a výnosov
         var totalCosts = employeeResult.celkoveMzdy +
-                        (machinesResult && machinesResult.total ? machinesResult.total : 0) +
-                        (workItemsResult && workItemsResult.totalSum ? workItemsResult.totalSum : 0) +
+                        (machinesResult && machinesResult.totalCosts ? machinesResult.totalCosts : 0) +
                         (materialsResult && materialsResult.total ? materialsResult.total : 0);
 
-        if (totalCosts > 0) {
-            infoMessage += "## 💰 CELKOVÝ SÚHRN NÁKLADOV\n";
-            infoMessage += "- **Mzdové náklady:** " + utils.formatMoney(employeeResult.celkoveMzdy) + "\n";
-            if (machinesResult && machinesResult.total > 0) infoMessage += "- **Stroje:** " + utils.formatMoney(machinesResult.total) + "\n";
-            if (workItemsResult && workItemsResult.totalSum > 0) infoMessage += "- **Položky prác:** " + utils.formatMoney(workItemsResult.totalSum) + "\n";
-            if (materialsResult && materialsResult.total > 0) infoMessage += "- **Materiály:** " + utils.formatMoney(materialsResult.total) + "\n";
-            infoMessage += "- **CELKOM:** " + utils.formatMoney(totalCosts) + "\n\n";
+        infoMessage += "## 💰 SÚHRN\n";
+        infoMessage += "### Náklady\n";
+        infoMessage += "- **Mzdové náklady:** " + utils.formatMoney(employeeResult.celkoveMzdy) + "\n";
+        if (machinesResult && machinesResult.totalCosts > 0) infoMessage += "- **Náklady stroje:** " + utils.formatMoney(machinesResult.totalCosts) + "\n";
+        if (materialsResult && materialsResult.total > 0) infoMessage += "- **Materiály:** " + utils.formatMoney(materialsResult.total) + "\n";
+        infoMessage += "- **NÁKLADY CELKOM:** " + utils.formatMoney(totalCosts) + "\n\n";
+
+        infoMessage += "### Výnosy\n";
+        if (hzsResult.sum > 0) {
+            infoMessage += "- **Výnosy HZS:** " + utils.formatMoney(hzsResult.sum) + "\n\n";
+        } else {
+            infoMessage += "- **Výnosy HZS:** 0.00 €\n\n";
         }
 
         infoMessage += "## 🔧 TECHNICKÉ INFORMÁCIE\n";
         infoMessage += "- **Script:** " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
-        infoMessage += "- **Čas spracovania:** " + moment().format("HH:mm:ss") + "\n";
-        infoMessage += "- **MementoUtils:** v" + (utils.version || "N/A") + "\n";
+        infoMessage += "- **Čas spracovania:** " + moment().format("HH:mm:ss") + "\n\n";
 
+        infoMessage += "**Použité moduly:**\n";
         if (typeof MementoConfig !== 'undefined') {
-            infoMessage += "- **MementoConfig:** v" + MementoConfig.version + "\n";
+            infoMessage += "- MementoConfig v" + MementoConfig.version + "\n";
+        }
+        if (typeof MementoCore !== 'undefined' && MementoCore.version) {
+            infoMessage += "- MementoCore v" + MementoCore.version + "\n";
+        }
+        if (typeof MementoBusiness !== 'undefined' && MementoBusiness.version) {
+            infoMessage += "- MementoBusiness v" + MementoBusiness.version + "\n";
+        }
+        if (typeof MementoUtils !== 'undefined' && utils.version) {
+            infoMessage += "- MementoUtils v" + utils.version + "\n";
         }
 
         infoMessage += "\n---\n**✅ PREPOČET DOKONČENÝ ÚSPEŠNE**";
