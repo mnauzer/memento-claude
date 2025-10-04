@@ -1,8 +1,12 @@
 // ==============================================
 // MEMENTO DATABASE - ZÁZNAM PRÁC PREPOČET
-// Verzia: 8.3.2 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 8.5.0 | Dátum: október 2025 | Autor: ASISTANTO
 // Knižnica: Záznam práce | Trigger: Before Save
 // ==============================================
+// ✅ REFAKTOROVANÉ v8.5:
+//    - Pridané vizuálne ikony pre stroje (🚜), denný report (📋)
+//    - Link na denný report uložený v poli "Denný report"
+//    - Ikony sa automaticky pridávajú pri úspešnom spracovaní
 // ✅ REFAKTOROVANÉ v8.3:
 //    - Pridaná integrácia s knižnicou Denný report
 //    - Automatické vytvorenie/aktualizácia záznamu pre deň
@@ -31,7 +35,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Záznam prác Prepočet",
-    version: "8.4.1",  // Pridané spracovanie Práce Položky + nový formát info výkazu prác
+    version: "8.5.0",  // Pridané vizuálne ikony + link na denný report
 
     // Referencie na centrálny config
     fields: {
@@ -69,6 +73,11 @@ function main() {
         utils.addDebug(currentEntry, utils.getIcon("start") + " === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
         utils.addDebug(currentEntry, "Čas spustenia: " + utils.formatDate(moment()));
         utils.clearLogs(currentEntry, true);
+
+        // Vyčisti pole ikon na začiatku
+        utils.safeSet(currentEntry, CONFIG.fields.workRecord.icons, "");
+        var entryIcons = "";
+
         // Kroky prepočtu
         var steps = {
             step1: { success: false, name: "Načítanie a validácia dát" },
@@ -116,6 +125,12 @@ function main() {
         var machinesResult = processMachines();
         steps.step5.success = machinesResult.success;
 
+        // Pridaj ikonu ak sú stroje úspešne prepočítané
+        if (machinesResult && machinesResult.success && machinesResult.count > 0) {
+            entryIcons += CONFIG.icons.heavy_machine;
+            utils.addDebug(currentEntry, "  " + CONFIG.icons.heavy_machine + " Pridaná ikona pre stroje");
+        }
+
         // Krok 5.1: Spracovanie Práce Položky
         utils.addDebug(currentEntry, utils.getIcon("calculation") + " KROK 5.1: Spracovanie Práce Položky");
         var workItemsResult = processWorkItems();
@@ -145,18 +160,34 @@ function main() {
         utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 9: Spracovanie Denný report");
         var dailyReportResult = utils.createOrUpdateDailyReport(currentEntry, 'workRecord', {
             debugEntry: currentEntry,
-            createBackLink: false  // Zatiaľ bez spätného linku
+            createBackLink: true  // Vytvor spätný link na denný report
         });
         steps.step9.success = dailyReportResult.success;
 
         if (dailyReportResult.success) {
             var action = dailyReportResult.created ? "vytvorený" : "aktualizovaný";
             utils.addDebug(currentEntry, "✅ Denný report " + action + " úspešne");
+
+            // Pridaj ikonu pre denný report
+            entryIcons += CONFIG.icons.daily_report;
+            utils.addDebug(currentEntry, "  " + CONFIG.icons.daily_report + " Pridaná ikona pre denný report");
+
+            // Ulož link na denný report ak existuje
+            if (dailyReportResult.dailyReport) {
+                utils.safeSet(currentEntry, CONFIG.fields.workRecord.dailyReport, [dailyReportResult.dailyReport]);
+                utils.addDebug(currentEntry, "  🔗 Link na denný report uložený");
+            }
         } else {
             utils.addDebug(currentEntry, "⚠️ Chyba pri spracovaní Denný report: " + (dailyReportResult.error || "Neznáma chyba"));
         }
 
         utils.addDebug(currentEntry, utils.getIcon("success") + " === PREPOČET DOKONČENÝ ===");
+
+        // Ulož ikony do poľa
+        if (entryIcons) {
+            utils.safeSet(currentEntry, CONFIG.fields.workRecord.icons, entryIcons);
+            utils.addDebug(currentEntry, "📌 Uložené ikony záznamu: " + entryIcons);
+        }
 
         // Zobraz súhrn
         logFinalSummary(steps, employeeResult, hzsResult);

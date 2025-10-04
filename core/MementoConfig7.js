@@ -55,7 +55,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.11",
+        version: "7.0.14",  // Pridané polia icons a dailyReport do workRecord + ikony material, daily_report
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -359,6 +359,8 @@ var MementoConfig = (function() {
                 machinery: "Mechanizácia", // linkToEntry Mechanizácia
                 sumMachineryUsage: "Použitie mechanizácie", // linkToEntry Výkaz strojov
                 workItems: "Práce Položky", // linkToEntry: Cenník prác
+                icons: "ikony záznamu", // text (emoji) - ikony pre vizuálnu indikáciu
+                dailyReport: "Denný report", // linkToEntry Denný report
                 // Povinné polia pre validáciu
                 requiredFields: ["date", "order", "employees", "startTime", "endTime"]
             },
@@ -1310,6 +1312,8 @@ var MementoConfig = (function() {
             heavy_machine: "🚜",       // Ťažký stroj)
             accessory: "🔩",           // Príslušenstvo
             machine_use: "⚙️",        // Použitie stroja (rovnaké ako inProgress - OK!)
+            material: "🧰",            // Materiál
+            daily_report: "📋",        // Denný report (linknutý na záznam)
             // ═══════════════════════════════════════════════════════════════
             // POČASIE (kombinované emoji sú skvelé!)
             // ═══════════════════════════════════════════════════════════════
