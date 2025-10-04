@@ -1113,12 +1113,17 @@ function generateWorkReportInfo(workReport) {
 
         var info = "# 📋 VÝKAZ PRÁC\n\n";
 
+        var totalHours = 0;
+        var totalHzsSum = 0;
+        var totalItemsSum = 0;
+
         // Sekcia Hodinovka (HZS)
         if (workRecords.length > 0) {
             info += "## ⏱️ HODINOVKA\n\n";
 
-            var totalHours = 0;
-            var totalHzsSum = 0;
+            // Tabuľka - hlavička
+            info += "| # | Dátum | Hodiny | Sadzba | Cena |\n";
+            info += "|---|--------|--------|--------|--------|\n";
 
             // Získaj atribúty cez field()
             var workRecordsWithAttrs = workReport.field(CONFIG.fields.workReport.workRecords);
@@ -1137,10 +1142,12 @@ function generateWorkReportInfo(workReport) {
                 totalHours += hours;
                 totalHzsSum += price;
 
-                info += (i + 1) + ". **" + dateFormatted + "** | ";
+                // Riadok tabuľky
+                info += "| " + (i + 1) + " | ";
+                info += dateFormatted + " | ";
                 info += hours.toFixed(2) + " h | ";
                 info += rate.toFixed(2) + " €/h | ";
-                info += "**" + price.toFixed(2) + " €**\n";
+                info += "**" + price.toFixed(2) + " €** |\n";
             }
 
             info += "\n**📊 Súhrn Hodinovka:**\n";
@@ -1152,7 +1159,9 @@ function generateWorkReportInfo(workReport) {
         if (workItems.length > 0) {
             info += "## 📋 POLOŽKY\n\n";
 
-            var totalItemsSum = 0;
+            // Tabuľka - hlavička
+            info += "| # | Názov | Množstvo | MJ | Cena | Cena celkom |\n";
+            info += "|---|-------|----------|----|----- |-------------|\n";
 
             // Získaj atribúty cez field()
             var workItemsWithAttrs = workReport.field(CONFIG.fields.workReport.workItems);
@@ -1161,34 +1170,63 @@ function generateWorkReportInfo(workReport) {
                 var item = workItems[i];
                 var itemWithAttrs = workItemsWithAttrs[i];
 
-                var itemName = utils.safeGet(item, CONFIG.fields.workPrices.name, "Neznáma položka");
+                // Získaj názov položky z linknutého záznamu (pole "Názov")
+                var itemName = utils.safeGet(item, "Názov", "Neznáma položka");
+
+                // Získaj mernú jednotku z linknutého záznamu cenníka (pole "MJ")
+                var mjLinks = utils.safeGetLinks(item, "MJ") || [];
+                var mj = "ks";
+                if (mjLinks.length > 0) {
+                    mj = utils.safeGet(mjLinks[0], "Názov", "ks");
+                }
+
                 var quantity = parseFloat(itemWithAttrs.attr(CONFIG.attributes.workReportWorkItems.quantity)) || 0;
                 var price = parseFloat(itemWithAttrs.attr(CONFIG.attributes.workReportWorkItems.price)) || 0;
                 var total = parseFloat(itemWithAttrs.attr(CONFIG.attributes.workReportWorkItems.totalPrice)) || 0;
 
                 totalItemsSum += total;
 
-                info += (i + 1) + ". **" + itemName + "** | ";
+                // Riadok tabuľky
+                info += "| " + (i + 1) + " | ";
+                info += itemName + " | ";
                 info += quantity.toFixed(2) + " | ";
-                info += price.toFixed(2) + " €/j | ";
-                info += "**" + total.toFixed(2) + " €**\n";
+                info += mj + " | ";
+                info += price.toFixed(2) + " € | ";
+                info += "**" + total.toFixed(2) + " €** |\n";
             }
 
             info += "\n**📊 Súhrn Položky:**\n";
             info += "- Celková suma: **" + totalItemsSum.toFixed(2) + " €**\n\n";
         }
 
-        // Celkový súhrn
-        var grandTotal = (totalHzsSum || 0) + (totalItemsSum || 0);
-        if (grandTotal > 0) {
-            info += "## 💰 CELKOVÝ SÚHRN\n";
-            if (workRecords.length > 0) {
-                info += "- Hodinovka: " + (totalHzsSum || 0).toFixed(2) + " €\n";
+        // Celkový súhrn - porovnanie
+        if (workRecords.length > 0 && workItems.length > 0) {
+            info += "## 💰 POROVNANIE ÚČTOVANIA\n\n";
+
+            var difference = totalItemsSum - totalHzsSum;
+            var percentDiff = totalHzsSum > 0 ? (difference / totalHzsSum * 100) : 0;
+
+            info += "| Typ účtovania | Suma | Poznámka |\n";
+            info += "|---------------|------|----------|\n";
+            info += "| ⏱️ Hodinovka | " + totalHzsSum.toFixed(2) + " € | |\n";
+            info += "| 📋 Položky | " + totalItemsSum.toFixed(2) + " € | |\n";
+            info += "| **Rozdiel** | **" + Math.abs(difference).toFixed(2) + " €** | ";
+
+            if (difference > 0) {
+                info += "✅ Položky výhodnejšie o " + percentDiff.toFixed(1) + "% |\n";
+            } else if (difference < 0) {
+                info += "⚠️ Hodinovka výhodnejšia o " + Math.abs(percentDiff).toFixed(1) + "% |\n";
+            } else {
+                info += "⚖️ Rovnaké |\n";
             }
-            if (workItems.length > 0) {
-                info += "- Položky: " + (totalItemsSum || 0).toFixed(2) + " €\n";
-            }
-            info += "- **Celkom: " + grandTotal.toFixed(2) + " €**\n\n";
+
+            info += "\n";
+
+        } else if (workRecords.length > 0 || workItems.length > 0) {
+            // Iba jeden typ účtovania
+            var grandTotal = totalHzsSum + totalItemsSum;
+            info += "## 💰 CELKOVÁ SUMA\n";
+            info += "**" + grandTotal.toFixed(2) + " €**\n\n";
         }
 
         // Metainfo
