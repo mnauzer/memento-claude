@@ -554,32 +554,32 @@ function processMachines() {
                     if (calculationType === "mth") {
                         var priceMth = machinePrice.priceMth || 0;
                         utils.addDebug(currentEntry, "  • Účtujem motohodiny: " + usedMth + " mth" + " × " + priceMth + " €/mth");
-                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.calculationType, calculationType, i);
-                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.usedMth, usedMth, i);
-                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.priceMth, priceMth, i);
+                        machineryFieldArray[i].setAttr(CONFIG.attributes.workRecordMachines.calculationType, calculationType);
+                        machineryFieldArray[i].setAttr(CONFIG.attributes.workRecordMachines.usedMth, usedMth);
+                        machineryFieldArray[i].setAttr(CONFIG.attributes.workRecordMachines.priceMth, priceMth);
                         totalPrice = priceMth * usedMth;
 
                     } else if (calculationType === "paušál") {
                         var flatRate = machinePrice.flatRate || 0;
                         utils.addDebug(currentEntry, "  • Účtujem paušál: " + flatRate + " €");
-                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.calculationType, calculationType, i);
-                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.flatRate, flatRate, i);
+                        machineryFieldArray[i].setAttr(CONFIG.attributes.workRecordMachines.calculationType, calculationType);
+                        machineryFieldArray[i].setAttr(CONFIG.attributes.workRecordMachines.flatRate, flatRate);
                         totalPrice = flatRate;
                     } else {
                         utils.addDebug(currentEntry, "  ⚠️ Nezadaný typ účtovania: '" + calculationType + "', nastavujem 'mth'");
                         calculationType = "mth";
                         var priceMth = machinePrice.priceMth || 0;
-                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.calculationType, calculationType, i);
-                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.usedMth, usedMth, i);
-                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.priceMth, priceMth, i);
+                        machineryFieldArray[i].setAttr(CONFIG.attributes.workRecordMachines.calculationType, calculationType);
+                        machineryFieldArray[i].setAttr(CONFIG.attributes.workRecordMachines.usedMth, usedMth);
+                        machineryFieldArray[i].setAttr(CONFIG.attributes.workRecordMachines.priceMth, priceMth);
                         totalPrice = priceMth * usedMth;
                     }
 
-                    utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.totalPrice, totalPrice, i);
+                    machineryFieldArray[i].setAttr(CONFIG.attributes.workRecordMachines.totalPrice, totalPrice);
                     utils.addDebug(currentEntry, "    ✅ Atribúty nastavené:");
                     utils.addDebug(currentEntry, "      - calculationType: " + calculationType);
                     utils.addDebug(currentEntry, "      - totalPrice: " + totalPrice);
-                 
+
 
                 } else {
                     utils.addDebug(currentEntry, "  ✅ Cena atribútu ceny je už nastavená: " + hasMachinePrice + " €");
