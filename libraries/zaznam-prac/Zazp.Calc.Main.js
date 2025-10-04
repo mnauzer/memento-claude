@@ -523,27 +523,27 @@ function processMachines() {
                     if (calculationType === "mth") {
                         var priceMth = machinePrice.priceMth || 0;
                         utils.addDebug(currentEntry, "  • Účtujem motohodiny: " + usedMth + " mth" + " × " + priceMth + " €/mth");
-                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.workRecordMachines.usedMth, usedMth, i);
-                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.workRecordMachines.priceMth, priceMth, i);
+                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.usedMth, usedMth, i);
+                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.priceMth, priceMth, i);
                         totalPrice = priceMth * usedMth;
 
                     } else if (calculationType === "paušál") {
                         var flatRate = machinePrice.flatRate || 0;
                         utils.addDebug(currentEntry, "  • Účtujem paušál: " + flatRate + " €");
-                        //utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.workRecordMachines.flatRate, flatRate, i);
+                        //utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.flatRate, flatRate, i);
                         totalPrice = flatRate;
                     } else {
                         utils.addDebug(currentEntry, "  ⚠️ Nezadaný typ účtovania: '" + calculationType + "', nastavujem 'mth'");
                         calculationType = "mth";
                         var priceMth = machinePrice.priceMth || 0;
-                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.workRecordMachines.usedMth, usedMth, i);
-                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.workRecordMachines.priceMth, priceMth, i);
+                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.usedMth, usedMth, i);
+                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.priceMth, priceMth, i);
                         totalPrice = priceMth * usedMth;
                     }
 
                  
 
-                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.workRecordMachines.totalPrice, totalPrice, i);
+                        utils.safeSetAttribute(currentEntry, CONFIG.fields.workRecord.machinery, CONFIG.attributes.workRecordMachines.totalPrice, totalPrice, i);
                         utils.addDebug(currentEntry, "    ✅ totalPrice nastavené");
                  
 
