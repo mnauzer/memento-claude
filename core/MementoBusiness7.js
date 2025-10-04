@@ -2854,11 +2854,11 @@ var MementoBusiness = (function() {
                         // Použij správne názvy atribútov z currentEntry (workRecordMachines)
                         var workRecordAttrs = config.attributes.workRecordMachines;
 
-                        var rawCalculationType = machineryArray[i].getAttr(workRecordAttrs.calculationType);
-                        var rawMth = machineryArray[i].getAttr(workRecordAttrs.usedMth);
-                        var rawPriceMth = machineryArray[i].getAttr(workRecordAttrs.priceMth);
-                        var rawFlatRate = machineryArray[i].getAttr(workRecordAttrs.flatRate);
-                        var rawTotalPrice = machineryArray[i].getAttr(workRecordAttrs.totalPrice);
+                        var rawCalculationType = machineryArray[i].attr(workRecordAttrs.calculationType);
+                        var rawMth = machineryArray[i].attr(workRecordAttrs.usedMth);
+                        var rawPriceMth = machineryArray[i].attr(workRecordAttrs.priceMth);
+                        var rawFlatRate = machineryArray[i].attr(workRecordAttrs.flatRate);
+                        var rawTotalPrice = machineryArray[i].attr(workRecordAttrs.totalPrice);
 
                         machineAttrs.calculationType = rawCalculationType || "mth";
                         machineAttrs.mth = parseFloat(rawMth) || 1;
@@ -2958,60 +2958,58 @@ var MementoBusiness = (function() {
      */
     function findExistingMachineLink(existingMachinesArray, machineId, calculationType, options) {
         var core = getCore();
-        var aggregated = {};
+        var config = getConfig();
 
         try {
             if (options && options.debugEntry && core.addDebug) {
-                core.addDebug(options.debugEntry, "📊 Agregovanie dát strojov");
+                core.addDebug(options.debugEntry, "🔍 Hľadám existujúci link pre stroj ID: " + machineId + ", typ: " + calculationType);
             }
 
-            // Prejdi všetky stroje a agreguj ich dáta
-            for (var i = 0; i < machinesResult.machines.length; i++) {
-                var machineEntry = machinesResult.machines[i].machine;  // Memento objekt
-                var machineData = machinesResult.machines[i].machineData;  // Naše dáta
-                var machineId = machineData.id;
+            // Prejdi existujúce linky na stroje vo výkaze
+            for (var i = 0; i < existingMachinesArray.length; i++) {
+                var existingMachine = existingMachinesArray[i];
+                var existingMachineId = core.safeGet(existingMachine, "ID");
 
-                if (!aggregated[machineId]) {
-                    // Nový stroj
-                    aggregated[machineId] = {
-                        machineEntry: machineEntry,  // Memento objekt
-                        machineData: machineData,    // Naše dáta
-                        totalMth: 0,
-                        totalFlatRate: 0,
-                        priceMth: machineData.priceMth || 0,
-                        flatRatePrice: machineData.flatRate || 0,
-                        totalPrice: 0,
-                        flatRateCount: 0,
-                        description: []
+                if (existingMachineId === machineId) {
+                    if (options && options.debugEntry && core.addDebug) {
+                        core.addDebug(options.debugEntry, "  ✅ Nájdený existujúci link pre stroj ID: " + machineId);
+                    }
+
+                    // Skontroluj typ účtovania z atribútov výkazu strojov (DEPRECATED ale funkčný)
+                    var existingCalculationType = core.safeGetAttribute(
+                        existingMachine,
+                        config.fields.machinesReport.machines,
+                        config.attributes.machinesReportMachines.calculationType,
+                        null
+                    );
+
+                    // Ak je typ kompatibilný (rovnaký alebo nevyplnený), môžeme agregova
+                    var canAggregate = !existingCalculationType || existingCalculationType === calculationType;
+
+                    return {
+                        found: true,
+                        canAggregate: canAggregate,
+                        linkObject: existingMachine,
+                        existingType: existingCalculationType
                     };
                 }
-
-                var agg = aggregated[machineId];
-
-                // Agreguj hodnoty podľa typu účtovania
-                if (machineData.calculationType === "mth") {
-                    agg.totalMth += machineData.usedMth || 0;
-                    agg.totalPrice += machineData.totalPrice || 0;
-                } else if (machineData.calculationType === "paušál") {
-                    agg.flatRateCount += 1;
-                    agg.totalPrice += machineData.totalPrice || 0;
-                }
-
-                // Pridaj popis ak existuje
-                if (machineData.description) {
-                    agg.description.push(machineData.description);
-                }
             }
 
+            // Ak nebol nájdený žiadny existujúci link
             if (options && options.debugEntry && core.addDebug) {
-                core.addDebug(options.debugEntry, "  📈 Agregovaných strojov: " + Object.keys(aggregated).length);
+                core.addDebug(options.debugEntry, "  ❌ Žiadny existujúci link pre stroj ID: " + machineId);
             }
 
-            return aggregated;
+            return {
+                found: false,
+                canAggregate: false,
+                linkObject: null,
+                existingType: null
+            };
 
         } catch (error) {
             if (options && options.debugEntry && core.addError) {
-                core.addError(options.debugEntry, error.toString(), "aggregateMachinesData", error);
+                core.addError(options.debugEntry, error.toString(), "findExistingMachineLink", error);
             }
             return {};
         }
@@ -3317,10 +3315,10 @@ var MementoBusiness = (function() {
             var attrs = config.attributes.machinesReportMachines;
 
             // Získaj existujúce hodnoty
-            var existingMth = parseFloat(linkObject.getAttr(attrs.mth)) || 0;
-            var existingPausal = parseFloat(linkObject.getAttr(attrs.pausalPocet)) || 0;
-            var existingCenaMth = parseFloat(linkObject.getAttr(attrs.cenaMth)) || 0;
-            var existingCenaPausal = parseFloat(linkObject.getAttr(attrs.cenaPausal)) || 0;
+            var existingMth = parseFloat(linkObject.attr(attrs.mth)) || 0;
+            var existingPausal = parseFloat(linkObject.attr(attrs.pausalPocet)) || 0;
+            var existingCenaMth = parseFloat(linkObject.attr(attrs.cenaMth)) || 0;
+            var existingCenaPausal = parseFloat(linkObject.attr(attrs.cenaPausal)) || 0;
 
             // Aktualizuj hodnoty podľa typu účtovania
             if (newAttrs.calculationType === "mth") {
