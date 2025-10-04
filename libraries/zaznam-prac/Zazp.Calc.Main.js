@@ -720,7 +720,7 @@ function createOrUpdateWorkReport(employeeResult, hzsResult, machinesResult, val
 
         if (reportResult.success) {
             utils.addDebug(currentEntry, "✅ Nová architektúra - výkaz prác: " + reportResult.action);
-            utils.addDebug(currentEntry, "📊 Výkaz: " + (reportResult.report ? reportResult.report.field("Číslo") || "N/A" : "N/A"));
+            utils.addDebug(currentEntry, "📊 Výkaz: " + (reportResult.report ? utils.safeGet(reportResult.report, "Číslo", "N/A") : "N/A"));
             utils.addDebug(currentEntry, "🔗 Súčty: hodiny=" + calculatedData.totalHours + ", suma=" + calculatedData.hzsSum);
             return true;
         } else {
@@ -764,7 +764,7 @@ function createOrUpdateMachinesReport(machinesResult, validationResult) {
 
         if (reportResult.success) {
             utils.addDebug(currentEntry, "✅ Výkaz strojov: " + reportResult.action);
-            utils.addDebug(currentEntry, "📊 Výkaz: " + (reportResult.report ? reportResult.report.field("Číslo") || "N/A" : "N/A"));
+            utils.addDebug(currentEntry, "📊 Výkaz: " + (reportResult.report ? utils.safeGet(reportResult.report, "Číslo", "N/A") : "N/A"));
             utils.addDebug(currentEntry, "🔗 Súčty: mth=" + calculatedData.totalHours + ", suma=" + calculatedData.totalCost);
             return true;
         } else {
