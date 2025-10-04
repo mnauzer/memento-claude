@@ -1,8 +1,22 @@
 // ==============================================
 // MEMENTO DATABASE - KNIHA JÁZD (ROUTE CALCULATION & PAYROLL)
-// Verzia: 10.2.0 | Dátum: Október 2025 | Autor: ASISTANTO
+// Verzia: 10.5.0 | Dátum: Október 2025 | Autor: ASISTANTO
 // Knižnica: Kniha jázd | Trigger: Before Save
 // ==============================================
+// ✅ PRIDANÉ v10.5:
+//    - Refaktorovaný info záznam podľa vzoru Záznam prác
+//    - Pridané sekcie Súhrn (Náklady, Výnosy, Vyhodnotenie)
+//    - Pridané používané moduly do technických informácií
+//    - Pridané parkovanie do sekcie Vozidlo (názov cieľového miesta)
+//    - Zjednotené formátovanie a štruktúra info záznamu
+// ✅ PRIDANÉ v10.4:
+//    - Automatický výpočet atribútu km pre zákazky
+//    - Km sa počíta z vzdialenosti miesta × 2 (tam a nazad)
+//    - Pridané rideLogOrders atribúty do MementoConfig7 v7.0.17
+// ✅ PRIDANÉ v10.3:
+//    - Pridané vizuálne ikony pre denný report (📋)
+//    - Link na denný report uložený v poli "Denný report"
+//    - Ikony sa automaticky pridávajú pri úspešnom spracovaní
 // ✅ PRIDANÉ v10.2:
 //    - Synchronizácia s knižnicou Denný report (krok 9)
 //    - Automatické vytvorenie/aktualizácia záznamu v Denný report
@@ -39,7 +53,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Kniha jázd Prepočet",
-    version: "10.2.0",
+    version: "10.5.0",  // Refaktorovaný info záznam + parkovanie vo Vozidlo sekcii
 
     // Referencie na centrálny config
     fields: {
@@ -1042,11 +1056,11 @@ function kombinujZakazky(existujuce, nove) {
 }
 
 /**
- * Pomocná funkcia - nastaví atribúty počtu pre zákazky
+ * Pomocná funkcia - nastaví atribúty počtu a km pre zákazky
  */
 function nastavAtributyPoctu(countZakaziek) {
     try {
-        utils.addDebug(currentEntry, "\n  🔢 NASTAVOVANIE ATRIBÚTOV POČTU:");
+        utils.addDebug(currentEntry, "\n  🔢 NASTAVOVANIE ATRIBÚTOV POČTU A KM:");
         utils.addDebug(currentEntry, "  📊 Počty zákaziek: " + JSON.stringify(countZakaziek));
 
         // Znovu načítaj Link to Entry pole
@@ -1056,24 +1070,44 @@ function nastavAtributyPoctu(countZakaziek) {
             return;
         }
         utils.addDebug(currentEntry, "  📋 Počet linknutých zákaziek: " + linknuteZakazky.length);
-        
+
         for (var i = 0; i < linknuteZakazky.length; i++) {
             var zakazkaObj = linknuteZakazky[i];
             var info = getZakazkaInfo(zakazkaObj);
             var identifikator = info.cislo ? info.cislo.toString() : info.nazov;
             var pocet = countZakaziek[identifikator] || 0;
-            
+
             if (pocet > 0) {
                 try {
                     // Nastav atribút počet
                     linknuteZakazky[i].setAttr("počet", pocet);
                     utils.addDebug(currentEntry, "    ✅ " + info.display + " → počet = " + pocet);
                 } catch (attrError) {
-                    utils.addDebug(currentEntry, "    ❌ Chyba pri nastavovaní atribútu: " + attrError);
+                    utils.addDebug(currentEntry, "    ❌ Chyba pri nastavovaní atribútu počet: " + attrError);
                 }
             }
+
+            // Nastav atribút km z linknutého miesta
+            try {
+                var miesto = utils.safeGetLinks(zakazkaObj, CONFIG.fields.order.place);
+                if (miesto && miesto.length > 0) {
+                    var vzdialenost = utils.safeGet(miesto[0], CONFIG.fields.place.distance, 0);
+                    if (vzdialenost > 0) {
+                        // Vynásob 2 (tam aj nazad)
+                        var kmTamNazad = vzdialenost * 2;
+                        linknuteZakazky[i].setAttr("km", kmTamNazad);
+                        utils.addDebug(currentEntry, "    ✅ " + info.display + " → km = " + kmTamNazad + " (vzdialenosť: " + vzdialenost + " km × 2)");
+                    } else {
+                        utils.addDebug(currentEntry, "    ℹ️ " + info.display + " → miesto nemá vzdialenosť");
+                    }
+                } else {
+                    utils.addDebug(currentEntry, "    ℹ️ " + info.display + " → nemá linknuté miesto");
+                }
+            } catch (kmError) {
+                utils.addDebug(currentEntry, "    ❌ Chyba pri nastavovaní atribútu km: " + kmError);
+            }
         }
-        
+
     } catch (error) {
         utils.addError(currentEntry, "Chyba pri nastavovaní atribútov: " + error.toString(), "nastavAtributyPoctu");
     }
@@ -1160,6 +1194,13 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
         if (vehicleResult && vehicleResult.success && vehicleResult.message !== "Žiadne vozidlo") {
             infoMessage += "## 🚐 VOZIDLO\n";
             infoMessage += "- " + vehicleResult.message + "\n";
+
+            // Pridaj informácie o parkovacom mieste (cieli)
+            var destination = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.destination) || [];
+            if (destination.length > 0) {
+                var destName = utils.safeGet(destination[0], CONFIG.fields.place.name, "N/A");
+                infoMessage += "- **Parkovanie:** " + destName + "\n";
+            }
 
             // Pridaj informácie o nákladovej cene
             var vozidloField = currentEntry.field(CONFIG.fields.rideLog.vehicle);
@@ -1276,29 +1317,45 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
             infoMessage += "**💰 Celkové mzdové náklady:** " + utils.formatMoney(wageResult.celkoveMzdy) + "\n\n";
         }
 
-        // Náklady vozidla
-        if (vehicleCostResult && vehicleCostResult.success && vehicleCostResult.vehicleCosts > 0) {
-            infoMessage += "## 🚗 NÁKLADY VOZIDLA\n";
-            infoMessage += "- **Celkové náklady:** " + utils.formatMoney(vehicleCostResult.vehicleCosts) + "\n\n";
-        }
-
-        // Celkové náklady
+        // Súhrn nákladov
         var totalCosts = 0;
+        var wageCosts = 0;
+        var vehicleCosts = 0;
+
         if (wageResult && wageResult.success && wageResult.celkoveMzdy) {
-            totalCosts += wageResult.celkoveMzdy;
+            wageCosts = wageResult.celkoveMzdy;
+            totalCosts += wageCosts;
         }
         if (vehicleCostResult && vehicleCostResult.success && vehicleCostResult.vehicleCosts) {
-            totalCosts += vehicleCostResult.vehicleCosts;
+            vehicleCosts = vehicleCostResult.vehicleCosts;
+            totalCosts += vehicleCosts;
         }
 
-        if (totalCosts > 0) {
-            infoMessage += "## 💰 CELKOVÉ NÁKLADY\n";
-            infoMessage += "- **Spolu:** " + utils.formatMoney(totalCosts) + "\n\n";
-        }
+        infoMessage += "## 💰 SÚHRN\n";
+        infoMessage += "### Náklady\n";
+        if (wageCosts > 0) infoMessage += "- **Mzdové náklady:** " + utils.formatMoney(wageCosts) + "\n";
+        if (vehicleCosts > 0) infoMessage += "- **Náklady vozidlo:** " + utils.formatMoney(vehicleCosts) + "\n";
+        infoMessage += "- **NÁKLADY CELKOM:** " + utils.formatMoney(totalCosts) + "\n\n";
 
         infoMessage += "## 🔧 TECHNICKÉ INFORMÁCIE\n";
         infoMessage += "- **Script:** " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
-        infoMessage += "- **Vygenerované:** " + utils.formatDate(moment(), "DD.MM.YYYY HH:mm:ss") + "\n";
+        infoMessage += "- **Čas spracovania:** " + moment().format("HH:mm:ss") + "\n\n";
+
+        infoMessage += "**Použité moduly:**\n";
+        if (typeof MementoConfig !== 'undefined') {
+            infoMessage += "- MementoConfig v" + MementoConfig.version + "\n";
+        }
+        if (typeof MementoCore !== 'undefined' && MementoCore.version) {
+            infoMessage += "- MementoCore v" + MementoCore.version + "\n";
+        }
+        if (typeof MementoBusiness !== 'undefined' && MementoBusiness.version) {
+            infoMessage += "- MementoBusiness v" + MementoBusiness.version + "\n";
+        }
+        if (typeof MementoUtils !== 'undefined' && utils.version) {
+            infoMessage += "- MementoUtils v" + utils.version + "\n";
+        }
+
+        infoMessage += "\n---\n**✅ PREPOČET DOKONČENÝ ÚSPEŠNE**";
 
         utils.safeSet(currentEntry, CONFIG.fields.common.info, infoMessage);
         utils.addDebug(currentEntry, "✅ Info záznam vytvorený s Markdown formátovaním");
@@ -1861,11 +1918,15 @@ function main() {
         
         // Vyčisti logy
         utils.clearLogs(currentEntry, true);
-        
+
         utils.addDebug(currentEntry, "🚀 === ŠTART " + CONFIG.scriptName + " v" + CONFIG.version + " ===");
         utils.addDebug(currentEntry, "MementoUtils verzia: " + utils.version);
         utils.addDebug(currentEntry, "Čas spustenia: " + utils.formatDate(moment()));
-        
+
+        // Vyčisti pole ikon na začiatku
+        utils.safeSet(currentEntry, CONFIG.fields.rideLog.icons, "");
+        var entryIcons = "";
+
         // Test HTTP funkcionality
         try {
             var testHttp = http();
@@ -1875,7 +1936,7 @@ function main() {
         } catch (httpError) {
             utils.addDebug(currentEntry, "❌ HTTP funkcia chyba: " + httpError);
         }
-        
+
         // Kroky prepočtu
         var steps = {
             step1: { success: false, name: "Výpočet trasy" },
@@ -1937,12 +1998,23 @@ function main() {
         utils.addDebug(currentEntry, "\n📅 === KROK 9: SYNCHRONIZÁCIA DENNÉHO REPORTU ===");
         var dailyReportResult = utils.createOrUpdateDailyReport(currentEntry, 'rideLog', {
             debugEntry: currentEntry,
-            createBackLink: false
+            createBackLink: true  // Vytvor spätný link na denný report
         });
 
         if (dailyReportResult && dailyReportResult.success) {
             var action = dailyReportResult.created ? "vytvorený" : "aktualizovaný";
             utils.addDebug(currentEntry, "✅ Denný report " + action + " úspešne");
+
+            // Pridaj ikonu pre denný report
+            entryIcons += CONFIG.icons.daily_report;
+            utils.addDebug(currentEntry, "  " + CONFIG.icons.daily_report + " Pridaná ikona pre denný report");
+
+            // Ulož link na denný report ak existuje
+            if (dailyReportResult.dailyReport) {
+                utils.safeSet(currentEntry, CONFIG.fields.rideLog.dailyReport, [dailyReportResult.dailyReport]);
+                utils.addDebug(currentEntry, "  🔗 Link na denný report uložený");
+            }
+
             steps.step9.success = true;
         } else {
             var errorMsg = dailyReportResult ? dailyReportResult.error : "Neznáma chyba";
@@ -1950,9 +2022,15 @@ function main() {
             steps.step9.success = false;
         }
 
+        // Ulož ikony do poľa
+        if (entryIcons) {
+            utils.safeSet(currentEntry, CONFIG.fields.rideLog.icons, entryIcons);
+            utils.addDebug(currentEntry, "📌 Uložené ikony záznamu: " + entryIcons);
+        }
+
         // Finálny súhrn
         logFinalSummary(steps, routeResult, wageResult, vehicleCostResult, vehicleResult, vykazResult, dailyReportResult, orderLinkResult);
-        
+
         return true;
         
     } catch (error) {
