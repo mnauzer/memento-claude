@@ -1,15 +1,19 @@
 // ==============================================
 // MEMENTO DATABASE - DENNÝ REPORT PREPOČET
-// Verzia: 1.0.0 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 1.0.1 | Dátum: október 2025 | Autor: ASISTANTO
 // Knižnica: Denný report | Trigger: Before Save
 // ==============================================
-// ✅ FUNKCIONALITA v1.0.0:
+// ✅ FUNKCIONALITA v1.0.1:
 //    - Agregácia dát z Dochádzky, Záznamov prác, Knihy jázd a Pokladne
-//    - Vytváranie Info záznamov pre každú sekciu
+//    - Vytváranie Info záznamov pre každú sekciu (len v Debug logu)
 //    - Výpočet celkových odpracovaných hodín
-//    - Integrácia s MementoTelegram pre notifikácie
-//    - Integrácia s MementoAI pre AI analýzy
-//    - Spätné linkovanie do jednotlivých záznamov
+//    - Výpočet celkových km, príjmov a výdavkov
+//    - Generovanie popisu záznamu
+//    - Príprava na integráciu s MementoTelegram a MementoAI
+// 🔧 CHANGELOG v1.0.1:
+//    - Opravené formatovanie času (formatDate + formatTime namiesto formatDateTime)
+//    - Odstránené zapisovanie do polí (len debug výstupy)
+//    - Odstránené spätné linkovanie (pripravené na neskoršiu implementáciu)
 // ==============================================
 
 // ==============================================
@@ -25,7 +29,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Denný report Prepočet",
-    version: "1.0.0",
+    version: "1.0.1",
 
     // Referencie na centrálny config
     fields: {
@@ -88,12 +92,8 @@ function main() {
         utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 6: Generovanie popisu záznamu");
         var descriptionResult = generateRecordDescription(attendanceResult, workRecordsResult, rideLogResult, cashBookResult);
 
-        // KROK 7: Spätné linkovanie do jednotlivých záznamov
-        utils.addDebug(currentEntry, utils.getIcon("link") + " KROK 7: Spätné linkovanie");
-        var backlinkResult = createBacklinks();
-
-        // KROK 8: Telegram notifikácie (voliteľné)
-        utils.addDebug(currentEntry, utils.getIcon("telegram") + " KROK 8: Telegram notifikácie");
+        // KROK 7: Telegram notifikácie (voliteľné - pripravené na neskoršiu implementáciu)
+        utils.addDebug(currentEntry, utils.getIcon("telegram") + " KROK 7: Telegram notifikácie");
         var telegramResult = sendTelegramNotifications(attendanceResult, workRecordsResult, rideLogResult, cashBookResult);
 
         utils.addDebug(currentEntry, utils.getIcon("success") + " === PREPOČET DOKONČENÝ ===");
@@ -185,7 +185,8 @@ function processAttendance() {
         }
 
         // Vytvor zjednotený info záznam
-        var timestamp = utils.formatDateTime(new Date());
+        var now = new Date();
+        var timestamp = utils.formatDate(now) + " " + utils.formatTime(now);
         var infoText = "\n📊 DOCHÁDZKA - ZHRNUTIE: " + timestamp + "\n";
         infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
         infoText += "📈 Celkom záznamov: " + attendanceRecords.length + "\n";
@@ -199,8 +200,8 @@ function processAttendance() {
         infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
         infoText += infoBlocks.join("\n");
 
-        // Ulož info záznam
-        utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoAttendance, infoText);
+        // Ulož info záznam (len do logu, zatiaľ nezapisuj do poľa)
+        utils.addDebug(currentEntry, "  📊 INFO DOCHÁDZKA:\n" + infoText);
         utils.addDebug(currentEntry, "  ✅ Info dochádzka vytvorený (" + attendanceRecords.length + " záznamov)");
 
         result.success = true;
@@ -282,7 +283,8 @@ function processWorkRecords() {
         }
 
         // Vytvor zjednotený info záznam
-        var timestamp = utils.formatDateTime(new Date());
+        var now = new Date();
+        var timestamp = utils.formatDate(now) + " " + utils.formatTime(now);
         var infoText = "\n📝 ZÁZNAMY PRÁC - ZHRNUTIE: " + timestamp + "\n";
         infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
         infoText += "📈 Celkom záznamov: " + workRecords.length + "\n";
@@ -296,8 +298,8 @@ function processWorkRecords() {
         infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
         infoText += infoBlocks.join("\n");
 
-        // Ulož info záznam
-        utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoWorkRecords, infoText);
+        // Ulož info záznam (len do logu, zatiaľ nezapisuj do poľa)
+        utils.addDebug(currentEntry, "  📊 INFO ZÁZNAM PRÁC:\n" + infoText);
         utils.addDebug(currentEntry, "  ✅ Info záznam prác vytvorený (" + workRecords.length + " záznamov)");
 
         result.success = true;
@@ -379,7 +381,8 @@ function processRideLog() {
         }
 
         // Vytvor zjednotený info záznam
-        var timestamp = utils.formatDateTime(new Date());
+        var now = new Date();
+        var timestamp = utils.formatDate(now) + " " + utils.formatTime(now);
         var infoText = "\n🚗 KNIHA JÁZD - ZHRNUTIE: " + timestamp + "\n";
         infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
         infoText += "📈 Celkom záznamov: " + rideRecords.length + "\n";
@@ -393,8 +396,8 @@ function processRideLog() {
         infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
         infoText += infoBlocks.join("\n");
 
-        // Ulož info záznam
-        utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoRideLog, infoText);
+        // Ulož info záznam (len do logu, zatiaľ nezapisuj do poľa)
+        utils.addDebug(currentEntry, "  📊 INFO KNIHA JÁZD:\n" + infoText);
         utils.addDebug(currentEntry, "  ✅ Info kniha jázd vytvorený (" + rideRecords.length + " záznamov)");
 
         result.success = true;
@@ -467,7 +470,8 @@ function processCashBook() {
         }
 
         // Vytvor zjednotený info záznam
-        var timestamp = utils.formatDateTime(new Date());
+        var now = new Date();
+        var timestamp = utils.formatDate(now) + " " + utils.formatTime(now);
         var infoText = "\n💰 POKLADŇA - ZHRNUTIE: " + timestamp + "\n";
         infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
         infoText += "📈 Celkom záznamov: " + cashRecords.length + "\n";
@@ -477,8 +481,8 @@ function processCashBook() {
         infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
         infoText += infoBlocks.join("\n");
 
-        // Ulož info záznam
-        utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoCashBook, infoText);
+        // Ulož info záznam (len do logu, zatiaľ nezapisuj do poľa)
+        utils.addDebug(currentEntry, "  📊 INFO POKLADŇA:\n" + infoText);
         utils.addDebug(currentEntry, "  ✅ Info pokladňa vytvorený (" + cashRecords.length + " záznamov)");
 
         result.success = true;
@@ -518,9 +522,7 @@ function calculateTotalHours(attendanceResult, workRecordsResult) {
         }
 
         utils.addDebug(currentEntry, "  ⏱️ Celkové odpracované hodiny: " + totalHours.toFixed(2) + " h");
-
-        // Ulož do poľa
-        utils.safeSet(currentEntry, CONFIG.fields.dailyReport.hoursWorked, totalHours);
+        utils.addDebug(currentEntry, "  ℹ️ Zatiaľ nezapisujeme do poľa hoursWorked");
 
         result.success = true;
         result.totalHours = totalHours;
@@ -577,8 +579,8 @@ function generateRecordDescription(attendanceResult, workRecordsResult, rideLogR
         var description = parts.join(" | ");
 
         if (description) {
-            utils.safeSet(currentEntry, CONFIG.fields.dailyReport.recordDescription, description);
             utils.addDebug(currentEntry, "  ✅ Popis záznamu: " + description);
+            utils.addDebug(currentEntry, "  ℹ️ Zatiaľ nezapisujeme do poľa recordDescription");
         }
 
         result.success = true;
@@ -594,74 +596,8 @@ function generateRecordDescription(attendanceResult, workRecordsResult, rideLogR
 // ==============================================
 // SPÄTNÉ LINKOVANIE
 // ==============================================
-
-function createBacklinks() {
-    var result = {
-        success: false,
-        linkedCount: 0
-    };
-
-    try {
-        var currentId = currentEntry.field("ID");
-        var linkedCount = 0;
-
-        // Získaj všetky linknuté záznamy a pridaj spätný link do nich
-        var sections = [
-            { field: CONFIG.fields.dailyReport.attendance, backField: "Denný report" },
-            { field: CONFIG.fields.dailyReport.workRecord, backField: "Denný report" },
-            { field: CONFIG.fields.dailyReport.rideLog, backField: CONFIG.fields.rideLog.dailyReport },
-            { field: CONFIG.fields.dailyReport.cashBook, backField: "Denný report" }
-        ];
-
-        for (var i = 0; i < sections.length; i++) {
-            var section = sections[i];
-            var records = utils.safeGetLinks(currentEntry, section.field);
-
-            if (records && records.length > 0) {
-                for (var j = 0; j < records.length; j++) {
-                    var record = records[j];
-
-                    // Pridaj spätný link (ak pole existuje)
-                    try {
-                        var existingLinks = utils.safeGetLinks(record, section.backField);
-                        var alreadyLinked = false;
-
-                        if (existingLinks && existingLinks.length > 0) {
-                            for (var k = 0; k < existingLinks.length; k++) {
-                                if (existingLinks[k].field("ID") === currentId) {
-                                    alreadyLinked = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!alreadyLinked) {
-                            record.set(section.backField, [currentEntry]);
-                            linkedCount++;
-                        }
-                    } catch (linkError) {
-                        // Pole neexistuje alebo nie je LinkToEntry
-                        utils.addDebug(currentEntry, "  ⚠️ Nepodarilo sa vytvoriť spätný link do " + section.backField);
-                    }
-                }
-            }
-        }
-
-        if (linkedCount > 0) {
-            utils.addDebug(currentEntry, "  ✅ Vytvorených " + linkedCount + " spätných linkov");
-        } else {
-            utils.addDebug(currentEntry, "  ℹ️ Žiadne nové spätné linky");
-        }
-
-        result.success = true;
-        result.linkedCount = linkedCount;
-
-    } catch (error) {
-        utils.addError(currentEntry, "Chyba pri vytváraní spätných linkov: " + error.toString(), "createBacklinks", error);
-    }
-
-    return result;
-}
+// TODO: Implementácia spätných linkov bude pridaná neskôr
+// Po overení správnosti výpočtov a agregácií
 
 // ==============================================
 // TELEGRAM NOTIFIKÁCIE
