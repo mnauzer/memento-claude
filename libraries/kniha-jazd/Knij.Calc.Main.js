@@ -1598,7 +1598,7 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
             var zakazkyForm = zakazky.length === 1 ? "zákazka" :
                              zakazky.length < 5 ? "zákazky" : "zákaziek";
             var checkboxInfo = customerStopsCount > 0 ? " (" + customerStopsCount + " zastávok s checkboxom)" : "";
-            infoMessage += "## 🛠️ ZÁKAZKY (" + zakazky.length + " " + zakazkyForm + checkboxInfo + ")\n\n";
+            infoMessage += "## 🛠️ ZÁKAZKY (" + zakazky.length + " " + zakazkyForm + ")\n\n";
             for (var k = 0; k < Math.min(zakazky.length, 5); k++) {
                 var zakazka = zakazky[k];
                 var zakazkaInfo = getZakazkaInfo(zakazka);
