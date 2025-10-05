@@ -1,8 +1,14 @@
 // ==============================================
 // MEMENTO DATABASE - KNIHA JÁZD (ROUTE CALCULATION & PAYROLL)
-// Verzia: 10.9.0 | Dátum: Október 2025 | Autor: ASISTANTO
+// Verzia: 10.9.1 | Dátum: Október 2025 | Autor: ASISTANTO
 // Knižnica: Kniha jázd | Trigger: Before Save
 // ==============================================
+// ✅ OPRAVENÉ v10.9.1:
+//    - Sekcia ZÁKAZKY v info zázname sa zobrazuje vždy ak sú zákazky v poli Zákazky
+//    - Pôvodne sa zobrazovala len ak boli auto-linkované (orderLinkResult)
+//    - Počet zákaziek sa získava priamo z poľa, nie z orderLinkResult
+//    - Zjednotené získavanie atribútu "počet" s fallbackom na orderLinkResult
+//    - Súhrn auto-linkovania sa zobrazuje len ak existuje orderLinkResult
 // ✅ PRIDANÉ v10.9.0:
 //    - Override pre ukončené zákazky: Ak Dátum ukončenia >= Dátum záznamu, ignoruj stav "Ukončená"
 //    - Nový atribút "účtovanie" v poli Zákazky (Km, Paušál, %)
@@ -94,7 +100,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Kniha jázd Prepočet",
-    version: "10.9.0",  // Override ukončených zákaziek + atribút účtovanie
+    version: "10.9.1",  // Oprava zobrazenia sekcie Zákazky v info zázname
 
     // Referencie na centrálny config
     fields: {
@@ -1471,21 +1477,18 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
             } catch (e) {}
         }
 
-        // Zákazky informácie
-        if (orderLinkResult && orderLinkResult.success && orderLinkResult.uniqueCustomers > 0) {
-            var zakazkyForm = orderLinkResult.uniqueCustomers === 1 ? "zákazka" :
-                             orderLinkResult.uniqueCustomers < 5 ? "zákazky" : "zákaziek";
-            infoMessage += "## 🏢 ZÁKAZKY (" + customerStopsCount + " " + zakazkyForm + " podľa checkboxu)\n\n";
-
-            var zakazky = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.orders) || [];
+        // Zákazky informácie - zobraz vždy ak sú linknuté v poli Zákazky
+        var zakazky = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.orders) || [];
+        if (zakazky.length > 0) {
+            var zakazkyForm = zakazky.length === 1 ? "zákazka" :
+                             zakazky.length < 5 ? "zákazky" : "zákaziek";
+            var checkboxInfo = customerStopsCount > 0 ? " (" + customerStopsCount + " zastávok s checkboxom)" : "";
+            infoMessage += "## 🏢 ZÁKAZKY (" + zakazky.length + " " + zakazkyForm + checkboxInfo + ")\n\n";
             for (var k = 0; k < Math.min(zakazky.length, 5); k++) {
                 var zakazka = zakazky[k];
                 var zakazkaInfo = getZakazkaInfo(zakazka);
-                var identifikator = zakazkaInfo.cislo ? zakazkaInfo.cislo.toString() : zakazkaInfo.nazov;
-                var pocet = orderLinkResult.customersWithCounts[identifikator] || 1;
 
                 infoMessage += "### 🏢 " + zakazkaInfo.display + "\n";
-                infoMessage += "- **Počet zastávok:** " + pocet + "x\n";
 
                 // Získaj atribút počtu (počet zastávok na zákazke)
                 var attrPocet = 0;
@@ -1498,11 +1501,14 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
                     // Ignoruj chybu atribútu
                 }
 
-                // Použi atribút pocet ako hlavný počet pre výpočty
-                var pocetPreVypocty = attrPocet > 0 ? attrPocet : pocet;
+                // Fallback na orderLinkResult ak atribút neexistuje
+                if (attrPocet === 0 && orderLinkResult && orderLinkResult.customersWithCounts) {
+                    var identifikator = zakazkaInfo.cislo ? zakazkaInfo.cislo.toString() : zakazkaInfo.nazov;
+                    attrPocet = orderLinkResult.customersWithCounts[identifikator] || 0;
+                }
 
-                if (pocetPreVypocty > 0) {
-                    infoMessage += "- **Počet zastávok (atribút):** " + pocetPreVypocty + "x\n";
+                if (attrPocet > 0) {
+                    infoMessage += "- **Počet zastávok:** " + attrPocet + "x\n";
                 }
 
                 // Získaj spôsob účtovania a ceny z cenovej ponuky
@@ -1553,10 +1559,10 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
                 }
 
                 // Vypočítaj výnosy paušál (použiť atribút počet)
-                if (pocetPreVypocty > 0 && cenaPausal > 0) {
-                    var vynosyPausal = pocetPreVypocty * cenaPausal;
+                if (attrPocet > 0 && cenaPausal > 0) {
+                    var vynosyPausal = attrPocet * cenaPausal;
                     infoMessage += "- **Výnosy (Paušál):** " + utils.formatMoney(vynosyPausal);
-                    infoMessage += " (" + pocetPreVypocty + "x × " + utils.formatMoney(cenaPausal) + ")\n";
+                    infoMessage += " (" + attrPocet + "x × " + utils.formatMoney(cenaPausal) + ")\n";
                 }
 
                 infoMessage += "\n";
@@ -1566,22 +1572,16 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
                 infoMessage += "_...a ďalších " + (zakazky.length - 5) + " zákaziek_\n\n";
             }
 
-            var totalStops = (utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.stops) || []).length;
-            infoMessage += "**📊 Súhrn:** " + orderLinkResult.processedStops + " zastávok so zákazkami z " + totalStops + " celkovo\n";
+            // Súhrnné informácie (len ak existuje orderLinkResult)
+            if (orderLinkResult && orderLinkResult.processedStops > 0) {
+                var totalStops = (utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.stops) || []).length;
+                infoMessage += "**📊 Súhrn auto-linkovania:** " + orderLinkResult.processedStops + " zastávok so zákazkami z " + totalStops + " celkovo\n";
 
-            // Upozornenie ak niektoré zastávky označené ako zákazky neboli nalinkované
-            var customerStopsCount = 0;
-            var stops = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.stops) || [];
-            for (var s = 0; s < stops.length; s++) {
-                try {
-                    var isCustomerStop = stops[s].field(CONFIG.fields.place.isOrder);
-                    if (isCustomerStop === true) customerStopsCount++;
-                } catch (e) {}
-            }
-
-            if (customerStopsCount > orderLinkResult.processedStops) {
-                var rejectedCount = customerStopsCount - orderLinkResult.processedStops;
-                infoMessage += "⚠️ **Pozor:** " + rejectedCount + " zastávok označených ako zákazky nebolo nalinkovaných (možno sú ukončené)\n";
+                // Upozornenie ak niektoré zastávky označené ako zákazky neboli nalinkované
+                if (customerStopsCount > orderLinkResult.processedStops) {
+                    var rejectedCount = customerStopsCount - orderLinkResult.processedStops;
+                    infoMessage += "⚠️ **Pozor:** " + rejectedCount + " zastávok označených ako zákazky nebolo nalinkovaných (možno sú ukončené)\n";
+                }
             }
             infoMessage += "\n";
         }
