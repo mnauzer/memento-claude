@@ -1,8 +1,20 @@
 // ==============================================
 // MEMENTO DATABASE - KNIHA JÁZD (ROUTE CALCULATION & PAYROLL)
-// Verzia: 10.7.1 | Dátum: Október 2025 | Autor: ASISTANTO
+// Verzia: 10.9.0 | Dátum: Október 2025 | Autor: ASISTANTO
 // Knižnica: Kniha jázd | Trigger: Before Save
 // ==============================================
+// ✅ PRIDANÉ v10.9.0:
+//    - Override pre ukončené zákazky: Ak Dátum ukončenia >= Dátum záznamu, ignoruj stav "Ukončená"
+//    - Nový atribút "účtovanie" v poli Zákazky (Km, Paušál, %)
+//    - Atribút sa automaticky vyplní zo spôsobu účtovania z Cenovej ponuky
+//    - MementoConfig v7.0.21: Pridaný atribút billing do rideLogOrders
+//    - Umožňuje správnu spätnú evidenciu starších záznamov
+// ✅ PRIDANÉ v10.8.0:
+//    - Automatická aktualizácia tachometra vozidla (Stav tachometra)
+//    - Pri uložení záznamu sa pripočíta rozdiel km (nová - pôvodná hodnota)
+//    - Správne fungovanie pri novom zázname aj pri editácii
+//    - Pridaný nový krok 6: Aktualizácia tachometra vozidla
+//    - Renumerovanie krokov 7-10 (linkovanie zákaziek, info, výkaz, denný report)
 // ✅ OPRAVENÉ v10.7.1:
 //    - Paušálna cena vozidla sa získava z linksFrom (ceny dopravy → Cena paušál)
 //    - Cena za km sa získava z linksFrom (ceny dopravy → Cena km, fallback na Cena)
@@ -82,7 +94,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Kniha jázd Prepočet",
-    version: "10.7.1",  // Paušál vozidla z linksFrom (ceny dopravy)
+    version: "10.9.0",  // Override ukončených zákaziek + atribút účtovanie
 
     // Referencie na centrálny config
     fields: {
@@ -762,10 +774,112 @@ function synchronizeVehicleLocation() {
 }
 
 /**
- * KROK 6: Auto-linkovanie zákaziek zo zastávok
+ * KROK 6: Aktualizácia tachometra vozidla
+ * Pripočíta rozdi el prejazdených km k stavu tachometra vozidla
+ */
+function updateVehicleOdometer(originalKm, routeResult) {
+    utils.addDebug(currentEntry, "\n📊 === KROK 6: AKTUALIZÁCIA TACHOMETRA VOZIDLA ===");
+
+    var result = {
+        success: false,
+        message: "",
+        kmAdded: 0
+    };
+
+    try {
+        // Získaj vozidlo z aktuálneho záznamu
+        var vozidloField = currentEntry.field(CONFIG.fields.rideLog.vehicle);
+        if (!vozidloField || vozidloField.length === 0) {
+            utils.addDebug(currentEntry, "  ℹ️ Žiadne vozidlo - preskakujem aktualizáciu tachometra");
+            result.success = true;
+            result.message = "Žiadne vozidlo";
+            return result;
+        }
+
+        var vozidlo = vozidloField[0];
+        var vozidloNazov = utils.safeGet(vozidlo, CONFIG.fields.vehicle.name, "N/A");
+        utils.addDebug(currentEntry, "  🚗 Vozidlo: " + vozidloNazov);
+
+        // Získaj novú hodnotu km z routeResult alebo priamo z poľa
+        var newKm = 0;
+        if (routeResult && routeResult.totalKm) {
+            newKm = routeResult.totalKm;
+        } else {
+            newKm = utils.safeGet(currentEntry, CONFIG.fields.rideLog.totalKm, 0);
+        }
+
+        utils.addDebug(currentEntry, "  📏 Pôvodná hodnota km v zázname: " + originalKm);
+        utils.addDebug(currentEntry, "  📏 Nová hodnota km v zázname: " + newKm);
+
+        // Vypočítaj rozdiel (bude kladný ak sa km zvýšili, záporný ak sa znížili)
+        var kmDifference = newKm - originalKm;
+
+        utils.addDebug(currentEntry, "  🔢 Rozdiel km: " + kmDifference.toFixed(2));
+
+        // Ak nie je žiadny rozdiel, preskočiť aktualizáciu
+        if (Math.abs(kmDifference) < 0.01) {
+            utils.addDebug(currentEntry, "  ℹ️ Žiadna zmena km - preskakujem aktualizáciu tachometra");
+            result.success = true;
+            result.message = "Žiadna zmena km";
+            return result;
+        }
+
+        // Získaj aktuálny stav tachometra vozidla
+        var currentOdometer = utils.safeGet(vozidlo, CONFIG.fields.vehicle.odometerValue, 0);
+        utils.addDebug(currentEntry, "  📊 Aktuálny stav tachometra: " + currentOdometer + " km");
+
+        // Vypočítaj nový stav tachometra
+        var newOdometer = currentOdometer + kmDifference;
+
+        // Zaokrúhli na 2 desatinné miesta
+        newOdometer = Math.round(newOdometer * 100) / 100;
+
+        utils.addDebug(currentEntry, "  📊 Nový stav tachometra: " + newOdometer + " km (zmena: " + (kmDifference > 0 ? "+" : "") + kmDifference.toFixed(2) + " km)");
+
+        // Aktualizuj tachometer vozidla
+        try {
+            vozidlo.set(CONFIG.fields.vehicle.odometerValue, newOdometer);
+            utils.addDebug(currentEntry, "  ✅ Tachometer vozidla aktualizovaný: " + currentOdometer + " → " + newOdometer + " km");
+
+            // Pridaj info do vozidla
+            var existingInfo = utils.safeGet(vozidlo, CONFIG.fields.common.info, "");
+            var updateInfo = "\n🔄 TACHOMETER AKTUALIZOVANÝ: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
+            updateInfo += "• Z: " + currentOdometer + " km\n";
+            updateInfo += "• Na: " + newOdometer + " km\n";
+            updateInfo += "• Pridané: " + (kmDifference > 0 ? "+" : "") + kmDifference.toFixed(2) + " km\n";
+            updateInfo += "• Kniha jázd #" + currentEntry.field("ID") + "\n";
+            updateInfo += "• Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
+
+            // Obmedz dĺžku info poľa
+            var newInfo = existingInfo + updateInfo;
+            if (newInfo.length > 5000) {
+                newInfo = "... (skrátené) ...\n" + newInfo.substring(newInfo.length - 4900);
+            }
+
+            vozidlo.set(CONFIG.fields.common.info, newInfo);
+
+            result.message = "Tachometer aktualizovaný: +" + kmDifference.toFixed(2) + " km";
+            result.kmAdded = kmDifference;
+            result.success = true;
+
+        } catch (updateError) {
+            utils.addError(currentEntry, "Chyba pri aktualizácii tachometra: " + updateError.toString(), "updateVehicleOdometer");
+            result.message = "Chyba aktualizácie";
+        }
+
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "updateVehicleOdometer", error);
+        result.message = "Kritická chyba";
+    }
+
+    return result;
+}
+
+/**
+ * KROK 7: Auto-linkovanie zákaziek zo zastávok
  */
 function autoLinkOrdersFromStops() {
-    utils.addDebug(currentEntry, "\n🔗 === KROK 6: AUTO-LINKOVANIE ZÁKAZIEK ZO ZASTÁVOK ===");
+    utils.addDebug(currentEntry, "\n🔗 === KROK 7: AUTO-LINKOVANIE ZÁKAZIEK ZO ZASTÁVOK ===");
     
     var result = {
         success: false,
@@ -955,18 +1069,31 @@ function jeZakazkaValidna(zakazka, datumZaznamu) {
     if (!zakazka) return false;
 
     try {
-        // KONTROLA 1: Stav zákazky - nesmie byť "Ukončená"
-        var stavZakazky = utils.safeGet(zakazka, CONFIG.fields.order.state, "");
-        if (stavZakazky === "Ukončená") {
-            utils.addDebug(currentEntry, "      ❌ Zákazka je ukončená: " + stavZakazky);
-            return false;
-        }
-
-        // KONTROLA 2: Dátum ukončenia - ak je vyplnený a prešiel, zákazka nie je platná
+        // KONTROLA 1: Dátum ukončenia - ak je vyplnený a prešiel, zákazka nie je platná
         var datumUkoncenia = utils.safeGet(zakazka, CONFIG.fields.order.endDate);
         if (datumUkoncenia && datumZaznamu) {
             if (moment(datumZaznamu).isAfter(moment(datumUkoncenia), 'day')) {
                 utils.addDebug(currentEntry, "      ❌ Zákazka ukončená podľa dátumu: " + utils.formatDate(datumUkoncenia, "DD.MM.YYYY"));
+                return false;
+            }
+        }
+
+        // KONTROLA 2: Stav zákazky - nesmie byť "Ukončená"
+        // VÝNIMKA: Ak je Dátum ukončenia <= Dátum záznamu, ignoruj stav "Ukončená" (pre spätnú evidenciu)
+        var stavZakazky = utils.safeGet(zakazka, CONFIG.fields.order.state, "");
+        if (stavZakazky === "Ukončená") {
+            // Override: Ak má zákazka dátum ukončenia a ten je >= dátum záznamu, povoľ ju
+            if (datumUkoncenia && datumZaznamu) {
+                if (moment(datumUkoncenia).isSameOrAfter(moment(datumZaznamu), 'day')) {
+                    utils.addDebug(currentEntry, "      ⚠️ Zákazka ukončená, ale dátum ukončenia (" + utils.formatDate(datumUkoncenia, "DD.MM.YYYY") +
+                                  ") >= dátum záznamu (" + utils.formatDate(datumZaznamu, "DD.MM.YYYY") + ") - POVOLENÉ (spätná evidencia)");
+                    // Pokračuj vo validácii, nevrať false
+                } else {
+                    utils.addDebug(currentEntry, "      ❌ Zákazka je ukončená: " + stavZakazky);
+                    return false;
+                }
+            } else {
+                utils.addDebug(currentEntry, "      ❌ Zákazka je ukončená: " + stavZakazky);
                 return false;
             }
         }
@@ -1092,7 +1219,7 @@ function kombinujZakazky(existujuce, nove) {
  */
 function nastavAtributyPoctu(countZakaziek) {
     try {
-        utils.addDebug(currentEntry, "\n  🔢 NASTAVOVANIE ATRIBÚTOV POČTU A KM:");
+        utils.addDebug(currentEntry, "\n  🔢 NASTAVOVANIE ATRIBÚTOV (POČET, KM, ÚČTOVANIE):");
         utils.addDebug(currentEntry, "  📊 Počty zákaziek: " + JSON.stringify(countZakaziek));
 
         // Znovu načítaj Link to Entry pole
@@ -1137,6 +1264,24 @@ function nastavAtributyPoctu(countZakaziek) {
                 }
             } catch (kmError) {
                 utils.addDebug(currentEntry, "    ❌ Chyba pri nastavovaní atribútu km: " + kmError);
+            }
+
+            // Nastav atribút účtovanie z cenovej ponuky
+            try {
+                var cenovaPonuka = utils.safeGetLinks(zakazkaObj, CONFIG.fields.order.quote);
+                if (cenovaPonuka && cenovaPonuka.length > 0) {
+                    var sposobUctovania = utils.safeGet(cenovaPonuka[0], CONFIG.fields.quote.rideCalculation, "");
+                    if (sposobUctovania) {
+                        linknuteZakazky[i].setAttr(CONFIG.attributes.rideLogOrders.billing, sposobUctovania);
+                        utils.addDebug(currentEntry, "    ✅ " + info.display + " → účtovanie = " + sposobUctovania);
+                    } else {
+                        utils.addDebug(currentEntry, "    ℹ️ " + info.display + " → cenová ponuka nemá spôsob účtovania");
+                    }
+                } else {
+                    utils.addDebug(currentEntry, "    ℹ️ " + info.display + " → nemá cenovú ponuku");
+                }
+            } catch (billingError) {
+                utils.addDebug(currentEntry, "    ❌ Chyba pri nastavovaní atribútu účtovanie: " + billingError);
             }
         }
 
@@ -2227,6 +2372,10 @@ function main() {
             utils.addDebug(currentEntry, "❌ HTTP funkcia chyba: " + httpError);
         }
 
+        // Uloženie pôvodnej hodnoty km pre správnu aktualizáciu tachometra
+        var originalKm = utils.safeGet(currentEntry, CONFIG.fields.rideLog.totalKm, 0);
+        utils.addDebug(currentEntry, "📏 Pôvodná hodnota km v zázname: " + originalKm);
+
         // Kroky prepočtu
         var steps = {
             step1: { success: false, name: "Výpočet trasy" },
@@ -2234,10 +2383,11 @@ function main() {
             step3: { success: false, name: "Výpočet nákladov vozidla" },
             step4: { success: false, name: "Výpočet mzdových nákladov" },
             step5: { success: false, name: "Synchronizácia stanovišťa vozidla" },
-            step6: { success: false, name: "Linkovanie zákaziek" },
-            step7: { success: false, name: "Vytvorenie info záznamu" },
-            step8: { success: false, name: "Synchronizácia výkazu jázd" },
-            step9: { success: false, name: "Synchronizácia denného reportu" }
+            step6: { success: false, name: "Aktualizácia tachometra vozidla" },
+            step7: { success: false, name: "Linkovanie zákaziek" },
+            step8: { success: false, name: "Vytvorenie info záznamu" },
+            step9: { success: false, name: "Synchronizácia výkazu jázd" },
+            step10: { success: false, name: "Synchronizácia denného reportu" }
         };
         
         // KROK 1: Výpočet trasy
@@ -2259,16 +2409,20 @@ function main() {
         // KROK 5: Synchronizácia stanovišťa vozidla
         var vehicleResult = synchronizeVehicleLocation();
         steps.step5.success = vehicleResult.success;
-        
-        // KROK 6: Linkovanie zákaziek
-        var orderLinkResult = autoLinkOrdersFromStops();
-        steps.step6.success = orderLinkResult.success;
 
-        // KROK 7: Vytvorenie info záznamu
-        steps.step7.success = createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostResult, orderLinkResult);
-        
-        // KROK 8: Synchronizácia výkazu jázd (TESTOVANIE NOVEJ ARCHITEKTÚRY)
-        utils.addDebug(currentEntry, "\n📊 === KROK 8: SYNCHRONIZÁCIA VÝKAZU JÁZD ===");
+        // KROK 6: Aktualizácia tachometra vozidla
+        var odometerResult = updateVehicleOdometer(originalKm, routeResult);
+        steps.step6.success = odometerResult.success;
+
+        // KROK 7: Linkovanie zákaziek
+        var orderLinkResult = autoLinkOrdersFromStops();
+        steps.step7.success = orderLinkResult.success;
+
+        // KROK 8: Vytvorenie info záznamu
+        steps.step8.success = createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostResult, orderLinkResult);
+
+        // KROK 9: Synchronizácia výkazu jázd (TESTOVANIE NOVEJ ARCHITEKTÚRY)
+        utils.addDebug(currentEntry, "\n📊 === KROK 9: SYNCHRONIZÁCIA VÝKAZU JÁZD ===");
         utils.addDebug(currentEntry, "🧪 TESTOVANIE: Porovnávam starú a novú architektúru...");
 
         // Stará architektúra
@@ -2282,10 +2436,10 @@ function main() {
         utils.addDebug(currentEntry, "  📊 Stará architektúra: " + (vykazResult.success ? "✅" : "❌") + " (" + vykazResult.processedCount + " spracovaných)");
         //utils.addDebug(currentEntry, "  🚀 Nová architektúra: " + (newResult.success ? "✅" : "❌") + " (" + newResult.processedCount + " spracovaných)");
 
-        steps.step8.success = vykazResult.success;
+        steps.step9.success = vykazResult.success;
 
-        // KROK 9: Synchronizácia denného reportu
-        utils.addDebug(currentEntry, "\n📅 === KROK 9: SYNCHRONIZÁCIA DENNÉHO REPORTU ===");
+        // KROK 10: Synchronizácia denného reportu
+        utils.addDebug(currentEntry, "\n📅 === KROK 10: SYNCHRONIZÁCIA DENNÉHO REPORTU ===");
 
         utils.addDebug(currentEntry, "🔍 Debug PRED volaním createOrUpdateDailyReport:");
         utils.addDebug(currentEntry, "  - entryIcons pred volaním: '" + entryIcons + "' (length: " + entryIcons.length + ")");
@@ -2325,12 +2479,12 @@ function main() {
                 utils.addDebug(currentEntry, "  ⚠️ dailyReportEntry neexistuje - link sa neukladá");
             }
 
-            steps.step9.success = true;
+            steps.step10.success = true;
         } else {
             var errorMsg = dailyReportResult ? dailyReportResult.error : "Neznáma chyba";
             utils.addError(currentEntry, "Chyba pri synchronizácii denného reportu: " + errorMsg);
             utils.addDebug(currentEntry, "❌ Denný report sync zlyhal - ikona sa NEPRIDÁ");
-            steps.step9.success = false;
+            steps.step10.success = false;
         }
 
         // Ulož ikony do poľa
