@@ -1,9 +1,10 @@
 // ==============================================
 // MEMENTO DATABASE - DENNÝ REPORT PREPOČET
-// Verzia: 1.5.0 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 1.6.0 | Dátum: október 2025 | Autor: ASISTANTO
 // Knižnica: Denný report | Trigger: Before Save
 // ==============================================
-// ✅ FUNKCIONALITA v1.5.0:
+// ✅ FUNKCIONALITA v1.6.0:
+//    - AUTO-LINKOVANIE záznamov podľa dátumu (Dochádzka, Práce, Jazdy, Pokladňa)
 //    - Agregácia dát z Dochádzky, Záznamov prác, Knihy jázd a Pokladne
 //    - Vytváranie Info záznamov pre každú sekciu (markdown formát)
 //    - Vytvorenie spoločného info záznamu
@@ -17,12 +18,12 @@
 //    - Validácia konzistencie zamestnancov (počet + zhoda)
 //    - Kontrola prestojov (porovnanie hodín Dochádzka vs Práce)
 //    - Príprava na integráciu s MementoTelegram a MementoAI
-// 🔧 CHANGELOG v1.5.0:
-//    - PRIDANÉ: Zamestnanci a Posádka zobrazené v hlavnom info pre Práce a Jazdy
-//    - PRIDANÉ: Kontrola prestojov - sekcia "Prestoje" ak je Dochádzka > Práce
-//    - PRIDANÉ: Sekcia "Skontrolovať a opraviť" ak je Práce > Dochádzka
-//    - PRIDANÉ: Ikona ⏸️ pri prestojoch
-//    - PRIDANÉ: Ikona ⚠️ pri nesúhlasných hodinách (Práce > Dochádzka)
+// 🔧 CHANGELOG v1.6.0:
+//    - PRIDANÉ: Automatické vyhľadanie a linkovanie záznamov podľa dátumu
+//    - PRIDANÉ: Ochrana pred duplicitným linkovaním (kontrola ID)
+//    - PRIDANÉ: Auto-linkovanie prebieha pred prepočtom (KROK 0)
+//    - PRIDANÉ: Debug info o počte nalinkovaných záznamov v každej sekcii
+//    - PRIDANÉ: Ikona 📊 Denného reportu sa pridáva do ikôn nalinkovaných záznamov
 // ==============================================
 
 // ==============================================
@@ -38,7 +39,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Denný report Prepočet",
-    version: "1.5.0",
+    version: "1.6.0",
 
     // Referencie na centrálny config
     fields: {
@@ -59,6 +60,166 @@ var CONFIG = {
 };
 
 // ==============================================
+// AUTO-LINKOVANIE ZÁZNAMOV
+// ==============================================
+
+/**
+ * Automaticky nájde a nalinkuje záznamy z knižníc s rovnakým dátumom
+ * Zabezpečuje, že nedôjde k duplicitnému linkovaniu
+ */
+function autoLinkRecords(reportDate) {
+    var result = {
+        success: false,
+        linked: {
+            attendance: 0,
+            workRecords: 0,
+            rideLog: 0,
+            cashBook: 0
+        }
+    };
+
+    try {
+        utils.addDebug(currentEntry, "🔗 AUTO-LINKOVANIE: Vyhľadávam záznamy pre dátum " + utils.formatDate(reportDate));
+
+        // Získaj aktuálne linknuté záznamy (aby sme predišli duplicitám)
+        var currentAttendance = utils.safeGetLinks(currentEntry, CONFIG.fields.dailyReport.attendance) || [];
+        var currentWorkRecords = utils.safeGetLinks(currentEntry, CONFIG.fields.dailyReport.workRecord) || [];
+        var currentRideLog = utils.safeGetLinks(currentEntry, CONFIG.fields.dailyReport.rideLog) || [];
+        var currentCashBook = utils.safeGetLinks(currentEntry, CONFIG.fields.dailyReport.cashBook) || [];
+
+        // Vytvor mapy ID už linknutých záznamov
+        var attendanceIds = {};
+        var workRecordIds = {};
+        var rideLogIds = {};
+        var cashBookIds = {};
+
+        for (var i = 0; i < currentAttendance.length; i++) {
+            attendanceIds[currentAttendance[i].field("ID")] = true;
+        }
+        for (var j = 0; j < currentWorkRecords.length; j++) {
+            workRecordIds[currentWorkRecords[j].field("ID")] = true;
+        }
+        for (var k = 0; k < currentRideLog.length; k++) {
+            rideLogIds[currentRideLog[k].field("ID")] = true;
+        }
+        for (var l = 0; l < currentCashBook.length; l++) {
+            cashBookIds[currentCashBook[l].field("ID")] = true;
+        }
+
+        // 1. Dochádzka
+        var attendanceLib = library(CONFIG.libraries.attendance);
+        var attendanceEntries = attendanceLib.entries();
+        for (var a = 0; a < attendanceEntries.length; a++) {
+            var attEntry = attendanceEntries[a];
+            var attDate = utils.safeGet(attEntry, CONFIG.fields.attendance.date);
+            var attId = attEntry.field("ID");
+
+            if (attDate && utils.formatDate(attDate) === utils.formatDate(reportDate)) {
+                // Skontroluj, či už nie je linknutý
+                if (!attendanceIds[attId]) {
+                    utils.addLink(currentEntry, CONFIG.fields.dailyReport.attendance, attEntry);
+                    result.linked.attendance++;
+                    utils.addDebug(currentEntry, "  ✅ Linknutý záznam Dochádzky #" + attId);
+
+                    // Pridaj ikonu Denného reportu do záznamu Dochádzky
+                    addDailyReportIcon(attEntry, "ikony záznamu");
+                }
+            }
+        }
+
+        // 2. Záznam prác
+        var workRecordsLib = library(CONFIG.libraries.workRecords);
+        var workEntries = workRecordsLib.entries();
+        for (var w = 0; w < workEntries.length; w++) {
+            var workEntry = workEntries[w];
+            var workDate = utils.safeGet(workEntry, CONFIG.fields.workRecord.date);
+            var workId = workEntry.field("ID");
+
+            if (workDate && utils.formatDate(workDate) === utils.formatDate(reportDate)) {
+                if (!workRecordIds[workId]) {
+                    utils.addLink(currentEntry, CONFIG.fields.dailyReport.workRecord, workEntry);
+                    result.linked.workRecords++;
+                    utils.addDebug(currentEntry, "  ✅ Linknutý záznam prác #" + workId);
+
+                    // Pridaj ikonu Denného reportu do Záznamu prác
+                    addDailyReportIcon(workEntry, "ikony záznamu");
+                }
+            }
+        }
+
+        // 3. Kniha jázd
+        var rideLogLib = library(CONFIG.libraries.rideLog);
+        var rideEntries = rideLogLib.entries();
+        for (var r = 0; r < rideEntries.length; r++) {
+            var rideEntry = rideEntries[r];
+            var rideDate = utils.safeGet(rideEntry, CONFIG.fields.rideLog.date);
+            var rideId = rideEntry.field("ID");
+
+            if (rideDate && utils.formatDate(rideDate) === utils.formatDate(reportDate)) {
+                if (!rideLogIds[rideId]) {
+                    utils.addLink(currentEntry, CONFIG.fields.dailyReport.rideLog, rideEntry);
+                    result.linked.rideLog++;
+                    utils.addDebug(currentEntry, "  ✅ Linknutý záznam z Knihy jázd #" + rideId);
+
+                    // Pridaj ikonu Denného reportu do Knihy jázd
+                    addDailyReportIcon(rideEntry, "ikony záznamu");
+                }
+            }
+        }
+
+        // 4. Pokladňa
+        var cashBookLib = library(CONFIG.libraries.cashBook);
+        var cashEntries = cashBookLib.entries();
+        for (var c = 0; c < cashEntries.length; c++) {
+            var cashEntry = cashEntries[c];
+            var cashDate = utils.safeGet(cashEntry, CONFIG.fields.cashBook.date);
+            var cashId = cashEntry.field("ID");
+
+            if (cashDate && utils.formatDate(cashDate) === utils.formatDate(reportDate)) {
+                if (!cashBookIds[cashId]) {
+                    utils.addLink(currentEntry, CONFIG.fields.dailyReport.cashBook, cashEntry);
+                    result.linked.cashBook++;
+                    utils.addDebug(currentEntry, "  ✅ Linknutý záznam z Pokladne #" + cashId);
+
+                    // Pridaj ikonu Denného reportu do Pokladne
+                    addDailyReportIcon(cashEntry, "ikony záznamu");
+                }
+            }
+        }
+
+        var totalLinked = result.linked.attendance + result.linked.workRecords + result.linked.rideLog + result.linked.cashBook;
+        utils.addDebug(currentEntry, "🔗 AUTO-LINKOVANIE DOKONČENÉ: " + totalLinked + " nových záznamov nalinkovaných");
+        utils.addDebug(currentEntry, "  📊 Dochádzka: " + result.linked.attendance + ", Práce: " + result.linked.workRecords + ", Jazdy: " + result.linked.rideLog + ", Pokladňa: " + result.linked.cashBook);
+
+        result.success = true;
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri auto-linkovaní záznamov: " + error.toString(), "autoLinkRecords", error);
+    }
+
+    return result;
+}
+
+/**
+ * Pridá ikonu Denného reportu do nalinkovaného záznamu
+ */
+function addDailyReportIcon(entry, iconFieldName) {
+    try {
+        var currentIcons = utils.safeGet(entry, iconFieldName, "");
+        var dailyReportIcon = "📊";
+
+        // Skontroluj, či ikona už nie je pridaná
+        if (currentIcons.indexOf(dailyReportIcon) === -1) {
+            var newIcons = currentIcons ? currentIcons + " " + dailyReportIcon : dailyReportIcon;
+            utils.safeSet(entry, iconFieldName, newIcons);
+        }
+    } catch (error) {
+        // Tichá chyba - ikona nie je kritická
+        utils.addDebug(currentEntry, "  ⚠️ Nepodarilo sa pridať ikonu do záznamu: " + error.toString());
+    }
+}
+
+// ==============================================
 // HLAVNÁ FUNKCIA
 // ==============================================
 
@@ -76,6 +237,10 @@ function main() {
         }
 
         utils.addDebug(currentEntry, "📅 Dátum reportu: " + utils.formatDate(reportDate));
+
+        // KROK 0: Auto-linkovanie záznamov
+        utils.addDebug(currentEntry, utils.getIcon("link") + " KROK 0: Auto-linkovanie záznamov");
+        var linkingResult = autoLinkRecords(reportDate);
 
         // KROK 1: Spracovanie Dochádzky
         utils.addDebug(currentEntry, utils.getIcon("calculation") + " KROK 1: Spracovanie Dochádzky");
