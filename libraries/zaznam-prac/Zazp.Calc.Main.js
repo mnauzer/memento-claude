@@ -167,18 +167,12 @@ function main() {
         steps.step9.success = dailyReportResult.success;
 
         if (dailyReportResult.success) {
-            var action = dailyReportResult.created ? "vytvorený" : "aktualizovaný";
-            utils.addDebug(currentEntry, "✅ Denný report " + action + " úspešne");
 
             // Pridaj ikonu pre denný report
             entryIcons += CONFIG.icons.daily_report;
             utils.addDebug(currentEntry, "  " + CONFIG.icons.daily_report + " Pridaná ikona pre denný report");
 
-            // Ulož link na denný report ak existuje
-            if (dailyReportResult.dailyReportEntry) {
-                utils.safeSet(currentEntry, CONFIG.fields.workRecord.dailyReport, [dailyReportResult.dailyReportEntry]);
-                utils.addDebug(currentEntry, "  🔗 Link na denný report uložený");
-            }
+        
         } else {
             utils.addDebug(currentEntry, "⚠️ Chyba pri spracovaní Denný report: " + (dailyReportResult.error || "Neznáma chyba"));
         }
