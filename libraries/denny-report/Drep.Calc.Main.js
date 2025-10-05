@@ -1,9 +1,9 @@
 // ==============================================
 // MEMENTO DATABASE - DENNÝ REPORT PREPOČET
-// Verzia: 1.8.1 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 1.8.2 | Dátum: október 2025 | Autor: ASISTANTO
 // Knižnica: Denný report | Trigger: Before Save
 // ==============================================
-// ✅ FUNKCIONALITA v1.8.1:
+// ✅ FUNKCIONALITA v1.8.2:
 //    - AUTO-LINKOVANIE záznamov podľa dátumu (Dochádzka, Práce, Jazdy, Pokladňa)
 //    - Automatické nastavenie dňa v týždni podľa dátumu
 //    - Agregácia dát z Dochádzky, Záznamov prác, Knihy jázd a Pokladne
@@ -19,11 +19,10 @@
 //    - Validácia konzistencie zamestnancov s menami (počet + zhoda)
 //    - Kontrola prestojov (porovnanie hodín Dochádzka vs Práce)
 //    - Príprava na integráciu s MementoTelegram a MementoAI
-// 🔧 CHANGELOG v1.8.1:
-//    - PRIDANÉ: Debug logovanie pre auto-linkovanie (počet záznamov v každej knižnici)
-//    - PRIDANÉ: Debug výpis porovnávaných dátumov pre Knihu jázd
-//    - OPRAVA: Lepšie diagnostikovanie problémov s linkovaním záznamov
-//    - OPRAVA: Použitie libByName() - správna Memento Database funkcia
+// 🔧 CHANGELOG v1.8.2:
+//    - OPRAVA: Správna syntax pre linkovanie - field().push() + set()
+//    - OPRAVA: Získaj existujúce linky, pridaj nový, nastav späť
+//    - Syntax: var links = entry.field("pole"); links.push(newEntry); entry.set("pole", links);
 // ==============================================
 
 // ==============================================
@@ -39,7 +38,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Denný report Prepočet",
-    version: "1.8.1",
+    version: "1.8.2",
 
     // Referencie na centrálny config
     fields: {
@@ -119,7 +118,11 @@ function autoLinkRecords(reportDate) {
             if (attDate && utils.formatDate(attDate) === utils.formatDate(reportDate)) {
                 // Skontroluj, či už nie je linknutý
                 if (!attendanceIds[attId]) {
-                    utils.addLink(currentEntry, CONFIG.fields.dailyReport.attendance, attEntry);
+                    // Pridaj záznam do existujúcich linkov
+                    var currentLinks = currentEntry.field(CONFIG.fields.dailyReport.attendance);
+                    currentLinks.push(attEntry);
+                    currentEntry.set(CONFIG.fields.dailyReport.attendance, currentLinks);
+
                     result.linked.attendance++;
                     utils.addDebug(currentEntry, "  ✅ Linknutý záznam Dochádzky #" + attId);
 
@@ -141,7 +144,10 @@ function autoLinkRecords(reportDate) {
 
             if (workDate && utils.formatDate(workDate) === utils.formatDate(reportDate)) {
                 if (!workRecordIds[workId]) {
-                    utils.addLink(currentEntry, CONFIG.fields.dailyReport.workRecord, workEntry);
+                    var currentLinks = currentEntry.field(CONFIG.fields.dailyReport.workRecord);
+                    currentLinks.push(workEntry);
+                    currentEntry.set(CONFIG.fields.dailyReport.workRecord, currentLinks);
+
                     result.linked.workRecords++;
                     utils.addDebug(currentEntry, "  ✅ Linknutý záznam prác #" + workId);
 
@@ -173,7 +179,10 @@ function autoLinkRecords(reportDate) {
 
                 if (rideDateStr === reportDateStr) {
                     if (!rideLogIds[rideId]) {
-                        utils.addLink(currentEntry, CONFIG.fields.dailyReport.rideLog, rideEntry);
+                        var currentLinks = currentEntry.field(CONFIG.fields.dailyReport.rideLog);
+                        currentLinks.push(rideEntry);
+                        currentEntry.set(CONFIG.fields.dailyReport.rideLog, currentLinks);
+
                         result.linked.rideLog++;
                         utils.addDebug(currentEntry, "  ✅ Linknutý záznam z Knihy jázd #" + rideId);
 
@@ -194,7 +203,10 @@ function autoLinkRecords(reportDate) {
 
             if (cashDate && utils.formatDate(cashDate) === utils.formatDate(reportDate)) {
                 if (!cashBookIds[cashId]) {
-                    utils.addLink(currentEntry, CONFIG.fields.dailyReport.cashBook, cashEntry);
+                    var currentLinks = currentEntry.field(CONFIG.fields.dailyReport.cashBook);
+                    currentLinks.push(cashEntry);
+                    currentEntry.set(CONFIG.fields.dailyReport.cashBook, currentLinks);
+
                     result.linked.cashBook++;
                     utils.addDebug(currentEntry, "  ✅ Linknutý záznam z Pokladne #" + cashId);
 
