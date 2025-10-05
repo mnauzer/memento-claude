@@ -293,7 +293,7 @@ function processWorkRecords() {
             // Agreguj stroje
             if (machines && machines.length > 0) {
                 for (var m = 0; m < machines.length; m++) {
-                    var machineName = utils.safeGet(machines[m], CONFIG.fields.machines.name);
+                    var machineName = utils.safeGet(machines[m], CONFIG.fields.machine.name);
                     if (machineName) {
                         machinesSet[machineName] = true;
                     }
@@ -330,7 +330,7 @@ function processWorkRecords() {
             if (machines && machines.length > 0) {
                 var machNames = [];
                 for (var mch = 0; mch < machines.length; mch++) {
-                    machNames.push(utils.safeGet(machines[mch], CONFIG.fields.machines.name));
+                    machNames.push(utils.safeGet(machines[mch], CONFIG.fields.machine.name));
                 }
                 block += "  🚜 Stroje: " + machNames.join(", ") + "\n";
             }
