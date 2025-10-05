@@ -75,7 +75,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.23",  // Rozšírené dailyReport fields
+        version: "7.0.24",  // Pridané pole dayOfWeek (Deň) do dailyReport
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -313,6 +313,7 @@ var MementoConfig = (function() {
             // Denný report polia
             dailyReport: {
                 date: "Dátum", // date, role: name
+                dayOfWeek: "Deň", // choice - názov dňa (Pondelok, Utorok, ...)
                 recordIcons: "ikony záznamu", // richtext
                 recordDescription: "Popis záznamu", // text, role: desc
                 attendance: "Dochádzka", // linkToEntry: Dochádzka

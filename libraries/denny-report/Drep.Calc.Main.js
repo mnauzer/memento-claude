@@ -1,29 +1,28 @@
 // ==============================================
 // MEMENTO DATABASE - DENNÝ REPORT PREPOČET
-// Verzia: 1.6.0 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 1.8.0 | Dátum: október 2025 | Autor: ASISTANTO
 // Knižnica: Denný report | Trigger: Before Save
 // ==============================================
-// ✅ FUNKCIONALITA v1.6.0:
+// ✅ FUNKCIONALITA v1.8.0:
 //    - AUTO-LINKOVANIE záznamov podľa dátumu (Dochádzka, Práce, Jazdy, Pokladňa)
+//    - Automatické nastavenie dňa v týždni podľa dátumu
 //    - Agregácia dát z Dochádzky, Záznamov prác, Knihy jázd a Pokladne
 //    - Vytváranie Info záznamov pre každú sekciu (markdown formát)
 //    - Vytvorenie spoločného info záznamu
 //    - Výpočet celkových odpracovaných hodín
 //    - Výpočet celkových km, príjmov a výdavkov
 //    - Generovanie popisu záznamu (markdown formát)
-//    - Automatické pridávanie ikôn pre vyplnené sekcie
+//    - Automatické pridávanie ikôn pre vyplnené sekcie a upozornenia
 //    - Agregácia strojov a materiálu zo Záznamov prác
 //    - Agregácia zamestnancov (Dochádzka, Práce) a posádky (Jazdy)
 //    - Validácia chýbajúcich záznamov (Dochádzka, Práce, Jazdy povinné)
-//    - Validácia konzistencie zamestnancov (počet + zhoda)
+//    - Validácia konzistencie zamestnancov s menami (počet + zhoda)
 //    - Kontrola prestojov (porovnanie hodín Dochádzka vs Práce)
 //    - Príprava na integráciu s MementoTelegram a MementoAI
-// 🔧 CHANGELOG v1.6.0:
-//    - PRIDANÉ: Automatické vyhľadanie a linkovanie záznamov podľa dátumu
-//    - PRIDANÉ: Ochrana pred duplicitným linkovaním (kontrola ID)
-//    - PRIDANÉ: Auto-linkovanie prebieha pred prepočtom (KROK 0)
-//    - PRIDANÉ: Debug info o počte nalinkovaných záznamov v každej sekcii
-//    - PRIDANÉ: Ikona 📊 Denného reportu sa pridáva do ikôn nalinkovaných záznamov
+// 🔧 CHANGELOG v1.8.0:
+//    - PRIDANÉ: Automatické nastavenie dňa v týždni (Pondelok-Nedeľa) podľa dátumu
+//    - PRIDANÉ: Funkcia setDayOfWeek() pre výpočet dňa z dátumu
+//    - PRIDANÉ: Pole dayOfWeek (Deň) do MementoConfig7 v7.0.24
 // ==============================================
 
 // ==============================================
@@ -39,7 +38,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Denný report Prepočet",
-    version: "1.6.0",
+    version: "1.8.0",
 
     // Referencie na centrálny config
     fields: {
@@ -219,6 +218,31 @@ function addDailyReportIcon(entry, iconFieldName) {
     }
 }
 
+/**
+ * Nastaví deň v týždni podľa dátumu
+ */
+function setDayOfWeek(date) {
+    try {
+        if (!date) {
+            return;
+        }
+
+        // Dni v týždni v slovenčine (0 = Nedeľa, 1 = Pondelok, ...)
+        var dayNames = ["Nedeľa", "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota"];
+
+        // Získaj číslo dňa (0-6)
+        var dayIndex = date.getDay();
+        var dayName = dayNames[dayIndex];
+
+        // Nastav hodnotu v poli Deň
+        utils.safeSet(currentEntry, CONFIG.fields.dailyReport.dayOfWeek, dayName);
+        utils.addDebug(currentEntry, "  📅 Nastavený deň: " + dayName);
+
+    } catch (error) {
+        utils.addDebug(currentEntry, "  ⚠️ Nepodarilo sa nastaviť deň v týždni: " + error.toString());
+    }
+}
+
 // ==============================================
 // HLAVNÁ FUNKCIA
 // ==============================================
@@ -237,6 +261,9 @@ function main() {
         }
 
         utils.addDebug(currentEntry, "📅 Dátum reportu: " + utils.formatDate(reportDate));
+
+        // Nastav deň v týždni podľa dátumu
+        setDayOfWeek(reportDate);
 
         // KROK 0: Auto-linkovanie záznamov
         utils.addDebug(currentEntry, utils.getIcon("link") + " KROK 0: Auto-linkovanie záznamov");
@@ -920,25 +947,7 @@ function validateRecords(attendanceResult, workRecordsResult, rideLogResult) {
             var workEmployeeNames = Object.keys(workRecordEmployees);
             var rideEmployeeNames = Object.keys(rideLogEmployees);
 
-            // Kontrola počtu zamestnancov
-            var countMismatch = false;
-            if (workRecordsResult.count > 0 && attendanceEmployees.length !== workEmployeeNames.length) {
-                var countMsg = "❌ Počet zamestnancov sa nezhoduje: Dochádzka (" + attendanceEmployees.length + ") ≠ Záznamy prác (" + workEmployeeNames.length + ")";
-                result.warnings.push(countMsg);
-                result.employeeConsistency = false;
-                countMismatch = true;
-                utils.addDebug(currentEntry, "  " + countMsg);
-            }
-
-            if (rideLogResult.count > 0 && attendanceEmployees.length !== rideEmployeeNames.length) {
-                var countMsg2 = "❌ Počet zamestnancov sa nezhoduje: Dochádzka (" + attendanceEmployees.length + ") ≠ Kniha jázd (" + rideEmployeeNames.length + ")";
-                result.warnings.push(countMsg2);
-                result.employeeConsistency = false;
-                countMismatch = true;
-                utils.addDebug(currentEntry, "  " + countMsg2);
-            }
-
-            // Kontrola zhody zamestnancov (aj keď počet nesedí, skontroluj kto chýba)
+            // Kontrola zhody zamestnancov - musíme urobiť pred kontrolou počtu, aby sme mali mená
             var missingInWork = [];
             var extraInWork = [];
             var missingInRides = [];
@@ -972,33 +981,65 @@ function validateRecords(attendanceResult, workRecordsResult, rideLogResult) {
                 }
             }
 
-            // Hlásenia o nezhodách
-            if (missingInWork.length > 0) {
-                var msg = "❌ Zamestnanci z Dochádzky chýbajú v Záznamoch prác: " + missingInWork.join(", ");
-                result.warnings.push(msg);
+            // Kontrola počtu zamestnancov s menami chýbajúcich
+            var countMismatch = false;
+            if (workRecordsResult.count > 0 && attendanceEmployees.length !== workEmployeeNames.length) {
+                var countMsg = "❌ Počet zamestnancov sa nezhoduje: Dochádzka (" + attendanceEmployees.length + ") ≠ Záznamy prác (" + workEmployeeNames.length + ")";
+                if (missingInWork.length > 0) {
+                    countMsg += " | Chýbajú v Prácach: " + missingInWork.join(", ");
+                }
+                if (extraInWork.length > 0) {
+                    countMsg += " | Navyše v Prácach: " + extraInWork.join(", ");
+                }
+                result.warnings.push(countMsg);
                 result.employeeConsistency = false;
-                utils.addDebug(currentEntry, "  " + msg);
+                countMismatch = true;
+                utils.addDebug(currentEntry, "  " + countMsg);
             }
 
-            if (extraInWork.length > 0) {
-                var msg1 = "❌ Zamestnanci v Záznamoch prác, ktorí nie sú v Dochádzke: " + extraInWork.join(", ");
-                result.warnings.push(msg1);
+            if (rideLogResult.count > 0 && attendanceEmployees.length !== rideEmployeeNames.length) {
+                var countMsg2 = "❌ Počet zamestnancov sa nezhoduje: Dochádzka (" + attendanceEmployees.length + ") ≠ Kniha jázd (" + rideEmployeeNames.length + ")";
+                if (missingInRides.length > 0) {
+                    countMsg2 += " | Chýbajú v Jazdách: " + missingInRides.join(", ");
+                }
+                if (extraInRides.length > 0) {
+                    countMsg2 += " | Navyše v Jazdách: " + extraInRides.join(", ");
+                }
+                result.warnings.push(countMsg2);
                 result.employeeConsistency = false;
-                utils.addDebug(currentEntry, "  " + msg1);
+                countMismatch = true;
+                utils.addDebug(currentEntry, "  " + countMsg2);
             }
 
-            if (missingInRides.length > 0) {
-                var msg3 = "❌ Zamestnanci z Dochádzky chýbajú v Knihe jázd: " + missingInRides.join(", ");
-                result.warnings.push(msg3);
-                result.employeeConsistency = false;
-                utils.addDebug(currentEntry, "  " + msg3);
-            }
+            // Hlásenia o nezhodách (len ak počty sedia, ale zamestnanci sa nezhodujú)
+            if (!countMismatch) {
+                if (missingInWork.length > 0) {
+                    var msg = "❌ Zamestnanci z Dochádzky chýbajú v Záznamoch prác: " + missingInWork.join(", ");
+                    result.warnings.push(msg);
+                    result.employeeConsistency = false;
+                    utils.addDebug(currentEntry, "  " + msg);
+                }
 
-            if (extraInRides.length > 0) {
-                var msg4 = "❌ Zamestnanci v Knihe jázd, ktorí nie sú v Dochádzke: " + extraInRides.join(", ");
-                result.warnings.push(msg4);
-                result.employeeConsistency = false;
-                utils.addDebug(currentEntry, "  " + msg4);
+                if (extraInWork.length > 0) {
+                    var msg1 = "❌ Zamestnanci v Záznamoch prác, ktorí nie sú v Dochádzke: " + extraInWork.join(", ");
+                    result.warnings.push(msg1);
+                    result.employeeConsistency = false;
+                    utils.addDebug(currentEntry, "  " + msg1);
+                }
+
+                if (missingInRides.length > 0) {
+                    var msg3 = "❌ Zamestnanci z Dochádzky chýbajú v Knihe jázd: " + missingInRides.join(", ");
+                    result.warnings.push(msg3);
+                    result.employeeConsistency = false;
+                    utils.addDebug(currentEntry, "  " + msg3);
+                }
+
+                if (extraInRides.length > 0) {
+                    var msg4 = "❌ Zamestnanci v Knihe jázd, ktorí nie sú v Dochádzke: " + extraInRides.join(", ");
+                    result.warnings.push(msg4);
+                    result.employeeConsistency = false;
+                    utils.addDebug(currentEntry, "  " + msg4);
+                }
             }
 
             if (result.employeeConsistency && !countMismatch) {
@@ -1154,6 +1195,9 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
                 info += "- " + validationResult.warnings[v] + "\n";
             }
             info += "\n";
+
+            // Pridaj ikonu upozornenia
+            addRecordIcon("⚠️");
         }
 
         // Kontrola prestojov - porovnanie hodín medzi Dochádzkou a Prácami
