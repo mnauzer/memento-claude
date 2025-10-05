@@ -1,25 +1,27 @@
 // ==============================================
 // MEMENTO DATABASE - DENNÝ REPORT PREPOČET
-// Verzia: 1.2.0 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 1.3.0 | Dátum: október 2025 | Autor: ASISTANTO
 // Knižnica: Denný report | Trigger: Before Save
 // ==============================================
-// ✅ FUNKCIONALITA v1.2.0:
+// ✅ FUNKCIONALITA v1.3.0:
 //    - Agregácia dát z Dochádzky, Záznamov prác, Knihy jázd a Pokladne
 //    - Vytváranie Info záznamov pre každú sekciu (markdown formát)
 //    - Vytvorenie spoločného info záznamu
 //    - Výpočet celkových odpracovaných hodín
 //    - Výpočet celkových km, príjmov a výdavkov
-//    - Generovanie popisu záznamu
+//    - Generovanie popisu záznamu (markdown formát)
 //    - Automatické pridávanie ikôn pre vyplnené sekcie
 //    - Agregácia strojov a materiálu zo Záznamov prác
+//    - Validácia chýbajúcich záznamov (Dochádzka, Práce, Jazdy povinné)
+//    - Validácia konzistencie zamestnancov (počet + zhoda)
 //    - Príprava na integráciu s MementoTelegram a MementoAI
-// 🔧 CHANGELOG v1.2.0:
-//    - OPRAVA: Pole "Odpracované" v Zázname prác (nie "Hodiny")
-//    - PRIDANÉ: Pole "Popis" vyplnené zákazkami vo formáte "Číslo.Názov"
-//    - PRIDANÉ: Agregácia Strojov zo Záznamov prác
-//    - PRIDANÉ: Agregácia Materiálu zo Záznamov prác
-//    - PRIDANÉ: Zobrazenie Strojov a Materiálu v info blokoch
-//    - Vylepšené zobrazenie zamestnancov v info blokoch (viacerí zamestnanci)
+// 🔧 CHANGELOG v1.3.0:
+//    - PRIDANÉ: Validácia chýbajúcich povinných záznamov (Dochádzka, Práce, Jazdy)
+//    - PRIDANÉ: Kontrola počtu zamestnancov (musí byť rovnaký vo všetkých záznamoch)
+//    - PRIDANÉ: Kontrola zhody zamestnancov medzi Dochádzkou, Prácami a Jazdami
+//    - PRIDANÉ: Varovania v spoločnom info zázname
+//    - ZMENA: Pole "Popis záznamu" formátované v markdown (bold sekcie)
+//    - ZMENA: Ikona 🛠️ pre Záznamy prác (namiesto 📝)
 // ==============================================
 
 // ==============================================
@@ -35,7 +37,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Denný report Prepočet",
-    version: "1.2.0",
+    version: "1.3.0",
 
     // Referencie na centrálny config
     fields: {
@@ -94,17 +96,21 @@ function main() {
         utils.addDebug(currentEntry, utils.getIcon("calculation") + " KROK 5: Výpočet celkových hodín");
         var totalHoursResult = calculateTotalHours(attendanceResult, workRecordsResult);
 
-        // KROK 6: Vytvorenie súhrnného popisu
-        utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 6: Generovanie popisu záznamu");
-        var descriptionResult = generateRecordDescription(attendanceResult, workRecordsResult, rideLogResult, cashBookResult);
+        // KROK 6: Kontrola chýbajúcich záznamov a konzistencie
+        utils.addDebug(currentEntry, utils.getIcon("warning") + " KROK 6: Kontrola záznamov");
+        var validationResult = validateRecords(attendanceResult, workRecordsResult, rideLogResult);
 
-        // KROK 7: Vytvorenie spoločného info záznamu
-        utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 7: Vytvorenie spoločného info");
-        var commonInfoResult = createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, cashBookResult, totalHoursResult);
+        // KROK 7: Vytvorenie súhrnného popisu
+        utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 7: Generovanie popisu záznamu");
+        generateRecordDescription(attendanceResult, workRecordsResult, rideLogResult, cashBookResult);
 
-        // KROK 8: Telegram notifikácie (voliteľné - pripravené na neskoršiu implementáciu)
-        utils.addDebug(currentEntry, utils.getIcon("telegram") + " KROK 8: Telegram notifikácie");
-        var telegramResult = sendTelegramNotifications(attendanceResult, workRecordsResult, rideLogResult, cashBookResult);
+        // KROK 8: Vytvorenie spoločného info záznamu
+        utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 8: Vytvorenie spoločného info");
+        createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, cashBookResult, totalHoursResult, validationResult);
+
+        // KROK 9: Telegram notifikácie (voliteľné - pripravené na neskoršiu implementáciu)
+        utils.addDebug(currentEntry, utils.getIcon("telegram") + " KROK 9: Telegram notifikácie");
+        sendTelegramNotifications(attendanceResult, workRecordsResult, rideLogResult, cashBookResult);
 
         utils.addDebug(currentEntry, utils.getIcon("success") + " === PREPOČET DOKONČENÝ ===");
 
@@ -382,7 +388,7 @@ function processWorkRecords() {
         var markdownInfo = createMarkdownInfo("ZÁZNAMY PRÁC", timestamp, stats, infoBlocks);
 
         utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoWorkRecords, markdownInfo);
-        addRecordIcon("📝");
+        addRecordIcon("🛠️");
         utils.addDebug(currentEntry, "  ✅ Info záznam prác vytvorený a zapísaný (" + workRecords.length + " záznamov)");
 
         result.success = true;
@@ -638,6 +644,181 @@ function calculateTotalHours(attendanceResult, workRecordsResult) {
 }
 
 // ==============================================
+// VALIDÁCIA ZÁZNAMOV
+// ==============================================
+
+function validateRecords(attendanceResult, workRecordsResult, rideLogResult) {
+    var result = {
+        success: true,
+        warnings: [],
+        errors: [],
+        employeeConsistency: true
+    };
+
+    try {
+        // Kontrola povinných sekcií
+        if (attendanceResult.count === 0) {
+            result.warnings.push("⚠️ Chybuje záznam Dochádzky");
+            utils.addDebug(currentEntry, "  ⚠️ UPOZORNENIE: Chybuje záznam Dochádzky");
+        }
+
+        if (workRecordsResult.count === 0) {
+            result.warnings.push("⚠️ Chybuje záznam Prác");
+            utils.addDebug(currentEntry, "  ⚠️ UPOZORNENIE: Chybuje záznam Prác");
+        }
+
+        if (rideLogResult.count === 0) {
+            result.warnings.push("⚠️ Chybuje záznam z Knihy jázd");
+            utils.addDebug(currentEntry, "  ⚠️ UPOZORNENIE: Chybuje záznam z Knihy jázd");
+        }
+
+        // Kontrola konzistencie zamestnancov medzi Dochádzkou, Záznamami prác a Knihou jázd
+        if (attendanceResult.count > 0) {
+            var attendanceEmployees = attendanceResult.employees || [];
+            var attendanceSet = {};
+            for (var ae = 0; ae < attendanceEmployees.length; ae++) {
+                attendanceSet[attendanceEmployees[ae]] = true;
+            }
+
+            // Získaj zamestnancov zo Záznamov prác
+            var workRecordEmployees = {};
+            if (workRecordsResult.count > 0) {
+                var workRecords = utils.safeGetLinks(currentEntry, CONFIG.fields.dailyReport.workRecord);
+                if (workRecords && workRecords.length > 0) {
+                    for (var i = 0; i < workRecords.length; i++) {
+                        var employees = utils.safeGetLinks(workRecords[i], CONFIG.fields.workRecord.employees);
+                        if (employees && employees.length > 0) {
+                            for (var j = 0; j < employees.length; j++) {
+                                var empName = utils.safeGet(employees[j], CONFIG.fields.employee.nick);
+                                if (empName) {
+                                    workRecordEmployees[empName] = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Získaj zamestnancov z Knihy jázd
+            var rideLogEmployees = {};
+            if (rideLogResult.count > 0) {
+                var rideRecords = utils.safeGetLinks(currentEntry, CONFIG.fields.dailyReport.rideLog);
+                if (rideRecords && rideRecords.length > 0) {
+                    for (var r = 0; r < rideRecords.length; r++) {
+                        var driver = utils.safeGetLinks(rideRecords[r], CONFIG.fields.rideLog.driver);
+                        if (driver && driver.length > 0) {
+                            var driverName = utils.safeGet(driver[0], CONFIG.fields.employee.nick);
+                            if (driverName) {
+                                rideLogEmployees[driverName] = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            var workEmployeeNames = Object.keys(workRecordEmployees);
+            var rideEmployeeNames = Object.keys(rideLogEmployees);
+
+            // Kontrola počtu zamestnancov
+            var countMismatch = false;
+            if (workRecordsResult.count > 0 && attendanceEmployees.length !== workEmployeeNames.length) {
+                var countMsg = "❌ Počet zamestnancov sa nezhoduje: Dochádzka (" + attendanceEmployees.length + ") ≠ Záznamy prác (" + workEmployeeNames.length + ")";
+                result.warnings.push(countMsg);
+                result.employeeConsistency = false;
+                countMismatch = true;
+                utils.addDebug(currentEntry, "  " + countMsg);
+            }
+
+            if (rideLogResult.count > 0 && attendanceEmployees.length !== rideEmployeeNames.length) {
+                var countMsg2 = "❌ Počet zamestnancov sa nezhoduje: Dochádzka (" + attendanceEmployees.length + ") ≠ Kniha jázd (" + rideEmployeeNames.length + ")";
+                result.warnings.push(countMsg2);
+                result.employeeConsistency = false;
+                countMismatch = true;
+                utils.addDebug(currentEntry, "  " + countMsg2);
+            }
+
+            // Kontrola zhody zamestnancov (aj keď počet nesedí, skontroluj kto chýba)
+            var missingInWork = [];
+            var extraInWork = [];
+            var missingInRides = [];
+            var extraInRides = [];
+
+            // Porovnaj Dochádzku a Záznamy prác
+            if (workRecordsResult.count > 0) {
+                for (var a1 = 0; a1 < attendanceEmployees.length; a1++) {
+                    if (!workRecordEmployees[attendanceEmployees[a1]]) {
+                        missingInWork.push(attendanceEmployees[a1]);
+                    }
+                }
+                for (var w = 0; w < workEmployeeNames.length; w++) {
+                    if (!attendanceSet[workEmployeeNames[w]]) {
+                        extraInWork.push(workEmployeeNames[w]);
+                    }
+                }
+            }
+
+            // Porovnaj Dochádzku a Knihu jázd
+            if (rideLogResult.count > 0) {
+                for (var a2 = 0; a2 < attendanceEmployees.length; a2++) {
+                    if (!rideLogEmployees[attendanceEmployees[a2]]) {
+                        missingInRides.push(attendanceEmployees[a2]);
+                    }
+                }
+                for (var rl = 0; rl < rideEmployeeNames.length; rl++) {
+                    if (!attendanceSet[rideEmployeeNames[rl]]) {
+                        extraInRides.push(rideEmployeeNames[rl]);
+                    }
+                }
+            }
+
+            // Hlásenia o nezhodách
+            if (missingInWork.length > 0) {
+                var msg = "❌ Zamestnanci z Dochádzky chýbajú v Záznamoch prác: " + missingInWork.join(", ");
+                result.warnings.push(msg);
+                result.employeeConsistency = false;
+                utils.addDebug(currentEntry, "  " + msg);
+            }
+
+            if (extraInWork.length > 0) {
+                var msg1 = "❌ Zamestnanci v Záznamoch prác, ktorí nie sú v Dochádzke: " + extraInWork.join(", ");
+                result.warnings.push(msg1);
+                result.employeeConsistency = false;
+                utils.addDebug(currentEntry, "  " + msg1);
+            }
+
+            if (missingInRides.length > 0) {
+                var msg3 = "❌ Zamestnanci z Dochádzky chýbajú v Knihe jázd: " + missingInRides.join(", ");
+                result.warnings.push(msg3);
+                result.employeeConsistency = false;
+                utils.addDebug(currentEntry, "  " + msg3);
+            }
+
+            if (extraInRides.length > 0) {
+                var msg4 = "❌ Zamestnanci v Knihe jázd, ktorí nie sú v Dochádzke: " + extraInRides.join(", ");
+                result.warnings.push(msg4);
+                result.employeeConsistency = false;
+                utils.addDebug(currentEntry, "  " + msg4);
+            }
+
+            if (result.employeeConsistency && !countMismatch) {
+                utils.addDebug(currentEntry, "  ✅ Zamestnanci sú konzistentní vo všetkých záznamoch");
+            }
+        }
+
+        if (result.warnings.length === 0) {
+            utils.addDebug(currentEntry, "  ✅ Všetky povinné záznamy sú prítomné");
+        }
+
+        result.success = true;
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri validácii záznamov: " + error.toString(), "validateRecords", error);
+    }
+
+    return result;
+}
+
+// ==============================================
 // GENEROVANIE POPISU ZÁZNAMU
 // ==============================================
 
@@ -656,48 +837,50 @@ function generateRecordDescription(attendanceResult, workRecordsResult, rideLogR
             utils.addDebug(currentEntry, "  ✅ Popis (zákazky): " + orderDescription);
         }
 
-        // Pole Popis záznamu - stručný prehľad sekcií
-        var parts = [];
+        // Pole Popis záznamu - markdown formát
+        var descParts = [];
 
         // Dochádzka
         if (attendanceResult.count > 0) {
-            parts.push("👥 " + attendanceResult.count + " dochádzka");
+            var attText = "**👥 Dochádzka** (" + attendanceResult.count + ")";
             if (attendanceResult.employees.length > 0) {
-                parts.push("(" + attendanceResult.employees.join(", ") + ")");
+                attText += ": " + attendanceResult.employees.join(", ");
             }
+            descParts.push(attText);
         }
 
         // Záznamy prác
         if (workRecordsResult.count > 0) {
-            parts.push("📝 " + workRecordsResult.count + " práca");
+            var workText = "**📝 Práce** (" + workRecordsResult.count + ")";
             if (workRecordsResult.orders.length > 0) {
-                parts.push("(" + workRecordsResult.orders.join(", ") + ")");
+                workText += ": " + workRecordsResult.orders.join(", ");
             }
+            descParts.push(workText);
         }
 
         // Kniha jázd
         if (rideLogResult.count > 0) {
-            parts.push("🚗 " + rideLogResult.count + " jazda");
+            var rideText = "**🚗 Jazdy** (" + rideLogResult.count + ")";
             if (rideLogResult.vehicles.length > 0) {
-                parts.push("(" + rideLogResult.vehicles.join(", ") + ")");
+                rideText += ": " + rideLogResult.vehicles.join(", ");
             }
+            descParts.push(rideText);
         }
 
         // Pokladňa
         if (cashBookResult.count > 0) {
-            parts.push("💰 " + cashBookResult.count + " pokladňa");
+            descParts.push("**💰 Pokladňa** (" + cashBookResult.count + ")");
         }
 
-        var description = parts.join(" | ");
+        var description = descParts.join("  \n");
 
         if (description) {
-            utils.addDebug(currentEntry, "  ✅ Popis záznamu: " + description);
+            utils.addDebug(currentEntry, "  ✅ Popis záznamu vytvorený");
             utils.safeSet(currentEntry, CONFIG.fields.dailyReport.recordDescription, description);
         }
 
         result.success = true;
         result.description = description;
-        result.orderDescription = orderDescription;
 
     } catch (error) {
         utils.addError(currentEntry, "Chyba pri generovaní popisu: " + error.toString(), "generateRecordDescription", error);
@@ -749,7 +932,7 @@ function sendTelegramNotifications(attendanceResult, workRecordsResult, rideLogR
 // SPOLOČNÝ INFO ZÁZNAM
 // ==============================================
 
-function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, cashBookResult, totalHoursResult) {
+function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, cashBookResult, totalHoursResult, validationResult) {
     var result = {
         success: false
     };
@@ -762,6 +945,16 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
         var info = "# 📊 DENNÝ REPORT - ZHRNUTIE\n\n";
         info += "**Dátum:** " + utils.formatDate(utils.safeGet(currentEntry, CONFIG.fields.dailyReport.date)) + "  \n";
         info += "**Aktualizované:** " + timestamp + "\n\n";
+
+        // Varovania z validácie
+        if (validationResult && validationResult.warnings && validationResult.warnings.length > 0) {
+            info += "## ⚠️ Upozornenia\n\n";
+            for (var v = 0; v < validationResult.warnings.length; v++) {
+                info += "- " + validationResult.warnings[v] + "\n";
+            }
+            info += "\n";
+        }
+
         info += "---\n\n";
 
         // Sekcia Dochádzka
