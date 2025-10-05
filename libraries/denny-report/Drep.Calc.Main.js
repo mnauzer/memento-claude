@@ -817,20 +817,25 @@ function processCashBook() {
             var cashId = cash.field("ID");
 
             // Získaj dáta
-            var type = utils.safeGet(cash, CONFIG.fields.cashBook.type, "");
-            var amount = utils.safeGet(cash, CONFIG.fields.cashBook.amount, 0);
+            var transactionType = utils.safeGet(cash, CONFIG.fields.cashBook.transactionType, "");
+            var sumTotal = utils.safeGet(cash, CONFIG.fields.cashBook.sumTotal, 0);
+            var sum = utils.safeGet(cash, CONFIG.fields.cashBook.sum, 0);
             var description = utils.safeGet(cash, CONFIG.fields.cashBook.description, "");
 
-            // Agreguj príjmy a výdavky
-            if (type === "Príjem" || type === "príjem") {
+            // Použij sumTotal ak je vyplnená, inak sum
+            var amount = sumTotal > 0 ? sumTotal : sum;
+
+            // Agreguj príjmy a výdavky podľa typu pohybu
+            if (transactionType === "Príjem") {
                 totalIncome += amount;
-            } else if (type === "Výdavok" || type === "výdavok") {
+            } else if (transactionType === "Výdaj") {
                 totalExpense += amount;
             }
+            // PP (Priebežná položka) sa nezapočítava do príjmov ani výdavkov
 
             // Vytvor info blok pre tento záznam
             var block = "💰 Pokladňa #" + cashId + "\n";
-            block += "  📊 Typ: " + type + "\n";
+            block += "  📊 Typ: " + transactionType + "\n";
             block += "  💵 Suma: " + amount.toFixed(2) + " €\n";
             if (description) {
                 block += "  📋 Popis: " + description.substring(0, 100) + (description.length > 100 ? "..." : "") + "\n";
