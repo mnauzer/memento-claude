@@ -23,6 +23,7 @@
 //    - PRIDANÉ: Debug logovanie pre auto-linkovanie (počet záznamov v každej knižnici)
 //    - PRIDANÉ: Debug výpis porovnávaných dátumov pre Knihu jázd
 //    - OPRAVA: Lepšie diagnostikovanie problémov s linkovaním záznamov
+//    - OPRAVA: Použitie libByName() - správna Memento Database funkcia
 // ==============================================
 
 // ==============================================
@@ -106,7 +107,7 @@ function autoLinkRecords(reportDate) {
         }
 
         // 1. Dochádzka
-        var attendanceLib = library(CONFIG.libraries.attendance);
+        var attendanceLib = libByName(CONFIG.libraries.attendance);
         var attendanceEntries = attendanceLib.entries();
         utils.addDebug(currentEntry, "  🔍 Kontrolujem Dochádzku: " + attendanceEntries.length + " záznamov");
 
@@ -129,7 +130,7 @@ function autoLinkRecords(reportDate) {
         }
 
         // 2. Záznam prác
-        var workRecordsLib = library(CONFIG.libraries.workRecords);
+        var workRecordsLib = libByName(CONFIG.libraries.workRecords);
         var workEntries = workRecordsLib.entries();
         utils.addDebug(currentEntry, "  🔍 Kontrolujem Záznam prác: " + workEntries.length + " záznamov");
 
@@ -151,7 +152,7 @@ function autoLinkRecords(reportDate) {
         }
 
         // 3. Kniha jázd
-        var rideLogLib = library(CONFIG.libraries.rideLog);
+        var rideLogLib = libByName(CONFIG.libraries.rideLog);
         var rideEntries = rideLogLib.entries();
         utils.addDebug(currentEntry, "  🔍 Kontrolujem Knihu jázd: " + rideEntries.length + " záznamov");
 
@@ -184,7 +185,7 @@ function autoLinkRecords(reportDate) {
         }
 
         // 4. Pokladňa
-        var cashBookLib = library(CONFIG.libraries.cashBook);
+        var cashBookLib = libByName(CONFIG.libraries.cashBook);
         var cashEntries = cashBookLib.entries();
         for (var c = 0; c < cashEntries.length; c++) {
             var cashEntry = cashEntries[c];
