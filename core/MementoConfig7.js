@@ -1,7 +1,10 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.17 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.18 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.18 (2025-10-05):
+//    - Pridaná knižnica transportPrices (ceny dopravy)
+//    - Pridané polia pre transportPrices (vehicle, validFrom, price)
 // 🔧 CHANGELOG v7.0.17 (2025-10-04):
 //    - Pridané atribúty pre rideLogOrders (počet, km)
 //    - Atribút km = vzdialenosť tam a nazad (2× vzdialenosť miesta)
@@ -230,6 +233,7 @@ var MementoConfig = (function() {
             materialPrices: "ceny materiálu",
             wages: "sadzby zamestnancov",
             machinePrices: "ceny mechanizácie",
+            transportPrices: "ceny dopravy",
             vatRatesLib: "sadzby dph",
             
             // Systémové knižnice
@@ -651,6 +655,12 @@ var MementoConfig = (function() {
                 validFrom: "Platnosť od",
                 priceMth: "Cena mth",
                 flatRate: "Cena paušál"
+            },
+            // ceny dopravy polia
+            transportPrices: {
+                vehicle: "vozidlo",  // linkToEntry Vozidlá - pole ktoré odkazuje späť na vozidlo
+                validFrom: "Platnosť od",  // date - od kedy je cena platná
+                price: "Cena"  // real number - cena za km
             },
             // Sadzby zamestnancov polia
             wages: {
