@@ -167,28 +167,17 @@ function autoLinkRecords(reportDate) {
             var rideDate = utils.safeGet(rideEntry, CONFIG.fields.rideLog.date);
             var rideId = rideEntry.field("ID");
 
-            // Debug: Výpis dátumov pre porovnanie
-            if (rideDate) {
-                var rideDateStr = utils.formatDate(rideDate);
-                var reportDateStr = utils.formatDate(reportDate);
+            if (rideDate && utils.formatDate(rideDate) === utils.formatDate(reportDate)) {
+                if (!rideLogIds[rideId]) {
+                    var currentLinks = currentEntry.field(CONFIG.fields.dailyReport.rideLog);
+                    currentLinks.push(rideEntry);
+                    currentEntry.set(CONFIG.fields.dailyReport.rideLog, currentLinks);
 
-                // Loguj len záznamy s podobným dátumom (pre debugging)
-                if (rideDateStr.indexOf("2025") !== -1) {
-                    utils.addDebug(currentEntry, "    🔍 Kniha jázd #" + rideId + ": " + rideDateStr + " vs " + reportDateStr);
-                }
+                    result.linked.rideLog++;
+                    utils.addDebug(currentEntry, "  ✅ Linknutý záznam z Knihy jázd #" + rideId);
 
-                if (rideDateStr === reportDateStr) {
-                    if (!rideLogIds[rideId]) {
-                        var currentLinks = currentEntry.field(CONFIG.fields.dailyReport.rideLog);
-                        currentLinks.push(rideEntry);
-                        currentEntry.set(CONFIG.fields.dailyReport.rideLog, currentLinks);
-
-                        result.linked.rideLog++;
-                        utils.addDebug(currentEntry, "  ✅ Linknutý záznam z Knihy jázd #" + rideId);
-
-                        // Pridaj ikonu Denného reportu do Knihy jázd
-                        addDailyReportIcon(rideEntry, "ikony záznamu");
-                    }
+                    // Pridaj ikonu Denného reportu do Knihy jázd
+                    addDailyReportIcon(rideEntry, "ikony záznamu");
                 }
             }
         }
@@ -245,6 +234,33 @@ function addDailyReportIcon(entry, iconFieldName) {
     } catch (error) {
         // Tichá chyba - ikona nie je kritická
         utils.addDebug(currentEntry, "  ⚠️ Nepodarilo sa pridať ikonu do záznamu: " + error.toString());
+    }
+}
+
+/**
+ * Odstráni ikonu zo záznamu
+ */
+function removeRecordIcon(icon) {
+    try {
+        var currentIcons = currentEntry.field(CONFIG.fields.dailyReport.recordIcons);
+        if (!currentIcons) {
+            return;
+        }
+
+        // Odstráň ikonu zo stringu
+        var iconsArray = currentIcons.split(" ");
+        var newIconsArray = [];
+        for (var i = 0; i < iconsArray.length; i++) {
+            if (iconsArray[i] !== icon && iconsArray[i] !== "") {
+                newIconsArray.push(iconsArray[i]);
+            }
+        }
+
+        var newIcons = newIconsArray.join(" ");
+        utils.safeSet(currentEntry, CONFIG.fields.dailyReport.recordIcons, newIcons);
+    } catch (error) {
+        // Tichá chyba - ikona nie je kritická
+        utils.addDebug(currentEntry, "  ⚠️ Nepodarilo sa odstrániť ikonu zo záznamu: " + error.toString());
     }
 }
 
@@ -1219,7 +1235,9 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
         info += "**Aktualizované:** " + timestamp + "\n\n";
 
         // Varovania z validácie
-        if (validationResult && validationResult.warnings && validationResult.warnings.length > 0) {
+        var hasWarnings = validationResult && validationResult.warnings && validationResult.warnings.length > 0;
+
+        if (hasWarnings) {
             info += "## ⚠️ Upozornenia\n\n";
             for (var v = 0; v < validationResult.warnings.length; v++) {
                 info += "- " + validationResult.warnings[v] + "\n";
@@ -1228,6 +1246,9 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
 
             // Pridaj ikonu upozornenia
             addRecordIcon("⚠️");
+        } else {
+            // Ak už nie sú žiadne upozornenia, odstráň ikonu upozornenia
+            removeRecordIcon("⚠️");
         }
 
         // Kontrola prestojov - porovnanie hodín medzi Dochádzkou a Prácami
@@ -1252,7 +1273,13 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
                 info += "- **Práce:** " + workHours.toFixed(2) + " h\n";
                 info += "- ❌ Práce majú viac hodín ako Dochádzka - skontrolujte a opravte\n\n";
                 addRecordIcon("⚠️");
+            } else {
+                // Hodiny sa zhodujú - odstráň ikonu prestojov ak existuje
+                removeRecordIcon("⏸️");
             }
+        } else {
+            // Ak nie sú záznamy, odstráň ikonu prestojov
+            removeRecordIcon("⏸️");
         }
 
         info += "---\n\n";
