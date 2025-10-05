@@ -1,9 +1,9 @@
 // ==============================================
 // MEMENTO DATABASE - DENNÝ REPORT PREPOČET
-// Verzia: 1.1.0 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 1.2.0 | Dátum: október 2025 | Autor: ASISTANTO
 // Knižnica: Denný report | Trigger: Before Save
 // ==============================================
-// ✅ FUNKCIONALITA v1.1.0:
+// ✅ FUNKCIONALITA v1.2.0:
 //    - Agregácia dát z Dochádzky, Záznamov prác, Knihy jázd a Pokladne
 //    - Vytváranie Info záznamov pre každú sekciu (markdown formát)
 //    - Vytvorenie spoločného info záznamu
@@ -11,16 +11,15 @@
 //    - Výpočet celkových km, príjmov a výdavkov
 //    - Generovanie popisu záznamu
 //    - Automatické pridávanie ikôn pre vyplnené sekcie
+//    - Agregácia strojov a materiálu zo Záznamov prác
 //    - Príprava na integráciu s MementoTelegram a MementoAI
-// 🔧 CHANGELOG v1.1.0:
-//    - Pridané zapisovanie do info polí (markdown formát)
-//    - Pridané zapisovanie do poľa "Popis záznamu"
-//    - Pridané zapisovanie do poľa "Odpracované" (celkové hodiny)
-//    - Pridaný spoločný info záznam do spoločného poľa "info"
-//    - Automatické pridávanie ikôn do poľa "ikony záznamu"
-//    - Funkcia createMarkdownInfo() pre jednotný markdown formát
-//    - Funkcia createCommonInfo() pre spoločný prehľad
-//    - Funkcia addRecordIcon() pre správu ikôn
+// 🔧 CHANGELOG v1.2.0:
+//    - OPRAVA: Pole "Odpracované" v Zázname prác (nie "Hodiny")
+//    - PRIDANÉ: Pole "Popis" vyplnené zákazkami vo formáte "Číslo.Názov"
+//    - PRIDANÉ: Agregácia Strojov zo Záznamov prác
+//    - PRIDANÉ: Agregácia Materiálu zo Záznamov prác
+//    - PRIDANÉ: Zobrazenie Strojov a Materiálu v info blokoch
+//    - Vylepšené zobrazenie zamestnancov v info blokoch (viacerí zamestnanci)
 // ==============================================
 
 // ==============================================
@@ -36,7 +35,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Denný report Prepočet",
-    version: "1.1.0",
+    version: "1.2.0",
 
     // Referencie na centrálny config
     fields: {
@@ -260,8 +259,11 @@ function processWorkRecords() {
         utils.addDebug(currentEntry, "  📊 Počet záznamov prác: " + workRecords.length);
 
         var infoBlocks = [];
-        var totalHours = 0;
+        var totalWorkedHours = 0;
         var orderSet = {};
+        var orderFullNames = {}; // Číslo.Názov pre pole Popis
+        var machinesSet = {};
+        var materialSet = {};
 
         // Spracuj každý záznam práce
         for (var i = 0; i < workRecords.length; i++) {
@@ -270,32 +272,84 @@ function processWorkRecords() {
 
             // Získaj dáta
             var order = utils.safeGetLinks(work, CONFIG.fields.workRecord.order);
-            var hours = utils.safeGet(work, CONFIG.fields.workRecord.hours, 0);
+            var workedHours = utils.safeGet(work, CONFIG.fields.workRecord.workedHours, 0);
             var description = utils.safeGet(work, CONFIG.fields.workRecord.workDescription, "");
-            var employee = utils.safeGetLinks(work, CONFIG.fields.workRecord.employee);
+            var employees = utils.safeGetLinks(work, CONFIG.fields.workRecord.employees);
+            var machines = utils.safeGetLinks(work, CONFIG.fields.workRecord.machinery);
+            var materials = utils.safeGetLinks(work, CONFIG.fields.workRecord.workItems);
 
             // Agreguj zákazky
             if (order && order.length > 0) {
                 var orderName = utils.safeGet(order[0], CONFIG.fields.order.name);
+                var orderNumber = utils.safeGet(order[0], CONFIG.fields.order.number, "");
                 if (orderName) {
                     orderSet[orderName] = true;
+                    // Vytvor formát Číslo.Názov
+                    var fullName = orderNumber ? orderNumber + "." + orderName : orderName;
+                    orderFullNames[fullName] = true;
                 }
             }
 
-            totalHours += hours;
+            // Agreguj stroje
+            if (machines && machines.length > 0) {
+                for (var m = 0; m < machines.length; m++) {
+                    var machineName = utils.safeGet(machines[m], CONFIG.fields.machines.name);
+                    if (machineName) {
+                        machinesSet[machineName] = true;
+                    }
+                }
+            }
+
+            // Agreguj materiál (workItems - Práce Položky)
+            if (materials && materials.length > 0) {
+                for (var mat = 0; mat < materials.length; mat++) {
+                    // workItems majú pole "name" alebo "description"
+                    var materialName = utils.safeGet(materials[mat], "name") || utils.safeGet(materials[mat], "description", "");
+                    if (materialName) {
+                        materialSet[materialName] = true;
+                    }
+                }
+            }
+
+            totalWorkedHours += workedHours;
 
             // Vytvor info blok pre tento záznam
             var block = "📝 Záznam prác #" + workId + "\n";
             if (order && order.length > 0) {
-                block += "  🎯 Zákazka: " + utils.safeGet(order[0], CONFIG.fields.order.name) + "\n";
+                var orderNum = utils.safeGet(order[0], CONFIG.fields.order.number, "");
+                var orderNm = utils.safeGet(order[0], CONFIG.fields.order.name);
+                block += "  🎯 Zákazka: " + (orderNum ? orderNum + "." : "") + orderNm + "\n";
             }
-            if (employee && employee.length > 0) {
-                block += "  👤 Zamestnanec: " + utils.safeGet(employee[0], CONFIG.fields.employee.nick) + "\n";
+            if (employees && employees.length > 0) {
+                var empNames = [];
+                for (var e = 0; e < employees.length; e++) {
+                    empNames.push(utils.safeGet(employees[e], CONFIG.fields.employee.nick));
+                }
+                block += "  👥 Zamestnanci: " + empNames.join(", ") + "\n";
+            }
+            if (machines && machines.length > 0) {
+                var machNames = [];
+                for (var mch = 0; mch < machines.length; mch++) {
+                    machNames.push(utils.safeGet(machines[mch], CONFIG.fields.machines.name));
+                }
+                block += "  🚜 Stroje: " + machNames.join(", ") + "\n";
+            }
+            if (materials && materials.length > 0) {
+                var matNames = [];
+                for (var mtl = 0; mtl < materials.length; mtl++) {
+                    var matName = utils.safeGet(materials[mtl], "name") || utils.safeGet(materials[mtl], "description", "");
+                    if (matName) {
+                        matNames.push(matName);
+                    }
+                }
+                if (matNames.length > 0) {
+                    block += "  📦 Materiál: " + matNames.join(", ") + "\n";
+                }
             }
             if (description) {
                 block += "  📋 Popis: " + description.substring(0, 100) + (description.length > 100 ? "..." : "") + "\n";
             }
-            block += "  ⏱️ Hodiny: " + hours.toFixed(2) + " h\n";
+            block += "  ⏱️ Odpracované: " + workedHours.toFixed(2) + " h\n";
 
             infoBlocks.push(block);
         }
@@ -303,25 +357,29 @@ function processWorkRecords() {
         // Vytvor zjednotený info záznam
         var now = new Date();
         var timestamp = utils.formatDate(now) + " " + utils.formatTime(now);
-        var infoText = "\n📝 ZÁZNAMY PRÁC - ZHRNUTIE: " + timestamp + "\n";
-        infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-        infoText += "📈 Celkom záznamov: " + workRecords.length + "\n";
-        infoText += "⏱️ Celkom hodín: " + totalHours.toFixed(2) + " h\n";
 
         var orderNames = Object.keys(orderSet);
+        var machineNames = Object.keys(machinesSet);
+        var materialNames = Object.keys(materialSet);
+
+        // Vytvor stats pre markdown
+        var stats = [
+            { label: "Celkom záznamov", value: workRecords.length },
+            { label: "Odpracované hodiny", value: totalWorkedHours.toFixed(2) + " h" }
+        ];
+
         if (orderNames.length > 0) {
-            infoText += "🎯 Zákazky (" + orderNames.length + "): " + orderNames.join(", ") + "\n";
+            stats.push({ label: "Zákazky (" + orderNames.length + ")", value: orderNames.join(", ") });
+        }
+        if (machineNames.length > 0) {
+            stats.push({ label: "Stroje (" + machineNames.length + ")", value: machineNames.join(", ") });
+        }
+        if (materialNames.length > 0) {
+            stats.push({ label: "Materiál (" + materialNames.length + ")", value: materialNames.join(", ") });
         }
 
-        infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
-        infoText += infoBlocks.join("\n");
-
         // Ulož info záznam do poľa (markdown formát)
-        var markdownInfo = createMarkdownInfo("ZÁZNAMY PRÁC", timestamp, [
-            { label: "Celkom záznamov", value: workRecords.length },
-            { label: "Celkom hodín", value: totalHours.toFixed(2) + " h" },
-            { label: "Zákazky (" + orderNames.length + ")", value: orderNames.join(", ") }
-        ], infoBlocks);
+        var markdownInfo = createMarkdownInfo("ZÁZNAMY PRÁC", timestamp, stats, infoBlocks);
 
         utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoWorkRecords, markdownInfo);
         addRecordIcon("📝");
@@ -329,9 +387,12 @@ function processWorkRecords() {
 
         result.success = true;
         result.count = workRecords.length;
-        result.totalHours = totalHours;
+        result.totalHours = totalWorkedHours;
         result.orders = orderNames;
-        result.info = infoText;
+        result.orderFullNames = Object.keys(orderFullNames); // Pre pole Popis
+        result.machines = machineNames;
+        result.materials = materialNames;
+        result.info = markdownInfo;
 
     } catch (error) {
         utils.addError(currentEntry, "Chyba pri spracovaní záznamov prác: " + error.toString(), "processWorkRecords", error);
@@ -587,6 +648,15 @@ function generateRecordDescription(attendanceResult, workRecordsResult, rideLogR
     };
 
     try {
+        // Pole Popis - vyplň zákazkami vo formáte Číslo.Názov
+        var orderDescription = "";
+        if (workRecordsResult.orderFullNames && workRecordsResult.orderFullNames.length > 0) {
+            orderDescription = workRecordsResult.orderFullNames.join(", ");
+            utils.safeSet(currentEntry, CONFIG.fields.dailyReport.description, orderDescription);
+            utils.addDebug(currentEntry, "  ✅ Popis (zákazky): " + orderDescription);
+        }
+
+        // Pole Popis záznamu - stručný prehľad sekcií
         var parts = [];
 
         // Dochádzka
@@ -627,6 +697,7 @@ function generateRecordDescription(attendanceResult, workRecordsResult, rideLogR
 
         result.success = true;
         result.description = description;
+        result.orderDescription = orderDescription;
 
     } catch (error) {
         utils.addError(currentEntry, "Chyba pri generovaní popisu: " + error.toString(), "generateRecordDescription", error);
