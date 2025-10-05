@@ -1,9 +1,9 @@
 // ==============================================
 // MEMENTO DATABASE - DENNÝ REPORT PREPOČET
-// Verzia: 1.4.0 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 1.5.0 | Dátum: október 2025 | Autor: ASISTANTO
 // Knižnica: Denný report | Trigger: Before Save
 // ==============================================
-// ✅ FUNKCIONALITA v1.4.0:
+// ✅ FUNKCIONALITA v1.5.0:
 //    - Agregácia dát z Dochádzky, Záznamov prác, Knihy jázd a Pokladne
 //    - Vytváranie Info záznamov pre každú sekciu (markdown formát)
 //    - Vytvorenie spoločného info záznamu
@@ -15,13 +15,14 @@
 //    - Agregácia zamestnancov (Dochádzka, Práce) a posádky (Jazdy)
 //    - Validácia chýbajúcich záznamov (Dochádzka, Práce, Jazdy povinné)
 //    - Validácia konzistencie zamestnancov (počet + zhoda)
+//    - Kontrola prestojov (porovnanie hodín Dochádzka vs Práce)
 //    - Príprava na integráciu s MementoTelegram a MementoAI
-// 🔧 CHANGELOG v1.4.0:
-//    - PRIDANÉ: Položka "Zamestnanci:" v info zázname Dochádzky
-//    - PRIDANÉ: Položka "Zamestnanci:" v info zázname Záznamov prác
-//    - PRIDANÉ: Položka "Posádka:" v info zázname Knihy jázd
-//    - ZMENA: Validácia používa Posádku z Knihy jázd (nie len vodiča)
-//    - ZMENA: Agregácia zamestnancov vo všetkých troch sekciách
+// 🔧 CHANGELOG v1.5.0:
+//    - PRIDANÉ: Zamestnanci a Posádka zobrazené v hlavnom info pre Práce a Jazdy
+//    - PRIDANÉ: Kontrola prestojov - sekcia "Prestoje" ak je Dochádzka > Práce
+//    - PRIDANÉ: Sekcia "Skontrolovať a opraviť" ak je Práce > Dochádzka
+//    - PRIDANÉ: Ikona ⏸️ pri prestojoch
+//    - PRIDANÉ: Ikona ⚠️ pri nesúhlasných hodinách (Práce > Dochádzka)
 // ==============================================
 
 // ==============================================
@@ -37,7 +38,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Denný report Prepočet",
-    version: "1.4.0",
+    version: "1.5.0",
 
     // Referencie na centrálny config
     fields: {
@@ -990,6 +991,31 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
             info += "\n";
         }
 
+        // Kontrola prestojov - porovnanie hodín medzi Dochádzkou a Prácami
+        if (attendanceResult.count > 0 && workRecordsResult.count > 0) {
+            var attendanceHours = attendanceResult.totalHours;
+            var workHours = workRecordsResult.totalHours;
+            var hoursDiff = attendanceHours - workHours;
+
+            if (hoursDiff > 0) {
+                // Prestoje: Dochádzka má viac hodín ako Práce
+                info += "## ⏸️ Prestoje\n\n";
+                info += "- **Prestoj:** " + hoursDiff.toFixed(2) + " h\n";
+                info += "- **Dochádzka:** " + attendanceHours.toFixed(2) + " h\n";
+                info += "- **Práce:** " + workHours.toFixed(2) + " h\n";
+                info += "- ⚠️ Zamestnanci boli prítomní, ale nevykonávali práce\n\n";
+                addRecordIcon("⏸️");
+            } else if (hoursDiff < 0) {
+                // Chyba: Práce majú viac hodín ako Dochádzka - treba skontrolovať
+                info += "## ⚠️ Skontrolovať a opraviť\n\n";
+                info += "- **Nezhoda hodín:** " + Math.abs(hoursDiff).toFixed(2) + " h\n";
+                info += "- **Dochádzka:** " + attendanceHours.toFixed(2) + " h\n";
+                info += "- **Práce:** " + workHours.toFixed(2) + " h\n";
+                info += "- ❌ Práce majú viac hodín ako Dochádzka - skontrolujte a opravte\n\n";
+                addRecordIcon("⚠️");
+            }
+        }
+
         info += "---\n\n";
 
         // Sekcia Dochádzka
@@ -1008,6 +1034,9 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
             info += "## 📝 Záznamy prác\n\n";
             info += "- **Počet záznamov:** " + workRecordsResult.count + "\n";
             info += "- **Celkom hodín:** " + workRecordsResult.totalHours.toFixed(2) + " h\n";
+            if (workRecordsResult.employees && workRecordsResult.employees.length > 0) {
+                info += "- **Zamestnanci (" + workRecordsResult.employees.length + "):** " + workRecordsResult.employees.join(", ") + "\n";
+            }
             if (workRecordsResult.orders.length > 0) {
                 info += "- **Zákazky (" + workRecordsResult.orders.length + "):** " + workRecordsResult.orders.join(", ") + "\n";
             }
@@ -1019,6 +1048,9 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
             info += "## 🚗 Kniha jázd\n\n";
             info += "- **Počet záznamov:** " + rideLogResult.count + "\n";
             info += "- **Celkom km:** " + rideLogResult.totalKm.toFixed(2) + " km\n";
+            if (rideLogResult.crew && rideLogResult.crew.length > 0) {
+                info += "- **Posádka (" + rideLogResult.crew.length + "):** " + rideLogResult.crew.join(", ") + "\n";
+            }
             if (rideLogResult.vehicles.length > 0) {
                 info += "- **Vozidlá (" + rideLogResult.vehicles.length + "):** " + rideLogResult.vehicles.join(", ") + "\n";
             }
