@@ -1,19 +1,26 @@
 // ==============================================
 // MEMENTO DATABASE - DENNÝ REPORT PREPOČET
-// Verzia: 1.0.1 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 1.1.0 | Dátum: október 2025 | Autor: ASISTANTO
 // Knižnica: Denný report | Trigger: Before Save
 // ==============================================
-// ✅ FUNKCIONALITA v1.0.1:
+// ✅ FUNKCIONALITA v1.1.0:
 //    - Agregácia dát z Dochádzky, Záznamov prác, Knihy jázd a Pokladne
-//    - Vytváranie Info záznamov pre každú sekciu (len v Debug logu)
+//    - Vytváranie Info záznamov pre každú sekciu (markdown formát)
+//    - Vytvorenie spoločného info záznamu
 //    - Výpočet celkových odpracovaných hodín
 //    - Výpočet celkových km, príjmov a výdavkov
 //    - Generovanie popisu záznamu
+//    - Automatické pridávanie ikôn pre vyplnené sekcie
 //    - Príprava na integráciu s MementoTelegram a MementoAI
-// 🔧 CHANGELOG v1.0.1:
-//    - Opravené formatovanie času (formatDate + formatTime namiesto formatDateTime)
-//    - Odstránené zapisovanie do polí (len debug výstupy)
-//    - Odstránené spätné linkovanie (pripravené na neskoršiu implementáciu)
+// 🔧 CHANGELOG v1.1.0:
+//    - Pridané zapisovanie do info polí (markdown formát)
+//    - Pridané zapisovanie do poľa "Popis záznamu"
+//    - Pridané zapisovanie do poľa "Odpracované" (celkové hodiny)
+//    - Pridaný spoločný info záznam do spoločného poľa "info"
+//    - Automatické pridávanie ikôn do poľa "ikony záznamu"
+//    - Funkcia createMarkdownInfo() pre jednotný markdown formát
+//    - Funkcia createCommonInfo() pre spoločný prehľad
+//    - Funkcia addRecordIcon() pre správu ikôn
 // ==============================================
 
 // ==============================================
@@ -29,7 +36,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Denný report Prepočet",
-    version: "1.0.1",
+    version: "1.1.0",
 
     // Referencie na centrálny config
     fields: {
@@ -92,8 +99,12 @@ function main() {
         utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 6: Generovanie popisu záznamu");
         var descriptionResult = generateRecordDescription(attendanceResult, workRecordsResult, rideLogResult, cashBookResult);
 
-        // KROK 7: Telegram notifikácie (voliteľné - pripravené na neskoršiu implementáciu)
-        utils.addDebug(currentEntry, utils.getIcon("telegram") + " KROK 7: Telegram notifikácie");
+        // KROK 7: Vytvorenie spoločného info záznamu
+        utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 7: Vytvorenie spoločného info");
+        var commonInfoResult = createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, cashBookResult, totalHoursResult);
+
+        // KROK 8: Telegram notifikácie (voliteľné - pripravené na neskoršiu implementáciu)
+        utils.addDebug(currentEntry, utils.getIcon("telegram") + " KROK 8: Telegram notifikácie");
         var telegramResult = sendTelegramNotifications(attendanceResult, workRecordsResult, rideLogResult, cashBookResult);
 
         utils.addDebug(currentEntry, utils.getIcon("success") + " === PREPOČET DOKONČENÝ ===");
@@ -200,9 +211,16 @@ function processAttendance() {
         infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
         infoText += infoBlocks.join("\n");
 
-        // Ulož info záznam (len do logu, zatiaľ nezapisuj do poľa)
-        utils.addDebug(currentEntry, "  📊 INFO DOCHÁDZKA:\n" + infoText);
-        utils.addDebug(currentEntry, "  ✅ Info dochádzka vytvorený (" + attendanceRecords.length + " záznamov)");
+        // Ulož info záznam do poľa (markdown formát)
+        var markdownInfo = createMarkdownInfo("DOCHÁDZKA", timestamp, [
+            { label: "Celkom záznamov", value: attendanceRecords.length },
+            { label: "Celkom odpracovaných hodín", value: totalWorked.toFixed(2) + " h" },
+            { label: "Zamestnanci (" + employeeNames.length + ")", value: employeeNames.join(", ") }
+        ], infoBlocks);
+
+        utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoAttendance, markdownInfo);
+        addRecordIcon("👥");
+        utils.addDebug(currentEntry, "  ✅ Info dochádzka vytvorený a zapísaný (" + attendanceRecords.length + " záznamov)");
 
         result.success = true;
         result.count = attendanceRecords.length;
@@ -298,9 +316,16 @@ function processWorkRecords() {
         infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
         infoText += infoBlocks.join("\n");
 
-        // Ulož info záznam (len do logu, zatiaľ nezapisuj do poľa)
-        utils.addDebug(currentEntry, "  📊 INFO ZÁZNAM PRÁC:\n" + infoText);
-        utils.addDebug(currentEntry, "  ✅ Info záznam prác vytvorený (" + workRecords.length + " záznamov)");
+        // Ulož info záznam do poľa (markdown formát)
+        var markdownInfo = createMarkdownInfo("ZÁZNAMY PRÁC", timestamp, [
+            { label: "Celkom záznamov", value: workRecords.length },
+            { label: "Celkom hodín", value: totalHours.toFixed(2) + " h" },
+            { label: "Zákazky (" + orderNames.length + ")", value: orderNames.join(", ") }
+        ], infoBlocks);
+
+        utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoWorkRecords, markdownInfo);
+        addRecordIcon("📝");
+        utils.addDebug(currentEntry, "  ✅ Info záznam prác vytvorený a zapísaný (" + workRecords.length + " záznamov)");
 
         result.success = true;
         result.count = workRecords.length;
@@ -396,9 +421,16 @@ function processRideLog() {
         infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
         infoText += infoBlocks.join("\n");
 
-        // Ulož info záznam (len do logu, zatiaľ nezapisuj do poľa)
-        utils.addDebug(currentEntry, "  📊 INFO KNIHA JÁZD:\n" + infoText);
-        utils.addDebug(currentEntry, "  ✅ Info kniha jázd vytvorený (" + rideRecords.length + " záznamov)");
+        // Ulož info záznam do poľa (markdown formát)
+        var markdownInfo = createMarkdownInfo("KNIHA JÁZD", timestamp, [
+            { label: "Celkom záznamov", value: rideRecords.length },
+            { label: "Celkom km", value: totalKm.toFixed(2) + " km" },
+            { label: "Vozidlá (" + vehicleNames.length + ")", value: vehicleNames.join(", ") }
+        ], infoBlocks);
+
+        utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoRideLog, markdownInfo);
+        addRecordIcon("🚗");
+        utils.addDebug(currentEntry, "  ✅ Info kniha jázd vytvorený a zapísaný (" + rideRecords.length + " záznamov)");
 
         result.success = true;
         result.count = rideRecords.length;
@@ -481,9 +513,17 @@ function processCashBook() {
         infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
         infoText += infoBlocks.join("\n");
 
-        // Ulož info záznam (len do logu, zatiaľ nezapisuj do poľa)
-        utils.addDebug(currentEntry, "  📊 INFO POKLADŇA:\n" + infoText);
-        utils.addDebug(currentEntry, "  ✅ Info pokladňa vytvorený (" + cashRecords.length + " záznamov)");
+        // Ulož info záznam do poľa (markdown formát)
+        var markdownInfo = createMarkdownInfo("POKLADŇA", timestamp, [
+            { label: "Celkom záznamov", value: cashRecords.length },
+            { label: "Príjmy", value: "+" + totalIncome.toFixed(2) + " €" },
+            { label: "Výdavky", value: "-" + totalExpense.toFixed(2) + " €" },
+            { label: "Bilancia", value: (totalIncome - totalExpense).toFixed(2) + " €" }
+        ], infoBlocks);
+
+        utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoCashBook, markdownInfo);
+        addRecordIcon("💰");
+        utils.addDebug(currentEntry, "  ✅ Info pokladňa vytvorený a zapísaný (" + cashRecords.length + " záznamov)");
 
         result.success = true;
         result.count = cashRecords.length;
@@ -522,7 +562,9 @@ function calculateTotalHours(attendanceResult, workRecordsResult) {
         }
 
         utils.addDebug(currentEntry, "  ⏱️ Celkové odpracované hodiny: " + totalHours.toFixed(2) + " h");
-        utils.addDebug(currentEntry, "  ℹ️ Zatiaľ nezapisujeme do poľa hoursWorked");
+
+        // Ulož do poľa
+        utils.safeSet(currentEntry, CONFIG.fields.dailyReport.hoursWorked, totalHours);
 
         result.success = true;
         result.totalHours = totalHours;
@@ -580,7 +622,7 @@ function generateRecordDescription(attendanceResult, workRecordsResult, rideLogR
 
         if (description) {
             utils.addDebug(currentEntry, "  ✅ Popis záznamu: " + description);
-            utils.addDebug(currentEntry, "  ℹ️ Zatiaľ nezapisujeme do poľa recordDescription");
+            utils.safeSet(currentEntry, CONFIG.fields.dailyReport.recordDescription, description);
         }
 
         result.success = true;
@@ -633,8 +675,139 @@ function sendTelegramNotifications(attendanceResult, workRecordsResult, rideLogR
 }
 
 // ==============================================
+// SPOLOČNÝ INFO ZÁZNAM
+// ==============================================
+
+function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, cashBookResult, totalHoursResult) {
+    var result = {
+        success: false
+    };
+
+    try {
+        var now = new Date();
+        var timestamp = utils.formatDate(now) + " " + utils.formatTime(now);
+
+        // Hlavička
+        var info = "# 📊 DENNÝ REPORT - ZHRNUTIE\n\n";
+        info += "**Dátum:** " + utils.formatDate(utils.safeGet(currentEntry, CONFIG.fields.dailyReport.date)) + "  \n";
+        info += "**Aktualizované:** " + timestamp + "\n\n";
+        info += "---\n\n";
+
+        // Sekcia Dochádzka
+        if (attendanceResult.count > 0) {
+            info += "## 👥 Dochádzka\n\n";
+            info += "- **Počet záznamov:** " + attendanceResult.count + "\n";
+            info += "- **Odpracované hodiny:** " + attendanceResult.totalHours.toFixed(2) + " h\n";
+            if (attendanceResult.employees.length > 0) {
+                info += "- **Zamestnanci (" + attendanceResult.employees.length + "):** " + attendanceResult.employees.join(", ") + "\n";
+            }
+            info += "\n";
+        }
+
+        // Sekcia Záznamy prác
+        if (workRecordsResult.count > 0) {
+            info += "## 📝 Záznamy prác\n\n";
+            info += "- **Počet záznamov:** " + workRecordsResult.count + "\n";
+            info += "- **Celkom hodín:** " + workRecordsResult.totalHours.toFixed(2) + " h\n";
+            if (workRecordsResult.orders.length > 0) {
+                info += "- **Zákazky (" + workRecordsResult.orders.length + "):** " + workRecordsResult.orders.join(", ") + "\n";
+            }
+            info += "\n";
+        }
+
+        // Sekcia Kniha jázd
+        if (rideLogResult.count > 0) {
+            info += "## 🚗 Kniha jázd\n\n";
+            info += "- **Počet záznamov:** " + rideLogResult.count + "\n";
+            info += "- **Celkom km:** " + rideLogResult.totalKm.toFixed(2) + " km\n";
+            if (rideLogResult.vehicles.length > 0) {
+                info += "- **Vozidlá (" + rideLogResult.vehicles.length + "):** " + rideLogResult.vehicles.join(", ") + "\n";
+            }
+            info += "\n";
+        }
+
+        // Sekcia Pokladňa
+        if (cashBookResult.count > 0) {
+            info += "## 💰 Pokladňa\n\n";
+            info += "- **Počet záznamov:** " + cashBookResult.count + "\n";
+            info += "- **Príjmy:** +" + cashBookResult.totalIncome.toFixed(2) + " €\n";
+            info += "- **Výdavky:** -" + cashBookResult.totalExpense.toFixed(2) + " €\n";
+            var balance = cashBookResult.totalIncome - cashBookResult.totalExpense;
+            info += "- **Bilancia:** " + (balance >= 0 ? "+" : "") + balance.toFixed(2) + " €\n";
+            info += "\n";
+        }
+
+        // Celkové hodiny
+        if (totalHoursResult.totalHours > 0) {
+            info += "---\n\n";
+            info += "## ⏱️ Celkové hodiny\n\n";
+            info += "**" + totalHoursResult.totalHours.toFixed(2) + " h**\n\n";
+        }
+
+        // Ulož do spoločného info poľa
+        utils.safeSet(currentEntry, CONFIG.fields.common.info, info);
+        utils.addDebug(currentEntry, "  ✅ Spoločný info záznam vytvorený a zapísaný");
+
+        result.success = true;
+
+    } catch (error) {
+        utils.addError(currentEntry, "Chyba pri vytváraní spoločného info: " + error.toString(), "createCommonInfo", error);
+    }
+
+    return result;
+}
+
+// ==============================================
 // POMOCNÉ FUNKCIE
 // ==============================================
+
+/**
+ * Pridá ikonu do poľa ikony záznamu
+ */
+function addRecordIcon(icon) {
+    try {
+        var currentIcons = utils.safeGet(currentEntry, CONFIG.fields.dailyReport.recordIcons, "");
+
+        // Skontroluj, či ikona už nie je pridaná
+        if (currentIcons.indexOf(icon) === -1) {
+            var newIcons = currentIcons ? currentIcons + " " + icon : icon;
+            utils.safeSet(currentEntry, CONFIG.fields.dailyReport.recordIcons, newIcons);
+            utils.addDebug(currentEntry, "  📌 Pridaná ikona: " + icon);
+        }
+    } catch (error) {
+        utils.addDebug(currentEntry, "  ⚠️ Nepodarilo sa pridať ikonu: " + error.toString());
+    }
+}
+
+/**
+ * Vytvorí markdown formátovaný info záznam
+ */
+function createMarkdownInfo(title, timestamp, stats, detailBlocks) {
+    var info = "## 📊 " + title + " - ZHRNUTIE\n\n";
+    info += "**Aktualizované:** " + timestamp + "\n\n";
+
+    // Štatistiky
+    for (var i = 0; i < stats.length; i++) {
+        var stat = stats[i];
+        info += "- **" + stat.label + ":** " + stat.value + "\n";
+    }
+
+    info += "\n---\n\n";
+
+    // Detailné bloky (ak existujú)
+    if (detailBlocks && detailBlocks.length > 0) {
+        for (var j = 0; j < detailBlocks.length; j++) {
+            // Konvertuj emoji bloky na markdown
+            var block = detailBlocks[j];
+            // Odstráň úvodné emoji a nahraď bold markdown
+            block = block.replace(/^(📋|📝|🚗|💰)\s+/, "### ");
+            block = block.replace(/^\s+/gm, ""); // Odstráň indentáciu
+            info += block + "\n\n";
+        }
+    }
+
+    return info;
+}
 
 function buildSummary(attendanceResult, workRecordsResult, rideLogResult, cashBookResult, totalHoursResult) {
     var lines = [];
