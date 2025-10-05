@@ -71,8 +71,10 @@ var CONFIG = {
         vehicle: centralConfig.fields.vehicle,
         common: centralConfig.fields.common,
         order: centralConfig.fields.order,
+        quote: centralConfig.fields.quote,
         employee: centralConfig.fields.employee,
         wages: centralConfig.fields.wages,
+        transportPrices: centralConfig.fields.transportPrices,
         defaults: centralConfig.fields.defaults
     },
 
@@ -1616,7 +1618,7 @@ function synchronizeRideReport(routeResult, wageResult, vehicleCostResult) {
  */
 function updateRideReportAttributesProportional(rideReport, routeResult, wageResult, vehicleCostResult, zakaziekCount) {
     try {
-        var dopravaPole = rideReport.field(CONFIG.fields.rideReport.ride);
+        var dopravaPole = rideReport.field(CONFIG.fields.rideReport.rides);
         if (!dopravaPole || dopravaPole.length === 0) return;
         
         // Nájdi index aktuálneho záznamu
@@ -1772,7 +1774,7 @@ function createNewRideReport(zakazkaObj, datum, zakazkaName) {
  */
 function linkCurrentRecordToReport(rideReport) {
     try {
-        var dopravaPole = rideReport.field(CONFIG.fields.rideReport.ride) || [];
+        var dopravaPole = rideReport.field(CONFIG.fields.rideReport.rides) || [];
                     
         // Skontroluj či už nie je prepojený
         var isLinked = false;
@@ -1805,7 +1807,7 @@ function linkCurrentRecordToReport(rideReport) {
  */
 function updateRideReportAttributes(rideReport, routeResult, wageResult) {
     try {
-        var dopravaPole = rideReport.field(CONFIG.fields.rideReport.ride);
+        var dopravaPole = rideReport.field(CONFIG.fields.rideReport.rides);
         if (!dopravaPole || dopravaPole.length === 0) return;
         
         // Nájdi index aktuálneho záznamu
@@ -1853,7 +1855,7 @@ function updateRideReportAttributes(rideReport, routeResult, wageResult) {
  */
 function recalculateRideReportTotals(rideReport) {
     try {
-        var dopravaPole = rideReport.field(CONFIG.fields.rideReport.ride);
+        var dopravaPole = rideReport.field(CONFIG.fields.rideReport.rides);
         if (!dopravaPole) return;
         
         var totalKm = 0;
