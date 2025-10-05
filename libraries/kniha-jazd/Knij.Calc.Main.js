@@ -1494,13 +1494,13 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
 
         // Vozidlo informácie
         if (vehicleResult && vehicleResult.success && vehicleResult.message !== "Žiadne vozidlo") {
-            infoMessage += "## 🚐 VOZIDLO\n";
+            infoMessage += "## 🚚 VOZIDLO\n";
 
             // Pridaj informácie o parkovacom mieste (cieli)
             var destination = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.destination) || [];
             if (destination.length > 0) {
                 var destName = utils.safeGet(destination[0], CONFIG.fields.place.name, "N/A");
-                var syncStatus = vehicleResult.message === "Už synchronizované" ? " (už synchronizované)" : "";
+                var syncStatus = vehicleResult.message === "Už synchronizované" ? " - synchronizované" : "";
                 infoMessage += "- **Parkovanie:** " + destName + syncStatus + "\n";
             }
 
@@ -1602,12 +1602,12 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
             var zakazkyForm = zakazky.length === 1 ? "zákazka" :
                              zakazky.length < 5 ? "zákazky" : "zákaziek";
             var checkboxInfo = customerStopsCount > 0 ? " (" + customerStopsCount + " zastávok s checkboxom)" : "";
-            infoMessage += "## 🏢 ZÁKAZKY (" + zakazky.length + " " + zakazkyForm + checkboxInfo + ")\n\n";
+            infoMessage += "## 🛠️ ZÁKAZKY (" + zakazky.length + " " + zakazkyForm + checkboxInfo + ")\n\n";
             for (var k = 0; k < Math.min(zakazky.length, 5); k++) {
                 var zakazka = zakazky[k];
                 var zakazkaInfo = getZakazkaInfo(zakazka);
 
-                infoMessage += "### 🏢 " + zakazkaInfo.display + "\n";
+                infoMessage += "### 🔨 " + zakazkaInfo.display + "\n";
 
                 // Získaj atribút počtu (počet zastávok na zákazke)
                 var attrPocet = 0;
@@ -1732,7 +1732,7 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
             for (var i = 0; i < wageResult.detaily.length; i++) {
                 var detail = wageResult.detaily[i];
                 var jeVodic = vodicId && detail.zamestnanecId === vodicId;
-                var vodicMark = jeVodic ? " 🚗 (Šofér)" : "";
+                var vodicMark = jeVodic ? " 🚚" : "";
 
                 infoMessage += "### 👤 " + detail.meno + vodicMark + "\n";
                 infoMessage += "- **Hodinovka:** " + detail.hodinovka + " €/h\n";
