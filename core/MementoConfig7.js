@@ -72,7 +72,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.20",  // Pridané polia priceKm, priceFlatRate do transportPrices
+        version: "7.0.21",  // Pridaný atribút billing do rideLogOrders
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -1127,7 +1127,8 @@ var MementoConfig = (function() {
                 count: "počet", // int - počet výskytov zákazky na trase
                 km: "km", // real number - vzdialenosť tam a nazad (2× vzdialenosť miesta)
                 revenueKm: "výnosy km", // real number - výnosy podľa km (km × cena za km)
-                revenueFlatRate: "výnosy paušál" // real number - paušálna cena za zákazku
+                revenueFlatRate: "výnosy paušál", // real number - paušálna cena za zákazku
+                billing: "účtovanie" // text - spôsob účtovania (Km, Paušál, %)
             },
             crew: {
                 hourlyRate: "hodinovka",
