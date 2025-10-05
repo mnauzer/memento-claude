@@ -52,7 +52,8 @@ var CONFIG = {
         vehicle: centralConfig.fields.vehicle,
         material: centralConfig.fields.material,
         machine: centralConfig.fields.machine,
-        common: centralConfig.fields.common
+        common: centralConfig.fields.common,
+        place: centralConfig.fields.place
     },
     libraries: centralConfig.libraries,
     icons: centralConfig.icons
