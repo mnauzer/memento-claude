@@ -822,8 +822,19 @@ function processCashBook() {
             var sum = utils.safeGet(cash, CONFIG.fields.cashBook.sum, 0);
             var description = utils.safeGet(cash, CONFIG.fields.cashBook.description, "");
 
-            // Použij sumTotal ak je vyplnená, inak sum
-            var amount = sumTotal > 0 ? sumTotal : sum;
+            // Debug: zobraz hodnoty
+            utils.addDebug(currentEntry, "  🔍 Pokladňa #" + cashId + ": Typ=" + transactionType + ", sumTotal=" + sumTotal + ", sum=" + sum);
+
+            // Konvertuj na čísla ak sú stringy
+            if (typeof sumTotal === "string") {
+                sumTotal = parseFloat(sumTotal) || 0;
+            }
+            if (typeof sum === "string") {
+                sum = parseFloat(sum) || 0;
+            }
+
+            // Použij sumTotal ak existuje, inak sum
+            var amount = (sumTotal !== null && sumTotal !== undefined && sumTotal !== 0) ? sumTotal : sum;
 
             // Agreguj príjmy a výdavky podľa typu pohybu
             if (transactionType === "Príjem") {
@@ -832,6 +843,8 @@ function processCashBook() {
                 totalExpense += amount;
             }
             // PP (Priebežná položka) sa nezapočítava do príjmov ani výdavkov
+
+            utils.addDebug(currentEntry, "  💰 Amount=" + amount + ", totalIncome=" + totalIncome + ", totalExpense=" + totalExpense);
 
             // Vytvor info blok pre tento záznam
             var block = "💰 Pokladňa #" + cashId + "\n";
