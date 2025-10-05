@@ -162,7 +162,7 @@ function main() {
         utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 9: Spracovanie Denný report");
         var dailyReportResult = utils.createOrUpdateDailyReport(currentEntry, 'workRecord', {
             debugEntry: currentEntry,
-            createBackLink: true  // Vytvor spätný link na denný report
+            createBackLink: false  // Vytvor spätný link na denný report
         });
         steps.step9.success = dailyReportResult.success;
 
