@@ -1,8 +1,16 @@
 // ==============================================
 // MEMENTO DATABASE - KNIHA JÁZD (ROUTE CALCULATION & PAYROLL)
-// Verzia: 10.5.0 | Dátum: Október 2025 | Autor: ASISTANTO
+// Verzia: 10.6.0 | Dátum: Október 2025 | Autor: ASISTANTO
 // Knižnica: Kniha jázd | Trigger: Before Save
 // ==============================================
+// ✅ PRIDANÉ v10.6:
+//    - Pridaná knižnica transportPrices (ceny dopravy) do MementoConfig v7.0.18
+//    - Účtovaná cena vozidla z linksFrom (ceny dopravy / vozidlo)
+//    - Výpočet výnosov za vozidlo (km × účtovaná cena)
+//    - Sekcia Súhrn rozšírená o Výnosy a Vyhodnotenie (hrubý zisk, marža)
+//    - Spôsob účtovania pri zákazkách (z cenovej ponuky)
+//    - Ikony v sekcii Detaily trasy (🚀 ŠTART, 📍 ZASTÁVKY, 🏁 CIEĽ)
+//    - "Už synchronizované" presunuté do zátvorky za Parkovanie
 // ✅ PRIDANÉ v10.5:
 //    - Refaktorovaný info záznam podľa vzoru Záznam prác
 //    - Pridané sekcie Súhrn (Náklady, Výnosy, Vyhodnotenie)
@@ -53,7 +61,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Kniha jázd Prepočet",
-    version: "10.5.0",  // Refaktorovaný info záznam + parkovanie vo Vozidlo sekcii
+    version: "10.6.0",  // Účtovaná cena, výnosy vozidla, vyhodnotenie + rozšírenia info záznamu
 
     // Referencie na centrálny config
     fields: {
@@ -1139,13 +1147,13 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
             var start = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.start) || [];
             if (start.length > 0) {
                 var startName = utils.safeGet(start[0], CONFIG.fields.place.name, "N/A");
-                infoMessage += "**ŠTART:** " + startName + "\n\n";
+                infoMessage += "**🚀 ŠTART:** " + startName + "\n\n";
             }
 
             // Zastávky
             var stops = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.stops) || [];
             if (stops.length > 0) {
-                infoMessage += "**ZASTÁVKY:**\n";
+                infoMessage += "**📍 ZASTÁVKY:**\n";
                 for (var i = 0; i < stops.length; i++) {
                     var stop = stops[i];
                     var stopName = utils.safeGet(stop, CONFIG.fields.place.name, "N/A");
@@ -1180,7 +1188,7 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
                     destDuration = utils.convertDurationToHours(destDurationMs);
                 } catch (e) {}
 
-                infoMessage += "**CIEĽ:** " + destName + " - " + destKm.toFixed(2) + " km / " + destDuration.toFixed(2) + " h\n\n";
+                infoMessage += "**🏁 CIEĽ:** " + destName + " - " + destKm.toFixed(2) + " km / " + destDuration.toFixed(2) + " h\n\n";
             }
 
             // Súhrn
@@ -1193,26 +1201,66 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
         // Vozidlo informácie
         if (vehicleResult && vehicleResult.success && vehicleResult.message !== "Žiadne vozidlo") {
             infoMessage += "## 🚐 VOZIDLO\n";
-            infoMessage += "- " + vehicleResult.message + "\n";
+
+            // Zobraz základné info o vozidle (ale nie "Už synchronizované")
+            if (vehicleResult.message !== "Už synchronizované") {
+                infoMessage += "- " + vehicleResult.message + "\n";
+            }
 
             // Pridaj informácie o parkovacom mieste (cieli)
             var destination = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.destination) || [];
             if (destination.length > 0) {
                 var destName = utils.safeGet(destination[0], CONFIG.fields.place.name, "N/A");
-                infoMessage += "- **Parkovanie:** " + destName + "\n";
+                var syncStatus = vehicleResult.message === "Už synchronizované" ? " (už synchronizované)" : "";
+                infoMessage += "- **Parkovanie:** " + destName + syncStatus + "\n";
             }
 
-            // Pridaj informácie o nákladovej cene
             var vozidloField = currentEntry.field(CONFIG.fields.rideLog.vehicle);
             if (vozidloField && vozidloField.length > 0) {
                 var vozidlo = vozidloField[0];
+
+                // Získaj účtovanú cenu z linksFrom (ceny dopravy)
+                var uctovanaCena = 0;
+                try {
+                    var currentDate = utils.safeGet(currentEntry, CONFIG.fields.rideLog.date);
+                    var transportPrices = vozidlo.linksFrom(CONFIG.libraries.transportPrices, CONFIG.fields.transportPrices.vehicle);
+
+                    if (transportPrices && transportPrices.length > 0) {
+                        // Zoraď ceny podľa dátumu platnosti
+                        transportPrices.sort(function(a, b) {
+                            var dateA = utils.safeGet(a, CONFIG.fields.transportPrices.validFrom);
+                            var dateB = utils.safeGet(b, CONFIG.fields.transportPrices.validFrom);
+                            if (!dateA && !dateB) return 0;
+                            if (!dateA) return -1;
+                            if (!dateB) return 1;
+                            return moment(dateA).diff(moment(dateB));
+                        });
+
+                        // Nájdi platnú cenu k dátumu
+                        for (var i = 0; i < transportPrices.length; i++) {
+                            var priceRecord = transportPrices[i];
+                            var validFrom = utils.safeGet(priceRecord, CONFIG.fields.transportPrices.validFrom);
+
+                            if (validFrom && moment(validFrom).isSameOrBefore(currentDate)) {
+                                uctovanaCena = utils.safeGet(priceRecord, CONFIG.fields.transportPrices.price, 0);
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                } catch (priceError) {
+                    utils.addDebug(currentEntry, "  ⚠️ Chyba pri získavaní účtovanej ceny: " + priceError);
+                }
+
+                // Zobraz účtovanú cenu
+                if (uctovanaCena > 0) {
+                    infoMessage += "- **Účtovaná cena:** " + uctovanaCena + " €/km\n";
+                }
+
+                // Pridaj informácie o nákladovej cene
                 var nakladovaCena = utils.safeGet(vozidlo, CONFIG.fields.vehicle.costRate, 0);
                 if (nakladovaCena > 0) {
                     infoMessage += "- **Nákladová cena:** " + nakladovaCena + " €/km\n";
-                    if (routeResult && routeResult.totalKm > 0) {
-                        var celkoveNaklady = nakladovaCena * routeResult.totalKm;
-                        infoMessage += "- **Náklady za trasu:** " + utils.formatMoney(celkoveNaklady) + " (" + routeResult.totalKm + " km × " + nakladovaCena + " €/km)\n";
-                    }
                 }
             }
             infoMessage += "\n";
@@ -1253,6 +1301,20 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
                 } catch (attrError) {
                     // Ignoruj chybu atribútu
                 }
+
+                // Získaj spôsob účtovania z cenovej ponuky
+                try {
+                    var cenovaPonuka = utils.safeGetLinks(zakazka, CONFIG.fields.order.quote);
+                    if (cenovaPonuka && cenovaPonuka.length > 0) {
+                        var uctovanieDopravy = utils.safeGet(cenovaPonuka[0], CONFIG.fields.quote.rideCalculation);
+                        if (uctovanieDopravy) {
+                            infoMessage += "- **Spôsob účtovania:** " + uctovanieDopravy + "\n";
+                        }
+                    }
+                } catch (quoteError) {
+                    // Ignoruj chybu
+                }
+
                 infoMessage += "\n";
             }
 
@@ -1317,10 +1379,12 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
             infoMessage += "**💰 Celkové mzdové náklady:** " + utils.formatMoney(wageResult.celkoveMzdy) + "\n\n";
         }
 
-        // Súhrn nákladov
+        // Súhrn nákladov a výnosov
         var totalCosts = 0;
         var wageCosts = 0;
         var vehicleCosts = 0;
+        var totalRevenue = 0;
+        var vehicleRevenue = 0;
 
         if (wageResult && wageResult.success && wageResult.celkoveMzdy) {
             wageCosts = wageResult.celkoveMzdy;
@@ -1331,11 +1395,74 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
             totalCosts += vehicleCosts;
         }
 
+        // Vypočítaj výnosy za vozidlo
+        var vozidloField = currentEntry.field(CONFIG.fields.rideLog.vehicle);
+        if (vozidloField && vozidloField.length > 0 && routeResult && routeResult.totalKm > 0) {
+            var vozidlo = vozidloField[0];
+            var uctovanaCena = 0;
+
+            try {
+                var currentDate = utils.safeGet(currentEntry, CONFIG.fields.rideLog.date);
+                var transportPrices = vozidlo.linksFrom(CONFIG.libraries.transportPrices, CONFIG.fields.transportPrices.vehicle);
+
+                if (transportPrices && transportPrices.length > 0) {
+                    // Zoraď ceny podľa dátumu platnosti
+                    transportPrices.sort(function(a, b) {
+                        var dateA = utils.safeGet(a, CONFIG.fields.transportPrices.validFrom);
+                        var dateB = utils.safeGet(b, CONFIG.fields.transportPrices.validFrom);
+                        if (!dateA && !dateB) return 0;
+                        if (!dateA) return -1;
+                        if (!dateB) return 1;
+                        return moment(dateA).diff(moment(dateB));
+                    });
+
+                    // Nájdi platnú cenu k dátumu
+                    for (var i = 0; i < transportPrices.length; i++) {
+                        var priceRecord = transportPrices[i];
+                        var validFrom = utils.safeGet(priceRecord, CONFIG.fields.transportPrices.validFrom);
+
+                        if (validFrom && moment(validFrom).isSameOrBefore(currentDate)) {
+                            uctovanaCena = utils.safeGet(priceRecord, CONFIG.fields.transportPrices.price, 0);
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            } catch (priceError) {
+                // Ignoruj chybu
+            }
+
+            if (uctovanaCena > 0) {
+                vehicleRevenue = uctovanaCena * routeResult.totalKm;
+                totalRevenue += vehicleRevenue;
+            }
+        }
+
         infoMessage += "## 💰 SÚHRN\n";
         infoMessage += "### Náklady\n";
         if (wageCosts > 0) infoMessage += "- **Mzdové náklady:** " + utils.formatMoney(wageCosts) + "\n";
         if (vehicleCosts > 0) infoMessage += "- **Náklady vozidlo:** " + utils.formatMoney(vehicleCosts) + "\n";
         infoMessage += "- **NÁKLADY CELKOM:** " + utils.formatMoney(totalCosts) + "\n\n";
+
+        infoMessage += "### Výnosy\n";
+        if (vehicleRevenue > 0) {
+            infoMessage += "- **Výnosy vozidlo:** " + utils.formatMoney(vehicleRevenue);
+            if (routeResult && routeResult.totalKm > 0 && uctovanaCena > 0) {
+                infoMessage += " (" + routeResult.totalKm.toFixed(2) + " km × " + uctovanaCena + " €/km)";
+            }
+            infoMessage += "\n";
+        }
+        infoMessage += "- **VÝNOSY CELKOM:** " + utils.formatMoney(totalRevenue) + "\n\n";
+
+        // Vyhodnotenie
+        if (totalRevenue > 0 || totalCosts > 0) {
+            var grossProfit = totalRevenue - totalCosts;
+            var margin = totalRevenue > 0 ? (grossProfit / totalRevenue * 100) : 0;
+
+            infoMessage += "### Vyhodnotenie\n";
+            infoMessage += "- **Hrubý zisk:** " + utils.formatMoney(grossProfit) + "\n";
+            infoMessage += "- **Marža:** " + margin.toFixed(2) + " %\n\n";
+        }
 
         infoMessage += "## 🔧 TECHNICKÉ INFORMÁCIE\n";
         infoMessage += "- **Script:** " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
