@@ -72,7 +72,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.21",  // Pridaný atribút billing do rideLogOrders
+        version: "7.0.22",  // Pridané pole lastKmByRideLog do vehicle
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -853,7 +853,8 @@ var MementoConfig = (function() {
                 odometerValue: "Stav tachometra",
                 kmDriven: "Najazdené",
                 consumptionRate: "Spotreba",
-                costRate: "Nákladová cena" // real number, nákladová cena za km
+                costRate: "Nákladová cena", // real number, nákladová cena za km
+                lastKmByRideLog: "Posledné km (KJ)" // real number, posledná najazdená vzdialenosť z Knihy jázd (pre prepočet tachometra)
             },
             // Stroje (Mechanizácia)
             machine: {
