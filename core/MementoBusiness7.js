@@ -2026,7 +2026,7 @@ var MementoBusiness = (function() {
                 };
             }
 
-            var dateFormatted = moment(sourceDate).format('YYYY-MM-DD');
+            var dateFormatted = moment(sourceDate).format('DD.MM.YYYY');
 
             // Pridaj debug informácie ak sú dostupné
             if (options && options.debugEntry && core.addDebug) {
@@ -2076,7 +2076,7 @@ var MementoBusiness = (function() {
                 var entry = dailyReportEntries[i];
                 var entryDate = core.safeGet(entry, config.fields.dailyReport.date);
 
-                if (entryDate && moment(entryDate).format('YYYY-MM-DD') === dateFormatted) {
+                if (entryDate && moment(entryDate).format('DD.MM.YYYY') === dateFormatted) {
                     existingDailyReport = entry;
                     break;
                 }

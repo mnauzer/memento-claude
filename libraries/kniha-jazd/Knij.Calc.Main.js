@@ -836,9 +836,9 @@ function updateVehicleOdometer(originalKm, routeResult) {
         var currentOdometer = utils.safeGet(vozidlo, CONFIG.fields.vehicle.odometerValue, 0);
         utils.addDebug(currentEntry, "  📊 Aktuálny stav tachometra: " + currentOdometer + " km");
 
-        // Získaj posledné km zapísané týmto záznamom (pre prepočet)
-        var lastKmByThisEntry = utils.safeGet(vozidlo, CONFIG.fields.vehicle.lastKmByRideLog, 0);
-        utils.addDebug(currentEntry, "  🔍 Posledné km zapísané týmto záznamom: " + lastKmByThisEntry + " km");
+        // Získaj posledné km zapísané týmto záznamom z poľa Km (z predchádzajúceho prepočtu)
+        var lastKmByThisEntry = originalKm;
+        utils.addDebug(currentEntry, "  🔍 Posledné km zapísané týmto záznamom do tachometra: " + lastKmByThisEntry + " km");
 
         // Ak existuje predchádzajúca zmena, odpočítaj ju najprv
         var adjustedOdometer = currentOdometer;
@@ -847,26 +847,22 @@ function updateVehicleOdometer(originalKm, routeResult) {
             utils.addDebug(currentEntry, "  ↩️ Odobratie predchádzajúcej zmeny: " + currentOdometer + " - " + lastKmByThisEntry + " = " + adjustedOdometer + " km");
         }
 
-        // Vypočítaj nový stav tachometra (od upraveného stavu)
-        var newOdometer = adjustedOdometer + kmDifference;
+        // Vypočítaj nový stav tachometra (pripočítaj nové km)
+        var newOdometer = adjustedOdometer + newKm;
 
         // Zaokrúhli na 2 desatinné miesta
         newOdometer = Math.round(newOdometer * 100) / 100;
 
-        utils.addDebug(currentEntry, "  📊 Nový stav tachometra: " + newOdometer + " km (zmena: " + (kmDifference > 0 ? "+" : "") + kmDifference.toFixed(2) + " km)");
+        var actualChange = newOdometer - currentOdometer;
+        utils.addDebug(currentEntry, "  📊 Nový stav tachometra: " + newOdometer + " km (zmena: " + (actualChange > 0 ? "+" : "") + actualChange.toFixed(2) + " km)");
 
         // Aktualizuj tachometer vozidla
         try {
             vozidlo.set(CONFIG.fields.vehicle.odometerValue, newOdometer);
             utils.addDebug(currentEntry, "  ✅ Tachometer vozidla aktualizovaný: " + currentOdometer + " → " + newOdometer + " km");
 
-            // Ulož aktuálne km z tohto záznamu do poľa pre ďalší prepočet
-            // DÔLEŽITÉ: Ukladá sa nová hodnota km z aktuálneho záznamu, nie rozdiel
-            vozidlo.set(CONFIG.fields.vehicle.lastKmByRideLog, newKm);
-            utils.addDebug(currentEntry, "  💾 Uložené km pre prepočet: " + newKm + " km");
-
-            result.message = "Tachometer aktualizovaný: +" + kmDifference.toFixed(2) + " km";
-            result.kmAdded = kmDifference;
+            result.message = "Tachometer aktualizovaný: " + (actualChange > 0 ? "+" : "") + actualChange.toFixed(2) + " km";
+            result.kmAdded = actualChange;
             result.success = true;
 
         } catch (updateError) {
