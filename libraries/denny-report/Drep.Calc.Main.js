@@ -602,7 +602,7 @@ function processWorkRecords() {
                 }
             }
             if (description) {
-                block += "  📋 Popis: **" + description.substring(0, 150).trim() + (description.length > 150 ? "..." : "") + "**\n";
+                block += "  🔨 Práce: **" + description.substring(0, 150).trim() + (description.length > 150 ? "..." : "") + "**\n";
             }
             block += "  ⏱️ Odpracované: **" + workedHours.toFixed(2) + " h**\n";
 
@@ -700,6 +700,9 @@ function processRideLog() {
             var km = utils.safeGet(ride, CONFIG.fields.rideLog.km, 0);
             var route = utils.safeGet(ride, CONFIG.fields.rideLog.route, "");
             var crew = utils.safeGetLinks(ride, "Posádka");
+            var start = utils.safeGetLinks(ride, CONFIG.fields.rideLog.start);
+            var stops = utils.safeGetLinks(ride, CONFIG.fields.rideLog.stops);
+            var destination = utils.safeGetLinks(ride, CONFIG.fields.rideLog.destination);
 
             // Agreguj vozidlá
             if (vehicle && vehicle.length > 0) {
@@ -733,10 +736,46 @@ function processRideLog() {
                 }
                 block += "  👥 Posádka: **" + crewNames.join(", ") + "**\n";
             }
-            if (route) {
+
+            // Formátuj trasu: 1. Štart, 2. Zástavka - km, 3. Cieľ - km
+            if (start || stops || destination) {
+                var routeParts = [];
+                var stepNum = 1;
+
+                if (start && start.length > 0) {
+                    var startName = utils.safeGet(start[0], CONFIG.fields.place.name) || utils.safeGet(start[0], CONFIG.fields.place.nick, "");
+                    if (startName) {
+                        routeParts.push(stepNum + ". " + startName);
+                        stepNum++;
+                    }
+                }
+
+                if (stops && stops.length > 0) {
+                    for (var st = 0; st < stops.length; st++) {
+                        var stopName = utils.safeGet(stops[st], CONFIG.fields.place.name) || utils.safeGet(stops[st], CONFIG.fields.place.nick, "");
+                        if (stopName) {
+                            // Predpokladáme, že km sú rozdelené rovnomerne alebo použijeme celkové km
+                            routeParts.push(stepNum + ". " + stopName);
+                            stepNum++;
+                        }
+                    }
+                }
+
+                if (destination && destination.length > 0) {
+                    var destName = utils.safeGet(destination[0], CONFIG.fields.place.name) || utils.safeGet(destination[0], CONFIG.fields.place.nick, "");
+                    if (destName) {
+                        routeParts.push(stepNum + ". " + destName + " - " + km.toFixed(2) + " km");
+                    }
+                }
+
+                if (routeParts.length > 0) {
+                    block += "  📍 Trasa: **" + routeParts.join(", ") + "**\n";
+                }
+            } else if (route) {
                 block += "  📍 Trasa: **" + route.substring(0, 100) + (route.length > 100 ? "..." : "") + "**\n";
             }
-            block += "  📏 Km: **" + km.toFixed(2) + " km**\n";
+
+            block += "  📏 Celkom: **" + km.toFixed(2) + " km**\n";
 
             infoBlocks.push(block);
         }
