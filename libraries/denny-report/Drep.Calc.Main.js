@@ -441,7 +441,7 @@ function processAttendance() {
         // Vytvor zjednotený info záznam
         var now = new Date();
         var timestamp = utils.formatDate(now) + " " + utils.formatTime(now);
-        var infoText = "\n📊 DOCHÁDZKA - ZHRNUTIE: " + timestamp + "\n";
+        var infoText = "\n\n📊 DOCHÁDZKA - ZHRNUTIE: " + timestamp + "\n";
         infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
         infoText += "📈 Celkom záznamov: " + attendanceRecords.length + "\n";
         infoText += "⏱️ Celkom odpracovaných hodín: " + totalWorked.toFixed(2) + " h\n";
@@ -573,7 +573,7 @@ function processWorkRecords() {
             if (order && order.length > 0) {
                 var orderNum = utils.safeGet(order[0], CONFIG.fields.order.number, "");
                 var orderNm = utils.safeGet(order[0], CONFIG.fields.order.name);
-                block += "  🎯 Zákazka: **" + (orderNum ? orderNum + "." : "") + orderNum.trim() + "**\n";
+                block += "  🎯 Zákazka: **" + (orderNum ? orderNum + "." : "") + orderNm.trim() + "**\n";
             }
             if (employees && employees.length > 0) {
                 var empNames = [];
@@ -859,7 +859,7 @@ function processCashBook() {
         // Vytvor zjednotený info záznam
         var now = new Date();
         var timestamp = utils.formatDate(now) + " " + utils.formatTime(now);
-        var infoText = "\n💰 POKLADŇA - ZHRNUTIE: " + timestamp + "\n";
+        var infoText = "\n\n💰 POKLADŇA - ZHRNUTIE: " + timestamp + "\n";
         infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
         infoText += "📈 Celkom záznamov: " + cashRecords.length + "\n";
         infoText += "📈 Príjmy: +" + totalIncome.toFixed(2) + " €\n";
@@ -1397,7 +1397,7 @@ function addRecordIcon(icon) {
  * Vytvorí markdown formátovaný info záznam
  */
 function createMarkdownInfo(title, timestamp, stats, detailBlocks) {
-    var info = "\n## 📊 " + title + " - ZHRNUTIE\n\n";
+    var info = "\n\n## 📊 " + title + " - ZHRNUTIE\n\n";
     //info += "**Aktualizované:** " + timestamp + "\n\n";
 
     // Štatistiky
