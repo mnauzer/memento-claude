@@ -72,7 +72,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.16",  // Pridané kompletné definície client, supplier, partner z API
+        version: "7.0.19",  // Pridané atribúty revenueKm, revenueFlatRate do rideLogOrders
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -1123,7 +1123,9 @@ var MementoConfig = (function() {
             },
             rideLogOrders: {
                 count: "počet", // int - počet výskytov zákazky na trase
-                km: "km" // real number - vzdialenosť tam a nazad (2× vzdialenosť miesta)
+                km: "km", // real number - vzdialenosť tam a nazad (2× vzdialenosť miesta)
+                revenueKm: "výnosy km", // real number - výnosy podľa km (km × cena za km)
+                revenueFlatRate: "výnosy paušál" // real number - paušálna cena za zákazku
             },
             crew: {
                 hourlyRate: "hodinovka",
