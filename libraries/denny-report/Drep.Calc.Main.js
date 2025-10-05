@@ -426,15 +426,15 @@ function processAttendance() {
                 for (var k = 0; k < employees.length; k++) {
                     empNames.push(utils.safeGet(employees[k], CONFIG.fields.employee.nick));
                 }
-                block += "  👥 Zamestnanci: " + empNames.join(", ") + "\n";
+                block += "  👥 Zamestnanci: **" + empNames.join(", ") + "**\n";
             }
             if (arrival) {
-                block += "  🕐 Príchod: " + utils.formatTime(arrival) + "\n";
+                block += "  🕐 Príchod: **" + utils.formatTime(arrival) + "**\n";
             }
             if (departure) {
-                block += "  🕑 Odchod: " + utils.formatTime(departure) + "\n";
+                block += "  🕑 Odchod: **" + utils.formatTime(departure) + "**\n";
             }
-            block += "  ⏱️ Odpracované: " + workedHours.toFixed(2) + " h\n";
+            block += "  ⏱️ Odpracované: **" + workedHours.toFixed(2) + " h**\n";
 
             infoBlocks.push(block);
         }
@@ -574,21 +574,21 @@ function processWorkRecords() {
             if (order && order.length > 0) {
                 var orderNum = utils.safeGet(order[0], CONFIG.fields.order.number, "");
                 var orderNm = utils.safeGet(order[0], CONFIG.fields.order.name);
-                block += "  🎯 Zákazka: " + (orderNum ? orderNum + "." : "") + orderNm + "\n";
+                block += "  🎯 Zákazka: **" + (orderNum ? orderNum + "." : "") + orderNm + "**\n";
             }
             if (employees && employees.length > 0) {
                 var empNames = [];
                 for (var e = 0; e < employees.length; e++) {
                     empNames.push(utils.safeGet(employees[e], CONFIG.fields.employee.nick));
                 }
-                block += "  👥 Zamestnanci: " + empNames.join(", ") + "\n";
+                block += "  👥 Zamestnanci: **" + empNames.join(", ") + "**\n";
             }
             if (machines && machines.length > 0) {
                 var machNames = [];
                 for (var mch = 0; mch < machines.length; mch++) {
                     machNames.push(utils.safeGet(machines[mch], CONFIG.fields.machine.name));
                 }
-                block += "  🚜 Stroje: " + machNames.join(", ") + "\n";
+                block += "  🚜 Stroje: **" + machNames.join(", ") + "**\n";
             }
             if (materials && materials.length > 0) {
                 var matNames = [];
@@ -599,13 +599,13 @@ function processWorkRecords() {
                     }
                 }
                 if (matNames.length > 0) {
-                    block += "  📦 Materiál: " + matNames.join(", ") + "\n";
+                    block += "  📦 Materiál: **" + matNames.join(", ") + "**\n";
                 }
             }
             if (description) {
-                block += "  📋 Popis: " + description.substring(0, 100) + (description.length > 100 ? "..." : "") + "\n";
+                block += "  📋 Popis: **" + description.substring(0, 100) + (description.length > 100 ? "..." : "") + "**\n";
             }
-            block += "  ⏱️ Odpracované: " + workedHours.toFixed(2) + " h\n";
+            block += "  ⏱️ Odpracované: **" + workedHours.toFixed(2) + " h**\n";
 
             infoBlocks.push(block);
         }
@@ -725,19 +725,19 @@ function processRideLog() {
             // Vytvor info blok pre tento záznam
             var block = "🚗 Kniha jázd #" + rideId + "\n";
             if (vehicle && vehicle.length > 0) {
-                block += "  🚙 Vozidlo: " + utils.safeGet(vehicle[0], CONFIG.fields.vehicle.name) + "\n";
+                block += "  🚙 Vozidlo: **" + utils.safeGet(vehicle[0], CONFIG.fields.vehicle.name) + "**\n";
             }
             if (crew && crew.length > 0) {
                 var crewNames = [];
                 for (var cn = 0; cn < crew.length; cn++) {
                     crewNames.push(utils.safeGet(crew[cn], CONFIG.fields.employee.nick));
                 }
-                block += "  👥 Posádka: " + crewNames.join(", ") + "\n";
+                block += "  👥 Posádka: **" + crewNames.join(", ") + "**\n";
             }
             if (route) {
-                block += "  📍 Trasa: " + route.substring(0, 100) + (route.length > 100 ? "..." : "") + "\n";
+                block += "  📍 Trasa: **" + route.substring(0, 100) + (route.length > 100 ? "..." : "") + "**\n";
             }
-            block += "  📏 Km: " + km.toFixed(2) + " km\n";
+            block += "  📏 Km: **" + km.toFixed(2) + " km**\n";
 
             infoBlocks.push(block);
         }
@@ -848,10 +848,10 @@ function processCashBook() {
 
             // Vytvor info blok pre tento záznam
             var block = "💰 Pokladňa #" + cashId + "\n";
-            block += "  📊 Typ: " + transactionType + "\n";
-            block += "  💵 Suma: " + amount.toFixed(2) + " €\n";
+            block += "  📊 Typ: **" + transactionType + "**\n";
+            block += "  💵 Suma: **" + amount.toFixed(2) + " €**\n";
             if (description) {
-                block += "  📋 Popis: " + description.substring(0, 100) + (description.length > 100 ? "..." : "") + "\n";
+                block += "  📋 Popis: **" + description.substring(0, 100) + (description.length > 100 ? "..." : "") + "**\n";
             }
 
             infoBlocks.push(block);
