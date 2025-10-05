@@ -1,8 +1,14 @@
 // ==============================================
 // MEMENTO DATABASE - KNIHA JÁZD (ROUTE CALCULATION & PAYROLL)
-// Verzia: 10.6.3 | Dátum: Október 2025 | Autor: ASISTANTO
+// Verzia: 10.7.0 | Dátum: Október 2025 | Autor: ASISTANTO
 // Knižnica: Kniha jázd | Trigger: Before Save
 // ==============================================
+// ✅ PRIDANÉ v10.7.0:
+//    - Info záznam: Sekcia Vozidlo - účtované ceny (Km + Paušál), náklady/výnosy na trasu
+//    - Info záznam: Sekcia Zákazky - výnosy podľa km a paušál z atribútov
+//    - Info záznam: Sekcia Súhrn - výnosy zo zákaziek podľa spôsobu účtovania (nie %)
+//    - MementoConfig v7.0.19: Pridané atribúty revenueKm, revenueFlatRate
+//    - Počet zastávok sa berie z atribútu "počet" zákazky
 // ✅ OPRAVENÉ v10.6.3:
 //    - KRITICKÁ OPRAVA: dailyReportResult.dailyReport → dailyReportResult.dailyReportEntry
 //    - Teraz sa správne ukladá link na Denný report a ikona sa pridáva
@@ -72,7 +78,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Kniha jázd Prepočet",
-    version: "10.6.3",  // Oprava property dailyReportEntry (bol bug dailyReport)
+    version: "10.7.0",  // Výnosy zo zákaziek v info zázname (km/paušál)
 
     // Referencie na centrálny config
     fields: {
@@ -93,6 +99,7 @@ var CONFIG = {
     attributes: {
         rideLogCrew: centralConfig.attributes.rideLogCrew,
         rideLogStops: centralConfig.attributes.rideLogStops,
+        rideLogOrders: centralConfig.attributes.rideLogOrders,
         rideReport: centralConfig.attributes.rideReport
     },
 
@@ -1265,15 +1272,44 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
                     utils.addDebug(currentEntry, "  ⚠️ Chyba pri získavaní účtovanej ceny: " + priceError);
                 }
 
-                // Zobraz účtovanú cenu
+                // Zobraz účtované ceny
                 if (uctovanaCena > 0) {
-                    infoMessage += "- **Účtovaná cena:** " + uctovanaCena + " €/km\n";
+                    infoMessage += "- **Účtovaná cena (Km):** " + uctovanaCena + " €/km\n";
+                }
+
+                // Získaj paušálnu cenu z cenníka (ak existuje)
+                var pausalCena = 0;
+                try {
+                    // TODO: Implementovať získanie paušálnej ceny z cenníka
+                    // Momentálne neimplementované, potrebujeme vedieť odkiaľ brať paušál pre vozidlo
+                } catch (pausalError) {
+                    utils.addDebug(currentEntry, "  ⚠️ Chyba pri získavaní paušálnej ceny: " + pausalError);
+                }
+
+                if (pausalCena > 0) {
+                    infoMessage += "- **Účtovaná cena (Paušál):** " + utils.formatMoney(pausalCena) + "\n";
                 }
 
                 // Pridaj informácie o nákladovej cene
                 var nakladovaCena = utils.safeGet(vozidlo, CONFIG.fields.vehicle.costRate, 0);
                 if (nakladovaCena > 0) {
                     infoMessage += "- **Nákladová cena:** " + nakladovaCena + " €/km\n";
+                }
+
+                // Výpočet nákladov a výnosov na trasu
+                if (routeResult && routeResult.totalKm > 0) {
+                    var trasaNaklady = nakladovaCena * routeResult.totalKm;
+                    var trasaVynosy = uctovanaCena * routeResult.totalKm;
+
+                    if (trasaNaklady > 0) {
+                        infoMessage += "- **Náklady na trasu:** " + utils.formatMoney(trasaNaklady);
+                        infoMessage += " (" + routeResult.totalKm.toFixed(2) + " km × " + nakladovaCena + " €/km)\n";
+                    }
+
+                    if (trasaVynosy > 0) {
+                        infoMessage += "- **Výnosy na trasu:** " + utils.formatMoney(trasaVynosy);
+                        infoMessage += " (" + routeResult.totalKm.toFixed(2) + " km × " + uctovanaCena + " €/km)\n";
+                    }
                 }
             }
             infoMessage += "\n";
@@ -1305,27 +1341,76 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
                 infoMessage += "### 🏢 " + zakazkaInfo.display + "\n";
                 infoMessage += "- **Počet zastávok:** " + pocet + "x\n";
 
-                // Získaj atribút počtu ak existuje
+                // Získaj atribút počtu (počet zastávok na zákazke)
+                var attrPocet = 0;
                 try {
-                    var attrPocet = zakazky[k].getAttr("počet");
-                    if (attrPocet && attrPocet !== pocet) {
-                        infoMessage += "- **Atribút počet:** " + attrPocet + "\n";
+                    var zakazkyField = currentEntry.field(CONFIG.fields.rideLog.orders);
+                    if (zakazkyField && zakazkyField[k]) {
+                        attrPocet = zakazkyField[k].attr(CONFIG.attributes.rideLogOrders.count) || 0;
                     }
                 } catch (attrError) {
                     // Ignoruj chybu atribútu
                 }
 
-                // Získaj spôsob účtovania z cenovej ponuky
+                // Použi atribút pocet ako hlavný počet pre výpočty
+                var pocetPreVypocty = attrPocet > 0 ? attrPocet : pocet;
+
+                if (pocetPreVypocty > 0) {
+                    infoMessage += "- **Počet zastávok (atribút):** " + pocetPreVypocty + "x\n";
+                }
+
+                // Získaj spôsob účtovania a ceny z cenovej ponuky
+                var sposobUctovania = "";
+                var cenaKm = 0;
+                var cenaPausal = 0;
+
                 try {
                     var cenovaPonuka = utils.safeGetLinks(zakazka, CONFIG.fields.order.quote);
                     if (cenovaPonuka && cenovaPonuka.length > 0) {
-                        var uctovanieDopravy = utils.safeGet(cenovaPonuka[0], CONFIG.fields.quote.rideCalculation);
-                        if (uctovanieDopravy) {
-                            infoMessage += "- **Spôsob účtovania:** " + uctovanieDopravy + "\n";
+                        sposobUctovania = utils.safeGet(cenovaPonuka[0], CONFIG.fields.quote.rideCalculation, "");
+                        if (sposobUctovania) {
+                            infoMessage += "- **Spôsob účtovania:** " + sposobUctovania + "\n";
+                        }
+
+                        // Získaj cenu za km z linknutého cenníka
+                        var kmPriceLinks = utils.safeGetLinks(cenovaPonuka[0], CONFIG.fields.quote.kmRidePrice);
+                        if (kmPriceLinks && kmPriceLinks.length > 0) {
+                            cenaKm = utils.safeGet(kmPriceLinks[0], "Cena", 0);
+                        }
+
+                        // Získaj paušálnu cenu z linknutého cenníka
+                        var pausalPriceLinks = utils.safeGetLinks(cenovaPonuka[0], CONFIG.fields.quote.flatRateRidePrice);
+                        if (pausalPriceLinks && pausalPriceLinks.length > 0) {
+                            cenaPausal = utils.safeGet(pausalPriceLinks[0], "Cena", 0);
                         }
                     }
                 } catch (quoteError) {
                     // Ignoruj chybu
+                }
+
+                // Získaj atribút km zákazky
+                var zakazkaKm = 0;
+                try {
+                    var zakazkyField = currentEntry.field(CONFIG.fields.rideLog.orders);
+                    if (zakazkyField && zakazkyField[k]) {
+                        zakazkaKm = zakazkyField[k].attr(CONFIG.attributes.rideLogOrders.km) || 0;
+                    }
+                } catch (attrError) {
+                    // Ignoruj chybu
+                }
+
+                // Vypočítaj výnosy podľa km
+                if (zakazkaKm > 0 && cenaKm > 0) {
+                    var vynosyKm = zakazkaKm * cenaKm;
+                    infoMessage += "- **Výnosy (Km):** " + utils.formatMoney(vynosyKm);
+                    infoMessage += " (" + zakazkaKm.toFixed(2) + " km × " + cenaKm + " €/km)\n";
+                }
+
+                // Vypočítaj výnosy paušál (použiť atribút počet)
+                if (pocetPreVypocty > 0 && cenaPausal > 0) {
+                    var vynosyPausal = pocetPreVypocty * cenaPausal;
+                    infoMessage += "- **Výnosy (Paušál):** " + utils.formatMoney(vynosyPausal);
+                    infoMessage += " (" + pocetPreVypocty + "x × " + utils.formatMoney(cenaPausal) + ")\n";
                 }
 
                 infoMessage += "\n";
@@ -1398,6 +1483,8 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
         var vehicleCosts = 0;
         var totalRevenue = 0;
         var vehicleRevenue = 0;
+        var ordersRevenueKm = 0;
+        var ordersRevenueFlatRate = 0;
 
         if (wageResult && wageResult.success && wageResult.celkoveMzdy) {
             wageCosts = wageResult.celkoveMzdy;
@@ -1408,7 +1495,7 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
             totalCosts += vehicleCosts;
         }
 
-        // Vypočítaj výnosy za vozidlo
+        // Vypočítaj výnosy za vozidlo (už sa nepočíta do totalRevenue, len pre informáciu)
         var vozidloField = currentEntry.field(CONFIG.fields.rideLog.vehicle);
         if (vozidloField && vozidloField.length > 0 && routeResult && routeResult.totalKm > 0) {
             var vozidlo = vozidloField[0];
@@ -1447,9 +1534,60 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
 
             if (uctovanaCena > 0) {
                 vehicleRevenue = uctovanaCena * routeResult.totalKm;
-                totalRevenue += vehicleRevenue;
             }
         }
+
+        // Vypočítaj výnosy zo zákaziek podľa spôsobu účtovania
+        var zakazky = utils.safeGetLinks(currentEntry, CONFIG.fields.rideLog.orders) || [];
+        for (var z = 0; z < zakazky.length; z++) {
+            try {
+                var zakazka = zakazky[z];
+                var zakazkyField = currentEntry.field(CONFIG.fields.rideLog.orders);
+
+                // Získaj spôsob účtovania
+                var sposobUctovania = "";
+                var cenovaPonuka = utils.safeGetLinks(zakazka, CONFIG.fields.order.quote);
+                if (cenovaPonuka && cenovaPonuka.length > 0) {
+                    sposobUctovania = utils.safeGet(cenovaPonuka[0], CONFIG.fields.quote.rideCalculation, "");
+
+                    // Ak je spôsob účtovania %, preskočiť túto zákazku
+                    if (sposobUctovania && sposobUctovania.indexOf("%") >= 0) {
+                        continue;
+                    }
+
+                    // Získaj atribúty
+                    var zakazkaKm = zakazkyField && zakazkyField[z] ? (zakazkyField[z].attr(CONFIG.attributes.rideLogOrders.km) || 0) : 0;
+                    var zakazkaPocet = zakazkyField && zakazkyField[z] ? (zakazkyField[z].attr(CONFIG.attributes.rideLogOrders.count) || 0) : 0;
+
+                    // Km účtovanie
+                    if (sposobUctovania === "Km" && zakazkaKm > 0) {
+                        var kmPriceLinks = utils.safeGetLinks(cenovaPonuka[0], CONFIG.fields.quote.kmRidePrice);
+                        if (kmPriceLinks && kmPriceLinks.length > 0) {
+                            var cenaKm = utils.safeGet(kmPriceLinks[0], "Cena", 0);
+                            if (cenaKm > 0) {
+                                ordersRevenueKm += zakazkaKm * cenaKm;
+                            }
+                        }
+                    }
+
+                    // Paušál účtovanie
+                    if (sposobUctovania === "Paušál" && zakazkaPocet > 0) {
+                        var pausalPriceLinks = utils.safeGetLinks(cenovaPonuka[0], CONFIG.fields.quote.flatRateRidePrice);
+                        if (pausalPriceLinks && pausalPriceLinks.length > 0) {
+                            var cenaPausal = utils.safeGet(pausalPriceLinks[0], "Cena", 0);
+                            if (cenaPausal > 0) {
+                                ordersRevenueFlatRate += zakazkaPocet * cenaPausal;
+                            }
+                        }
+                    }
+                }
+            } catch (zakazkaError) {
+                // Ignoruj chybu pri spracovaní zákazky
+            }
+        }
+
+        // Celkové výnosy = výnosy zo zákaziek (km + paušál)
+        totalRevenue = ordersRevenueKm + ordersRevenueFlatRate;
 
         infoMessage += "## 💰 SÚHRN\n";
         infoMessage += "### Náklady\n";
@@ -1458,13 +1596,24 @@ function createInfoRecord(routeResult, wageResult, vehicleResult, vehicleCostRes
         infoMessage += "- **NÁKLADY CELKOM:** " + utils.formatMoney(totalCosts) + "\n\n";
 
         infoMessage += "### Výnosy\n";
-        if (vehicleRevenue > 0) {
-            infoMessage += "- **Výnosy vozidlo:** " + utils.formatMoney(vehicleRevenue);
+
+        // Zobraz výnosy zo zákaziek podľa spôsobu účtovania
+        if (ordersRevenueKm > 0) {
+            infoMessage += "- **Výnosy zákazky (Km):** " + utils.formatMoney(ordersRevenueKm) + "\n";
+        }
+        if (ordersRevenueFlatRate > 0) {
+            infoMessage += "- **Výnosy zákazky (Paušál):** " + utils.formatMoney(ordersRevenueFlatRate) + "\n";
+        }
+
+        // Zobraz výnosy vozidla len informatívne (nie sú súčasťou totalRevenue)
+        if (vehicleRevenue > 0 && ordersRevenueKm === 0 && ordersRevenueFlatRate === 0) {
+            infoMessage += "- **Výnosy vozidlo (informatívne):** " + utils.formatMoney(vehicleRevenue);
             if (routeResult && routeResult.totalKm > 0 && uctovanaCena > 0) {
                 infoMessage += " (" + routeResult.totalKm.toFixed(2) + " km × " + uctovanaCena + " €/km)";
             }
             infoMessage += "\n";
         }
+
         infoMessage += "- **VÝNOSY CELKOM:** " + utils.formatMoney(totalRevenue) + "\n\n";
 
         // Vyhodnotenie
@@ -2125,7 +2274,7 @@ function main() {
         var vykazResult = synchronizeRideReport(routeResult, wageResult, vehicleCostResult);
 
         // NOVÁ ARCHITEKTÚRA - TEST
-        var newResult = testNewReportArchitecture(routeResult, wageResult, vehicleCostResult);
+        //var newResult = testNewReportArchitecture(routeResult, wageResult, vehicleCostResult);
 
         // Porovnanie výsledkov
         utils.addDebug(currentEntry, "\n🔍 POROVNANIE VÝSLEDKOV:");
