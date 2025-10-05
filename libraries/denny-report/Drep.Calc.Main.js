@@ -48,7 +48,7 @@ var CONFIG = {
         employee: centralConfig.fields.employee,
         vehicle: centralConfig.fields.vehicle,
         material: centralConfig.fields.material,
-        machine: centralConfig.fields.machines,
+        machine: centralConfig.fields.machine,
         common: centralConfig.fields.common
     },
     libraries: centralConfig.libraries,
