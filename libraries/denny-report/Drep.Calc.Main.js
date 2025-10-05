@@ -403,6 +403,7 @@ function processAttendance() {
 
             // Získaj dáta
             var employees = utils.safeGetLinks(attendance, CONFIG.fields.attendance.employees);
+            var workTime = utils.safeGet(attendance, CONFIG.fields.attendance.workTime, 0);
             var workedHours = utils.safeGet(attendance, CONFIG.fields.attendance.workedHours, 0);
             var arrival = utils.safeGet(attendance, CONFIG.fields.attendance.arrival);
             var departure = utils.safeGet(attendance, CONFIG.fields.attendance.departure);
@@ -428,12 +429,10 @@ function processAttendance() {
                 }
                 block += "  👥 Zamestnanci: **" + empNames.join(", ") + "**\n";
             }
-            if (arrival) {
-                block += "  🕐 Príchod: **" + utils.formatTime(arrival) + "**\n";
+            if (arrival && departure) {
+                block += "  🕐 Pracovný čas: **" + utils.formatTime(arrival) + " - " + utils.formatTime(departure) + "**\n";
             }
-            if (departure) {
-                block += "  🕑 Odchod: **" + utils.formatTime(departure) + "**\n";
-            }
+            block += "  ⏱️ Pracovná doba: **" + workTime.toFixed(2) + " h**\n";
             block += "  ⏱️ Odpracované: **" + workedHours.toFixed(2) + " h**\n";
 
             infoBlocks.push(block);
@@ -574,7 +573,7 @@ function processWorkRecords() {
             if (order && order.length > 0) {
                 var orderNum = utils.safeGet(order[0], CONFIG.fields.order.number, "");
                 var orderNm = utils.safeGet(order[0], CONFIG.fields.order.name);
-                block += "  🎯 Zákazka: **" + (orderNum ? orderNum + "." : "") + orderNm + "**\n";
+                block += "  🎯 Zákazka: **" + (orderNum ? orderNum + "." : "") + orderNum.trim() + "**\n";
             }
             if (employees && employees.length > 0) {
                 var empNames = [];
@@ -603,7 +602,7 @@ function processWorkRecords() {
                 }
             }
             if (description) {
-                block += "  📋 Popis: **" + description.substring(0, 100) + (description.length > 100 ? "..." : "") + "**\n";
+                block += "  📋 Popis: **" + description.substring(0, 150).trim() + (description.length > 150 ? "..." : "") + "**\n";
             }
             block += "  ⏱️ Odpracované: **" + workedHours.toFixed(2) + " h**\n";
 
@@ -1248,7 +1247,7 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
         var timestamp = utils.formatDate(now) + " " + utils.formatTime(now);
 
         // Hlavička
-        var info = "# 📊 DENNÝ REPORT - ZHRNUTIE\n\n";
+        var info = "## 📊 DENNÝ REPORT - ZHRNUTIE\n\n";
         info += "**Dátum:** " + utils.formatDate(utils.safeGet(currentEntry, CONFIG.fields.dailyReport.date)) + "  \n";
         info += "**Aktualizované:** " + timestamp + "\n\n";
 
@@ -1398,8 +1397,8 @@ function addRecordIcon(icon) {
  * Vytvorí markdown formátovaný info záznam
  */
 function createMarkdownInfo(title, timestamp, stats, detailBlocks) {
-    var info = "## 📊 " + title + " - ZHRNUTIE\n\n";
-    info += "**Aktualizované:** " + timestamp + "\n\n";
+    var info = "\n## 📊 " + title + " - ZHRNUTIE\n\n";
+    //info += "**Aktualizované:** " + timestamp + "\n\n";
 
     // Štatistiky
     for (var i = 0; i < stats.length; i++) {
