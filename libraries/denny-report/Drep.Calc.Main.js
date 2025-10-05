@@ -839,7 +839,7 @@ function processCashBook() {
             // Agreguj príjmy a výdavky podľa typu pohybu
             if (transactionType === "Príjem") {
                 totalIncome += amount;
-            } else if (transactionType === "Výdaj") {
+            } else if (transactionType === "Výdaj" || transactionType === "Výdavok") {
                 totalExpense += amount;
             }
             // PP (Priebežná položka) sa nezapočítava do príjmov ani výdavkov
