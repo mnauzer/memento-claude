@@ -72,7 +72,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.19",  // Pridané atribúty revenueKm, revenueFlatRate do rideLogOrders
+        version: "7.0.20",  // Pridané polia priceKm, priceFlatRate do transportPrices
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -660,7 +660,9 @@ var MementoConfig = (function() {
             transportPrices: {
                 vehicle: "vozidlo",  // linkToEntry Vozidlá - pole ktoré odkazuje späť na vozidlo
                 validFrom: "Platnosť od",  // date - od kedy je cena platná
-                price: "Cena"  // real number - cena za km
+                price: "Cena",  // real number - cena za km (alias pre priceKm)
+                priceKm: "Cena km",  // real number - cena za km
+                priceFlatRate: "Cena paušál"  // real number - paušálna cena
             },
             // Sadzby zamestnancov polia
             wages: {
