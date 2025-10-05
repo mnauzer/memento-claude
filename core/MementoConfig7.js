@@ -1,7 +1,10 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.18 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.23 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.23 (2025-10-05):
+//    - Rozšírené dailyReport fields (recordIcons, recordDescription, hoursWorked)
+//    - Pridané info polia pre agregácie (infoAttendance, infoWorkRecords, infoCashBook, infoRideLog)
 // 🔧 CHANGELOG v7.0.18 (2025-10-05):
 //    - Pridaná knižnica transportPrices (ceny dopravy)
 //    - Pridané polia pre transportPrices (vehicle, validFrom, price)
@@ -72,7 +75,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.22",  // Pridané pole lastKmByRideLog do vehicle
+        version: "7.0.23",  // Rozšírené dailyReport fields
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -309,12 +312,19 @@ var MementoConfig = (function() {
             // === EVIDENCIA - DENNÉ ZÁZNAMY ===
             // Denný report polia
             dailyReport: {
-                date: "Dátum",
+                date: "Dátum", // date, role: name
+                recordIcons: "ikony záznamu", // richtext
+                recordDescription: "Popis záznamu", // text, role: desc
                 attendance: "Dochádzka", // linkToEntry: Dochádzka
                 workRecord: "Záznam prác", // linkToEntry: Záznam prác
                 rideLog: "Kniha jázd", // linkToEntry: Kniha jázd
                 cashBook: "Pokladňa", // linkToEntry: Pokladňa
                 description: "Popis", // richtext
+                hoursWorked: "Odpracované", // double - celkové odpracované hodiny
+                infoAttendance: "info dochádzka", // richtext - agregovaný info z Dochádzky
+                infoWorkRecords: "info záznam prác", // richtext - agregovaný info zo Záznamov prác
+                infoCashBook: "info pokladňa", // richtext - agregovaný info z Pokladne
+                infoRideLog: "info kniha jázd", // richtext - agregovaný info z Knihy jázd
                 // Povinné polia pre validáciu
                 requiredFields: ["date"]
             },
