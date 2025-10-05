@@ -1,8 +1,19 @@
 // ==============================================
 // MEMENTO DATABASE - KNIHA JÁZD (ROUTE CALCULATION & PAYROLL)
-// Verzia: 10.6.0 | Dátum: Október 2025 | Autor: ASISTANTO
+// Verzia: 10.6.3 | Dátum: Október 2025 | Autor: ASISTANTO
 // Knižnica: Kniha jázd | Trigger: Before Save
 // ==============================================
+// ✅ OPRAVENÉ v10.6.3:
+//    - KRITICKÁ OPRAVA: dailyReportResult.dailyReport → dailyReportResult.dailyReportEntry
+//    - Teraz sa správne ukladá link na Denný report a ikona sa pridáva
+//    - Rozšírený debug výstup (updated, backLinkCreated, dailyReportEntry)
+// ✅ OPRAVENÉ v10.6.2:
+//    - Rozšírený debug výstup pre diagnostiku denného reportu
+//    - Pridané kontroly stavu dailyReportResult pred a po volaní
+//    - Debug sleduje celý priebeh pridávania ikony do entryIcons
+// ✅ OPRAVENÉ v10.6.1:
+//    - Pridaný debug výstup pre diagnostiku ukladania ikon
+//    - Opravené referencie na quote a transportPrices v CONFIG.fields
 // ✅ PRIDANÉ v10.6:
 //    - Pridaná knižnica transportPrices (ceny dopravy) do MementoConfig v7.0.18
 //    - Účtovaná cena vozidla z linksFrom (ceny dopravy / vozidlo)
@@ -61,7 +72,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Kniha jázd Prepočet",
-    version: "10.6.0",  // Účtovaná cena, výnosy vozidla, vyhodnotenie + rozšírenia info záznamu
+    version: "10.6.3",  // Oprava property dailyReportEntry (bol bug dailyReport)
 
     // Referencie na centrálny config
     fields: {
@@ -2125,36 +2136,64 @@ function main() {
 
         // KROK 9: Synchronizácia denného reportu
         utils.addDebug(currentEntry, "\n📅 === KROK 9: SYNCHRONIZÁCIA DENNÉHO REPORTU ===");
+
+        utils.addDebug(currentEntry, "🔍 Debug PRED volaním createOrUpdateDailyReport:");
+        utils.addDebug(currentEntry, "  - entryIcons pred volaním: '" + entryIcons + "' (length: " + entryIcons.length + ")");
+        utils.addDebug(currentEntry, "  - CONFIG.icons.daily_report: '" + CONFIG.icons.daily_report + "'");
+
         var dailyReportResult = utils.createOrUpdateDailyReport(currentEntry, 'rideLog', {
             debugEntry: currentEntry,
             createBackLink: true  // Vytvor spätný link na denný report
         });
+
+        utils.addDebug(currentEntry, "🔍 Debug PO volaní createOrUpdateDailyReport:");
+        utils.addDebug(currentEntry, "  - dailyReportResult existuje: " + (dailyReportResult ? "ÁNO" : "NIE"));
+        if (dailyReportResult) {
+            utils.addDebug(currentEntry, "  - dailyReportResult.success: " + dailyReportResult.success);
+            utils.addDebug(currentEntry, "  - dailyReportResult.created: " + dailyReportResult.created);
+            utils.addDebug(currentEntry, "  - dailyReportResult.updated: " + dailyReportResult.updated);
+            utils.addDebug(currentEntry, "  - dailyReportResult.backLinkCreated: " + dailyReportResult.backLinkCreated);
+            utils.addDebug(currentEntry, "  - dailyReportResult.dailyReportEntry existuje: " + (dailyReportResult.dailyReportEntry ? "ÁNO" : "NIE"));
+            utils.addDebug(currentEntry, "  - dailyReportResult.error: " + (dailyReportResult.error || "žiadna"));
+        }
 
         if (dailyReportResult && dailyReportResult.success) {
             var action = dailyReportResult.created ? "vytvorený" : "aktualizovaný";
             utils.addDebug(currentEntry, "✅ Denný report " + action + " úspešne");
 
             // Pridaj ikonu pre denný report
+            utils.addDebug(currentEntry, "🔍 PRED pridaním ikony: entryIcons = '" + entryIcons + "'");
             entryIcons += CONFIG.icons.daily_report;
+            utils.addDebug(currentEntry, "🔍 PO pridaní ikony: entryIcons = '" + entryIcons + "' (length: " + entryIcons.length + ")");
             utils.addDebug(currentEntry, "  " + CONFIG.icons.daily_report + " Pridaná ikona pre denný report");
 
             // Ulož link na denný report ak existuje
-            if (dailyReportResult.dailyReport) {
-                utils.safeSet(currentEntry, CONFIG.fields.rideLog.dailyReport, [dailyReportResult.dailyReport]);
+            if (dailyReportResult.dailyReportEntry) {
+                utils.safeSet(currentEntry, CONFIG.fields.rideLog.dailyReport, [dailyReportResult.dailyReportEntry]);
                 utils.addDebug(currentEntry, "  🔗 Link na denný report uložený");
+            } else {
+                utils.addDebug(currentEntry, "  ⚠️ dailyReportEntry neexistuje - link sa neukladá");
             }
 
             steps.step9.success = true;
         } else {
             var errorMsg = dailyReportResult ? dailyReportResult.error : "Neznáma chyba";
             utils.addError(currentEntry, "Chyba pri synchronizácii denného reportu: " + errorMsg);
+            utils.addDebug(currentEntry, "❌ Denný report sync zlyhal - ikona sa NEPRIDÁ");
             steps.step9.success = false;
         }
 
         // Ulož ikony do poľa
+        utils.addDebug(currentEntry, "🔍 Debug pred uložením ikon:");
+        utils.addDebug(currentEntry, "  - entryIcons hodnota: '" + entryIcons + "'");
+        utils.addDebug(currentEntry, "  - entryIcons.length: " + entryIcons.length);
+        utils.addDebug(currentEntry, "  - Pole ikony: " + CONFIG.fields.rideLog.icons);
+
         if (entryIcons) {
             utils.safeSet(currentEntry, CONFIG.fields.rideLog.icons, entryIcons);
             utils.addDebug(currentEntry, "📌 Uložené ikony záznamu: " + entryIcons);
+        } else {
+            utils.addDebug(currentEntry, "⚠️ entryIcons je prázdny - neukladám");
         }
 
         // Finálny súhrn

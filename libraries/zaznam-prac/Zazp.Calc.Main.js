@@ -1,8 +1,10 @@
 // ==============================================
 // MEMENTO DATABASE - ZÁZNAM PRÁC PREPOČET
-// Verzia: 8.5.0 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 8.5.1 | Dátum: október 2025 | Autor: ASISTANTO
 // Knižnica: Záznam práce | Trigger: Before Save
 // ==============================================
+// ✅ OPRAVENÉ v8.5.1:
+//    - Oprava property: dailyReportResult.dailyReport → dailyReportResult.dailyReportEntry
 // ✅ REFAKTOROVANÉ v8.5:
 //    - Pridané vizuálne ikony pre stroje (🚜), denný report (📋)
 //    - Link na denný report uložený v poli "Denný report"
@@ -35,7 +37,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Záznam prác Prepočet",
-    version: "8.5.0",  // Pridané vizuálne ikony + link na denný report
+    version: "8.5.1",  // Oprava property dailyReportEntry
 
     // Referencie na centrálny config
     fields: {
@@ -173,8 +175,8 @@ function main() {
             utils.addDebug(currentEntry, "  " + CONFIG.icons.daily_report + " Pridaná ikona pre denný report");
 
             // Ulož link na denný report ak existuje
-            if (dailyReportResult.dailyReport) {
-                utils.safeSet(currentEntry, CONFIG.fields.workRecord.dailyReport, [dailyReportResult.dailyReport]);
+            if (dailyReportResult.dailyReportEntry) {
+                utils.safeSet(currentEntry, CONFIG.fields.workRecord.dailyReport, [dailyReportResult.dailyReportEntry]);
                 utils.addDebug(currentEntry, "  🔗 Link na denný report uložený");
             }
         } else {
