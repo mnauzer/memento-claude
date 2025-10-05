@@ -1,8 +1,14 @@
 // ==============================================
 // MEMENTO DATABASE - KNIHA JÁZD (ROUTE CALCULATION & PAYROLL)
-// Verzia: 10.11.0 | Dátum: Október 2025 | Autor: ASISTANTO
+// Verzia: 10.12.0 | Dátum: Október 2025 | Autor: ASISTANTO
 // Knižnica: Kniha jázd | Trigger: Before Save
 // ==============================================
+// ✅ ZLEPŠENÉ v10.12.0:
+//    - Zjednotený info záznam do Vozidla - jeden blok pre jeden záznam Knihy jázd
+//    - Nová funkcia writeVehicleInfoRecord() zapíše všetky zmeny naraz
+//    - Formát: 🔄 AKTUALIZÁCIA VOZIDLA + stanovište + tachometer + dátum + ID
+//    - Odstránené samostatné bloky pre stanovište a tachometer
+//    - Prehľadnejší a kompaktnejší info záznam vo vozidle
 // ✅ ZLEPŠENÉ v10.11.0:
 //    - Použitie dedikovaného poľa "Posledné km (KJ)" vo vozidle namiesto parsovania info
 //    - MementoConfig v7.0.22: Pridané pole lastKmByRideLog do vehicle
@@ -112,7 +118,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Kniha jázd Prepočet",
-    version: "10.11.0",  // Použitie poľa lastKmByRideLog pre prepočet tachometra
+    version: "10.12.0",  // Zjednotený info záznam vozidla (stanovište + tachometer)
 
     // Referencie na centrálny config
     fields: {
@@ -758,67 +764,7 @@ function synchronizeVehicleLocation() {
         try {
             vozidlo.set(CONFIG.fields.vehicle.parkingBase, [cielMiesto]);
             utils.addDebug(currentEntry, "  ✅ Stanovište vozidla aktualizované: " + aktualneStanovisteNazov + " → " + cielNazov);
-            
-            // Získaj existujúce info a vymaž predchádzajúci záznam od tohto záznamu knihy jázd
-            var existingInfo = utils.safeGet(vozidlo, CONFIG.fields.common.info, "");
-            var entryId = currentEntry.field("ID");
-            var entryPattern = "• Kniha jázd #" + entryId;
 
-            // Rozdeľ info na riadky a odstráň predchádzajúci blok pre tento záznam
-            var lines = existingInfo.split("\n");
-            var newLines = [];
-            var skipBlock = false;
-            var blockStart = -1;
-
-            for (var i = 0; i < lines.length; i++) {
-                var line = lines[i];
-
-                // Detekuj začiatok bloku stanovišťa
-                if (line.indexOf("🔄 STANOVIŠTE AKTUALIZOVANÉ:") >= 0) {
-                    blockStart = i;
-                    skipBlock = false;
-                }
-
-                // Ak nájdeme náš záznam v bloku, označ ho na preskočenie
-                if (blockStart >= 0 && line.indexOf(entryPattern) >= 0) {
-                    skipBlock = true;
-                    // Odstráň všetky riadky od blockStart po aktuálny riadok + Script riadok
-                    for (var j = 0; j < (i - blockStart + 2); j++) {
-                        if (newLines.length > 0) {
-                            newLines.pop();
-                        }
-                    }
-                    blockStart = -1;
-                    continue;
-                }
-
-                // Resetuj blockStart ak sme prešli cez blok bez nájdenia záznamu
-                if (blockStart >= 0 && i > blockStart + 6) {
-                    blockStart = -1;
-                }
-
-                if (!skipBlock) {
-                    newLines.push(line);
-                }
-            }
-
-            var cleanedInfo = newLines.join("\n");
-
-            // Pridaj nový info záznam
-            var updateInfo = "\n🔄 STANOVIŠTE AKTUALIZOVANÉ: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
-            updateInfo += "• Z: " + aktualneStanovisteNazov + "\n";
-            updateInfo += "• Na: " + cielNazov + "\n";
-            updateInfo += "• Kniha jázd #" + entryId + "\n";
-            updateInfo += "• Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
-
-            // Obmedz dĺžku info poľa
-            var newInfo = cleanedInfo + updateInfo;
-            if (newInfo.length > 5000) {
-                newInfo = "... (skrátené) ...\n" + newInfo.substring(newInfo.length - 4900);
-            }
-
-            vozidlo.set(CONFIG.fields.common.info, newInfo);
-            
             result.message = "Stanovište aktualizované: " + cielNazov;
             result.success = true;
             
@@ -919,71 +865,6 @@ function updateVehicleOdometer(originalKm, routeResult) {
             vozidlo.set(CONFIG.fields.vehicle.lastKmByRideLog, newKm);
             utils.addDebug(currentEntry, "  💾 Uložené km pre prepočet: " + newKm + " km");
 
-            // Získaj existujúce info a vymaž predchádzajúci záznam od tohto záznamu knihy jázd
-            var existingInfo = utils.safeGet(vozidlo, CONFIG.fields.common.info, "");
-            var entryId = currentEntry.field("ID");
-
-            // Vzor na vyhľadanie a odstránenie predchádzajúceho záznamu
-            var entryPattern = "• Kniha jázd #" + entryId;
-
-            // Rozdeľ info na riadky a odstráň predchádzajúci blok pre tento záznam
-            var lines = existingInfo.split("\n");
-            var newLines = [];
-            var skipBlock = false;
-            var blockStart = -1;
-
-            for (var i = 0; i < lines.length; i++) {
-                var line = lines[i];
-
-                // Detekuj začiatok bloku tachometra
-                if (line.indexOf("🔄 TACHOMETER AKTUALIZOVANÝ:") >= 0) {
-                    blockStart = i;
-                    skipBlock = false;
-                }
-
-                // Ak nájdeme náš záznam v bloku, označ ho na preskočenie
-                if (blockStart >= 0 && line.indexOf(entryPattern) >= 0) {
-                    skipBlock = true;
-                    // Odstráň všetky riadky od blockStart po aktuálny riadok + Script riadok
-                    // Vráť sa a odstráň predchádzajúce riadky bloku
-                    for (var j = 0; j < (i - blockStart + 2); j++) {
-                        if (newLines.length > 0) {
-                            newLines.pop();
-                        }
-                    }
-                    blockStart = -1;
-                    continue;
-                }
-
-                // Resetuj blockStart ak sme prešli cez blok bez nájdenia záznamu
-                if (blockStart >= 0 && i > blockStart + 7) {
-                    blockStart = -1;
-                }
-
-                if (!skipBlock) {
-                    newLines.push(line);
-                }
-            }
-
-            var cleanedInfo = newLines.join("\n");
-            utils.addDebug(currentEntry, "  🗑️ Vymazaný predchádzajúci info záznam pre tento záznam knihy jázd");
-
-            // Pridaj nový info záznam
-            var updateInfo = "\n🔄 TACHOMETER AKTUALIZOVANÝ: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
-            updateInfo += "• Z: " + currentOdometer + " km\n";
-            updateInfo += "• Na: " + newOdometer + " km\n";
-            updateInfo += "• Pridané: " + (kmDifference > 0 ? "+" : "") + kmDifference.toFixed(2) + " km\n";
-            updateInfo += "• Kniha jázd #" + entryId + "\n";
-            updateInfo += "• Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
-
-            // Obmedz dĺžku info poľa
-            var newInfo = cleanedInfo + updateInfo;
-            if (newInfo.length > 5000) {
-                newInfo = "... (skrátené) ...\n" + newInfo.substring(newInfo.length - 4900);
-            }
-
-            vozidlo.set(CONFIG.fields.common.info, newInfo);
-
             result.message = "Tachometer aktualizovaný: +" + kmDifference.toFixed(2) + " km";
             result.kmAdded = kmDifference;
             result.success = true;
@@ -999,6 +880,124 @@ function updateVehicleOdometer(originalKm, routeResult) {
     }
 
     return result;
+}
+
+/**
+ * Zapíše zjednotený info záznam do vozidla
+ * Obsahuje všetky zmeny z jedného záznamu Knihy jázd
+ */
+function writeVehicleInfoRecord(vehicleResult, odometerResult) {
+    try {
+        // Získaj vozidlo
+        var vozidloField = currentEntry.field(CONFIG.fields.rideLog.vehicle);
+        if (!vozidloField || vozidloField.length === 0) {
+            return; // Žiadne vozidlo
+        }
+
+        var vozidlo = vozidloField[0];
+        var entryId = currentEntry.field("ID");
+        var entryDate = utils.safeGet(currentEntry, CONFIG.fields.rideLog.date);
+
+        // Získaj existujúce info a vymaž predchádzajúci záznam od tohto záznamu knihy jázd
+        var existingInfo = utils.safeGet(vozidlo, CONFIG.fields.common.info, "");
+        var entryPattern = "• Kniha jázd #" + entryId;
+
+        // Rozdeľ info na riadky a odstráň všetky predchádzajúce bloky pre tento záznam
+        var lines = existingInfo.split("\n");
+        var newLines = [];
+        var skipBlock = false;
+        var blockStart = -1;
+
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i];
+
+            // Detekuj začiatok akéhokoľvek bloku pre tento záznam
+            if (line.indexOf("🔄 AKTUALIZÁCIA VOZIDLA:") >= 0 ||
+                line.indexOf("🔄 STANOVIŠTE AKTUALIZOVANÉ:") >= 0 ||
+                line.indexOf("🔄 TACHOMETER AKTUALIZOVANÝ:") >= 0) {
+                blockStart = i;
+                skipBlock = false;
+            }
+
+            // Ak nájdeme náš záznam v bloku, označ ho na preskočenie
+            if (blockStart >= 0 && line.indexOf(entryPattern) >= 0) {
+                skipBlock = true;
+                // Odstráň všetky riadky od blockStart po Script riadok
+                var linesToRemove = i - blockStart + 2;
+                for (var j = 0; j < linesToRemove; j++) {
+                    if (newLines.length > 0) {
+                        newLines.pop();
+                    }
+                }
+                blockStart = -1;
+                continue;
+            }
+
+            // Resetuj blockStart ak sme prešli cez blok bez nájdenia záznamu
+            if (blockStart >= 0 && i > blockStart + 10) {
+                blockStart = -1;
+            }
+
+            if (!skipBlock) {
+                newLines.push(line);
+            }
+        }
+
+        var cleanedInfo = newLines.join("\n");
+
+        // Vytvor nový zjednotený info blok
+        var updateInfo = "\n🔄 AKTUALIZÁCIA VOZIDLA: " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
+
+        // Pridaj informácie o stanovišti
+        if (vehicleResult && vehicleResult.success && vehicleResult.message !== "Žiadne vozidlo") {
+            var cielField = currentEntry.field(CONFIG.fields.rideLog.destination);
+            if (cielField && cielField.length > 0) {
+                var cielNazov = utils.safeGet(cielField[0], CONFIG.fields.place.name, "N/A");
+
+                if (vehicleResult.message === "Už synchronizované") {
+                    updateInfo += "• 📍 Stanovište: " + cielNazov + " (bez zmeny)\n";
+                } else if (vehicleResult.message && vehicleResult.message.indexOf("Stanovište aktualizované:") >= 0) {
+                    // Získaj predchádzajúce stanovište z vehicleResult alebo vozidla
+                    var aktualneStanovisteField = vozidlo.field(CONFIG.fields.vehicle.parkingBase);
+                    var predchStanoviste = "neznáme";
+                    if (aktualneStanovisteField && aktualneStanovisteField.length > 0) {
+                        predchStanoviste = utils.safeGet(aktualneStanovisteField[0], CONFIG.fields.place.name, "neznáme");
+                    }
+                    updateInfo += "• 📍 Stanovište: " + predchStanoviste + " → " + cielNazov + "\n";
+                }
+            }
+        }
+
+        // Pridaj informácie o tachometri
+        if (odometerResult && odometerResult.success && odometerResult.kmAdded !== 0) {
+            var currentOdometer = utils.safeGet(vozidlo, CONFIG.fields.vehicle.odometerValue, 0);
+            var kmAdded = odometerResult.kmAdded || 0;
+            var previousOdometer = currentOdometer - kmAdded;
+
+            updateInfo += "• 📊 Tachometer: " + previousOdometer.toFixed(2) + " → " + currentOdometer.toFixed(2) + " km";
+            updateInfo += " (" + (kmAdded > 0 ? "+" : "") + kmAdded.toFixed(2) + " km)\n";
+        } else if (odometerResult && odometerResult.message === "Žiadna zmena km") {
+            var currentOdometer = utils.safeGet(vozidlo, CONFIG.fields.vehicle.odometerValue, 0);
+            updateInfo += "• 📊 Tachometer: " + currentOdometer.toFixed(2) + " km (bez zmeny)\n";
+        }
+
+        // Pridaj základné informácie
+        updateInfo += "• 📅 Dátum: " + utils.formatDate(entryDate, "DD.MM.YYYY") + "\n";
+        updateInfo += "• 📝 Kniha jázd #" + entryId + "\n";
+        updateInfo += "• 🔧 Script: " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
+
+        // Obmedz dĺžku info poľa
+        var newInfo = cleanedInfo + updateInfo;
+        if (newInfo.length > 5000) {
+            newInfo = "... (skrátené) ...\n" + newInfo.substring(newInfo.length - 4900);
+        }
+
+        vozidlo.set(CONFIG.fields.common.info, newInfo);
+        utils.addDebug(currentEntry, "  ✅ Info záznam vozidla aktualizovaný");
+
+    } catch (error) {
+        utils.addError(currentEntry, error.toString(), "writeVehicleInfoRecord", error);
+    }
 }
 
 /**
@@ -2533,6 +2532,9 @@ function main() {
         // KROK 6: Aktualizácia tachometra vozidla
         var odometerResult = updateVehicleOdometer(originalKm, routeResult);
         steps.step6.success = odometerResult.success;
+
+        // Zapíš zjednotený info záznam do vozidla (stanovište + tachometer)
+        writeVehicleInfoRecord(vehicleResult, odometerResult);
 
         // KROK 7: Linkovanie zákaziek
         var orderLinkResult = autoLinkOrdersFromStops();
