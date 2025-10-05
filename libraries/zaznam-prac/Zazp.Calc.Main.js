@@ -1339,24 +1339,24 @@ function createInfoRecord(workTimeResult, employeeResult, hzsResult, machinesRes
 
         // Materiály
         if (materialsResult && materialsResult.success && materialsResult.count > 0) {
-            infoMessage += "## 🧰 MATERIÁLY (" + materialsResult.count + ")\n\n";
+            infoMessage += "## 📦 MATERIÁLY (" + materialsResult.count + ")\n\n";
 
             for (var i = 0; i < materialsResult.materials.length; i++) {
                 var material = materialsResult.materials[i].material;
-                infoMessage += "### 🧰 " + material.name + "\n";
+                infoMessage += "### 📦 " + material.name + "\n";
                 infoMessage += "- **Množstvo:** " + material.quantity + "\n";
                 infoMessage += "- **Jednotková cena:** " + material.price + " €\n";
                 infoMessage += "- **Celková cena:** " + utils.formatMoney(material.totalPrice) + "\n\n";
             }
 
-            infoMessage += "**🧰 Celková suma za materiály:** " + utils.formatMoney(materialsResult.total) + "\n\n";
+            infoMessage += "**📦 Celková suma za materiály:** " + utils.formatMoney(materialsResult.total) + "\n\n";
         }
 
         var order = utils.safeGetLinks(currentEntry, CONFIG.fields.workRecord.order);
         var workDescription = utils.safeGet(currentEntry, CONFIG.fields.workRecord.workDescription);
 
         if (order && order.length > 0) {
-            infoMessage += "## 📦 ZÁKAZKA\n";
+            infoMessage += "## 🛠️ ZÁKAZKA\n";
             var orderNumber = utils.safeGet(order[0], "Číslo", "");
             infoMessage += "- **Názov:** " + utils.safeGet(order[0], "Názov", "N/A") + "\n";
             if (orderNumber) {
