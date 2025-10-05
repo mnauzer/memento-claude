@@ -1,9 +1,9 @@
 // ==============================================
 // MEMENTO DATABASE - DENNÝ REPORT PREPOČET
-// Verzia: 1.8.0 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 1.8.1 | Dátum: október 2025 | Autor: ASISTANTO
 // Knižnica: Denný report | Trigger: Before Save
 // ==============================================
-// ✅ FUNKCIONALITA v1.8.0:
+// ✅ FUNKCIONALITA v1.8.1:
 //    - AUTO-LINKOVANIE záznamov podľa dátumu (Dochádzka, Práce, Jazdy, Pokladňa)
 //    - Automatické nastavenie dňa v týždni podľa dátumu
 //    - Agregácia dát z Dochádzky, Záznamov prác, Knihy jázd a Pokladne
@@ -19,10 +19,10 @@
 //    - Validácia konzistencie zamestnancov s menami (počet + zhoda)
 //    - Kontrola prestojov (porovnanie hodín Dochádzka vs Práce)
 //    - Príprava na integráciu s MementoTelegram a MementoAI
-// 🔧 CHANGELOG v1.8.0:
-//    - PRIDANÉ: Automatické nastavenie dňa v týždni (Pondelok-Nedeľa) podľa dátumu
-//    - PRIDANÉ: Funkcia setDayOfWeek() pre výpočet dňa z dátumu
-//    - PRIDANÉ: Pole dayOfWeek (Deň) do MementoConfig7 v7.0.24
+// 🔧 CHANGELOG v1.8.1:
+//    - PRIDANÉ: Debug logovanie pre auto-linkovanie (počet záznamov v každej knižnici)
+//    - PRIDANÉ: Debug výpis porovnávaných dátumov pre Knihu jázd
+//    - OPRAVA: Lepšie diagnostikovanie problémov s linkovaním záznamov
 // ==============================================
 
 // ==============================================
@@ -38,7 +38,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Denný report Prepočet",
-    version: "1.8.0",
+    version: "1.8.1",
 
     // Referencie na centrálny config
     fields: {
@@ -108,6 +108,8 @@ function autoLinkRecords(reportDate) {
         // 1. Dochádzka
         var attendanceLib = library(CONFIG.libraries.attendance);
         var attendanceEntries = attendanceLib.entries();
+        utils.addDebug(currentEntry, "  🔍 Kontrolujem Dochádzku: " + attendanceEntries.length + " záznamov");
+
         for (var a = 0; a < attendanceEntries.length; a++) {
             var attEntry = attendanceEntries[a];
             var attDate = utils.safeGet(attEntry, CONFIG.fields.attendance.date);
@@ -129,6 +131,8 @@ function autoLinkRecords(reportDate) {
         // 2. Záznam prác
         var workRecordsLib = library(CONFIG.libraries.workRecords);
         var workEntries = workRecordsLib.entries();
+        utils.addDebug(currentEntry, "  🔍 Kontrolujem Záznam prác: " + workEntries.length + " záznamov");
+
         for (var w = 0; w < workEntries.length; w++) {
             var workEntry = workEntries[w];
             var workDate = utils.safeGet(workEntry, CONFIG.fields.workRecord.date);
@@ -149,19 +153,32 @@ function autoLinkRecords(reportDate) {
         // 3. Kniha jázd
         var rideLogLib = library(CONFIG.libraries.rideLog);
         var rideEntries = rideLogLib.entries();
+        utils.addDebug(currentEntry, "  🔍 Kontrolujem Knihu jázd: " + rideEntries.length + " záznamov");
+
         for (var r = 0; r < rideEntries.length; r++) {
             var rideEntry = rideEntries[r];
             var rideDate = utils.safeGet(rideEntry, CONFIG.fields.rideLog.date);
             var rideId = rideEntry.field("ID");
 
-            if (rideDate && utils.formatDate(rideDate) === utils.formatDate(reportDate)) {
-                if (!rideLogIds[rideId]) {
-                    utils.addLink(currentEntry, CONFIG.fields.dailyReport.rideLog, rideEntry);
-                    result.linked.rideLog++;
-                    utils.addDebug(currentEntry, "  ✅ Linknutý záznam z Knihy jázd #" + rideId);
+            // Debug: Výpis dátumov pre porovnanie
+            if (rideDate) {
+                var rideDateStr = utils.formatDate(rideDate);
+                var reportDateStr = utils.formatDate(reportDate);
 
-                    // Pridaj ikonu Denného reportu do Knihy jázd
-                    addDailyReportIcon(rideEntry, "ikony záznamu");
+                // Loguj len záznamy s podobným dátumom (pre debugging)
+                if (rideDateStr.indexOf("2025") !== -1) {
+                    utils.addDebug(currentEntry, "    🔍 Kniha jázd #" + rideId + ": " + rideDateStr + " vs " + reportDateStr);
+                }
+
+                if (rideDateStr === reportDateStr) {
+                    if (!rideLogIds[rideId]) {
+                        utils.addLink(currentEntry, CONFIG.fields.dailyReport.rideLog, rideEntry);
+                        result.linked.rideLog++;
+                        utils.addDebug(currentEntry, "  ✅ Linknutý záznam z Knihy jázd #" + rideId);
+
+                        // Pridaj ikonu Denného reportu do Knihy jázd
+                        addDailyReportIcon(rideEntry, "ikony záznamu");
+                    }
                 }
             }
         }
