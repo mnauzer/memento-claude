@@ -1,9 +1,9 @@
 // ==============================================
 // MEMENTO DATABASE - DENNÝ REPORT PREPOČET
-// Verzia: 1.3.0 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 1.4.0 | Dátum: október 2025 | Autor: ASISTANTO
 // Knižnica: Denný report | Trigger: Before Save
 // ==============================================
-// ✅ FUNKCIONALITA v1.3.0:
+// ✅ FUNKCIONALITA v1.4.0:
 //    - Agregácia dát z Dochádzky, Záznamov prác, Knihy jázd a Pokladne
 //    - Vytváranie Info záznamov pre každú sekciu (markdown formát)
 //    - Vytvorenie spoločného info záznamu
@@ -12,16 +12,16 @@
 //    - Generovanie popisu záznamu (markdown formát)
 //    - Automatické pridávanie ikôn pre vyplnené sekcie
 //    - Agregácia strojov a materiálu zo Záznamov prác
+//    - Agregácia zamestnancov (Dochádzka, Práce) a posádky (Jazdy)
 //    - Validácia chýbajúcich záznamov (Dochádzka, Práce, Jazdy povinné)
 //    - Validácia konzistencie zamestnancov (počet + zhoda)
 //    - Príprava na integráciu s MementoTelegram a MementoAI
-// 🔧 CHANGELOG v1.3.0:
-//    - PRIDANÉ: Validácia chýbajúcich povinných záznamov (Dochádzka, Práce, Jazdy)
-//    - PRIDANÉ: Kontrola počtu zamestnancov (musí byť rovnaký vo všetkých záznamoch)
-//    - PRIDANÉ: Kontrola zhody zamestnancov medzi Dochádzkou, Prácami a Jazdami
-//    - PRIDANÉ: Varovania v spoločnom info zázname
-//    - ZMENA: Pole "Popis záznamu" formátované v markdown (bold sekcie)
-//    - ZMENA: Ikona 🛠️ pre Záznamy prác (namiesto 📝)
+// 🔧 CHANGELOG v1.4.0:
+//    - PRIDANÉ: Položka "Zamestnanci:" v info zázname Dochádzky
+//    - PRIDANÉ: Položka "Zamestnanci:" v info zázname Záznamov prác
+//    - PRIDANÉ: Položka "Posádka:" v info zázname Knihy jázd
+//    - ZMENA: Validácia používa Posádku z Knihy jázd (nie len vodiča)
+//    - ZMENA: Agregácia zamestnancov vo všetkých troch sekciách
 // ==============================================
 
 // ==============================================
@@ -37,7 +37,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Denný report Prepočet",
-    version: "1.3.0",
+    version: "1.4.0",
 
     // Referencie na centrálny config
     fields: {
@@ -270,6 +270,7 @@ function processWorkRecords() {
         var orderFullNames = {}; // Číslo.Názov pre pole Popis
         var machinesSet = {};
         var materialSet = {};
+        var employeeSet = {};
 
         // Spracuj každý záznam práce
         for (var i = 0; i < workRecords.length; i++) {
@@ -313,6 +314,16 @@ function processWorkRecords() {
                     var materialName = utils.safeGet(materials[mat], "name") || utils.safeGet(materials[mat], "description", "");
                     if (materialName) {
                         materialSet[materialName] = true;
+                    }
+                }
+            }
+
+            // Agreguj zamestnancov
+            if (employees && employees.length > 0) {
+                for (var emp = 0; emp < employees.length; emp++) {
+                    var empName = utils.safeGet(employees[emp], CONFIG.fields.employee.nick);
+                    if (empName) {
+                        employeeSet[empName] = true;
                     }
                 }
             }
@@ -367,6 +378,7 @@ function processWorkRecords() {
         var orderNames = Object.keys(orderSet);
         var machineNames = Object.keys(machinesSet);
         var materialNames = Object.keys(materialSet);
+        var employeeNames = Object.keys(employeeSet);
 
         // Vytvor stats pre markdown
         var stats = [
@@ -374,6 +386,9 @@ function processWorkRecords() {
             { label: "Odpracované hodiny", value: totalWorkedHours.toFixed(2) + " h" }
         ];
 
+        if (employeeNames.length > 0) {
+            stats.push({ label: "Zamestnanci (" + employeeNames.length + ")", value: employeeNames.join(", ") });
+        }
         if (orderNames.length > 0) {
             stats.push({ label: "Zákazky (" + orderNames.length + ")", value: orderNames.join(", ") });
         }
@@ -394,6 +409,7 @@ function processWorkRecords() {
         result.success = true;
         result.count = workRecords.length;
         result.totalHours = totalWorkedHours;
+        result.employees = employeeNames;
         result.orders = orderNames;
         result.orderFullNames = Object.keys(orderFullNames); // Pre pole Popis
         result.machines = machineNames;
@@ -434,6 +450,7 @@ function processRideLog() {
         var infoBlocks = [];
         var totalKm = 0;
         var vehicleSet = {};
+        var crewSet = {};
 
         // Spracuj každý záznam z knihy jázd
         for (var i = 0; i < rideRecords.length; i++) {
@@ -444,13 +461,23 @@ function processRideLog() {
             var vehicle = utils.safeGetLinks(ride, CONFIG.fields.rideLog.vehicle);
             var km = utils.safeGet(ride, CONFIG.fields.rideLog.km, 0);
             var route = utils.safeGet(ride, CONFIG.fields.rideLog.route, "");
-            var driver = utils.safeGetLinks(ride, CONFIG.fields.rideLog.driver);
+            var crew = utils.safeGetLinks(ride, "Posádka");
 
             // Agreguj vozidlá
             if (vehicle && vehicle.length > 0) {
                 var vehicleName = utils.safeGet(vehicle[0], CONFIG.fields.vehicle.name);
                 if (vehicleName) {
                     vehicleSet[vehicleName] = true;
+                }
+            }
+
+            // Agreguj posádku
+            if (crew && crew.length > 0) {
+                for (var cr = 0; cr < crew.length; cr++) {
+                    var crewName = utils.safeGet(crew[cr], CONFIG.fields.employee.nick);
+                    if (crewName) {
+                        crewSet[crewName] = true;
+                    }
                 }
             }
 
@@ -461,8 +488,12 @@ function processRideLog() {
             if (vehicle && vehicle.length > 0) {
                 block += "  🚙 Vozidlo: " + utils.safeGet(vehicle[0], CONFIG.fields.vehicle.name) + "\n";
             }
-            if (driver && driver.length > 0) {
-                block += "  👤 Vodič: " + utils.safeGet(driver[0], CONFIG.fields.employee.nick) + "\n";
+            if (crew && crew.length > 0) {
+                var crewNames = [];
+                for (var cn = 0; cn < crew.length; cn++) {
+                    crewNames.push(utils.safeGet(crew[cn], CONFIG.fields.employee.nick));
+                }
+                block += "  👥 Posádka: " + crewNames.join(", ") + "\n";
             }
             if (route) {
                 block += "  📍 Trasa: " + route.substring(0, 100) + (route.length > 100 ? "..." : "") + "\n";
@@ -475,25 +506,25 @@ function processRideLog() {
         // Vytvor zjednotený info záznam
         var now = new Date();
         var timestamp = utils.formatDate(now) + " " + utils.formatTime(now);
-        var infoText = "\n🚗 KNIHA JÁZD - ZHRNUTIE: " + timestamp + "\n";
-        infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-        infoText += "📈 Celkom záznamov: " + rideRecords.length + "\n";
-        infoText += "📏 Celkom km: " + totalKm.toFixed(2) + " km\n";
 
         var vehicleNames = Object.keys(vehicleSet);
+        var crewNames = Object.keys(crewSet);
+
+        // Vytvor stats pre markdown
+        var stats = [
+            { label: "Celkom záznamov", value: rideRecords.length },
+            { label: "Celkom km", value: totalKm.toFixed(2) + " km" }
+        ];
+
         if (vehicleNames.length > 0) {
-            infoText += "🚙 Vozidlá (" + vehicleNames.length + "): " + vehicleNames.join(", ") + "\n";
+            stats.push({ label: "Vozidlá (" + vehicleNames.length + ")", value: vehicleNames.join(", ") });
+        }
+        if (crewNames.length > 0) {
+            stats.push({ label: "Posádka (" + crewNames.length + ")", value: crewNames.join(", ") });
         }
 
-        infoText += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
-        infoText += infoBlocks.join("\n");
-
         // Ulož info záznam do poľa (markdown formát)
-        var markdownInfo = createMarkdownInfo("KNIHA JÁZD", timestamp, [
-            { label: "Celkom záznamov", value: rideRecords.length },
-            { label: "Celkom km", value: totalKm.toFixed(2) + " km" },
-            { label: "Vozidlá (" + vehicleNames.length + ")", value: vehicleNames.join(", ") }
-        ], infoBlocks);
+        var markdownInfo = createMarkdownInfo("KNIHA JÁZD", timestamp, stats, infoBlocks);
 
         utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoRideLog, markdownInfo);
         addRecordIcon("🚗");
@@ -503,7 +534,8 @@ function processRideLog() {
         result.count = rideRecords.length;
         result.totalKm = totalKm;
         result.vehicles = vehicleNames;
-        result.info = infoText;
+        result.crew = crewNames;
+        result.info = markdownInfo;
 
     } catch (error) {
         utils.addError(currentEntry, "Chyba pri spracovaní knihy jázd: " + error.toString(), "processRideLog", error);
@@ -699,17 +731,20 @@ function validateRecords(attendanceResult, workRecordsResult, rideLogResult) {
                 }
             }
 
-            // Získaj zamestnancov z Knihy jázd
+            // Získaj zamestnancov z Knihy jázd (Posádka)
             var rideLogEmployees = {};
             if (rideLogResult.count > 0) {
                 var rideRecords = utils.safeGetLinks(currentEntry, CONFIG.fields.dailyReport.rideLog);
                 if (rideRecords && rideRecords.length > 0) {
                     for (var r = 0; r < rideRecords.length; r++) {
-                        var driver = utils.safeGetLinks(rideRecords[r], CONFIG.fields.rideLog.driver);
-                        if (driver && driver.length > 0) {
-                            var driverName = utils.safeGet(driver[0], CONFIG.fields.employee.nick);
-                            if (driverName) {
-                                rideLogEmployees[driverName] = true;
+                        // Získaj posádku (všetci zamestnanci v jazde)
+                        var crew = utils.safeGetLinks(rideRecords[r], "Posádka");
+                        if (crew && crew.length > 0) {
+                            for (var c = 0; c < crew.length; c++) {
+                                var crewName = utils.safeGet(crew[c], CONFIG.fields.employee.nick);
+                                if (crewName) {
+                                    rideLogEmployees[crewName] = true;
+                                }
                             }
                         }
                     }
