@@ -1,7 +1,14 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.23 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.25 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.25 (2025-10-06):
+//    - Kompletná API analýza knižníc Cenové ponuky (90RmdjWuk) a Cenové ponuky Diely (nCAgQkfvK)
+//    - Pridané library IDs pre quotes a quoteParts do libraryIds
+//    - Nová fields definícia quote s 30+ field definitions podľa API
+//    - Nová fields definícia quotePart s kompletnou štruktúrou položiek
+//    - Pridaný quoteParts do libraries
+//    - Deprecated staré field names pre backward compatibility
 // 🔧 CHANGELOG v7.0.23 (2025-10-05):
 //    - Rozšírené dailyReport fields (recordIcons, recordDescription, hoursWorked)
 //    - Pridané info polia pre agregácie (infoAttendance, infoWorkRecords, infoCashBook, infoRideLog)
@@ -75,7 +82,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.24",  // Pridané pole dayOfWeek (Deň) do dailyReport
+        version: "7.0.25",  // Pridaná podpora pre Cenové ponuky a Cenové ponuky Diely (kompletná API analýza)
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -257,6 +264,7 @@ var MementoConfig = (function() {
             
             // Obchodné dokumenty
             quotes: "Cenové ponuky",
+            quoteParts: "Cenové ponuky Diely",
             orders: "Zákazky",
             orderSettlements: "Vyúčtovania",
             issuedInvoices: "Vystavené faktúry", // pridané
@@ -279,6 +287,10 @@ var MementoConfig = (function() {
             rideReport: null, // Výkaz dopravy - ID sa získa runtime
             machinesReport: "uCRaUwsTo", // Výkaz strojov
             materialsReport: "z3sxkUHgT", // Výkaz materiálu
+
+            // Obchodné dokumenty - Cenové ponuky
+            quotes: "90RmdjWuk", // Cenové ponuky
+            quoteParts: "nCAgQkfvK", // Cenové ponuky Diely
 
             // Aktuálne používané knižnice podľa API analýzy
             employees: "qU4Br5hU6", // Zamestnanci Semiramis (obsahuje všetky potrebné polia)
@@ -912,26 +924,114 @@ var MementoConfig = (function() {
             },
 
             // === OBCHODNÉ DOKUMENTY ===
-            // Cenové ponuky polia
+            // Cenové ponuky polia (Library ID: 90RmdjWuk)
             quote: {
-                state: "Stav", // singleChoice: Návrh, Odoslaná, Schválená, Zamietnutá, Stornovaná
-                number: "Číslo", // text unique
-                name: "Názov", // text
-                description: "Popis cenovej ponuky", // text
-                date: "Dátum",
-                validUntil: "Platnosť do", // date
-                place: "Miesto realizácie", // linkToEntry Miesta
-                customer: "Klient", // linkToEntry Klienti
-                type: "Typ cenovej ponuky", // options: Hodinovka, Položky, Externá,
-                rideCalculation: "Účtovanie dopravy", // singleChoice: Paušál, Km, % zo zákazky, Pevná cena, Neúčtovať
-                fixRidePrice: "Pevná cena dopravy", // real number
-                rateRidePrice: "Doprava %", // real number % decimal
-                kmRidePrice: "Cena za km", // linkToEntry Cenník prác
-                flatRateRidePrice: "Paušál dopravy", // linkToEntry Cenník prác
-                total: "Suma celkom", // real number, súčet všetkých položiek
-                priceCalculation: "Ceny počítať", // singleChoice: Z cenovej ponuky, z cenníka
+                // Základné identifikačné polia
+                number: "Číslo", // text (field 186) - role: name
+                name: "Názov", // text (field 250) - role: name
+                description: "Popis cenovej ponuky", // text (field 187) - role: desc
+                date: "Dátum", // date (field 2)
+                validUntil: "Platnosť do", // date (field 98)
 
-                workHZS: "Hodinová zúčtovacia sadzba", // real number
+                // Stav a klasifikácia
+                state: "Stav cenovej ponuky", // choice (field 130) - Návrh, Odoslaná, Schválená, Zamietnutá, Stornovaná
+                type: "Typ cenovej ponuky", // radio (field 170) - Hodinovka, Položky, Externá
+
+                // Prepojenia
+                place: "Miesto realizácie", // entries (field 79) - linkToEntry Miesta
+
+                // Nastavenia výpočtov
+                priceCalculation: "Počítanie hodinových sadzieb", // choice (field 123)
+                discountCalculation: "Počítať zľavy na sadzby", // boolean (field 248)
+                discountDescription: "budú počítame percentuálne zľavy podľa počtu hodín", // text (field 249)
+
+                // Doprava - účtovanie a sadzby
+                rideCalculation: "Účtovanie dopravy", // choice (field 126) - Paušál, Km, % zo zákazky, Pevná cena, Neúčtovať
+                ridePercentage: "Doprava %", // double (field 265)
+                kmPrice: "Cena za km", // entries (field 266) - linkToEntry
+                rideFlatRate: "Paušál dopravy", // entries (field 267) - linkToEntry
+                transportPrice: "Cena za dopravu", // currency (field 268)
+
+                // Položky cenovej ponuky
+                parts: "Diely", // entries (field 263) - linkToEntry Cenové ponuky Diely
+
+                // Externá ponuka
+                externalPrice: "Cena externej ponuky", // double (field 253)
+                externalPriceWithVat: "Cena externej ponuky s DPH", // double (field 254) - role: status
+
+                // Finančné súčty
+                total: "Celkom", // double (field 257) - role: status
+                vat: "DPH", // double (field 258)
+                vatRate: "Sadzba DPH", // double (field 264)
+                totalWithVat: "Cena celkom (s DPH)", // double (field 256) - role: status
+
+                // Poznámky a prílohy
+                note: "Poznámka", // text (field 207)
+                quoteText: "Text cenovej ponuky", // richtext (field 208)
+                files: "Súbory", // file (field 199)
+
+                // Systémové polia
+                view: "view", // radio (field 247)
+                id: "ID", // int (field 244)
+                createdBy: "zapísal", // user (field 240)
+                createdDate: "dátum zápisu", // date (field 242)
+                modifiedBy: "upravil", // user (field 241)
+                modifiedDate: "dátum úpravy", // date (field 243)
+                rowColor: "farba záznamu", // color (field 191)
+                backgroundColor: "farba pozadia", // color (field 224)
+                debugLog: "Debug_Log", // text (field 260)
+                errorLog: "Error_Log", // text (field 261)
+
+                // Deprecated/backward compatibility
+                customer: "Klient", // DEPRECATED - nie je v API štruktúre
+                workHZS: "Hodinová zúčtovacia sadzba", // DEPRECATED - nie je v API štruktúre
+                fixRidePrice: "Pevná cena dopravy", // DEPRECATED - použiť transportPrice
+                rateRidePrice: "Doprava %", // DEPRECATED - použiť ridePercentage
+                kmRidePrice: "Cena za km", // DEPRECATED - použiť kmPrice
+                flatRateRidePrice: "Paušál dopravy" // DEPRECATED - použiť rideFlatRate
+            },
+
+            // Cenové ponuky Diely polia (Library ID: nCAgQkfvK)
+            quotePart: {
+                // Základné identifikačné polia
+                number: "Číslo", // text (field 186) - role: name
+                quoteNumber: "Číslo CP", // text (field 281) - role: desc - číslo nadradenej cenovej ponuky
+                name: "Názov", // text (field 250) - role: desc
+                date: "Dátum", // date (field 269)
+
+                // Klasifikácia dielu
+                partType: "Diel cenovej ponuky", // choice (field 257) - role: name - typ dielu ponuky
+
+                // Cenové polia - súčty za kategórie
+                materialSum: "Materiál", // currency (field 271)
+                workSum: "Práce", // currency (field 272)
+                otherSum: "Ostatné/Subdodavky", // currency (field 273)
+                transportSum: "Doprava", // currency (field 274)
+                totalSum: "Celkom", // currency (field 275) - role: status
+                totalPrice: "Cena celkom", // double (field 263) - role: status
+
+                // Položky po kategóriách - linkToEntry polia
+                materials: "Materiál", // entries (field 264) - linkToEntry Materiál
+                works: "Práce", // entries (field 265) - linkToEntry Práce
+                subcontracts: "Subdodavky", // entries (field 270) - linkToEntry Subdodávky
+                machines: "Stroje", // entries (field 267) - linkToEntry Stroje
+                transport: "Doprava", // entries (field 266) - linkToEntry Doprava
+
+                // Poznámky a debug
+                note: "Poznámka", // text (field 207)
+                info: "info", // text (field 279)
+                debugLog: "Debug_Log", // text (field 277)
+                errorLog: "Error_Log", // text (field 278)
+
+                // Systémové polia
+                view: "view", // radio (field 247)
+                id: "ID", // int (field 244)
+                createdBy: "zapísal", // user (field 240)
+                createdDate: "dátum zápisu", // date (field 242)
+                modifiedBy: "naposledy upravil", // user (field 241)
+                modifiedDate: "dátum úpravy", // date (field 243)
+                rowColor: "farba záznamu", // color (field 191)
+                backgroundColor: "farba pozadia" // color (field 224)
             },
             // Zákazky polia
             order: {

@@ -17,8 +17,8 @@
 
 var MementoBusiness = (function() {
     'use strict';
-    
-    var version = "7.2.0";  // Pridaná univerzálna architektúra pre výkazy
+
+    var version = "7.3.0";  // Pridaná univerzálna funkcia findValidPrice pre hľadanie cien
     
     // Lazy loading pre závislosti
     var _config = null;
@@ -562,46 +562,204 @@ var MementoBusiness = (function() {
     // WAGE & RATE FUNCTIONS
     // ==============================================
 
-    function findValidItemPrice(itemEntry, date) {
+    // ==============================================
+    // UNIVERZÁLNA FUNKCIA PRE HĽADANIE PLATNÝCH CIEN
+    // ==============================================
+
+    /**
+     * Univerzálna funkcia pre hľadanie platnej ceny k dátumu
+     * @param {Object} itemEntry - Záznam položky (materiál, práca, stroj, vozidlo, atď.)
+     * @param {Date} date - Dátum pre ktorý hľadáme cenu
+     * @param {Object} options - Konfiguračné nastavenia
+     * @param {String} options.priceLibrary - Názov knižnice s históriou cien (napr. "materialPrices", "workPrices")
+     * @param {String} options.linkField - Názov linkToEntry poľa v histórii cien (napr. "material", "work")
+     * @param {String} options.dateField - Názov poľa s dátumom platnosti (default: "validFrom")
+     * @param {String|Array} options.priceField - Názov poľa/polí s cenou (napr. "sellPrice", "price" alebo ["priceMth", "flatRate"])
+     * @param {String} options.fallbackPriceField - Názov poľa v samotnej položke pre aktuálnu cenu (napr. "price")
+     * @param {Object} options.currentEntry - Entry pre debug výpisy (optional)
+     * @returns {Number|Object|null} - Platná cena alebo null
+     *
+     * @example
+     * // Hľadanie ceny materiálu
+     * var materialPrice = business.findValidPrice(materialEntry, currentDate, {
+     *     priceLibrary: "materialPrices",
+     *     linkField: "material",
+     *     priceField: "sellPrice",
+     *     fallbackPriceField: "price",
+     *     currentEntry: currentEntry
+     * });
+     *
+     * @example
+     * // Hľadanie ceny práce
+     * var workPrice = business.findValidPrice(workEntry, currentDate, {
+     *     priceLibrary: "workPrices",
+     *     linkField: "work",
+     *     priceField: "price"
+     * });
+     *
+     * @example
+     * // Hľadanie ceny stroja (vracia objekt s priceMth a flatRate)
+     * var machinePrice = business.findValidPrice(machineEntry, currentDate, {
+     *     priceLibrary: "machinePrices",
+     *     linkField: "machine",
+     *     priceField: ["priceMth", "flatRate"] // Multiple fields
+     * });
+     */
+    function findValidPrice(itemEntry, date, options) {
         var core = getCore();
         var config = getConfig();
-        
+
         try {
-            if (!itemEntry || !date) return null;
-            
-            var fields = config.fields.itemPrices;
-            var libraryName = config.libraries.itemPrices;
-            var prices = core.safeGetLinksFrom(itemEntry, libraryName, fields.item);
-            
-            if (!prices || prices.length === 0) {
+            // Validácia vstupov
+            if (!itemEntry || !date) {
                 return null;
             }
-            
-            var validPrice = null;
+
+            if (!options || !options.priceLibrary || !options.linkField || !options.priceField) {
+                if (core && options && options.currentEntry) {
+                    core.addError(options.currentEntry,
+                        "❌ findValidPrice: Chýbajúce povinné parametre (priceLibrary, linkField, priceField)",
+                        "findValidPrice");
+                }
+                return null;
+            }
+
+            var currentEntry = options.currentEntry || null;
+
+            // Získaj konfiguráciu pre knižnicu cien
+            var priceLibraryName = config.libraries[options.priceLibrary];
+            var priceFieldsConfig = config.fields[options.priceLibrary];
+
+            if (!priceLibraryName || !priceFieldsConfig) {
+                if (currentEntry && core) {
+                    core.addDebug(currentEntry, "⚠️ Knižnica alebo fields pre " + options.priceLibrary + " nenájdené v konfigurácii");
+                }
+                return null;
+            }
+
+            // Získaj názvy polí
+            var linkFieldName = priceFieldsConfig[options.linkField];
+            var dateFieldName = priceFieldsConfig[options.dateField || "validFrom"];
+
+            if (!linkFieldName) {
+                if (currentEntry && core) {
+                    core.addDebug(currentEntry, "⚠️ Link field '" + options.linkField + "' nenájdený v konfigurácii pre " + options.priceLibrary);
+                }
+                return null;
+            }
+
+            // Získaj záznamy z histórie cien
+            var priceRecords = core.safeGetLinksFrom(itemEntry, priceLibraryName, linkFieldName);
+
+            if (!priceRecords || priceRecords.length === 0) {
+                // Pokús sa použiť fallback cenu z položky samotnej
+                if (options.fallbackPriceField) {
+                    var fallbackFieldConfig = config.fields.items || config.fields.priceList || {};
+                    var fallbackFieldName = fallbackFieldConfig[options.fallbackPriceField];
+
+                    if (fallbackFieldName) {
+                        var fallbackPrice = core.safeGet(itemEntry, fallbackFieldName);
+                        if (fallbackPrice !== null && fallbackPrice !== undefined) {
+                            if (currentEntry) {
+                                core.addDebug(currentEntry, "  📌 Použijem aktuálnu cenu z položky: " + fallbackPrice);
+                            }
+                            return fallbackPrice;
+                        }
+                    }
+                }
+
+                if (currentEntry && core) {
+                    core.addDebug(currentEntry, "  ℹ️ Žiadne cenové záznamy v histórii");
+                }
+                return null;
+            }
+
+            // Priprav výsledný objekt alebo hodnotu
+            var isMultipleFields = Array.isArray(options.priceField);
+            var validPrice = isMultipleFields ? {} : null;
             var latestValidFrom = null;
-            
+
             // Nájdi najnovšiu platnú cenu
-            for (var i = 0; i < prices.length; i++) {
-                var rate = prices[i];
-                var validFrom = rate.field(fields.validFrom);
-                var price = rate.field(fields.price);
-                
-                if (validFrom && price && moment(validFrom).isSameOrBefore(date)) {
+            for (var i = 0; i < priceRecords.length; i++) {
+                var priceRecord = priceRecords[i];
+                var validFrom = core.safeGet(priceRecord, dateFieldName);
+
+                // Skontroluj či je dátum platný a nie je v budúcnosti
+                if (validFrom && moment(validFrom).isSameOrBefore(date)) {
+                    // Kontrola či je to najnovší dátum
                     if (!latestValidFrom || moment(validFrom).isAfter(latestValidFrom)) {
                         latestValidFrom = validFrom;
-                        validPrice = price;
+
+                        // Získaj cenu/ceny
+                        if (isMultipleFields) {
+                            // Multiple price fields (napr. pre stroje: priceMth, flatRate)
+                            for (var j = 0; j < options.priceField.length; j++) {
+                                var fieldKey = options.priceField[j];
+                                var fieldName = priceFieldsConfig[fieldKey];
+                                if (fieldName) {
+                                    validPrice[fieldKey] = core.safeGet(priceRecord, fieldName, 0);
+                                }
+                            }
+                        } else {
+                            // Single price field
+                            var priceFieldName = priceFieldsConfig[options.priceField];
+                            if (priceFieldName) {
+                                var price = core.safeGet(priceRecord, priceFieldName);
+                                if (price !== null && price !== undefined) {
+                                    validPrice = price;
+                                }
+                            }
+                        }
                     }
                 }
             }
-            
+
+            // Debug výstup
+            if (currentEntry && core && latestValidFrom) {
+                var priceDisplay = isMultipleFields ? JSON.stringify(validPrice) : validPrice;
+                core.addDebug(currentEntry, "  ✅ Nájdená platná cena k " + moment(latestValidFrom).format("DD.MM.YYYY") + ": " + priceDisplay);
+            }
+
+            // Ak sme nenašli cenu v histórii, skús fallback
+            if ((isMultipleFields && Object.keys(validPrice).length === 0) ||
+                (!isMultipleFields && validPrice === null)) {
+
+                if (options.fallbackPriceField) {
+                    var fallbackFieldConfig2 = config.fields.items || config.fields.priceList || {};
+                    var fallbackFieldName2 = fallbackFieldConfig2[options.fallbackPriceField];
+
+                    if (fallbackFieldName2) {
+                        var fallbackPrice2 = core.safeGet(itemEntry, fallbackFieldName2);
+                        if (fallbackPrice2 !== null && fallbackPrice2 !== undefined) {
+                            if (currentEntry && core) {
+                                core.addDebug(currentEntry, "  📌 Použijem aktuálnu cenu z položky (fallback): " + fallbackPrice2);
+                            }
+                            return fallbackPrice2;
+                        }
+                    }
+                }
+            }
+
             return validPrice;
-            
+
         } catch (error) {
-            if (core) {
-                core.addError(item, "Chyba pri hľadaní ceny: " + error.toString() + ", Line: " + error.lineNumber, "findValidWorkPrice", error);
+            if (core && options && options.currentEntry) {
+                core.addError(options.currentEntry,
+                    "❌ Chyba v findValidPrice: " + error.toString() + ", Line: " + error.lineNumber,
+                    "findValidPrice", error);
             }
             return null;
         }
+    }
+
+    // Deprecated - použiť findValidPrice s options
+    function findValidItemPrice(itemEntry, date) {
+        return findValidPrice(itemEntry, date, {
+            priceLibrary: "materialPrices",
+            linkField: "material",
+            priceField: "sellPrice",
+            fallbackPriceField: "price"
+        });
     }
 
     function findValidMachinePrice(machineEntry, date) {
@@ -2705,9 +2863,10 @@ var MementoBusiness = (function() {
         processEmployees: processEmployees,
 
         // hľadanie cien
-        findValidWorkPrice: findValidWorkPrice,
-        findValidMachinePrice: findValidMachinePrice,
-        findValidItemPrice: findValidItemPrice,
+        findValidPrice: findValidPrice,  // NOVÁ univerzálna funkcia
+        findValidWorkPrice: findValidWorkPrice,  // Deprecated - použiť findValidPrice
+        findValidMachinePrice: findValidMachinePrice,  // Deprecated - použiť findValidPrice
+        findValidItemPrice: findValidItemPrice,  // Deprecated - použiť findValidPrice
         
         // Štatistiky
         calculateMonthlyStats: calculateMonthlyStats,
