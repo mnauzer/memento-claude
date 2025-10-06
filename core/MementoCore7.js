@@ -980,6 +980,35 @@ var MementoCore = (function() {
     return days[dayNumber] || "";
     }
 
+    /**
+     * Nastaví deň v týždni v zadanom poli podľa dátumu
+     * @param {Entry} entry - Záznam, v ktorom sa má nastaviť deň
+     * @param {string} fieldName - Názov poľa pre deň v týždni
+     * @param {Date} date - Dátum, z ktorého sa má získať deň
+     */
+    function setDayOfWeekField(entry, fieldName, date) {
+        try {
+            if (!entry || !fieldName || !date) {
+                return false;
+            }
+
+            // Dni v týždni v slovenčine (0 = Nedeľa, 1 = Pondelok, ...)
+            var dayNames = ["Nedeľa", "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota"];
+
+            // Získaj číslo dňa (0-6)
+            var dayIndex = date.getDay();
+            var dayName = dayNames[dayIndex];
+
+            // Nastav hodnotu v poli
+            safeSet(entry, fieldName, dayName);
+            return true;
+
+        } catch (error) {
+            addError(entry, "Nepodarilo sa nastaviť deň v týždni: " + error.toString(), "setDayOfWeekField", error);
+            return false;
+        }
+    }
+
     function selectOsobaForm(count) {
         if (count === 1) return "osoba";
         if (count >= 2 && count <= 4) return "osoby";
@@ -1717,7 +1746,8 @@ var MementoCore = (function() {
         findRecordIndex: findRecordIndex,
 
         getDayNameSK: getDayNameSK,
-        selectOsobaForm: selectOsobaForm,       
+        setDayOfWeekField: setDayOfWeekField,
+        selectOsobaForm: selectOsobaForm,
         getPersonCountForm: getPersonCountForm,
         isHoliday: isHoliday,
         isWeekend: isWeekend,
