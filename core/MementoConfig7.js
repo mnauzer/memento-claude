@@ -858,6 +858,7 @@ var MementoConfig = (function() {
                 active: "Aktívny", // checkbox:
                 name: "Názov",
                 type: "Typ", // singleChoice: Dodávka, Valník, Osobné
+                seats: "Počet miest", // integer - počet miest vo vozidle
                 rate: "Sadzba za km",
                 flatRate: "Paušál za jazdu",
                 driver: "Šofér", // linkToEntry Zamestnanci, default zamestnanec ktorý jazdí na tomto vozidle
