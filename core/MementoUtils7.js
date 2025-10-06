@@ -419,7 +419,10 @@ var MementoUtils = (function() {
         // === DIALÓGY ===
         showErrorDialog: lazyCall('core', 'showErrorDialog'),
         showSuccessDialog: lazyCall('core', 'showSuccessDialog'),
-        showInfoDialog: lazyCall('core', 'showInfoDialog')
+        showInfoDialog: lazyCall('core', 'showInfoDialog'),
+
+        // === PRICE LOOKUP ===
+        findValidPrice: lazyCall('business', 'findValidPrice')
     };
     
     // === INICIALIZÁCIA ===
