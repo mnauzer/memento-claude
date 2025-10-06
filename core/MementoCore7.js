@@ -1621,6 +1621,25 @@ var MementoCore = (function() {
     // PUBLIC API
     // ==============================================
     
+    /**
+     * Pridá ikonu do poľa ikony záznamu
+     */
+    function addRecordIcon(entry, icon) {
+        var currentEntry = entry() || entryDefaut();
+        var config = getConfig();
+        try {
+            var currentIcons = safeGet(currentEntry, config.fields.common.recordIcons, "");
+
+            // Skontroluj, či ikona už nie je pridaná
+            if (currentIcons.indexOf(icon) === -1) {
+                var newIcons = currentIcons ? currentIcons + " " + icon : icon;
+                safeSet(currentEntry, config.fields.common.recordIcons, newIcons);
+                addDebug(currentEntry, "  📌 Pridaná ikona: " + icon);
+            }
+        } catch (error) {
+            addDebug(currentEntry, "  ⚠️ Nepodarilo sa pridať ikonu: " + error.toString());
+        }
+    }
     return {
         version: version,
         
@@ -1695,7 +1714,9 @@ var MementoCore = (function() {
         // Dialógy
         showErrorDialog: showErrorDialog,
         showSuccessDialog: showSuccessDialog,
-        showInfoDialog: showInfoDialog
+        showInfoDialog: showInfoDialog,
+
+        addRecordIcon: addRecordIcon
 
     };
 

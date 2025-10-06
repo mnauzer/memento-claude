@@ -196,6 +196,7 @@ var MementoUtils = (function() {
         isWeekend: lazyCall('core', 'isWeekend'),
         calculateEaster: lazyCall('core', 'calculateEaster'),
         findRecordIndex: lazyCall('core', 'findRecordIndex'),
+        addRecordIcon: lazyCall('core', 'addRecordIcon'),
 
 
 

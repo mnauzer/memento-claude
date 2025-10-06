@@ -307,6 +307,7 @@ var MementoConfig = (function() {
                 backgroundColor: "farba pozadia",
                 infoTelegram: "info_telegram",    // NOVÉ
                 notifications: "Notifikácie",     // NOVÉ - link field
+                recordIcons: "ikony záznamu"
             },
 
             // === EVIDENCIA - DENNÉ ZÁZNAMY ===

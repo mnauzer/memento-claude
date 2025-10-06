@@ -463,7 +463,7 @@ function processAttendance() {
         ], infoBlocks);
 
         utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoAttendance, markdownInfo);
-        addRecordIcon("👥");
+        utils.addRecordIcon("👥");
         utils.addDebug(currentEntry, "  ✅ Info dochádzka vytvorený a zapísaný (" + attendanceRecords.length + " záznamov)");
 
         result.success = true;
@@ -642,7 +642,7 @@ function processWorkRecords() {
         var markdownInfo = createMarkdownInfo("ZÁZNAMY PRÁC", timestamp, stats, infoBlocks);
 
         utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoWorkRecords, markdownInfo);
-        addRecordIcon("🛠️");
+        utils.addRecordIcon("🛠️");
         utils.addDebug(currentEntry, "  ✅ Info záznam prác vytvorený a zapísaný (" + workRecords.length + " záznamov)");
 
         result.success = true;
@@ -805,7 +805,7 @@ function processRideLog() {
         var markdownInfo = createMarkdownInfo("KNIHA JÁZD", timestamp, stats, infoBlocks);
 
         utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoRideLog, markdownInfo);
-        addRecordIcon("🚗");
+        utils.addRecordIcon("🚗");
         utils.addDebug(currentEntry, "  ✅ Info kniha jázd vytvorený a zapísaný (" + rideRecords.length + " záznamov)");
 
         result.success = true;
@@ -917,7 +917,7 @@ function processCashBook() {
         ], infoBlocks);
 
         utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoCashBook, markdownInfo);
-        addRecordIcon("💰");
+        ordIcon("💰");
         utils.addDebug(currentEntry, "  ✅ Info pokladňa vytvorený a zapísaný (" + cashRecords.length + " záznamov)");
 
         result.success = true;
@@ -1302,7 +1302,7 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
             info += "\n";
 
             // Pridaj ikonu upozornenia
-            addRecordIcon("⚠️");
+            n("⚠️");
         } else {
             // Ak už nie sú žiadne upozornenia, odstráň ikonu upozornenia
             removeRecordIcon("⚠️");
@@ -1321,7 +1321,7 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
                 info += "- **Dochádzka:** " + attendanceHours.toFixed(2) + " h\n";
                 info += "- **Práce:** " + workHours.toFixed(2) + " h\n";
                 info += "- ⚠️ Zamestnanci boli prítomní, ale nevykonávali práce\n\n";
-                addRecordIcon("⏸️");
+                utils.addRecordIcon("⏸️");
             } else if (hoursDiff < 0) {
                 // Chyba: Práce majú viac hodín ako Dochádzka - treba skontrolovať
                 info += "## ⚠️ Skontrolovať a opraviť\n\n";
@@ -1329,7 +1329,7 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
                 info += "- **Dochádzka:** " + attendanceHours.toFixed(2) + " h\n";
                 info += "- **Práce:** " + workHours.toFixed(2) + " h\n";
                 info += "- ❌ Práce majú viac hodín ako Dochádzka - skontrolujte a opravte\n\n";
-                addRecordIcon("⚠️");
+                utils.addRecordIcon("⚠️");
             } else {
                 // Hodiny sa zhodujú - odstráň ikonu prestojov ak existuje
                 removeRecordIcon("⏸️");
@@ -1420,7 +1420,7 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
  */
 function addRecordIcon(icon) {
     try {
-        var currentIcons = utils.safeGet(currentEntry, CONFIG.fields.dailyReport.recordIcons, "");
+        var currentIcons = utils.safeGet(currentEntry, CONFIG.fields.common.recordIcons, "");
 
         // Skontroluj, či ikona už nie je pridaná
         if (currentIcons.indexOf(icon) === -1) {
