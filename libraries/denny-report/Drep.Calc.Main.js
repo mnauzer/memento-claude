@@ -463,7 +463,7 @@ function processAttendance() {
         ], infoBlocks);
 
         utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoAttendance, markdownInfo);
-        utils.addRecordIcon("👥");
+        utils.addRecordIcon(currentEntry, "👥");
         utils.addDebug(currentEntry, "  ✅ Info dochádzka vytvorený a zapísaný (" + attendanceRecords.length + " záznamov)");
 
         result.success = true;
@@ -642,7 +642,7 @@ function processWorkRecords() {
         var markdownInfo = createMarkdownInfo("ZÁZNAMY PRÁC", timestamp, stats, infoBlocks);
 
         utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoWorkRecords, markdownInfo);
-        utils.addRecordIcon("🛠️");
+        utils.addRecordIcon(currentEntry,"🛠️");
         utils.addDebug(currentEntry, "  ✅ Info záznam prác vytvorený a zapísaný (" + workRecords.length + " záznamov)");
 
         result.success = true;
@@ -805,7 +805,7 @@ function processRideLog() {
         var markdownInfo = createMarkdownInfo("KNIHA JÁZD", timestamp, stats, infoBlocks);
 
         utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoRideLog, markdownInfo);
-        utils.addRecordIcon("🚗");
+        utils.addRecordIcon(currentEntry, "🚗");
         utils.addDebug(currentEntry, "  ✅ Info kniha jázd vytvorený a zapísaný (" + rideRecords.length + " záznamov)");
 
         result.success = true;
@@ -1305,7 +1305,7 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
             n("⚠️");
         } else {
             // Ak už nie sú žiadne upozornenia, odstráň ikonu upozornenia
-            removeRecordIcon("⚠️");
+            utils.removeRecordIcon(currentEntry, "⚠️");
         }
 
         // Kontrola prestojov - porovnanie hodín medzi Dochádzkou a Prácami
@@ -1321,7 +1321,7 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
                 info += "- **Dochádzka:** " + attendanceHours.toFixed(2) + " h\n";
                 info += "- **Práce:** " + workHours.toFixed(2) + " h\n";
                 info += "- ⚠️ Zamestnanci boli prítomní, ale nevykonávali práce\n\n";
-                utils.addRecordIcon("⏸️");
+                utils.addRecordIcon(currentEntry, "⏸️");
             } else if (hoursDiff < 0) {
                 // Chyba: Práce majú viac hodín ako Dochádzka - treba skontrolovať
                 info += "## ⚠️ Skontrolovať a opraviť\n\n";
@@ -1329,14 +1329,14 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
                 info += "- **Dochádzka:** " + attendanceHours.toFixed(2) + " h\n";
                 info += "- **Práce:** " + workHours.toFixed(2) + " h\n";
                 info += "- ❌ Práce majú viac hodín ako Dochádzka - skontrolujte a opravte\n\n";
-                utils.addRecordIcon("⚠️");
+                utils.addRecordIcon(currentEntry, "⚠️");
             } else {
                 // Hodiny sa zhodujú - odstráň ikonu prestojov ak existuje
-                removeRecordIcon("⏸️");
+                utils.removeRecordIcon(currentEntry, "⏸️");
             }
         } else {
             // Ak nie sú záznamy, odstráň ikonu prestojov
-            removeRecordIcon("⏸️");
+            utils.removeRecordIcon(removeRecordIcon, "⏸️");
         }
 
         info += "---\n\n";

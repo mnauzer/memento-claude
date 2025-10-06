@@ -1640,6 +1640,36 @@ var MementoCore = (function() {
             addDebug(currentEntry, "  ⚠️ Nepodarilo sa pridať ikonu: " + error.toString());
         }
     }
+
+    /**
+     * Odstráni ikonu zo záznamu
+     */
+    function removeRecordIcon(entry, icon) {
+        var currentEntry = entry() || entryDefaut();
+        var config = getConfig();
+        try {
+            var currentIcons = currentEntry.field(config.fields.common.recordIcons);
+            if (!currentIcons) {
+                return;
+            }
+
+            // Odstráň ikonu zo stringu
+            var iconsArray = currentIcons.split(" ");
+            var newIconsArray = [];
+            for (var i = 0; i < iconsArray.length; i++) {
+                if (iconsArray[i] !== icon && iconsArray[i] !== "") {
+                    newIconsArray.push(iconsArray[i]);
+                }
+            }
+
+            var newIcons = newIconsArray.join(" ");
+            utils.safeSet(currentEntry, config.fields.common.recordIcons, newIcons);
+        } catch (error) {
+            // Tichá chyba - ikona nie je kritická
+            utils.addDebug(currentEntry, "  ⚠️ Nepodarilo sa odstrániť ikonu zo záznamu: " + error.toString());
+        }
+    }
+
     return {
         version: version,
         
@@ -1716,7 +1746,8 @@ var MementoCore = (function() {
         showSuccessDialog: showSuccessDialog,
         showInfoDialog: showInfoDialog,
 
-        addRecordIcon: addRecordIcon
+        addRecordIcon: addRecordIcon,
+        removeRecordIcon: removeRecordIcon
 
     };
 

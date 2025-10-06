@@ -197,6 +197,7 @@ var MementoUtils = (function() {
         calculateEaster: lazyCall('core', 'calculateEaster'),
         findRecordIndex: lazyCall('core', 'findRecordIndex'),
         addRecordIcon: lazyCall('core', 'addRecordIcon'),
+        removeRecordIcon: lazyCall('core', 'removeRecordIcon'),
 
 
 
