@@ -190,6 +190,7 @@ var MementoUtils = (function() {
         findEntryById: lazyCall('core', 'findEntryById'),
         getCurrentUser: lazyCall('core', 'getCurrentUser'),
         getDayNameSK: lazyCall('core', 'getDayNameSK'),
+        setDayOfWeekField: lazyCall('core', 'setDayOfWeekField'),
         selectOsobaForm: lazyCall('core', 'selectOsobaForm'),
         getPersonCountForm: lazyCall('core', 'getPersonCountForm'),
         isHoliday: lazyCall('core', 'isHoliday'),
