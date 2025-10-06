@@ -1493,7 +1493,7 @@ var MementoCore = (function() {
             addDebug(null, "🔢 === ZAČÍNA PREČÍSLOVANIE ZÁZNAMOV ===", "start");
 
             // Parametrické hodnoty s fallbackmi
-            var library = targetLibrary || lib;
+            var library = targetLibrary || lib().title;
             var dateFld = dateField || "Dátum";
             var idFld = idField || "ID";
             var startNum = startNumber || 1;
@@ -1661,10 +1661,10 @@ var MementoCore = (function() {
             }
 
             var newIcons = newIconsArray.join(" ");
-            utils.safeSet(entry, config.fields.common.recordIcons, newIcons);
+            safeSet(entry, config.fields.common.recordIcons, newIcons);
         } catch (error) {
             // Tichá chyba - ikona nie je kritická
-            utils.addDebug(entry, "  ⚠️ Nepodarilo sa odstrániť ikonu zo záznamu: " + error.toString());
+            addDebug(entry, "  ⚠️ Nepodarilo sa odstrániť ikonu zo záznamu: " + error.toString());
         }
     }
 
