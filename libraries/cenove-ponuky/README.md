@@ -99,12 +99,17 @@ Jednotlivé časti/diely cenové ponuky rozdelené podľa kategórií.
 
 **Dependencies:**
 - MementoCore7.js
-- MementoConfig7.js
-- MementoBusiness7.js
+- MementoConfig7.js v7.0.26+ (obsahuje processing.quotePart konfiguráciu)
+- MementoBusiness7.js v7.3.0+ (obsahuje findValidPrice funkciu)
+- MementoUtils7.js
 
-**Použité funkce z MementoBusiness:**
-- `business.findValidWorkPrice(workEntry, date)` - Pre Práce, Stroje, Dopravu
-- `findValidMaterialPrice(materialEntry, date)` - Pre Materiál, Subdodávky (vlastná funkcia v scripte)
+**Použité funkcie z MementoBusiness:**
+- `utils.findValidPrice(itemEntry, date, options)` - Univerzálna funkcia pre všetky typy položiek
+
+**Konfigurácia spracovania:**
+- Všetka konfigurácia je v MementoConfig7.js v sekcii `processing.quotePart`
+- Žiadne hardcoded názvy v scripte
+- Ľahko rozšíriteľné o ďalšie kategórie pridaním do MementoConfig
 
 **Debugging:**
 Script zapisuje detailný log do Debug_Log poľa:
@@ -113,9 +118,34 @@ Script zapisuje detailný log do Debug_Log poľa:
 - Výpočty pre každú položku
 - Finálne súčty
 
-**Verzia:** 1.0
+**Verzia:** 1.6.0
 **Dátum:** 2025-10-06
 **Autor:** ASISTANTO
+
+## Rozšírenie o ďalšie kategórie
+
+Ak chcete pridať novú kategóriu položiek (napr. Subdodávky, Stroje, Doprava), stačí:
+
+1. Pridať field definíciu do `MementoConfig7.js` sekcie `fields.quotePart`
+2. Pridať atribúty do `MementoConfig7.js` sekcie `attributes` (napr. `quotePartSubcontracts`)
+3. Pridať processing konfiguráciu do `MementoConfig7.js` sekcie `processing.quotePart`:
+
+```javascript
+subcontracts: {
+    field: "subcontracts",
+    attribute: "subcontracts",
+    displayName: "Subdodávky",
+    priceLibrary: "materialPrices",
+    linkField: "material",
+    priceField: "sellPrice",
+    fallbackPriceField: "price"
+}
+```
+
+4. Pridať súčtové pole do `fields.quotePart` (napr. `subcontractSum`)
+5. Aktualizovať script aby zapísal výsledok do nového súčtového poľa
+
+Script automaticky spracuje všetky kategórie definované v `centralConfig.processing.quotePart`.
 
 ## Inštalácia scriptu
 

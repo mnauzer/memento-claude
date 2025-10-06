@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY DIELY - Hlavný prepočet
-// Verzia: 1.5 | Dátum: 2025-10-06 | Autor: ASISTANTO
+// Verzia: 1.6.0 | Dátum: 2025-10-06 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky Diely (ID: nCAgQkfvK)
 // Trigger: onChange
 // ==============================================
@@ -10,6 +10,13 @@
 //    - Výpočet súčtov za jednotlivé kategórie
 //    - Výpočet celkovej sumy cenovej ponuky
 // ==============================================
+// 🔧 CHANGELOG v1.6.0 (2025-10-06):
+//    - ODSTRÁNENÉ všetky hardcoded názvy aj z CONFIG
+//    - Používa centralConfig.processing.quotePart namiesto lokálneho CONFIG.categories
+//    - Všetka konfigurácia spracovania položiek je v MementoConfig7.js v7.0.26+
+// 🔧 CHANGELOG v1.5.1 (2025-10-06):
+//    - OPRAVA: Použitie utils.safeGetLinks namiesto utils.safeGet pre linkToEntry polia
+//    - OPRAVA: Správny prístup k poľu cez CONFIG.fields.quotePart[categoryConfig.field]
 // 🔧 CHANGELOG v1.5 (2025-10-06):
 //    - ODSTRÁNENÉ všetky hardcoded názvy
 //    - CONFIG.categories s kompletnou konfiguráciou pre každú kategóriu
@@ -32,7 +39,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky Diely - Prepočet",
-    version: "1.5.0", // Odstránené hardcoded názvy
+    version: "1.6.0", // Všetka konfigurácia z centralConfig.processing.quotePart
 
     // Referencie na centrálny config
     fields: {
@@ -50,26 +57,8 @@ var CONFIG = {
     libraries: centralConfig.libraries,
     icons: centralConfig.icons,
 
-    // Kategórie pre prepočet (display names)
-    categories: {
-        materials: {
-            field: "materials",
-            attribute: "materials",
-            displayName: "Materiál",
-            priceLibrary: "materialPrices",
-            linkField: "material",
-            priceField: "sellPrice",
-            fallbackPriceField: "price"
-        },
-        works: {
-            field: "works",
-            attribute: "works",
-            displayName: "Práce",
-            priceLibrary: "workPrices",
-            linkField: "work",
-            priceField: "price"
-        }
-    }
+    // Processing konfigurácia z centrálneho configu
+    processing: centralConfig.processing.quotePart
 };
 
 var fields = CONFIG.fields.quotePart;
@@ -109,17 +98,21 @@ function findValidPrice(itemEntry, date, categoryConfig) {
 
 /**
  * Spracuje jednu kategóriu položiek (Materiál, Práce)
- * @param {String} categoryKey - Kľúč kategórie v CONFIG.categories (napr. "materials", "works")
+ * @param {String} categoryKey - Kľúč kategórie v CONFIG.processing (napr. "materials", "works")
  * @returns {Number} - Súčet za kategóriu
  */
 function processCategoryItems(categoryKey) {
     try {
-        var categoryConfig = CONFIG.categories[categoryKey];
+        var categoryConfig = CONFIG.processing[categoryKey];
         var displayName = categoryConfig.displayName;
 
         utils.addDebug(currentEntry, "\n📦 Spracovávam kategóriu: " + displayName);
 
-        var categoryEntries = utils.safeGet(currentEntry, fields[categoryConfig.field], []);
+        // Získaj pole pomocou CONFIG.fields.quotePart.materials alebo CONFIG.fields.quotePart.works
+        var fieldName = CONFIG.fields.quotePart[categoryConfig.field];
+        utils.addDebug(currentEntry, "  🔍 Pole: " + fieldName + " (key: " + categoryConfig.field + ")");
+
+        var categoryEntries = utils.safeGetLinks(currentEntry, fieldName);
 
         if (!categoryEntries || categoryEntries.length === 0) {
             utils.addDebug(currentEntry, "  ℹ️ Žiadne položky v kategórii " + displayName);
@@ -170,7 +163,7 @@ function processCategoryItems(categoryKey) {
         return categorySum;
 
     } catch (error) {
-        var catConfig = CONFIG.categories[categoryKey];
+        var catConfig = CONFIG.processing[categoryKey];
         var dispName = catConfig ? catConfig.displayName : categoryKey;
         utils.addError(currentEntry, "❌ Chyba pri spracovaní kategórie " + dispName + ": " + error.toString(), "processCategoryItems", error);
         return 0;
@@ -185,9 +178,9 @@ try {
     var totalSum = 0;
     var results = {};
 
-    // Spracuj všetky kategórie
-    for (var categoryKey in CONFIG.categories) {
-        if (CONFIG.categories.hasOwnProperty(categoryKey)) {
+    // Spracuj všetky kategórie z centralConfig.processing.quotePart
+    for (var categoryKey in CONFIG.processing) {
+        if (CONFIG.processing.hasOwnProperty(categoryKey)) {
             results[categoryKey] = processCategoryItems(categoryKey);
             totalSum += results[categoryKey];
         }
@@ -203,9 +196,9 @@ try {
     utils.addDebug(currentEntry, "\n" + "=".repeat(50));
     utils.addDebug(currentEntry, "💰 SÚHRN CENOVEJ PONUKY DIELY:");
 
-    for (var key in CONFIG.categories) {
-        if (CONFIG.categories.hasOwnProperty(key)) {
-            var cat = CONFIG.categories[key];
+    for (var key in CONFIG.processing) {
+        if (CONFIG.processing.hasOwnProperty(key)) {
+            var cat = CONFIG.processing[key];
             var sum = results[key] || 0;
             utils.addDebug(currentEntry, "  • " + cat.displayName + ":     " + sum.toFixed(2) + " €");
         }
