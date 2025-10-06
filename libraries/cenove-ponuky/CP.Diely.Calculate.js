@@ -193,7 +193,6 @@ try {
     currentEntry.set(fields.materialSum, materialSum);
     currentEntry.set(fields.workSum, workSum);
     currentEntry.set(fields.totalSum, totalSum);
-    currentEntry.set(fields.totalPrice, totalSum);
 
     // Debug výstup
     utils.addDebug(currentEntry, "\n" + "=".repeat(50));
