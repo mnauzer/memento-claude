@@ -1625,19 +1625,18 @@ var MementoCore = (function() {
      * Pridá ikonu do poľa ikony záznamu
      */
     function addRecordIcon(entry, icon) {
-        var currentEntry = entry() || entryDefaut();
         var config = getConfig();
         try {
-            var currentIcons = safeGet(currentEntry, config.fields.common.recordIcons, "");
+            var currentIcons = safeGet(entry, config.fields.common.recordIcons, "");
 
             // Skontroluj, či ikona už nie je pridaná
             if (currentIcons.indexOf(icon) === -1) {
                 var newIcons = currentIcons ? currentIcons + " " + icon : icon;
-                safeSet(currentEntry, config.fields.common.recordIcons, newIcons);
-                addDebug(currentEntry, "  📌 Pridaná ikona: " + icon);
+                safeSet(entry, config.fields.common.recordIcons, newIcons);
+                addDebug(entry, "  📌 Pridaná ikona: " + icon);
             }
         } catch (error) {
-            addDebug(currentEntry, "  ⚠️ Nepodarilo sa pridať ikonu: " + error.toString());
+            addDebug(entry, "  ⚠️ Nepodarilo sa pridať ikonu: " + error.toString());
         }
     }
 
@@ -1645,10 +1644,9 @@ var MementoCore = (function() {
      * Odstráni ikonu zo záznamu
      */
     function removeRecordIcon(entry, icon) {
-        var currentEntry = entry() || entryDefaut();
         var config = getConfig();
         try {
-            var currentIcons = currentEntry.field(config.fields.common.recordIcons);
+            var currentIcons = entry.field(config.fields.common.recordIcons);
             if (!currentIcons) {
                 return;
             }
@@ -1663,10 +1661,10 @@ var MementoCore = (function() {
             }
 
             var newIcons = newIconsArray.join(" ");
-            utils.safeSet(currentEntry, config.fields.common.recordIcons, newIcons);
+            utils.safeSet(entry, config.fields.common.recordIcons, newIcons);
         } catch (error) {
             // Tichá chyba - ikona nie je kritická
-            utils.addDebug(currentEntry, "  ⚠️ Nepodarilo sa odstrániť ikonu zo záznamu: " + error.toString());
+            utils.addDebug(entry, "  ⚠️ Nepodarilo sa odstrániť ikonu zo záznamu: " + error.toString());
         }
     }
 
