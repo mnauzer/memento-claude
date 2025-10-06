@@ -1007,19 +1007,13 @@ var MementoConfig = (function() {
                 partType: "Diel cenovej ponuky", // choice (field 257) - role: name - typ dielu ponuky
 
                 // Cenové polia - súčty za kategórie
-                materialSum: "Materiál", // currency (field 271)
-                workSum: "Práce", // currency (field 272)
-                otherSum: "Ostatné/Subdodavky", // currency (field 273)
-                transportSum: "Doprava", // currency (field 274)
+                materialSum: "Suma materiál", // currency (field 271)
+                workSum: "Suma práce", // currency (field 272)
                 totalSum: "Celkom", // currency (field 275) - role: status
-                totalPrice: "Cena celkom", // double (field 263) - role: status
 
                 // Položky po kategóriách - linkToEntry polia
                 materials: "Materiál", // entries (field 264) - linkToEntry Materiál
                 works: "Práce", // entries (field 265) - linkToEntry Práce
-                subcontracts: "Subdodavky", // entries (field 270) - linkToEntry Subdodávky
-                machines: "Stroje", // entries (field 267) - linkToEntry Stroje
-                transport: "Doprava", // entries (field 266) - linkToEntry Doprava
 
                 // Poznámky a debug
                 note: "Poznámka", // text (field 207)
