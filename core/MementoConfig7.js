@@ -1,11 +1,11 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.26 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.27 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
-// 🔧 CHANGELOG v7.0.26 (2025-10-06):
-//    - Pridaná sekcia processing.quotePart pre konfiguráciu spracovania linkToEntry položiek
-//    - Centralizované nastavenia pre materials a works (priceLibrary, linkField, priceField, displayName)
-//    - Umožňuje scriptom používať processing config namiesto hardcoded hodnôt
+// 🔧 CHANGELOG v7.0.27 (2025-10-06):
+//    - REVERT: Odstránená sekcia processing.quotePart (príliš zložité, nepotrebné)
+//    - Scripty použujú priamo CONFIG.fields.quotePart.materials / works
+//    - Štandardné Memento funkcie pre prístup k linkToEntry poliam
 // 🔧 CHANGELOG v7.0.25 (2025-10-06):
 //    - Kompletná API analýza knižníc Cenové ponuky (90RmdjWuk) a Cenové ponuky Diely (nCAgQkfvK)
 //    - Pridané library IDs pre quotes a quoteParts do libraryIds
@@ -86,7 +86,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.26",  // Pridaná processing.quotePart konfigurácia pre centralizované nastavenia spracovania položiek
+        version: "7.0.27",  // Odstránená processing.quotePart, script používa priamo field definitions
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -1345,33 +1345,6 @@ var MementoConfig = (function() {
                 totalTime: "celkový čas" // real - celkový čas jazdy
             }
 
-        },
-
-        // === PROCESSING CONFIGURATIONS ===
-        // Konfigurácia spracovania linkToEntry polí s automatickým hľadaním cien
-        processing: {
-            // Cenové ponuky Diely - konfigurácia spracovania položiek
-            quotePart: {
-                // Materiál položky
-                materials: {
-                    field: "materials", // Pole v quotePart
-                    attribute: "materials", // Kľúč v attributes.quotePartMaterials
-                    displayName: "Materiál",
-                    priceLibrary: "materialPrices", // Kľúč v libraries
-                    linkField: "material", // Pole v price library ktoré odkazuje na item
-                    priceField: "sellPrice", // Primárne pole s cenou
-                    fallbackPriceField: "price" // Záložné pole s cenou
-                },
-                // Práce položky
-                works: {
-                    field: "works", // Pole v quotePart
-                    attribute: "works", // Kľúč v attributes.quotePartWorks
-                    displayName: "Práce",
-                    priceLibrary: "workPrices", // Kľúč v libraries
-                    linkField: "work", // Pole v price library ktoré odkazuje na item
-                    priceField: "price" // Pole s cenou
-                }
-            }
         },
 
         // === KONŠTANTY ===

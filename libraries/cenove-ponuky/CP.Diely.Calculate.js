@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY DIELY - Hlavný prepočet
-// Verzia: 1.6.0 | Dátum: 2025-10-06 | Autor: ASISTANTO
+// Verzia: 2.0.0 | Dátum: 2025-10-06 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky Diely (ID: nCAgQkfvK)
 // Trigger: onChange
 // ==============================================
@@ -10,22 +10,12 @@
 //    - Výpočet súčtov za jednotlivé kategórie
 //    - Výpočet celkovej sumy cenovej ponuky
 // ==============================================
-// 🔧 CHANGELOG v1.6.0 (2025-10-06):
-//    - ODSTRÁNENÉ všetky hardcoded názvy aj z CONFIG
-//    - Používa centralConfig.processing.quotePart namiesto lokálneho CONFIG.categories
-//    - Všetka konfigurácia spracovania položiek je v MementoConfig7.js v7.0.26+
-// 🔧 CHANGELOG v1.5.1 (2025-10-06):
-//    - OPRAVA: Použitie utils.safeGetLinks namiesto utils.safeGet pre linkToEntry polia
-//    - OPRAVA: Správny prístup k poľu cez CONFIG.fields.quotePart[categoryConfig.field]
-// 🔧 CHANGELOG v1.5 (2025-10-06):
-//    - ODSTRÁNENÉ všetky hardcoded názvy
-//    - CONFIG.categories s kompletnou konfiguráciou pre každú kategóriu
-//    - Dynamický loop cez kategórie (ľahko rozšíriteľné)
-//    - Jedna univerzálna funkcia processCategoryItems
-//    - Jeden wrapper findValidPrice s category config
-// 🔧 CHANGELOG v1.4 (2025-10-06):
-//    - Použitie CONFIG.attributes podľa vzoru Zazp.Calc.Main.js
-//    - Atribúty definované v MementoConfig7.js
+// 🔧 CHANGELOG v2.0.0 (2025-10-06):
+//    - KOMPLETNÝ REWRITE: Použitie štandardných Memento funkcií
+//    - Žiadne processing, žiadne categories - len CONFIG.fields
+//    - Priamy prístup k poliam: fields.materials, fields.works
+//    - Štandardné utils.safeGetLinks pre linkToEntry polia
+//    - Atribúty cez natívnu Memento API (.attr, .setAttr)
 // ==============================================
 
 // ==============================================
@@ -39,29 +29,18 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky Diely - Prepočet",
-    version: "1.6.0", // Všetka konfigurácia z centralConfig.processing.quotePart
+    version: "2.0.0",
 
     // Referencie na centrálny config
-    fields: {
-        quotePart: centralConfig.fields.quotePart,
-        materialPrices: centralConfig.fields.materialPrices,
-        workPrices: centralConfig.fields.workPrices,
-        items: centralConfig.fields.items,
-        priceList: centralConfig.fields.priceList,
-        common: centralConfig.fields.common
-    },
+    fields: centralConfig.fields.quotePart,
     attributes: {
         materials: centralConfig.attributes.quotePartMaterials,
         works: centralConfig.attributes.quotePartWorks
     },
-    libraries: centralConfig.libraries,
-    icons: centralConfig.icons,
-
-    // Processing konfigurácia z centrálneho configu
-    processing: centralConfig.processing.quotePart
+    icons: centralConfig.icons
 };
 
-var fields = CONFIG.fields.quotePart;
+var fields = CONFIG.fields;
 var currentDate = utils.safeGet(currentEntry, fields.date);
 
 if (!currentDate) {
@@ -71,103 +50,41 @@ if (!currentDate) {
 
 utils.addDebug(currentEntry, "🚀 START: Prepočet cenovej ponuky Diely - " + moment(currentDate).format("DD.MM.YYYY"));
 
-// === POMOCNÉ FUNKCIE ===
+// ==============================================
+// POMOCNÉ FUNKCIE
+// ==============================================
 
 /**
- * Wrapper pre hľadanie platnej ceny položky
- * Používa univerzálnu utils.findValidPrice funkciu
- * @param {Object} itemEntry - Záznam položky
+ * Nájde platnú cenu materiálu k danému dátumu
+ * @param {Entry} materialEntry - Záznam materiálu
  * @param {Date} date - Dátum pre ktorý hľadáme cenu
- * @param {Object} categoryConfig - Konfigurácia kategórie z CONFIG.categories
  * @returns {Number|null} - Platná cena alebo null
  */
-function findValidPrice(itemEntry, date, categoryConfig) {
+function findMaterialPrice(materialEntry, date) {
     var options = {
-        priceLibrary: categoryConfig.priceLibrary,
-        linkField: categoryConfig.linkField,
-        priceField: categoryConfig.priceField,
+        priceLibrary: "materialPrices",
+        linkField: "material",
+        priceField: "sellPrice",
+        fallbackPriceField: "price",
         currentEntry: currentEntry
     };
-
-    if (categoryConfig.fallbackPriceField) {
-        options.fallbackPriceField = categoryConfig.fallbackPriceField;
-    }
-
-    return utils.findValidPrice(itemEntry, date, options);
+    return utils.findValidPrice(materialEntry, date, options);
 }
 
 /**
- * Spracuje jednu kategóriu položiek (Materiál, Práce)
- * @param {String} categoryKey - Kľúč kategórie v CONFIG.processing (napr. "materials", "works")
- * @returns {Number} - Súčet za kategóriu
+ * Nájde platnú cenu práce k danému dátumu
+ * @param {Entry} workEntry - Záznam práce
+ * @param {Date} date - Dátum pre ktorý hľadáme cenu
+ * @returns {Number|null} - Platná cena alebo null
  */
-function processCategoryItems(categoryKey) {
-    try {
-        var categoryConfig = CONFIG.processing[categoryKey];
-        var displayName = categoryConfig.displayName;
-
-        utils.addDebug(currentEntry, "\n📦 Spracovávam kategóriu: " + displayName);
-
-        // Získaj pole pomocou CONFIG.fields.quotePart.materials alebo CONFIG.fields.quotePart.works
-        var fieldName = CONFIG.fields.quotePart[categoryConfig.field];
-        utils.addDebug(currentEntry, "  🔍 Pole: " + fieldName + " (key: " + categoryConfig.field + ")");
-
-        var categoryEntries = utils.safeGetLinks(currentEntry, fieldName);
-
-        if (!categoryEntries || categoryEntries.length === 0) {
-            utils.addDebug(currentEntry, "  ℹ️ Žiadne položky v kategórii " + displayName);
-            return 0;
-        }
-
-        var categorySum = 0;
-        var itemsProcessed = 0;
-        var attrs = CONFIG.attributes[categoryConfig.attribute];
-
-        for (var i = 0; i < categoryEntries.length; i++) {
-            var item = categoryEntries[i];
-
-            // Získaj atribúty pomocou natívnej Memento API
-            var quantity = item.attr(attrs.quantity) || 0;
-            var price = item.attr(attrs.price);
-            var totalPrice = 0;
-
-            utils.addDebug(currentEntry, "  • Položka #" + (i + 1) + ": množstvo=" + quantity + ", cena=" + (price || "nedefinovaná"));
-
-            // Ak cena nie je zadaná, pokús sa ju nájsť v histórii
-            if (!price || price === 0) {
-                utils.addDebug(currentEntry, "    🔍 Hľadám cenu v histórii...");
-                var foundPrice = findValidPrice(item, currentDate, categoryConfig);
-
-                if (foundPrice !== null && foundPrice !== undefined) {
-                    price = foundPrice;
-                    item.setAttr(attrs.price, price);
-                    utils.addDebug(currentEntry, "    ✅ Nájdená cena: " + price);
-                } else {
-                    utils.addDebug(currentEntry, "    ⚠️ Cena nebola nájdená v histórii");
-                    price = 0;
-                }
-            }
-
-            // Vypočítaj cenu celkom
-            totalPrice = quantity * price;
-            item.setAttr(attrs.totalPrice, totalPrice);
-
-            categorySum += totalPrice;
-            itemsProcessed++;
-
-            utils.addDebug(currentEntry, "    💰 Cena celkom: " + totalPrice.toFixed(2) + " € (množstvo: " + quantity + " × cena: " + price.toFixed(2) + ")");
-        }
-
-        utils.addDebug(currentEntry, "  ✅ Kategória " + displayName + " spracovaná: " + itemsProcessed + " položiek, suma: " + categorySum.toFixed(2) + " €");
-
-        return categorySum;
-
-    } catch (error) {
-        var catConfig = CONFIG.processing[categoryKey];
-        var dispName = catConfig ? catConfig.displayName : categoryKey;
-        utils.addError(currentEntry, "❌ Chyba pri spracovaní kategórie " + dispName + ": " + error.toString(), "processCategoryItems", error);
-        return 0;
-    }
+function findWorkPrice(workEntry, date) {
+    var options = {
+        priceLibrary: "workPrices",
+        linkField: "work",
+        priceField: "price",
+        currentEntry: currentEntry
+    };
+    return utils.findValidPrice(workEntry, date, options);
 }
 
 // ==============================================
@@ -175,35 +92,114 @@ function processCategoryItems(categoryKey) {
 // ==============================================
 
 try {
-    var totalSum = 0;
-    var results = {};
+    var materialSum = 0;
+    var workSum = 0;
 
-    // Spracuj všetky kategórie z centralConfig.processing.quotePart
-    for (var categoryKey in CONFIG.processing) {
-        if (CONFIG.processing.hasOwnProperty(categoryKey)) {
-            results[categoryKey] = processCategoryItems(categoryKey);
-            totalSum += results[categoryKey];
+    // ========== SPRACOVANIE MATERIÁLU ==========
+    utils.addDebug(currentEntry, "\n📦 MATERIÁL");
+    utils.addDebug(currentEntry, "Pole: " + fields.materials);
+
+    var materialItems = utils.safeGetLinks(currentEntry, fields.materials);
+    utils.addDebug(currentEntry, "Počet položiek: " + (materialItems ? materialItems.length : 0));
+
+    if (materialItems && materialItems.length > 0) {
+        var attrs = CONFIG.attributes.materials;
+
+        for (var i = 0; i < materialItems.length; i++) {
+            var item = materialItems[i];
+
+            var quantity = item.attr(attrs.quantity) || 0;
+            var price = item.attr(attrs.price);
+
+            utils.addDebug(currentEntry, "  • Položka #" + (i + 1) + ": množstvo=" + quantity + ", cena=" + (price || "nedefinovaná"));
+
+            // Ak cena nie je zadaná, nájdi ju v histórii
+            if (!price || price === 0) {
+                utils.addDebug(currentEntry, "    🔍 Hľadám cenu v histórii...");
+                var foundPrice = findMaterialPrice(item, currentDate);
+
+                if (foundPrice !== null && foundPrice !== undefined) {
+                    price = foundPrice;
+                    item.setAttr(attrs.price, price);
+                    utils.addDebug(currentEntry, "    ✅ Nájdená cena: " + price);
+                } else {
+                    utils.addDebug(currentEntry, "    ⚠️ Cena nebola nájdená");
+                    price = 0;
+                }
+            }
+
+            // Vypočítaj cenu celkom
+            var totalPrice = quantity * price;
+            item.setAttr(attrs.totalPrice, totalPrice);
+            materialSum += totalPrice;
+
+            utils.addDebug(currentEntry, "    💰 Cena celkom: " + totalPrice.toFixed(2) + " €");
         }
+
+        utils.addDebug(currentEntry, "  ✅ Materiál suma: " + materialSum.toFixed(2) + " €");
+    } else {
+        utils.addDebug(currentEntry, "  ℹ️ Žiadne položky materiálu");
     }
 
-    // Zapíš výsledky do polí
-    currentEntry.set(fields.materialSum, results.materials || 0);
-    currentEntry.set(fields.workSum, results.works || 0);
+    // ========== SPRACOVANIE PRÁC ==========
+    utils.addDebug(currentEntry, "\n🔨 PRÁCE");
+    utils.addDebug(currentEntry, "Pole: " + fields.works);
+
+    var workItems = utils.safeGetLinks(currentEntry, fields.works);
+    utils.addDebug(currentEntry, "Počet položiek: " + (workItems ? workItems.length : 0));
+
+    if (workItems && workItems.length > 0) {
+        var attrs = CONFIG.attributes.works;
+
+        for (var i = 0; i < workItems.length; i++) {
+            var item = workItems[i];
+
+            var quantity = item.attr(attrs.quantity) || 0;
+            var price = item.attr(attrs.price);
+
+            utils.addDebug(currentEntry, "  • Položka #" + (i + 1) + ": množstvo=" + quantity + ", cena=" + (price || "nedefinovaná"));
+
+            // Ak cena nie je zadaná, nájdi ju v histórii
+            if (!price || price === 0) {
+                utils.addDebug(currentEntry, "    🔍 Hľadám cenu v histórii...");
+                var foundPrice = findWorkPrice(item, currentDate);
+
+                if (foundPrice !== null && foundPrice !== undefined) {
+                    price = foundPrice;
+                    item.setAttr(attrs.price, price);
+                    utils.addDebug(currentEntry, "    ✅ Nájdená cena: " + price);
+                } else {
+                    utils.addDebug(currentEntry, "    ⚠️ Cena nebola nájdená");
+                    price = 0;
+                }
+            }
+
+            // Vypočítaj cenu celkom
+            var totalPrice = quantity * price;
+            item.setAttr(attrs.totalPrice, totalPrice);
+            workSum += totalPrice;
+
+            utils.addDebug(currentEntry, "    💰 Cena celkom: " + totalPrice.toFixed(2) + " €");
+        }
+
+        utils.addDebug(currentEntry, "  ✅ Práce suma: " + workSum.toFixed(2) + " €");
+    } else {
+        utils.addDebug(currentEntry, "  ℹ️ Žiadne položky prác");
+    }
+
+    // ========== ZÁPIS VÝSLEDKOV ==========
+    var totalSum = materialSum + workSum;
+
+    currentEntry.set(fields.materialSum, materialSum);
+    currentEntry.set(fields.workSum, workSum);
     currentEntry.set(fields.totalSum, totalSum);
     currentEntry.set(fields.totalPrice, totalSum);
 
     // Debug výstup
     utils.addDebug(currentEntry, "\n" + "=".repeat(50));
     utils.addDebug(currentEntry, "💰 SÚHRN CENOVEJ PONUKY DIELY:");
-
-    for (var key in CONFIG.processing) {
-        if (CONFIG.processing.hasOwnProperty(key)) {
-            var cat = CONFIG.processing[key];
-            var sum = results[key] || 0;
-            utils.addDebug(currentEntry, "  • " + cat.displayName + ":     " + sum.toFixed(2) + " €");
-        }
-    }
-
+    utils.addDebug(currentEntry, "  • Materiál:     " + materialSum.toFixed(2) + " €");
+    utils.addDebug(currentEntry, "  • Práce:        " + workSum.toFixed(2) + " €");
     utils.addDebug(currentEntry, "  " + "-".repeat(48));
     utils.addDebug(currentEntry, "  • CELKOM:       " + totalSum.toFixed(2) + " €");
     utils.addDebug(currentEntry, "=".repeat(50));
@@ -211,5 +207,5 @@ try {
     utils.addDebug(currentEntry, "✅ FINISH: Prepočet cenovej ponuky Diely úspešne dokončený");
 
 } catch (error) {
-    utils.addError(currentEntry, "❌ KRITICKÁ CHYBA pri prepočte cenovej ponuky Diely: " + error.toString() + ", Line: " + error.lineNumber, "MAIN", error);
+    utils.addError(currentEntry, "❌ KRITICKÁ CHYBA: " + error.toString() + ", Line: " + error.lineNumber, "MAIN", error);
 }
