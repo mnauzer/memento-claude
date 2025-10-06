@@ -1150,6 +1150,42 @@ function validateRecords(attendanceResult, workRecordsResult, rideLogResult) {
             }
         }
 
+        // Kontrola kapacity vozidiel vs. počtu zamestnancov
+        if (attendanceResult.count > 0 && rideLogResult.count > 0) {
+            var totalEmployees = attendanceResult.employees ? attendanceResult.employees.length : 0;
+            var totalSeats = 0;
+            var vehicleSeatsInfo = [];
+
+            // Získaj záznamy z Knihy jázd
+            var rideRecords = utils.safeGetLinks(currentEntry, CONFIG.fields.dailyReport.rideLog);
+            if (rideRecords && rideRecords.length > 0) {
+                for (var vr = 0; vr < rideRecords.length; vr++) {
+                    var vehicle = utils.safeGetLinks(rideRecords[vr], CONFIG.fields.rideLog.vehicle);
+                    if (vehicle && vehicle.length > 0) {
+                        var seats = utils.safeGet(vehicle[0], CONFIG.fields.vehicle.seats, 0);
+                        var vehicleName = utils.safeGet(vehicle[0], CONFIG.fields.vehicle.name);
+                        if (seats > 0) {
+                            totalSeats += seats;
+                            vehicleSeatsInfo.push(vehicleName + " (" + seats + " miest)");
+                        }
+                    }
+                }
+            }
+
+            // Kontrola, či je dostatok miest
+            if (totalSeats > 0 && totalEmployees > totalSeats) {
+                var seatsMsg = "⚠️ Nedostatok miest vo vozidlách: " + totalEmployees + " zamestnancov, ale len " + totalSeats + " miest";
+                if (vehicleSeatsInfo.length > 0) {
+                    seatsMsg += " | Vozidlá: " + vehicleSeatsInfo.join(", ");
+                }
+                seatsMsg += " | Pravdepodobne chýba záznam jazdy";
+                result.warnings.push(seatsMsg);
+                utils.addDebug(currentEntry, "  " + seatsMsg);
+            } else if (totalSeats > 0) {
+                utils.addDebug(currentEntry, "  ✅ Kapacita vozidiel je dostatočná: " + totalSeats + " miest pre " + totalEmployees + " zamestnancov");
+            }
+        }
+
         if (result.warnings.length === 0) {
             utils.addDebug(currentEntry, "  ✅ Všetky povinné záznamy sú prítomné");
         }
