@@ -1,10 +1,11 @@
 // ==============================================
 // MEMENTO DATABASE - DENNÝ REPORT PREPOČET
-// Verzia: 1.8.2 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 1.9.1 | Dátum: október 2025 | Autor: ASISTANTO
 // Knižnica: Denný report | Trigger: Before Save
 // ==============================================
-// ✅ FUNKCIONALITA v1.8.2:
+// ✅ FUNKCIONALITA v1.9.1:
 //    - AUTO-LINKOVANIE záznamov podľa dátumu (Dochádzka, Práce, Jazdy, Pokladňa)
+//    - VALIDÁCIA DÁTUMOV linknutých záznamov s automatickým unlinkovaním
 //    - Automatické nastavenie dňa v týždni podľa dátumu
 //    - Agregácia dát z Dochádzky, Záznamov prác, Knihy jázd a Pokladne
 //    - Vytváranie Info záznamov pre každú sekciu (markdown formát)
@@ -19,10 +20,12 @@
 //    - Validácia konzistencie zamestnancov s menami (počet + zhoda)
 //    - Kontrola prestojov (porovnanie hodín Dochádzka vs Práce)
 //    - Príprava na integráciu s MementoTelegram a MementoAI
-// 🔧 CHANGELOG v1.8.2:
-//    - OPRAVA: Správna syntax pre linkovanie - field().push() + set()
-//    - OPRAVA: Získaj existujúce linky, pridaj nový, nastav späť
-//    - Syntax: var links = entry.field("pole"); links.push(newEntry); entry.set("pole", links);
+// 🔧 CHANGELOG v1.9.1:
+//    - OPRAVA: 3 bugs (typo vo volaniach funkcií - ordIcon, n, removeRecordIcon)
+//    - REFAKTORING: Odstránená lokálna funkcia setDayOfWeek() - použitá utils.setDayOfWeekField()
+//    - REFAKTORING: Odstránená lokálna funkcia removeRecordIcon() - použitá utils.removeRecordIcon()
+//    - PRIDANÉ: utils.setDayOfWeekField() do MementoCore7.js (generická funkcia)
+//    - OPTIMALIZÁCIA: Znížená veľkosť scriptu odstránením duplicitných funkcií
 // ==============================================
 
 // ==============================================
@@ -38,7 +41,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Denný report Prepočet",
-    version: "1.8.2",
+    version: "1.9.1",
 
     // Referencie na centrálny config
     fields: {
@@ -239,55 +242,86 @@ function addDailyReportIcon(entry, iconFieldName) {
 }
 
 /**
- * Odstráni ikonu zo záznamu
+ * Validuje dátumy všetkých linknutých záznamov a unlinkuje tie, ktoré nemajú správny dátum
  */
-function removeRecordIcon(icon) {
-    try {
-        var currentIcons = currentEntry.field(CONFIG.fields.dailyReport.recordIcons);
-        if (!currentIcons) {
-            return;
+function validateAndUnlinkInvalidDates(reportDate) {
+    var result = {
+        success: false,
+        unlinked: {
+            attendance: 0,
+            workRecords: 0,
+            rideLog: 0,
+            cashBook: 0
         }
+    };
 
-        // Odstráň ikonu zo stringu
-        var iconsArray = currentIcons.split(" ");
-        var newIconsArray = [];
-        for (var i = 0; i < iconsArray.length; i++) {
-            if (iconsArray[i] !== icon && iconsArray[i] !== "") {
-                newIconsArray.push(iconsArray[i]);
+    try {
+        var reportDateStr = utils.formatDate(reportDate);
+        utils.addDebug(currentEntry, "🔍 VALIDÁCIA DÁTUMOV: Kontrolujem zhodu s dátumom " + reportDateStr);
+
+        // Validácia Dochádzky
+        var attendanceRecords = utils.safeGetLinks(currentEntry, CONFIG.fields.dailyReport.attendance) || [];
+        for (var a = 0; a < attendanceRecords.length; a++) {
+            var attDate = utils.safeGet(attendanceRecords[a], CONFIG.fields.attendance.date);
+            if (!attDate || utils.formatDate(attDate) !== reportDateStr) {
+                var attId = attendanceRecords[a].field("ID");
+                currentEntry.unlink(CONFIG.fields.dailyReport.attendance, attendanceRecords[a]);
+                result.unlinked.attendance++;
+                utils.addDebug(currentEntry, "  ❌ Unlinknutý záznam Dochádzky #" + attId + " (dátum: " + (attDate ? utils.formatDate(attDate) : "CHÝBA") + ")");
             }
         }
 
-        var newIcons = newIconsArray.join(" ");
-        utils.safeSet(currentEntry, CONFIG.fields.dailyReport.recordIcons, newIcons);
-    } catch (error) {
-        // Tichá chyba - ikona nie je kritická
-        utils.addDebug(currentEntry, "  ⚠️ Nepodarilo sa odstrániť ikonu zo záznamu: " + error.toString());
-    }
-}
-
-/**
- * Nastaví deň v týždni podľa dátumu
- */
-function setDayOfWeek(date) {
-    try {
-        if (!date) {
-            return;
+        // Validácia Záznamov prác
+        var workRecords = utils.safeGetLinks(currentEntry, CONFIG.fields.dailyReport.workRecord) || [];
+        for (var w = 0; w < workRecords.length; w++) {
+            var workDate = utils.safeGet(workRecords[w], CONFIG.fields.workRecord.date);
+            if (!workDate || utils.formatDate(workDate) !== reportDateStr) {
+                var workId = workRecords[w].field("ID");
+                currentEntry.unlink(CONFIG.fields.dailyReport.workRecord, workRecords[w]);
+                result.unlinked.workRecords++;
+                utils.addDebug(currentEntry, "  ❌ Unlinknutý záznam Prác #" + workId + " (dátum: " + (workDate ? utils.formatDate(workDate) : "CHÝBA") + ")");
+            }
         }
 
-        // Dni v týždni v slovenčine (0 = Nedeľa, 1 = Pondelok, ...)
-        var dayNames = ["Nedeľa", "Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota"];
+        // Validácia Knihy jázd
+        var rideRecords = utils.safeGetLinks(currentEntry, CONFIG.fields.dailyReport.rideLog) || [];
+        for (var r = 0; r < rideRecords.length; r++) {
+            var rideDate = utils.safeGet(rideRecords[r], CONFIG.fields.rideLog.date);
+            if (!rideDate || utils.formatDate(rideDate) !== reportDateStr) {
+                var rideId = rideRecords[r].field("ID");
+                currentEntry.unlink(CONFIG.fields.dailyReport.rideLog, rideRecords[r]);
+                result.unlinked.rideLog++;
+                utils.addDebug(currentEntry, "  ❌ Unlinknutý záznam Jazdy #" + rideId + " (dátum: " + (rideDate ? utils.formatDate(rideDate) : "CHÝBA") + ")");
+            }
+        }
 
-        // Získaj číslo dňa (0-6)
-        var dayIndex = date.getDay();
-        var dayName = dayNames[dayIndex];
+        // Validácia Pokladne
+        var cashRecords = utils.safeGetLinks(currentEntry, CONFIG.fields.dailyReport.cashBook) || [];
+        for (var c = 0; c < cashRecords.length; c++) {
+            var cashDate = utils.safeGet(cashRecords[c], CONFIG.fields.cashBook.date);
+            if (!cashDate || utils.formatDate(cashDate) !== reportDateStr) {
+                var cashId = cashRecords[c].field("ID");
+                currentEntry.unlink(CONFIG.fields.dailyReport.cashBook, cashRecords[c]);
+                result.unlinked.cashBook++;
+                utils.addDebug(currentEntry, "  ❌ Unlinknutý záznam Pokladne #" + cashId + " (dátum: " + (cashDate ? utils.formatDate(cashDate) : "CHÝBA") + ")");
+            }
+        }
 
-        // Nastav hodnotu v poli Deň
-        utils.safeSet(currentEntry, CONFIG.fields.dailyReport.dayOfWeek, dayName);
-        utils.addDebug(currentEntry, "  📅 Nastavený deň: " + dayName);
+        var totalUnlinked = result.unlinked.attendance + result.unlinked.workRecords + result.unlinked.rideLog + result.unlinked.cashBook;
+        if (totalUnlinked > 0) {
+            utils.addDebug(currentEntry, "🔍 VALIDÁCIA DOKONČENÁ: " + totalUnlinked + " záznamov unlinknutých pre nezhodu dátumov");
+            utils.addDebug(currentEntry, "  📊 Dochádzka: " + result.unlinked.attendance + ", Práce: " + result.unlinked.workRecords + ", Jazdy: " + result.unlinked.rideLog + ", Pokladňa: " + result.unlinked.cashBook);
+        } else {
+            utils.addDebug(currentEntry, "✅ Všetky linknuté záznamy majú správny dátum");
+        }
+
+        result.success = true;
 
     } catch (error) {
-        utils.addDebug(currentEntry, "  ⚠️ Nepodarilo sa nastaviť deň v týždni: " + error.toString());
+        utils.addError(currentEntry, "Chyba pri validácii dátumov: " + error.toString(), "validateAndUnlinkInvalidDates", error);
     }
+
+    return result;
 }
 
 // ==============================================
@@ -310,11 +344,16 @@ function main() {
         utils.addDebug(currentEntry, "📅 Dátum reportu: " + utils.formatDate(reportDate));
 
         // Nastav deň v týždni podľa dátumu
-        setDayOfWeek(reportDate);
+        utils.setDayOfWeekField(currentEntry, CONFIG.fields.dailyReport.dayOfWeek, reportDate);
+        utils.addDebug(currentEntry, "  📅 Nastavený deň v týždni");
 
         // KROK 0: Auto-linkovanie záznamov
         utils.addDebug(currentEntry, utils.getIcon("link") + " KROK 0: Auto-linkovanie záznamov");
         var linkingResult = autoLinkRecords(reportDate);
+
+        // KROK 0.5: Validácia dátumov linknutých záznamov
+        utils.addDebug(currentEntry, utils.getIcon("warning") + " KROK 0.5: Validácia dátumov");
+        var dateValidationResult = validateAndUnlinkInvalidDates(reportDate);
 
         // KROK 1: Spracovanie Dochádzky
         utils.addDebug(currentEntry, utils.getIcon("calculation") + " KROK 1: Spracovanie Dochádzky");
@@ -383,7 +422,7 @@ function processAttendance() {
     };
 
     try {
-        // Získaj linknuté záznamy Dochádzky
+        // Získaj linknuté záznamy Dochádzky - FRESH READ pre správne hodnoty
         var attendanceRecords = utils.safeGetLinks(currentEntry, CONFIG.fields.dailyReport.attendance);
 
         if (!attendanceRecords || attendanceRecords.length === 0) {
@@ -917,7 +956,7 @@ function processCashBook() {
         ], infoBlocks);
 
         utils.safeSet(currentEntry, CONFIG.fields.dailyReport.infoCashBook, markdownInfo);
-        ordIcon("💰");
+        utils.addRecordIcon(currentEntry, "💰");
         utils.addDebug(currentEntry, "  ✅ Info pokladňa vytvorený a zapísaný (" + cashRecords.length + " záznamov)");
 
         result.success = true;
@@ -1338,7 +1377,7 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
             info += "\n";
 
             // Pridaj ikonu upozornenia
-            n("⚠️");
+            utils.addRecordIcon(currentEntry, "⚠️");
         } else {
             // Ak už nie sú žiadne upozornenia, odstráň ikonu upozornenia
             utils.removeRecordIcon(currentEntry, "⚠️");
@@ -1372,7 +1411,7 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
             }
         } else {
             // Ak nie sú záznamy, odstráň ikonu prestojov
-            utils.removeRecordIcon(removeRecordIcon, "⏸️");
+            utils.removeRecordIcon(currentEntry, "⏸️");
         }
 
         info += "---\n\n";
@@ -1451,23 +1490,6 @@ function createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, ca
 // POMOCNÉ FUNKCIE
 // ==============================================
 
-/**
- * Pridá ikonu do poľa ikony záznamu
- */
-function addRecordIcon(icon) {
-    try {
-        var currentIcons = utils.safeGet(currentEntry, CONFIG.fields.common.recordIcons, "");
-
-        // Skontroluj, či ikona už nie je pridaná
-        if (currentIcons.indexOf(icon) === -1) {
-            var newIcons = currentIcons ? currentIcons + " " + icon : icon;
-            utils.safeSet(currentEntry, CONFIG.fields.dailyReport.recordIcons, newIcons);
-            utils.addDebug(currentEntry, "  📌 Pridaná ikona: " + icon);
-        }
-    } catch (error) {
-        utils.addDebug(currentEntry, "  ⚠️ Nepodarilo sa pridať ikonu: " + error.toString());
-    }
-}
 
 /**
  * Vytvorí markdown formátovaný info záznam
