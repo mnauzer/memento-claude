@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY DIELY - Hlavný prepočet
-// Verzia: 3.5.0 | Dátum: 2025-10-07 | Autor: ASISTANTO
+// Verzia: 3.5.1 | Dátum: 2025-10-07 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky Diely (ID: nCAgQkfvK)
 // Trigger: onChange
 // ==============================================
@@ -18,6 +18,13 @@
 //    - Automatické vymazanie debug, error a info logov pri štarte
 //    - Vytvorenie prehľadného markdown reportu v info poli
 // ==============================================
+// 🔧 CHANGELOG v3.5.1 (2025-10-07):
+//    - SKRÁTENÉ ČIARY: Z 55 na 41 znakov pre lepšie zobrazenie na mobile
+//    - PRIDANÉ: Číslo a názov DIELU v headeri (napr. "1 • Trávnik")
+//    - Header teraz zobrazuje: Číslo dielu • Názov dielu, Číslo CP, Dátum
+//    - ZMENŠENÉ STĹPCE: Názov z 35 na 28, Množstvo z 10 na 7, Cena z 10 na 8
+//    - Celková šírka reportu zmenšená z 71 na 58 znakov
+//    - Použitie "Množ." namiesto "Množstvo" v hlavičke pre úsporu miesta
 // 🔧 CHANGELOG v3.5.0 (2025-10-07):
 //    - OPRAVA: Zmena z markdown tabuliek na textový formát s pevným zarovnaním
 //    - Memento Database nepodporuje markdown tabuľky, len čistý text
@@ -87,7 +94,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky Diely - Prepočet",
-    version: "3.5.0",
+    version: "3.5.1",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quotePart,
@@ -156,92 +163,101 @@ function buildQuoteInfoReport(materialSum, workSum, totalSum) {
         return text;
     }
 
-    // Header s názvom cenovej ponuky
-    var quoteName = utils.safeGet(currentEntry, fields.name) || "Cenová ponuka";
+    // Header s názvom a číslom DIELU + info o cenovej ponuke
+    var partNumber = utils.safeGet(currentEntry, fields.number) || "";
+    var partName = utils.safeGet(currentEntry, fields.name) || "Diel";
     var quoteNumber = utils.safeGet(currentEntry, fields.quoteNumber) || "";
     var quoteDate = utils.safeGet(currentEntry, fields.date);
 
-    report += "═══════════════════════════════════════════════════════\n";
-    report += "📋 " + quoteName + "\n";
+    report += "═════════════════════════════════════════\n";
+
+    // Číslo a názov dielu
+    if (partNumber) {
+        report += partNumber + " • " + partName + "\n";
+    } else {
+        report += "📋 " + partName + "\n";
+    }
+
+    // Číslo cenovej ponuky a dátum
     if (quoteNumber) {
-        report += "Číslo: " + quoteNumber + "\n";
+        report += "Číslo CP: " + quoteNumber + "\n";
     }
     if (quoteDate) {
         report += "Dátum: " + moment(quoteDate).format("DD.MM.YYYY") + "\n";
     }
-    report += "═══════════════════════════════════════════════════════\n\n";
+    report += "═════════════════════════════════════════\n\n";
 
     // MATERIÁL
     if (materialItemsInfo.length > 0) {
         report += "📦 MATERIÁL\n";
-        report += "───────────────────────────────────────────────────────\n";
-        report += padRight("Názov", 35) + " ";
-        report += padLeft("mj", 4) + " ";
-        report += padLeft("Množstvo", 10) + " ";
-        report += padLeft("Cena", 10) + " ";
-        report += padLeft("Celkom", 10) + "\n";
-        report += "───────────────────────────────────────────────────────\n";
+        report += "─────────────────────────────────────────\n";
+        report += padRight("Názov", 28) + " ";
+        report += padLeft("mj", 3) + " ";
+        report += padLeft("Množ.", 7) + " ";
+        report += padLeft("Cena", 8) + " ";
+        report += padLeft("Celkom", 9) + "\n";
+        report += "─────────────────────────────────────────\n";
 
         for (var i = 0; i < materialItemsInfo.length; i++) {
             var item = materialItemsInfo[i];
-            var itemName = item.name.length > 35 ? item.name.substring(0, 32) + "..." : item.name;
+            var itemName = item.name.length > 28 ? item.name.substring(0, 25) + "..." : item.name;
 
-            report += padRight(itemName, 35) + " ";
-            report += padLeft(item.unit || "-", 4) + " ";
-            report += padLeft(item.quantity.toFixed(2), 10) + " ";
-            report += padLeft(item.price.toFixed(2), 10) + " ";
-            report += padLeft(item.totalPrice.toFixed(2) + " €", 10) + "\n";
+            report += padRight(itemName, 28) + " ";
+            report += padLeft(item.unit || "-", 3) + " ";
+            report += padLeft(item.quantity.toFixed(2), 7) + " ";
+            report += padLeft(item.price.toFixed(2), 8) + " ";
+            report += padLeft(item.totalPrice.toFixed(2) + " €", 9) + "\n";
         }
 
-        report += "───────────────────────────────────────────────────────\n";
-        report += padRight("SPOLU MATERIÁL:", 61) + " ";
-        report += padLeft(materialSum.toFixed(2) + " €", 10) + "\n\n";
+        report += "─────────────────────────────────────────\n";
+        report += padRight("SPOLU MATERIÁL:", 48) + " ";
+        report += padLeft(materialSum.toFixed(2) + " €", 9) + "\n\n";
     } else {
         report += "📦 MATERIÁL\n";
-        report += "───────────────────────────────────────────────────────\n";
+        report += "─────────────────────────────────────────\n";
         report += "Žiadne položky materiálu\n\n";
     }
 
     // PRÁCE
     if (workItemsInfo.length > 0) {
         report += "🔨 PRÁCE\n";
-        report += "───────────────────────────────────────────────────────\n";
-        report += padRight("Názov", 35) + " ";
-        report += padLeft("mj", 4) + " ";
-        report += padLeft("Množstvo", 10) + " ";
-        report += padLeft("Cena", 10) + " ";
-        report += padLeft("Celkom", 10) + "\n";
-        report += "───────────────────────────────────────────────────────\n";
+        report += "─────────────────────────────────────────\n";
+        report += padRight("Názov", 28) + " ";
+        report += padLeft("mj", 3) + " ";
+        report += padLeft("Množ.", 7) + " ";
+        report += padLeft("Cena", 8) + " ";
+        report += padLeft("Celkom", 9) + "\n";
+        report += "─────────────────────────────────────────\n";
 
         for (var i = 0; i < workItemsInfo.length; i++) {
             var item = workItemsInfo[i];
-            var itemName = item.name.length > 35 ? item.name.substring(0, 32) + "..." : item.name;
+            var itemName = item.name.length > 28 ? item.name.substring(0, 25) + "..." : item.name;
 
-            report += padRight(itemName, 35) + " ";
-            report += padLeft(item.unit || "-", 4) + " ";
-            report += padLeft(item.quantity.toFixed(2), 10) + " ";
-            report += padLeft(item.price.toFixed(2), 10) + " ";
-            report += padLeft(item.totalPrice.toFixed(2) + " €", 10) + "\n";
+            report += padRight(itemName, 28) + " ";
+            report += padLeft(item.unit || "-", 3) + " ";
+            report += padLeft(item.quantity.toFixed(2), 7) + " ";
+            report += padLeft(item.price.toFixed(2), 8) + " ";
+            report += padLeft(item.totalPrice.toFixed(2) + " €", 9) + "\n";
         }
 
-        report += "───────────────────────────────────────────────────────\n";
-        report += padRight("SPOLU PRÁCE:", 61) + " ";
-        report += padLeft(workSum.toFixed(2) + " €", 10) + "\n\n";
+        report += "─────────────────────────────────────────\n";
+        report += padRight("SPOLU PRÁCE:", 48) + " ";
+        report += padLeft(workSum.toFixed(2) + " €", 9) + "\n\n";
     } else {
         report += "🔨 PRÁCE\n";
-        report += "───────────────────────────────────────────────────────\n";
+        report += "─────────────────────────────────────────\n";
         report += "Žiadne položky prác\n\n";
     }
 
     // CELKOVÁ SUMA
-    report += "═══════════════════════════════════════════════════════\n";
+    report += "═════════════════════════════════════════\n";
     report += "💰 CELKOVÁ SUMA\n";
-    report += "═══════════════════════════════════════════════════════\n";
-    report += padRight("Materiál:", 30) + " " + padLeft(materialSum.toFixed(2) + " €", 20) + "\n";
-    report += padRight("Práce:", 30) + " " + padLeft(workSum.toFixed(2) + " €", 20) + "\n";
-    report += "───────────────────────────────────────────────────────\n";
-    report += padRight("CELKOM:", 30) + " " + padLeft(totalSum.toFixed(2) + " €", 20) + "\n";
-    report += "═══════════════════════════════════════════════════════\n";
+    report += "═════════════════════════════════════════\n";
+    report += padRight("Materiál:", 30) + padLeft(materialSum.toFixed(2) + " €", 11) + "\n";
+    report += padRight("Práce:", 30) + padLeft(workSum.toFixed(2) + " €", 11) + "\n";
+    report += "─────────────────────────────────────────\n";
+    report += padRight("CELKOM:", 30) + padLeft(totalSum.toFixed(2) + " €", 11) + "\n";
+    report += "═════════════════════════════════════════\n";
 
     return report;
 }
