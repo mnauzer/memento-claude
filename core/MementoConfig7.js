@@ -972,7 +972,7 @@ var MementoConfig = (function() {
                 expectedRidesCount: "Predpokladaný počet jázd", // int - počet predpokladaných jázd
                 kmPrice: "Cena za km", // entries (field 266) - linkToEntry Cenník prác
                 rideFlatRate: "Paušál dopravy", // entries (field 267) - linkToEntry Cenník prác
-                transportPrice: "Cena za dopravu", // currency (field 268)
+                transportPrice: "Cena dopravy", // currency (field 268)
 
                 // Účtovanie ďalších položiek
                 massTransferCalculation: "Účtovanie presunu hmôt", // choice - Neúčtovať, % zo zákazky, Pevná cena
@@ -993,7 +993,7 @@ var MementoConfig = (function() {
                 total: "Celkom", // double (field 257) - role: status
                 vat: "DPH", // double (field 258)
                 vatRate: "Sadzba DPH", // double (field 264)
-                totalWithVat: "Cena celkom (s DPH)", // double (field 256) - role: status
+                totalWithVat: "Cena celkom", // double (field 256) - role: status
 
                 // Poznámky a prílohy
                 note: "Poznámka", // text (field 207)
