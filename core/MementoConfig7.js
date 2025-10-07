@@ -1,7 +1,11 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.28 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.29 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.29 (2025-10-07):
+//    - REFACTOR: Odstránené duplicitné systémové polia z fields.quote a fields.quotePart
+//    - Systémové polia (view, id, createdBy, etc.) sú teraz len v fields.common
+//    - Pridané komentáre ako použiť fields.common pre systémové polia
 // 🔧 CHANGELOG v7.0.28 (2025-10-07):
 //    - Pridané polia pre Cenové ponuky: expectedRidesCount, massTransferCalculation,
 //      massTransferPercentage, massTransferPrice, subcontractsCalculation,
@@ -90,7 +94,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.28",  // Pridané polia pre Cenové ponuky (doprava, presun hmôt, subdodávky)
+        version: "7.0.29",  // Refactor: Odstránené duplicitné systémové polia z quote/quotePart
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -1000,17 +1004,9 @@ var MementoConfig = (function() {
                 quoteText: "Text cenovej ponuky", // richtext (field 208)
                 files: "Súbory", // file (field 199)
 
-                // Systémové polia
-                view: "view", // radio (field 247)
-                id: "ID", // int (field 244)
-                createdBy: "zapísal", // user (field 240)
-                createdDate: "dátum zápisu", // date (field 242)
-                modifiedBy: "upravil", // user (field 241)
-                modifiedDate: "dátum úpravy", // date (field 243)
-                rowColor: "farba záznamu", // color (field 191)
-                backgroundColor: "farba pozadia", // color (field 224)
-                debugLog: "Debug_Log", // text (field 260)
-                errorLog: "Error_Log", // text (field 261)
+                // Systémové polia - použiť fields.common pre prístup
+                // view, id, createdBy, createdDate, modifiedBy, modifiedDate,
+                // rowColor, backgroundColor, debugLog, errorLog
 
                 // Deprecated/backward compatibility
                 customer: "Klient", // DEPRECATED - nie je v API štruktúre
@@ -1042,20 +1038,12 @@ var MementoConfig = (function() {
                 works: "Práce", // entries (field 265) - linkToEntry Práce
 
                 // Poznámky a debug
-                note: "Poznámka", // text (field 207)
-                info: "info", // text (field 279)
-                debugLog: "Debug_Log", // text (field 277)
-                errorLog: "Error_Log", // text (field 278)
+                note: "Poznámka" // text (field 207)
+                // info, debugLog, errorLog - použiť fields.common
 
-                // Systémové polia
-                view: "view", // radio (field 247)
-                id: "ID", // int (field 244)
-                createdBy: "zapísal", // user (field 240)
-                createdDate: "dátum zápisu", // date (field 242)
-                modifiedBy: "naposledy upravil", // user (field 241)
-                modifiedDate: "dátum úpravy", // date (field 243)
-                rowColor: "farba záznamu", // color (field 191)
-                backgroundColor: "farba pozadia" // color (field 224)
+                // Systémové polia - použiť fields.common pre prístup
+                // view, id, createdBy, createdDate, modifiedBy, modifiedDate,
+                // rowColor, backgroundColor
             },
             // Zákazky polia
             order: {
