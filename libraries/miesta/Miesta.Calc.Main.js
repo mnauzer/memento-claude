@@ -140,7 +140,8 @@ function calculateDistance() {
             return result;
         }
 
-        var defaultCoords = extractGPSCoordinates(defaultGPS);
+        //var defaultCoords = extractGPSCoordinates(defaultGPS);
+        var defaultCoords = utils.extractGPSFromPlace(defaultGPS);
         if (!defaultCoords) {
             utils.addDebug(currentEntry, "  ⚠️ Nepodarilo sa extrahovať GPS súradnice východzej adresy");
             return result;
@@ -148,7 +149,8 @@ function calculateDistance() {
 
         // Vypočítaj vzdialenosť pomocou MementoGPS
         utils.addDebug(currentEntry, "  🧮 Výpočet vzdialenosti...");
-        var distance = gps.calculateAirDistance(defaultCoords, currentCoords);
+        //var distance = gps.calculateAirDistance(defaultCoords, currentCoords);
+        var distance = utils.calculateSegment(defaultCoords, currentCoords, "Vzdialenosť miesta");
 
         // Zaokrúhli na celé číslo hore
         var roundedDistance = Math.ceil(distance);
