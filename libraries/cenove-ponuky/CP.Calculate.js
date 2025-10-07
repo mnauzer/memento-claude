@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY - Hlavný prepočet
-// Verzia: 1.2.1 | Dátum: 2025-10-07 | Autor: ASISTANTO
+// Verzia: 1.2.2 | Dátum: 2025-10-07 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky (ID: 90RmdjWuk)
 // Trigger: onChange
 // ==============================================
@@ -8,12 +8,18 @@
 //    - Aktualizuje názov z Miesta realizácie
 //    - Spočíta hodnoty "Celkom" zo všetkých dielov cenovej ponuky
 //    - Vypočíta predpokladaný počet km (vzdialenosť × 2 × počet jázd)
-//    - Vypočíta cenu dopravy podľa nastavenia (Paušál, km, %, Pevná cena)
+//    - Vypočíta cenu dopravy podľa nastavenia (Paušál, Km, % zo zákazky, Pevná cena)
 //    - Vypočíta cenu presunu hmôt podľa nastavenia
 //    - Vypočíta cenu subdodávok podľa nastavenia
 //    - Získa aktuálnu sadzbu DPH
 //    - Vypočíta celkovú sumu s DPH
 // ==============================================
+// 🔧 CHANGELOG v1.2.2 (2025-10-07):
+//    - KRITICKÁ OPRAVA: Metóda "km" sa nespúšťala kvôli case-sensitive porovnaniu
+//    - FIX: Opravené porovnanie z "km" na "Km" (hodnota v Memento je s veľkým K)
+//    - OPRAVA: Odstránené var business = MementoBusiness (používa sa len utils)
+//    - OPRAVA: utils.getValidVatRate() namiesto business.getValidVatRate()
+//    - DÔVOD: Debug log končil po "Typ účtovania: km" bez vykonania metódy
 // 🔧 CHANGELOG v1.2.1 (2025-10-07):
 //    - OPRAVA: expectedKm sa predáva ako parameter do calculateTransportPrice()
 //    - FIX: Metóda "km" teraz dostáva správnu hodnotu expectedKm z premennej, nie z poľa
@@ -52,14 +58,13 @@
 // ==============================================
 
 var utils = MementoUtils;
-var business = MementoBusiness;
 var centralConfig = utils.config;
 var currentEntry = entry();
 
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky - Prepočet",
-    version: "1.2.1",
+    version: "1.2.2",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quote,
@@ -281,7 +286,7 @@ function calculateTransportPrice(totalFromParts, currentDate, expectedKm) {
         }
 
         // ========== KILOMETER ==========
-        else if (rideCalc === "km") {
+        else if (rideCalc === "Km") {
             utils.addDebug(currentEntry, "    Metóda: Kilometrovník");
 
             // Zisti cenu za km
@@ -445,7 +450,7 @@ function main() {
         // KROK 4: Výpočet DPH
         utils.addDebug(currentEntry, "\n" + utils.getIcon("calculation") + " KROK 4: Výpočet DPH");
         try {
-            var vatRatePercentage = business.getValidVatRate(currentDate, "základná");
+            var vatRatePercentage = utils.getValidVatRate(currentDate, "základná");
             utils.addDebug(currentEntry, "  Sadzba DPH: " + vatRatePercentage + "%");
 
             currentEntry.set(fields.vatRate, vatRatePercentage);
