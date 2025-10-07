@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY DIELY - Hlavný prepočet
-// Verzia: 3.0.1 | Dátum: 2025-10-06 | Autor: ASISTANTO
+// Verzia: 3.1.0 | Dátum: 2025-10-07 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky Diely (ID: nCAgQkfvK)
 // Trigger: onChange
 // ==============================================
@@ -14,6 +14,10 @@
 //    - Výpočet súčtov za jednotlivé kategórie
 //    - Výpočet celkovej sumy cenovej ponuky
 // ==============================================
+// 🔧 CHANGELOG v3.1.0 (2025-10-07):
+//    - OPRAVA: Použitie dialog() namiesto message() pre potvrdenie aktualizácie cien
+//    - Používateľ môže potvrdiť alebo zrušiť aktualizáciu cien cez dialóg
+//    - Callback funkcie pre pozitívne/negatívne tlačidlo
 // 🔧 CHANGELOG v3.0.1 (2025-10-06):
 //    - OPRAVA: Bezpečné získanie názvu položky pomocou item.field() s try/catch
 //    - Fallback na "Materiál #N" / "Práca #N" ak názov nie je dostupný
@@ -46,7 +50,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky Diely - Prepočet",
-    version: "3.0.1",
+    version: "3.1.0",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quotePart,
@@ -207,16 +211,14 @@ function createWorkPriceRecord(workEntry, newPrice, validFrom) {
 }
 
 /**
- * Zobrazí dialóg s rozdielmi v cenách a ponúkne update
- * @returns {Boolean} - True ak používateľ potvrdil update
+ * Zobrazí dialóg s rozdielmi v cenách a umožní používateľovi potvrdiť aktualizáciu
  */
 function showPriceDifferenceDialog() {
     if (priceDifferences.length === 0) {
-        return false;
+        return;
     }
 
-    var dialogMessage = "🔍 ZISTENÉ ROZDIELY V CENÁCH\n\n";
-    dialogMessage += "Našli sa rozdiely medzi zadanými cenami a cenami v databáze:\n\n";
+    var dialogMessage = "Našli sa rozdiely medzi zadanými cenami a cenami v databáze:\n\n";
 
     for (var i = 0; i < priceDifferences.length; i++) {
         var diff = priceDifferences[i];
@@ -229,7 +231,16 @@ function showPriceDifferenceDialog() {
     dialogMessage += "Chcete aktualizovať ceny v databáze?\n";
     dialogMessage += "(Vytvorí sa nový cenový záznam s dátumom: " + moment(currentDate).format("DD.MM.YYYY") + ")";
 
-    return confirm(dialogMessage);
+    dialog()
+        .title("🔍 Zistené rozdiely v cenách")
+        .text(dialogMessage)
+        .positiveButton("Áno, aktualizovať", function() {
+            processPriceUpdates();
+        })
+        .negativeButton("Nie, zrušiť", function() {
+            utils.addDebug(currentEntry, "  ℹ️ Používateľ zrušil aktualizáciu cien");
+        })
+        .show();
 }
 
 /**
@@ -479,13 +490,8 @@ try {
     if (priceDifferences.length > 0) {
         utils.addDebug(currentEntry, "\n⚠️ Zistené rozdiely v cenách: " + priceDifferences.length);
 
-        var userConfirmed = showPriceDifferenceDialog();
-
-        if (userConfirmed) {
-            processPriceUpdates();
-        } else {
-            utils.addDebug(currentEntry, "  ℹ️ Používateľ zrušil aktualizáciu cien");
-        }
+        // Zobraz dialóg pre potvrdenie aktualizácie cien
+        showPriceDifferenceDialog();
     } else {
         utils.addDebug(currentEntry, "\n✅ Žiadne rozdiely v cenách");
     }
