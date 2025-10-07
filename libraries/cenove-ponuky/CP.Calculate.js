@@ -258,7 +258,7 @@ try {
     // ========== ZÍSKANIE SADZBY DPH ==========
     utils.addDebug(currentEntry, "\n💰 Výpočet DPH");
 
-    var vatRatePercentage = business.getCurrentVatRate(currentDate);
+    var vatRatePercentage = utils.getCurrentVatRate(currentDate);
     utils.addDebug(currentEntry, "  Sadzba DPH: " + vatRatePercentage + "%");
 
     // Zapíš sadzbu DPH
