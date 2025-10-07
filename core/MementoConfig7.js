@@ -1,10 +1,14 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.27 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.28 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.28 (2025-10-07):
+//    - Pridané polia pre Cenové ponuky: expectedRidesCount, massTransferCalculation,
+//      massTransferPercentage, massTransferPrice, subcontractsCalculation,
+//      subcontractsPercentage, subcontractsPrice
 // 🔧 CHANGELOG v7.0.27 (2025-10-06):
 //    - REVERT: Odstránená sekcia processing.quotePart (príliš zložité, nepotrebné)
-//    - Scripty použujú priamo CONFIG.fields.quotePart.materials / works
+//    - Scripty použijú priamo CONFIG.fields.quotePart.materials / works
 //    - Štandardné Memento funkcie pre prístup k linkToEntry poliam
 // 🔧 CHANGELOG v7.0.25 (2025-10-06):
 //    - Kompletná API analýza knižníc Cenové ponuky (90RmdjWuk) a Cenové ponuky Diely (nCAgQkfvK)
@@ -86,7 +90,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.27",  // Odstránená processing.quotePart, script používa priamo field definitions
+        version: "7.0.28",  // Pridané polia pre Cenové ponuky (doprava, presun hmôt, subdodávky)
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -593,6 +597,19 @@ var MementoConfig = (function() {
             },
 
             // === CENNÍKY A SKLAD ===
+            // Cenník prác polia
+            priceList: {
+                number: "Číslo", // text
+                name: "Názov", // text
+                description: "Popis", // text
+                unit: "mj", // singleChoice
+                price: "Cena", // realNumber
+                priceWithVat: "Cena s DPH", // realNumber
+                category: "Kategória", // singleChoice/tree
+                tags: "Štítky", // tags
+                note: "Poznámka" // text
+            },
+
             // Materiál polia
             items: {
                 number: "Číslo", // text
@@ -952,9 +969,18 @@ var MementoConfig = (function() {
                 // Doprava - účtovanie a sadzby
                 rideCalculation: "Účtovanie dopravy", // choice (field 126) - Paušál, Km, % zo zákazky, Pevná cena, Neúčtovať
                 ridePercentage: "Doprava %", // double (field 265)
-                kmPrice: "Cena za km", // entries (field 266) - linkToEntry
-                rideFlatRate: "Paušál dopravy", // entries (field 267) - linkToEntry
+                expectedRidesCount: "Predpokladaný počet jázd", // int - počet predpokladaných jázd
+                kmPrice: "Cena za km", // entries (field 266) - linkToEntry Cenník prác
+                rideFlatRate: "Paušál dopravy", // entries (field 267) - linkToEntry Cenník prác
                 transportPrice: "Cena za dopravu", // currency (field 268)
+
+                // Účtovanie ďalších položiek
+                massTransferCalculation: "Účtovanie presunu hmôt", // choice - Neúčtovať, % zo zákazky, Pevná cena
+                massTransferPercentage: "Presun hmôt %", // double
+                massTransferPrice: "Cena za presun hmôt", // currency
+                subcontractsCalculation: "Účtovanie subdodávok", // choice - Neúčtovať, % zo zákazky, Pevná cena
+                subcontractsPercentage: "Subdodávky %", // double
+                subcontractsPrice: "Cena subdodávok", // currency
 
                 // Položky cenovej ponuky
                 parts: "Diely", // entries (field 263) - linkToEntry Cenové ponuky Diely
