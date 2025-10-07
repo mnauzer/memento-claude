@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY DIELY - Hlavný prepočet
-// Verzia: 3.3.0 | Dátum: 2025-10-07 | Autor: ASISTANTO
+// Verzia: 3.3.1 | Dátum: 2025-10-07 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky Diely (ID: nCAgQkfvK)
 // Trigger: onChange
 // ==============================================
@@ -16,6 +16,11 @@
 //    - Výpočet súčtov za jednotlivé kategórie
 //    - Výpočet celkovej sumy cenovej ponuky
 // ==============================================
+// 🔧 CHANGELOG v3.3.1 (2025-10-07):
+//    - KRITICKÁ OPRAVA: Zaokrúhlenie finalPrice na 2 desatinné miesta pred výpočtom totalPrice
+//    - FIX: Materiál 25 × 17,24 = 431,00 (bolo 430,89 kvôli nezaokrúhleným cenám z DB)
+//    - FIX: Materiál 25 × 0,41 = 10,25 (bolo 10,16 kvôli nezaokrúhleným cenám z DB)
+//    - Pridané: Math.round(finalPrice * 100) / 100 pre materiál aj práce
 // 🔧 CHANGELOG v3.3.0 (2025-10-07):
 //    - NOVÁ FUNKCIA: Ak cena atribútu nie je zadaná/je 0 → použije sa cena z poľa "Cena" v zázname
 //    - Automaticky sa vytvorí nový cenový záznam a doplní do atribútu
@@ -61,7 +66,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky Diely - Prepočet",
-    version: "3.3.0",
+    version: "3.3.1",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quotePart,
@@ -469,6 +474,9 @@ try {
                 }
             }
 
+            // Zaokrúhli finalPrice na 2 desatinné miesta pre správny výpočet
+            finalPrice = Math.round(finalPrice * 100) / 100;
+
             // Vypočítaj cenu celkom
             var totalPrice = quantity * finalPrice;
             item.setAttr(attrs.totalPrice, totalPrice);
@@ -591,6 +599,9 @@ try {
                     }
                 }
             }
+
+            // Zaokrúhli finalPrice na 2 desatinné miesta pre správny výpočet
+            finalPrice = Math.round(finalPrice * 100) / 100;
 
             // Vypočítaj cenu celkom
             var totalPrice = quantity * finalPrice;
