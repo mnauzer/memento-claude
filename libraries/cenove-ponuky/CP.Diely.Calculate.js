@@ -173,7 +173,7 @@ function createMaterialPriceRecord(materialEntry, newPrice, validFrom) {
         var materialPricesLib = lib(centralConfig.libraries.materialPrices);
         var priceFields = CONFIG.priceFields.materialPrices;
 
-        var newPriceEntry = materialPricesLib.create();
+        var newPriceEntry = materialPricesLib.create({});
         newPriceEntry.set(priceFields.material, [materialEntry]);
         newPriceEntry.set(priceFields.date, validFrom);
         newPriceEntry.set(priceFields.sellPrice, newPrice);
@@ -197,7 +197,7 @@ function createWorkPriceRecord(workEntry, newPrice, validFrom) {
         var workPricesLib = lib(centralConfig.libraries.workPrices);
         var priceFields = CONFIG.priceFields.workPrices;
 
-        var newPriceEntry = workPricesLib.create();
+        var newPriceEntry = workPricesLib.create({});
         newPriceEntry.set(priceFields.work, [workEntry]);
         newPriceEntry.set(priceFields.validFrom, validFrom);
         newPriceEntry.set(priceFields.price, newPrice);
