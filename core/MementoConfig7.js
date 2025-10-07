@@ -996,6 +996,8 @@ var MementoConfig = (function() {
 
                 // Položky cenovej ponuky
                 parts: "Diely", // entries (field 263) - linkToEntry Cenové ponuky Diely
+                subcontracts: "Subdodávky", // entries - linkToEntry Cenové ponuky Diely (diely s partType = "Subdodávky")
+                subcontractsTotal: "Celkom subdodávky", // currency - súčet subdodávok v samostatnom poli
 
                 // Externá ponuka
                 externalPrice: "Cena externej ponuky", // double (field 253)
