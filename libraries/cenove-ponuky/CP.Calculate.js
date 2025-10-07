@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY - Hlavný prepočet
-// Verzia: 1.3.1 | Dátum: 2025-10-07 | Autor: ASISTANTO
+// Verzia: 1.3.2 | Dátum: 2025-10-07 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky (ID: 90RmdjWuk)
 // Trigger: onChange
 // ==============================================
@@ -484,41 +484,104 @@ function manageSubcontracts() {
             utils.addDebug(currentEntry, "      Z: " + (currentLocation === "parts" ? "Diely" : "Subdodávky"));
             utils.addDebug(currentEntry, "      Do: " + (targetField === "parts" ? "Diely" : "Subdodávky"));
 
-            // Odstráň z aktuálneho poľa
-            if (currentLocation === "parts") {
-                var newParts = [];
-                for (var i = 0; i < partsEntries.length; i++) {
-                    if (partsEntries[i] !== subcontractEntry) {
-                        newParts.push(partsEntries[i]);
-                    }
+            // Krok 1: Odstráň subdodávku z OBOCH polí (zabráni duplicitám)
+            // Vyčisti pole Diely
+            var cleanedParts = [];
+            partsEntries = utils.safeGetLinks(currentEntry, fields.parts) || [];
+            for (var i = 0; i < partsEntries.length; i++) {
+                var partType = utils.safeGet(partsEntries[i], centralConfig.fields.quotePart.partType);
+                if (partType !== "Subdodávky") {
+                    cleanedParts.push(partsEntries[i]);
                 }
-                currentEntry.set(fields.parts, newParts);
-            } else {
-                var subcontractsEntries = utils.safeGetLinks(currentEntry, subcontractsFieldName) || [];
-                var newSubcontracts = [];
-                for (var i = 0; i < subcontractsEntries.length; i++) {
-                    if (subcontractsEntries[i] !== subcontractEntry) {
-                        newSubcontracts.push(subcontractsEntries[i]);
-                    }
-                }
-                currentEntry.set(subcontractsFieldName, newSubcontracts);
             }
+            currentEntry.set(fields.parts, cleanedParts);
 
-            // Pridaj do cieľového poľa
+            // Vyčisti pole Subdodávky
+            var cleanedSubcontracts = [];
+            var subcontractsEntries = utils.safeGetLinks(currentEntry, subcontractsFieldName) || [];
+            for (var i = 0; i < subcontractsEntries.length; i++) {
+                var partType = utils.safeGet(subcontractsEntries[i], centralConfig.fields.quotePart.partType);
+                if (partType !== "Subdodávky") {
+                    cleanedSubcontracts.push(subcontractsEntries[i]);
+                }
+            }
+            currentEntry.set(subcontractsFieldName, cleanedSubcontracts);
+
+            // Krok 2: Pridaj subdodávku LEN do cieľového poľa
             if (targetField === "parts") {
-                var currentParts = utils.safeGetLinks(currentEntry, fields.parts) || [];
-                currentParts.push(subcontractEntry);
-                currentEntry.set(fields.parts, currentParts);
+                cleanedParts.push(subcontractEntry);
+                currentEntry.set(fields.parts, cleanedParts);
             } else {
-                var currentSubcontracts = utils.safeGetLinks(currentEntry, subcontractsFieldName) || [];
-                currentSubcontracts.push(subcontractEntry);
-                currentEntry.set(subcontractsFieldName, currentSubcontracts);
+                cleanedSubcontracts.push(subcontractEntry);
+                currentEntry.set(subcontractsFieldName, cleanedSubcontracts);
             }
 
             currentLocation = targetField;
-            utils.addDebug(currentEntry, "    ✅ Subdodávka presunutá");
+            utils.addDebug(currentEntry, "    ✅ Subdodávka presunutá (duplicity odstránené)");
         } else {
+            // Aj keď je na správnom mieste, vyčisti duplicity
             utils.addDebug(currentEntry, "    ✅ Subdodávka je už na správnom mieste");
+
+            // Kontrola duplicít v aktuálnom poli
+            var hasDuplicates = false;
+            if (currentLocation === "parts") {
+                var count = 0;
+                for (var i = 0; i < partsEntries.length; i++) {
+                    var partType = utils.safeGet(partsEntries[i], centralConfig.fields.quotePart.partType);
+                    if (partType === "Subdodávky") {
+                        count++;
+                    }
+                }
+                if (count > 1) {
+                    hasDuplicates = true;
+                    utils.addDebug(currentEntry, "    ⚠️ Nájdené duplicity v poli Diely, čistím...");
+                    var cleanedParts = [];
+                    var added = false;
+                    for (var i = 0; i < partsEntries.length; i++) {
+                        var partType = utils.safeGet(partsEntries[i], centralConfig.fields.quotePart.partType);
+                        if (partType === "Subdodávky") {
+                            if (!added) {
+                                cleanedParts.push(partsEntries[i]);
+                                added = true;
+                            }
+                        } else {
+                            cleanedParts.push(partsEntries[i]);
+                        }
+                    }
+                    currentEntry.set(fields.parts, cleanedParts);
+                }
+            } else {
+                var subcontractsEntries = utils.safeGetLinks(currentEntry, subcontractsFieldName) || [];
+                var count = 0;
+                for (var i = 0; i < subcontractsEntries.length; i++) {
+                    var partType = utils.safeGet(subcontractsEntries[i], centralConfig.fields.quotePart.partType);
+                    if (partType === "Subdodávky") {
+                        count++;
+                    }
+                }
+                if (count > 1) {
+                    hasDuplicates = true;
+                    utils.addDebug(currentEntry, "    ⚠️ Nájdené duplicity v poli Subdodávky, čistím...");
+                    var cleanedSubcontracts = [];
+                    var added = false;
+                    for (var i = 0; i < subcontractsEntries.length; i++) {
+                        var partType = utils.safeGet(subcontractsEntries[i], centralConfig.fields.quotePart.partType);
+                        if (partType === "Subdodávky") {
+                            if (!added) {
+                                cleanedSubcontracts.push(subcontractsEntries[i]);
+                                added = true;
+                            }
+                        } else {
+                            cleanedSubcontracts.push(subcontractsEntries[i]);
+                        }
+                    }
+                    currentEntry.set(subcontractsFieldName, cleanedSubcontracts);
+                }
+            }
+
+            if (hasDuplicates) {
+                utils.addDebug(currentEntry, "    ✅ Duplicity odstránené");
+            }
         }
 
         // 6. Získaj hodnotu "Celkom" zo subdodávky
