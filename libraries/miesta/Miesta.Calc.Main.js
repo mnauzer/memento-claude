@@ -108,7 +108,7 @@ function calculateDistance() {
         }
 
         // Získaj východziu adresu z ASISTANTO Defaults
-        var defaultsLib = libByName(CONFIG.libraries.asistantoDefaults);
+        var defaultsLib = libByName(CONFIG.libraries.defaults);
         if (!defaultsLib) {
             utils.addDebug(currentEntry, "  ⚠️ Knižnica ASISTANTO Defaults nenájdená");
             return result;
