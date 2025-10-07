@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY - Hlavný prepočet
-// Verzia: 1.2.2 | Dátum: 2025-10-07 | Autor: ASISTANTO
+// Verzia: 1.2.3 | Dátum: 2025-10-07 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky (ID: 90RmdjWuk)
 // Trigger: onChange
 // ==============================================
@@ -8,12 +8,17 @@
 //    - Aktualizuje názov z Miesta realizácie
 //    - Spočíta hodnoty "Celkom" zo všetkých dielov cenovej ponuky
 //    - Vypočíta predpokladaný počet km (vzdialenosť × 2 × počet jázd)
-//    - Vypočíta cenu dopravy podľa nastavenia (Paušál, Km, % zo zákazky, Pevná cena)
+//    - Vypočíta cenu dopravy podľa nastavenia (Neúčtovať, Paušál, Km, % zo zákazky, Pevná cena)
 //    - Vypočíta cenu presunu hmôt podľa nastavenia
 //    - Vypočíta cenu subdodávok podľa nastavenia
 //    - Získa aktuálnu sadzbu DPH
 //    - Vypočíta celkovú sumu s DPH
 // ==============================================
+// 🔧 CHANGELOG v1.2.3 (2025-10-07):
+//    - PRIDANÉ: Metóda "Neúčtovať" s konzistentným debug logom
+//    - VYLEPŠENÉ: Všetky metódy majú jednotný formát debug výstupu
+//    - REFACTOR: Presun var transportPrice = 0 pred podmienky
+//    - DEBUG: Metóda "Neúčtovať" teraz vypíše "Doprava sa neúčtuje" + "Cena dopravy: 0.00 €"
 // 🔧 CHANGELOG v1.2.2 (2025-10-07):
 //    - KRITICKÁ OPRAVA: Metóda "km" sa nespúšťala kvôli case-sensitive porovnaniu
 //    - FIX: Opravené porovnanie z "km" na "Km" (hodnota v Memento je s veľkým K)
@@ -247,15 +252,18 @@ function calculateTransportPrice(totalFromParts, currentDate, expectedKm) {
         var rideCalc = utils.safeGet(currentEntry, fields.rideCalculation) || "Neúčtovať";
         utils.addDebug(currentEntry, "    Typ účtovania: " + rideCalc);
 
+        var transportPrice = 0;
+
+        // ========== NEÚČTOVAŤ ==========
         if (rideCalc === "Neúčtovať" || !rideCalc) {
-            utils.addDebug(currentEntry, "    ℹ️ Doprava sa neúčtuje");
+            utils.addDebug(currentEntry, "    Metóda: Neúčtovať");
+            utils.addDebug(currentEntry, "      ℹ️ Doprava sa neúčtuje");
+            utils.addDebug(currentEntry, "      ✅ Cena dopravy: 0.00 €");
             return 0;
         }
 
-        var transportPrice = 0;
-
         // ========== PAUŠÁL ==========
-        if (rideCalc === "Paušál") {
+        else if (rideCalc === "Paušál") {
             utils.addDebug(currentEntry, "    Metóda: Paušál dopravy");
 
             var flatRateEntries = utils.safeGetLinks(currentEntry, fields.rideFlatRate);
