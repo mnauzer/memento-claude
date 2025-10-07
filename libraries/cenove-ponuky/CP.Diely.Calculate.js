@@ -1,15 +1,20 @@
 // ==============================================
 // CENOVÉ PONUKY DIELY - Hlavný prepočet
-// Verzia: 2.0.0 | Dátum: 2025-10-06 | Autor: ASISTANTO
+// Verzia: 2.1.0 | Dátum: 2025-10-06 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky Diely (ID: nCAgQkfvK)
 // Trigger: onChange
 // ==============================================
 // 📋 FUNKCIA:
 //    - Prepočet položiek cenovej ponuky (Materiál, Práce)
 //    - Automatické doplnenie cien z histórie ak nie sú zadané
+//    - Aktualizácia čísla a názvu z nadriadenej cenovej ponuky
 //    - Výpočet súčtov za jednotlivé kategórie
 //    - Výpočet celkovej sumy cenovej ponuky
 // ==============================================
+// 🔧 CHANGELOG v2.1.0 (2025-10-06):
+//    - PRIDANÉ: Funkcia updateQuoteInfo() - kopíruje Číslo a Názov z nadriadenej CP
+//    - Používa utils.safeGetLinksFrom() pre získanie nadriadeného záznamu
+//    - Automatické vyplnenie polí "Číslo CP" a "Názov" z hlavnej cenovej ponuky
 // 🔧 CHANGELOG v2.0.0 (2025-10-06):
 //    - KOMPLETNÝ REWRITE: Použitie štandardných Memento funkcií
 //    - Žiadne processing, žiadne categories - len CONFIG.fields
@@ -29,7 +34,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky Diely - Prepočet",
-    version: "2.0.0",
+    version: "2.1.0",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quotePart,
@@ -53,6 +58,51 @@ utils.addDebug(currentEntry, "🚀 START: Prepočet cenovej ponuky Diely - " + m
 // ==============================================
 // POMOCNÉ FUNKCIE
 // ==============================================
+
+/**
+ * Aktualizuje číslo a názov cenovej ponuky z nadriadeného záznamu
+ * Hľadá linksFrom z knižnice "Cenové ponuky" a kopíruje Číslo a Názov
+ */
+function updateQuoteInfo() {
+    try {
+        var quoteLibraryName = centralConfig.libraries.quotes; // "Cenové ponuky"
+        var partsFieldName = centralConfig.fields.quote.parts; // "Diely"
+
+        utils.addDebug(currentEntry, "\n🔗 Aktualizácia údajov z cenovej ponuky");
+        utils.addDebug(currentEntry, "  Hľadám v knižnici: " + quoteLibraryName);
+        utils.addDebug(currentEntry, "  Pole: " + partsFieldName);
+
+        // Získaj linksFrom z nadriadenej cenovej ponuky
+        var quoteEntries = utils.safeGetLinksFrom(currentEntry, quoteLibraryName, partsFieldName);
+
+        if (!quoteEntries || quoteEntries.length === 0) {
+            utils.addDebug(currentEntry, "  ⚠️ Nenašiel som nadriadenú cenovú ponuku");
+            return;
+        }
+
+        // Použij prvý nájdený záznam (malo by byť len jeden)
+        var quoteEntry = quoteEntries[0];
+
+        // Získaj číslo a názov z cenovej ponuky
+        var quoteNumber = utils.safeGet(quoteEntry, centralConfig.fields.quote.number);
+        var quoteName = utils.safeGet(quoteEntry, centralConfig.fields.quote.name);
+
+        utils.addDebug(currentEntry, "  ✅ Nájdená cenová ponuka:");
+        utils.addDebug(currentEntry, "     Číslo: " + (quoteNumber || "neznáme"));
+        utils.addDebug(currentEntry, "     Názov: " + (quoteName || "neznámy"));
+
+        // Zapíš do polí dielu
+        if (quoteNumber) {
+            currentEntry.set(fields.quoteNumber, quoteNumber);
+        }
+        if (quoteName) {
+            currentEntry.set(fields.name, quoteName);
+        }
+
+    } catch (error) {
+        utils.addError(currentEntry, "❌ Chyba pri aktualizácii údajov z CP: " + error.toString(), "updateQuoteInfo", error);
+    }
+}
 
 /**
  * Nájde platnú cenu materiálu k danému dátumu
@@ -92,6 +142,9 @@ function findWorkPrice(workEntry, date) {
 // ==============================================
 
 try {
+    // ========== AKTUALIZÁCIA ÚDAJOV Z CENOVEJ PONUKY ==========
+    updateQuoteInfo();
+
     var materialSum = 0;
     var workSum = 0;
 
