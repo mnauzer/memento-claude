@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY DIELY - Hlavný prepočet
-// Verzia: 3.1.0 | Dátum: 2025-10-07 | Autor: ASISTANTO
+// Verzia: 3.2.0 | Dátum: 2025-10-07 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky Diely (ID: nCAgQkfvK)
 // Trigger: onChange
 // ==============================================
@@ -10,10 +10,14 @@
 //    - Porovnanie ručne zadaných cien s cenami z databázy
 //    - Dialóg pre update cien v databáze pri rozdieloch
 //    - Automatické vytvorenie nových cenových záznamov
-//    - Aktualizácia čísla a názvu z nadriadenej cenovej ponuky
+//    - Aktualizácia čísla, názvu A DÁTUMU z nadriadenej cenovej ponuky
 //    - Výpočet súčtov za jednotlivé kategórie
 //    - Výpočet celkovej sumy cenovej ponuky
 // ==============================================
+// 🔧 CHANGELOG v3.2.0 (2025-10-07):
+//    - OPRAVA: Pridané dateField: "date" pre materialPrices (oprava duplicitných záznamov)
+//    - NOVÁ FUNKCIA: Synchronizácia dátumu z nadriadenej cenovej ponuky
+//    - Dátum z cenovej ponuky sa používa aj pre kontrolu a update cien
 // 🔧 CHANGELOG v3.1.0 (2025-10-07):
 //    - OPRAVA: Použitie dialog() namiesto message() pre potvrdenie aktualizácie cien
 //    - Používateľ môže potvrdiť alebo zrušiť aktualizáciu cien cez dialóg
@@ -50,7 +54,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky Diely - Prepočet",
-    version: "3.1.0",
+    version: "3.2.0",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quotePart,
@@ -71,22 +75,17 @@ var CONFIG = {
 var priceDifferences = [];
 
 var fields = CONFIG.fields;
-var currentDate = utils.safeGet(currentEntry, fields.date);
 
-if (!currentDate) {
-    currentDate = new Date();
-    utils.addDebug(currentEntry, "⚠️ Dátum nie je zadaný, použijem dnešný dátum");
-}
-
-utils.addDebug(currentEntry, "🚀 START: Prepočet cenovej ponuky Diely - " + moment(currentDate).format("DD.MM.YYYY"));
+utils.addDebug(currentEntry, "🚀 START: Prepočet cenovej ponuky Diely");
 
 // ==============================================
 // POMOCNÉ FUNKCIE
 // ==============================================
 
 /**
- * Aktualizuje číslo a názov cenovej ponuky z nadriadeného záznamu
- * Hľadá linksFrom z knižnice "Cenové ponuky" a kopíruje Číslo a Názov
+ * Aktualizuje číslo, názov a dátum cenovej ponuky z nadriadeného záznamu
+ * Hľadá linksFrom z knižnice "Cenové ponuky" a kopíruje Číslo, Názov a Dátum
+ * @returns {Date|null} - Dátum z cenovej ponuky alebo null
  */
 function updateQuoteInfo() {
     try {
@@ -102,19 +101,21 @@ function updateQuoteInfo() {
 
         if (!quoteEntries || quoteEntries.length === 0) {
             utils.addDebug(currentEntry, "  ⚠️ Nenašiel som nadriadenú cenovú ponuku");
-            return;
+            return null;
         }
 
         // Použij prvý nájdený záznam (malo by byť len jeden)
         var quoteEntry = quoteEntries[0];
 
-        // Získaj číslo a názov z cenovej ponuky
+        // Získaj číslo, názov a dátum z cenovej ponuky
         var quoteNumber = utils.safeGet(quoteEntry, centralConfig.fields.quote.number);
         var quoteName = utils.safeGet(quoteEntry, centralConfig.fields.quote.name);
+        var quoteDate = utils.safeGet(quoteEntry, centralConfig.fields.quote.date);
 
         utils.addDebug(currentEntry, "  ✅ Nájdená cenová ponuka:");
         utils.addDebug(currentEntry, "     Číslo: " + (quoteNumber || "neznáme"));
         utils.addDebug(currentEntry, "     Názov: " + (quoteName || "neznámy"));
+        utils.addDebug(currentEntry, "     Dátum: " + (quoteDate ? moment(quoteDate).format("DD.MM.YYYY") : "neznámy"));
 
         // Zapíš do polí dielu
         if (quoteNumber) {
@@ -123,9 +124,15 @@ function updateQuoteInfo() {
         if (quoteName) {
             currentEntry.set(fields.name, quoteName);
         }
+        if (quoteDate) {
+            currentEntry.set(fields.date, quoteDate);
+        }
+
+        return quoteDate;
 
     } catch (error) {
         utils.addError(currentEntry, "❌ Chyba pri aktualizácii údajov z CP: " + error.toString(), "updateQuoteInfo", error);
+        return null;
     }
 }
 
@@ -139,6 +146,7 @@ function findMaterialPrice(materialEntry, date) {
     var options = {
         priceLibrary: "materialPrices",
         linkField: "material",
+        dateField: "date",  // KRITICKÉ: V materialPrices je pole pre dátum nazvané "date" (nie "validFrom")
         priceField: "sellPrice",
         fallbackPriceField: "price",
         currentEntry: currentEntry
@@ -285,7 +293,17 @@ function processPriceUpdates() {
 
 try {
     // ========== AKTUALIZÁCIA ÚDAJOV Z CENOVEJ PONUKY ==========
-    updateQuoteInfo();
+    var quoteDateFromParent = updateQuoteInfo();
+
+    // Určenie dátumu pre výpočty - priorita má dátum z cenovej ponuky
+    var currentDate = quoteDateFromParent || utils.safeGet(currentEntry, fields.date);
+
+    if (!currentDate) {
+        currentDate = new Date();
+        utils.addDebug(currentEntry, "⚠️ Dátum nie je zadaný ani v CP ani v Diely, použijem dnešný dátum");
+    }
+
+    utils.addDebug(currentEntry, "📅 Dátum pre výpočty: " + moment(currentDate).format("DD.MM.YYYY"));
 
     var materialSum = 0;
     var workSum = 0;
