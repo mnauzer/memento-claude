@@ -1,10 +1,11 @@
 // ==============================================
 // CENOVÉ PONUKY - Hlavný prepočet
-// Verzia: 1.0.0 | Dátum: 2025-10-07 | Autor: ASISTANTO
+// Verzia: 1.0.1 | Dátum: 2025-10-07 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky (ID: 90RmdjWuk)
 // Trigger: onChange
 // ==============================================
 // 📋 FUNKCIA:
+//    - Aktualizuje názov z Miesta realizácie
 //    - Spočíta hodnoty "Celkom" zo všetkých dielov cenovej ponuky
 //    - Vypočíta cenu dopravy podľa nastavenia (Paušál, km, %, Pevná cena)
 //    - Vypočíta cenu presunu hmôt podľa nastavenia
@@ -12,6 +13,9 @@
 //    - Získa aktuálnu sadzbu DPH
 //    - Vypočíta celkovú sumu s DPH
 // ==============================================
+// 🔧 CHANGELOG v1.0.1 (2025-10-07):
+//    - OPRAVA: Použitie správnej funkcie getValidVatRate(date, vatType)
+//    - PRIDANÉ: Aktualizácia názvu z Miesta realizácie
 // 🔧 CHANGELOG v1.0.0 (2025-10-07):
 //    - Prvá verzia
 //    - Spočítanie súčtov z dielov
@@ -31,7 +35,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky - Prepočet",
-    version: "1.0.0",
+    version: "1.0.1",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quote,
@@ -45,6 +49,39 @@ utils.addDebug(currentEntry, "🚀 START: Prepočet cenovej ponuky");
 // ==============================================
 // POMOCNÉ FUNKCIE
 // ==============================================
+
+/**
+ * Aktualizuje názov cenovej ponuky z Miesta realizácie
+ * Získa hodnotu poľa "Názov" z linkToEntry záznamu "Miesto realizácie"
+ */
+function updateNameFromPlace() {
+    try {
+        utils.addDebug(currentEntry, "\n📍 Aktualizácia názvu z Miesta realizácie");
+
+        var placeEntries = utils.safeGetLinks(currentEntry, fields.place);
+
+        if (!placeEntries || placeEntries.length === 0) {
+            utils.addDebug(currentEntry, "  ⚠️ Nie je vybrané miesto realizácie");
+            return;
+        }
+
+        var placeEntry = placeEntries[0];
+        var placeName = utils.safeGet(placeEntry, centralConfig.fields.place.name);
+
+        if (!placeName) {
+            utils.addDebug(currentEntry, "  ⚠️ Miesto realizácie nemá názov");
+            return;
+        }
+
+        utils.addDebug(currentEntry, "  ✅ Názov miesta: " + placeName);
+
+        // Zapíš do poľa Názov
+        currentEntry.set(fields.name, placeName);
+
+    } catch (error) {
+        utils.addError(currentEntry, "❌ Chyba pri aktualizácii názvu: " + error.toString(), "updateNameFromPlace", error);
+    }
+}
 
 /**
  * Spočíta hodnoty "Celkom" zo všetkých dielov cenovej ponuky
@@ -243,6 +280,9 @@ try {
 
     utils.addDebug(currentEntry, "📅 Dátum cenovej ponuky: " + moment(currentDate).format("DD.MM.YYYY"));
 
+    // ========== AKTUALIZÁCIA NÁZVU Z MIESTA REALIZÁCIE ==========
+    updateNameFromPlace();
+
     // ========== SPOČÍTANIE DIELOV ==========
     var totalFromParts = calculatePartsTotal();
 
@@ -258,7 +298,7 @@ try {
     // ========== ZÍSKANIE SADZBY DPH ==========
     utils.addDebug(currentEntry, "\n💰 Výpočet DPH");
 
-    var vatRatePercentage = utils.getCurrentVatRate(currentDate);
+    var vatRatePercentage = business.getValidVatRate(currentDate, "základná");
     utils.addDebug(currentEntry, "  Sadzba DPH: " + vatRatePercentage + "%");
 
     // Zapíš sadzbu DPH
