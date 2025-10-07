@@ -295,12 +295,24 @@ function calculateTransportPrice(totalFromParts, currentDate) {
         // ========== PEVNÁ CENA ==========
         else if (rideCalc === "Pevná cena") {
             utils.addDebug(currentEntry, "    Metóda: Pevná cena");
+            utils.addDebug(currentEntry, "      Hľadám pole: '" + fields.fixedTransportPrice + "'");
+
+            // Diagnostic - skús získať hodnotu priamo
+            var rawValue = currentEntry.field(fields.fixedTransportPrice);
+            utils.addDebug(currentEntry, "      Raw hodnota z field(): " + rawValue + " (typ: " + typeof rawValue + ")");
 
             transportPrice = utils.safeGet(currentEntry, fields.fixedTransportPrice) || 0;
+            utils.addDebug(currentEntry, "      Hodnota cez safeGet: " + transportPrice + " (typ: " + typeof transportPrice + ")");
 
             if (transportPrice <= 0) {
-                utils.addDebug(currentEntry, "      ⚠️ Pole 'Doprava pevná cena' nie je vyplnené (pole: " + fields.fixedTransportPrice + ")");
-                utils.addDebug(currentEntry, "      ℹ️ Zadaj pevnú cenu do poľa 'Doprava pevná cena'");
+                utils.addDebug(currentEntry, "      ⚠️ Pole 'Doprava pevná cena' nie je vyplnené alebo je 0");
+                utils.addDebug(currentEntry, "      ℹ️ Skontroluj pole: '" + fields.fixedTransportPrice + "'");
+
+                // Skús získať aj alternatívne pole
+                var altField = "Doprava pevná cena";
+                var altValue = currentEntry.field(altField);
+                utils.addDebug(currentEntry, "      Alt. pole '" + altField + "': " + altValue);
+
                 return 0;
             }
 
