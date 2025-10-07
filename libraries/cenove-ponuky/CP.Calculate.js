@@ -1,12 +1,13 @@
 // ==============================================
 // CENOVÉ PONUKY - Hlavný prepočet
-// Verzia: 1.2.3 | Dátum: 2025-10-07 | Autor: ASISTANTO
+// Verzia: 1.3.0 | Dátum: 2025-10-07 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky (ID: 90RmdjWuk)
 // Trigger: onChange
 // ==============================================
 // 📋 FUNKCIA:
 //    - Aktualizuje názov z Miesta realizácie
 //    - Spočíta hodnoty "Celkom" zo všetkých dielov cenovej ponuky
+//    - Automatická správa subdodávok (presun medzi Diely/Subdodávky podľa nastavenia)
 //    - Vypočíta predpokladaný počet km (vzdialenosť × 2 × počet jázd)
 //    - Vypočíta cenu dopravy podľa nastavenia (Neúčtovať, Paušál, Km, % zo zákazky, Pevná cena)
 //    - Vypočíta cenu presunu hmôt podľa nastavenia
@@ -14,6 +15,17 @@
 //    - Získa aktuálnu sadzbu DPH
 //    - Vypočíta celkovú sumu s DPH
 // ==============================================
+// 🔧 CHANGELOG v1.3.0 (2025-10-07):
+//    - NOVÁ FUNKCIA: manageSubcontracts() - Automatická správa subdodávok
+//    - PRIDANÉ: KROK 2c - Správa subdodávok medzi Diely/Subdodávky
+//    - Hľadanie subdodávky podľa partType = "Subdodávky" v oboch poliach
+//    - Podľa "Účtovanie subdodávok":
+//      • "Zarátať do ceny" → subdodávka v poli "Diely" (počíta sa do totalFromParts)
+//      • "Vytvoriť dodatok" → subdodávka v poli "Subdodávky" (samostatné pole "Celkom subdodávky")
+//      • "Neúčtovať" → zobrazí upozornenie ak subdodávka existuje
+//    - Automatický presun subdodávky na správne miesto pri zmene nastavenia
+//    - Prepočítanie totalFromParts po presune subdodávky
+//    - Aktualizácia poľa "Celkom subdodávky" ak je subdodávka v samostatnom poli
 // 🔧 CHANGELOG v1.2.3 (2025-10-07):
 //    - PRIDANÉ: Metóda "Neúčtovať" s konzistentným debug logom
 //    - VYLEPŠENÉ: Všetky metódy majú jednotný formát debug výstupu
@@ -69,7 +81,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky - Prepočet",
-    version: "1.2.2",
+    version: "1.3.0",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quote,
@@ -378,6 +390,155 @@ function calculateTransportPrice(totalFromParts, currentDate, expectedKm) {
     }
 }
 
+/**
+ * Správa subdodávok podľa nastavenia "Účtovanie subdodávok"
+ * Presúva subdodávky medzi polami "Diely" a "Subdodávky" podľa potreby
+ * @returns {Object} - { subcontractEntry, location, totalSubcontracts }
+ */
+function manageSubcontracts() {
+    try {
+        utils.addDebug(currentEntry, "  🔧 Správa subdodávok");
+
+        var subcontractsCalc = utils.safeGet(currentEntry, fields.subcontractsCalculation) || "Neúčtovať";
+        utils.addDebug(currentEntry, "    Účtovanie subdodávok: " + subcontractsCalc);
+
+        // Určenie cieľového miesta pre subdodávky
+        var targetField = null;
+        if (subcontractsCalc === "Zarátať do ceny") {
+            targetField = "parts"; // Pole "Diely"
+        } else if (subcontractsCalc === "Vytvoriť dodatok") {
+            targetField = "subcontracts"; // Pole "Subdodávky"
+        }
+
+        // Hľadanie subdodávky v oboch poliach
+        var subcontractEntry = null;
+        var currentLocation = null;
+
+        // 1. Hľadaj v poli "Diely"
+        var partsEntries = utils.safeGetLinks(currentEntry, fields.parts) || [];
+        for (var i = 0; i < partsEntries.length; i++) {
+            var part = partsEntries[i];
+            var partType = utils.safeGet(part, centralConfig.fields.quotePart.partType);
+            if (partType === "Subdodávky") {
+                subcontractEntry = part;
+                currentLocation = "parts";
+                utils.addDebug(currentEntry, "    ✅ Nájdená subdodávka v poli 'Diely'");
+                break;
+            }
+        }
+
+        // 2. Ak nie je v Dieloch, hľadaj v poli "Subdodávky"
+        if (!subcontractEntry) {
+            var subcontractsEntries = utils.safeGetLinks(currentEntry, fields.subcontracts) || [];
+            for (var i = 0; i < subcontractsEntries.length; i++) {
+                var part = subcontractsEntries[i];
+                var partType = utils.safeGet(part, centralConfig.fields.quotePart.partType);
+                if (partType === "Subdodávky") {
+                    subcontractEntry = part;
+                    currentLocation = "subcontracts";
+                    utils.addDebug(currentEntry, "    ✅ Nájdená subdodávka v poli 'Subdodávky'");
+                    break;
+                }
+            }
+        }
+
+        // 3. Ak subdodávka neexistuje
+        if (!subcontractEntry) {
+            utils.addDebug(currentEntry, "    ℹ️ Subdodávka nenájdená v žiadnom poli");
+
+            if (subcontractsCalc !== "Neúčtovať") {
+                utils.addDebug(currentEntry, "    ⚠️ Účtovanie je nastavené na '" + subcontractsCalc + "', ale subdodávka neexistuje");
+            }
+
+            // Vynulovať pole "Celkom subdodávky"
+            currentEntry.set(fields.subcontractsTotal, 0);
+
+            return { subcontractEntry: null, location: null, totalSubcontracts: 0 };
+        }
+
+        // 4. Ak je nastavené "Neúčtovať" a subdodávka existuje
+        if (subcontractsCalc === "Neúčtovať") {
+            message("⚠️ Účtovanie subdodávok je nastavené na 'Neúčtovať', ale subdodávka existuje!\n" +
+                    "Subdodávka je v poli: " + (currentLocation === "parts" ? "Diely" : "Subdodávky"));
+            utils.addDebug(currentEntry, "    ⚠️ Subdodávka existuje, ale účtovanie je nastavené na 'Neúčtovať'");
+
+            // Vynulovať pole "Celkom subdodávky"
+            currentEntry.set(fields.subcontractsTotal, 0);
+
+            return { subcontractEntry: subcontractEntry, location: currentLocation, totalSubcontracts: 0 };
+        }
+
+        // 5. Kontrola, či je subdodávka na správnom mieste
+        if (currentLocation !== targetField) {
+            utils.addDebug(currentEntry, "    🔄 Subdodávka je v nesprávnom poli, presúvam...");
+            utils.addDebug(currentEntry, "      Z: " + (currentLocation === "parts" ? "Diely" : "Subdodávky"));
+            utils.addDebug(currentEntry, "      Do: " + (targetField === "parts" ? "Diely" : "Subdodávky"));
+
+            // Odstráň z aktuálneho poľa
+            if (currentLocation === "parts") {
+                var newParts = [];
+                for (var i = 0; i < partsEntries.length; i++) {
+                    if (partsEntries[i] !== subcontractEntry) {
+                        newParts.push(partsEntries[i]);
+                    }
+                }
+                currentEntry.set(fields.parts, newParts);
+            } else {
+                var subcontractsEntries = utils.safeGetLinks(currentEntry, fields.subcontracts) || [];
+                var newSubcontracts = [];
+                for (var i = 0; i < subcontractsEntries.length; i++) {
+                    if (subcontractsEntries[i] !== subcontractEntry) {
+                        newSubcontracts.push(subcontractsEntries[i]);
+                    }
+                }
+                currentEntry.set(fields.subcontracts, newSubcontracts);
+            }
+
+            // Pridaj do cieľového poľa
+            if (targetField === "parts") {
+                var currentParts = utils.safeGetLinks(currentEntry, fields.parts) || [];
+                currentParts.push(subcontractEntry);
+                currentEntry.set(fields.parts, currentParts);
+            } else {
+                var currentSubcontracts = utils.safeGetLinks(currentEntry, fields.subcontracts) || [];
+                currentSubcontracts.push(subcontractEntry);
+                currentEntry.set(fields.subcontracts, currentSubcontracts);
+            }
+
+            currentLocation = targetField;
+            utils.addDebug(currentEntry, "    ✅ Subdodávka presunutá");
+        } else {
+            utils.addDebug(currentEntry, "    ✅ Subdodávka je už na správnom mieste");
+        }
+
+        // 6. Získaj hodnotu "Celkom" zo subdodávky
+        var subcontractTotal = utils.safeGet(subcontractEntry, centralConfig.fields.quotePart.totalSum) || 0;
+        utils.addDebug(currentEntry, "    💰 Celkom subdodávky: " + subcontractTotal.toFixed(2) + " €");
+
+        // 7. Aktualizuj pole "Celkom subdodávky" ak je v samostatnom poli
+        if (currentLocation === "subcontracts") {
+            currentEntry.set(fields.subcontractsTotal, subcontractTotal);
+            utils.addDebug(currentEntry, "    ✅ Aktualizované pole 'Celkom subdodávky'");
+        } else {
+            // Ak je v Dieloch, vynuluj "Celkom subdodávky" (lebo sa počíta v totalFromParts)
+            currentEntry.set(fields.subcontractsTotal, 0);
+        }
+
+        return {
+            subcontractEntry: subcontractEntry,
+            location: currentLocation,
+            totalSubcontracts: currentLocation === "subcontracts" ? subcontractTotal : 0
+        };
+
+    } catch (error) {
+        var errorMsg = "Chyba pri správe subdodávok: " + error.toString();
+        if (error.lineNumber) errorMsg += ", Line: " + error.lineNumber;
+        if (error.stack) errorMsg += "\nStack: " + error.stack;
+        utils.addError(currentEntry, errorMsg, "manageSubcontracts", error);
+        throw error;
+    }
+}
+
 // ==============================================
 // HLAVNÁ LOGIKA PREPOČTU
 // ==============================================
@@ -391,6 +552,7 @@ function main() {
         var steps = {
             step1: { success: false, name: "Aktualizácia názvu z miesta" },
             step2: { success: false, name: "Spočítanie dielov" },
+            step2c: { success: false, name: "Správa subdodávok" },
             step2b: { success: false, name: "Výpočet predpokladaných km" },
             step3: { success: false, name: "Výpočet dopravy" },
             step4: { success: false, name: "Výpočet DPH" },
@@ -428,6 +590,23 @@ function main() {
             utils.addError(currentEntry, "Chyba pri spočítaní dielov: " + error.toString(), CONFIG.scriptName);
             steps.step2.success = false;
             return false;
+        }
+
+        // KROK 2c: Správa subdodávok (presun medzi Diely/Subdodávky podľa nastavenia)
+        utils.addDebug(currentEntry, "\n" + utils.getIcon("settings") + " KROK 2c: Správa subdodávok");
+        var subcontractsInfo = { subcontractEntry: null, location: null, totalSubcontracts: 0 };
+        try {
+            subcontractsInfo = manageSubcontracts();
+            steps.step2c.success = true;
+
+            // Po presune subdodávky znova spočítaj totalFromParts
+            totalFromParts = calculatePartsTotal();
+            currentEntry.set(fields.total, totalFromParts);
+            utils.addDebug(currentEntry, "  ✅ Prepočítaná suma z dielov: " + totalFromParts.toFixed(2) + " €");
+
+        } catch (error) {
+            utils.addError(currentEntry, "Chyba pri správe subdodávok: " + error.toString(), CONFIG.scriptName);
+            steps.step2c.success = false;
         }
 
         // KROK 2b: Výpočet predpokladaného počtu km
