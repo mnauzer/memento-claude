@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY DIELY - Hlavný prepočet
-// Verzia: 3.0.0 | Dátum: 2025-10-06 | Autor: ASISTANTO
+// Verzia: 3.0.1 | Dátum: 2025-10-06 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky Diely (ID: nCAgQkfvK)
 // Trigger: onChange
 // ==============================================
@@ -14,6 +14,9 @@
 //    - Výpočet súčtov za jednotlivé kategórie
 //    - Výpočet celkovej sumy cenovej ponuky
 // ==============================================
+// 🔧 CHANGELOG v3.0.1 (2025-10-06):
+//    - OPRAVA: Bezpečné získanie názvu položky pomocou item.field() s try/catch
+//    - Fallback na "Materiál #N" / "Práca #N" ak názov nie je dostupný
 // 🔧 CHANGELOG v3.0.0 (2025-10-06):
 //    - ZÁSADNÁ ZMENA: Ceny sa VŽDY získavajú z databázy
 //    - Porovnanie ručne zadaných cien s databázovými cenami
@@ -43,7 +46,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky Diely - Prepočet",
-    version: "3.0.0",
+    version: "3.0.1",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quotePart,
@@ -288,7 +291,14 @@ try {
 
         for (var i = 0; i < materialItems.length; i++) {
             var item = materialItems[i];
-            var itemName = utils.safeGet(item, centralConfig.fields.items.name) || "Neznámy materiál";
+
+            // Získaj názov materiálu - skús viaceré možné polia
+            var itemName = "Neznámy materiál";
+            try {
+                itemName = item.field("Názov") || item.field("Name") || "Neznámy materiál";
+            } catch (e) {
+                itemName = "Materiál #" + (i + 1);
+            }
 
             var quantity = item.attr(attrs.quantity) || 0;
             var manualPrice = item.attr(attrs.price); // Ručne zadaná cena
@@ -379,7 +389,14 @@ try {
 
         for (var i = 0; i < workItems.length; i++) {
             var item = workItems[i];
-            var itemName = utils.safeGet(item, centralConfig.fields.priceList.name) || "Neznáma práca";
+
+            // Získaj názov práce - skús viaceré možné polia
+            var itemName = "Neznáma práca";
+            try {
+                itemName = item.field("Názov") || item.field("Name") || "Neznáma práca";
+            } catch (e) {
+                itemName = "Práca #" + (i + 1);
+            }
 
             var quantity = item.attr(attrs.quantity) || 0;
             var manualPrice = item.attr(attrs.price); // Ručne zadaná cena
