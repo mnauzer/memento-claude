@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY DIELY - Hlavný prepočet
-// Verzia: 3.3.1 | Dátum: 2025-10-07 | Autor: ASISTANTO
+// Verzia: 3.4.0 | Dátum: 2025-10-07 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky Diely (ID: nCAgQkfvK)
 // Trigger: onChange
 // ==============================================
@@ -15,7 +15,19 @@
 //    - Automatické použitie ceny z poľa "Cena" ak atribút nie je zadaný
 //    - Výpočet súčtov za jednotlivé kategórie
 //    - Výpočet celkovej sumy cenovej ponuky
+//    - Automatické vymazanie debug, error a info logov pri štarte
+//    - Vytvorenie prehľadného markdown reportu v info poli
 // ==============================================
+// 🔧 CHANGELOG v3.4.0 (2025-10-07):
+//    - NOVÁ FUNKCIA: Automatické vymazanie debug, error a info logov pri štarte (utils.clearLogs)
+//    - NOVÁ FUNKCIA: Vytvorenie prehľadného markdown reportu v info poli
+//    - PRIDANÁ FUNKCIA: buildQuoteInfoReport() - vytvorí markdown tabuľky s položkami
+//    - INFO REPORT obsahuje:
+//      • Názov cenovej ponuky a číslo (header)
+//      • Tabuľku materiálu (názov, množstvo, cena, celkom)
+//      • Tabuľku prác (názov, množstvo, cena, celkom)
+//      • Súčtové riadky a celkovú sumu
+//    - Zbieranie údajov o položkách do materialItemsInfo a workItemsInfo arrayov
 // 🔧 CHANGELOG v3.3.1 (2025-10-07):
 //    - KRITICKÁ OPRAVA: Zaokrúhlenie finalPrice na 2 desatinné miesta pred výpočtom totalPrice
 //    - FIX: Materiál 25 × 17,24 = 431,00 (bolo 430,89 kvôli nezaokrúhleným cenám z DB)
@@ -66,7 +78,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky Diely - Prepočet",
-    version: "3.3.1",
+    version: "3.4.0",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quotePart,
@@ -92,13 +104,98 @@ var CONFIG = {
 // Globálne premenné pre zbieranie rozdielov v cenách
 var priceDifferences = [];
 
+// Globálne premenné pre zbieranie info o položkách
+var materialItemsInfo = [];
+var workItemsInfo = [];
+
 var fields = CONFIG.fields;
+
+// Vyčistiť debug, error a info logy pred začiatkom
+utils.clearLogs(currentEntry, true);  // true = vyčistí aj Error_Log
 
 utils.addDebug(currentEntry, "🚀 START: Prepočet cenovej ponuky Diely");
 
 // ==============================================
 // POMOCNÉ FUNKCIE
 // ==============================================
+
+/**
+ * Vytvorí prehľadný markdown report s položkami materiálu a prác
+ * @param {Number} materialSum - Suma za materiál
+ * @param {Number} workSum - Suma za práce
+ * @param {Number} totalSum - Celková suma
+ * @returns {String} - Markdown formátovaný report
+ */
+function buildQuoteInfoReport(materialSum, workSum, totalSum) {
+    var report = "";
+
+    // Header s názvom cenovej ponuky
+    var quoteName = utils.safeGet(currentEntry, fields.name) || "Cenová ponuka";
+    var quoteNumber = utils.safeGet(currentEntry, fields.quoteNumber) || "";
+    var quoteDate = utils.safeGet(currentEntry, fields.date);
+
+    report += "# 📋 " + quoteName + "\n";
+    if (quoteNumber) {
+        report += "**Číslo:** " + quoteNumber + "\n";
+    }
+    if (quoteDate) {
+        report += "**Dátum:** " + moment(quoteDate).format("DD.MM.YYYY") + "\n";
+    }
+    report += "\n---\n\n";
+
+    // MATERIÁL
+    if (materialItemsInfo.length > 0) {
+        report += "## 📦 MATERIÁL\n\n";
+        report += "| Názov | Množstvo | Cena | Celkom |\n";
+        report += "|:------|----------:|------:|--------:|\n";
+
+        for (var i = 0; i < materialItemsInfo.length; i++) {
+            var item = materialItemsInfo[i];
+            report += "| " + item.name + " | ";
+            report += item.quantity.toFixed(2) + " | ";
+            report += item.price.toFixed(2) + " € | ";
+            report += "**" + item.totalPrice.toFixed(2) + " €** |\n";
+        }
+
+        report += "| | | **SPOLU MATERIÁL:** | **" + materialSum.toFixed(2) + " €** |\n";
+        report += "\n";
+    } else {
+        report += "## 📦 MATERIÁL\n\n";
+        report += "_Žiadne položky materiálu_\n\n";
+    }
+
+    // PRÁCE
+    if (workItemsInfo.length > 0) {
+        report += "## 🔨 PRÁCE\n\n";
+        report += "| Názov | Množstvo | Cena | Celkom |\n";
+        report += "|:------|----------:|------:|--------:|\n";
+
+        for (var i = 0; i < workItemsInfo.length; i++) {
+            var item = workItemsInfo[i];
+            report += "| " + item.name + " | ";
+            report += item.quantity.toFixed(2) + " | ";
+            report += item.price.toFixed(2) + " € | ";
+            report += "**" + item.totalPrice.toFixed(2) + " €** |\n";
+        }
+
+        report += "| | | **SPOLU PRÁCE:** | **" + workSum.toFixed(2) + " €** |\n";
+        report += "\n";
+    } else {
+        report += "## 🔨 PRÁCE\n\n";
+        report += "_Žiadne položky prác_\n\n";
+    }
+
+    // CELKOVÁ SUMA
+    report += "---\n\n";
+    report += "### 💰 CELKOVÁ SUMA\n\n";
+    report += "| Položka | Suma |\n";
+    report += "|:--------|------:|\n";
+    report += "| Materiál | " + materialSum.toFixed(2) + " € |\n";
+    report += "| Práce | " + workSum.toFixed(2) + " € |\n";
+    report += "| **CELKOM** | **" + totalSum.toFixed(2) + " €** |\n";
+
+    return report;
+}
 
 /**
  * Aktualizuje číslo, názov a dátum cenovej ponuky z nadriadeného záznamu
@@ -360,7 +457,7 @@ try {
     }
 
     utils.addDebug(currentEntry, "📅 Dátum pre výpočty: " + moment(currentDate).format("DD.MM.YYYY"));
-
+    
     var materialSum = 0;
     var workSum = 0;
 
@@ -481,6 +578,14 @@ try {
             var totalPrice = quantity * finalPrice;
             item.setAttr(attrs.totalPrice, totalPrice);
             materialSum += totalPrice;
+
+            // Zaznamenaj položku pre info report
+            materialItemsInfo.push({
+                name: itemName,
+                quantity: quantity,
+                price: finalPrice,
+                totalPrice: totalPrice
+            });
 
             utils.addDebug(currentEntry, "    💰 Finálna cena: " + finalPrice.toFixed(2) + " €, Celkom: " + totalPrice.toFixed(2) + " €");
         }
@@ -608,6 +713,14 @@ try {
             item.setAttr(attrs.totalPrice, totalPrice);
             workSum += totalPrice;
 
+            // Zaznamenaj položku pre info report
+            workItemsInfo.push({
+                name: itemName,
+                quantity: quantity,
+                price: finalPrice,
+                totalPrice: totalPrice
+            });
+
             utils.addDebug(currentEntry, "    💰 Finálna cena: " + finalPrice.toFixed(2) + " €, Celkom: " + totalPrice.toFixed(2) + " €");
         }
 
@@ -641,6 +754,19 @@ try {
     utils.addDebug(currentEntry, "  " + "-".repeat(48));
     utils.addDebug(currentEntry, "  • CELKOM:       " + totalSum.toFixed(2) + " €");
     utils.addDebug(currentEntry, "=".repeat(50));
+
+    // ========== VYTVORENIE INFO REPORTU ==========
+    var infoReport = buildQuoteInfoReport(materialSum, workSum, totalSum);
+
+    // Vymaž predchádzajúce info (utils.clearLogs vymaže len debug a error, nie info)
+    currentEntry.set(centralConfig.fields.common.info, "");
+
+    // Zapíš prehľadný report do info poľa
+    var infoFieldName = centralConfig.fields.common.info || "info";
+    currentEntry.set(infoFieldName, infoReport);
+
+    utils.addDebug(currentEntry, "\n📄 INFO REPORT: Vytvorený prehľadný report s " +
+        (materialItemsInfo.length + workItemsInfo.length) + " položkami");
 
     utils.addDebug(currentEntry, "✅ FINISH: Prepočet cenovej ponuky Diely úspešne dokončený");
 
