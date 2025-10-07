@@ -979,7 +979,7 @@ var MementoConfig = (function() {
                 ridePercentage: "Doprava %", // double (field 265)
                 expectedRidesCount: "Predpokladaný počet jázd", // int - počet predpokladaných jázd
                 kmPrice: "Doprava cena za km", // entries (field 266) - linkToEntry Cenník prác
-                rideFlatRate: "Paušál dopravy", // entries (field 267) - linkToEntry Cenník prác
+                rideFlatRate: "Doprava paušál", // entries (field 267) - linkToEntry Cenník prác
                 transportPrice: "Cena dopravy", // currency (field 268) - VÝSTUP vypočítanej ceny dopravy
                 fixedTransportPrice: "Doprava pevná cena", // currency - VSTUP pre pevnú cenu dopravy
 
