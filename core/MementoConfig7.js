@@ -1,7 +1,9 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.30 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.31 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.31 (2025-10-07):
+//    - PRIDANÉ: Pole expectedKm: "Predpokladaný počet km" - vypočítané z vzdialenosti × 2 × počet jázd
 // 🔧 CHANGELOG v7.0.30 (2025-10-07):
 //    - OPRAVA: Pole kmPrice: "Doprava cena za km" (bol len "Cena za km")
 //    - PRIDANÉ: Pole fixedTransportPrice: "Doprava pevná cena" pre vstup pevnej ceny
@@ -98,7 +100,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.30",  // Opravené názvy polí pre dopravu v cenovej ponuke
+        version: "7.0.31",  // Pridané pole expectedKm pre výpočet predpokladaného počtu km
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -978,6 +980,7 @@ var MementoConfig = (function() {
                 rideCalculation: "Účtovanie dopravy", // choice (field 126) - Paušál, Km, % zo zákazky, Pevná cena, Neúčtovať
                 ridePercentage: "Doprava %", // double (field 265)
                 expectedRidesCount: "Predpokladaný počet jázd", // int - počet predpokladaných jázd
+                expectedKm: "Predpokladaný počet km", // real number - VÝSTUP: vzdialenosť × 2 × počet jázd
                 kmPrice: "Doprava cena za km", // entries (field 266) - linkToEntry Cenník prác
                 rideFlatRate: "Doprava paušál", // entries (field 267) - linkToEntry Cenník prác
                 transportPrice: "Cena dopravy", // currency (field 268) - VÝSTUP vypočítanej ceny dopravy

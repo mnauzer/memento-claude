@@ -1,18 +1,25 @@
 // ==============================================
 // CENOVÉ PONUKY - Hlavný prepočet
-// Verzia: 1.1.0 | Dátum: 2025-10-07 | Autor: ASISTANTO
+// Verzia: 1.2.0 | Dátum: 2025-10-07 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky (ID: 90RmdjWuk)
 // Trigger: onChange
 // ==============================================
 // 📋 FUNKCIA:
 //    - Aktualizuje názov z Miesta realizácie
 //    - Spočíta hodnoty "Celkom" zo všetkých dielov cenovej ponuky
+//    - Vypočíta predpokladaný počet km (vzdialenosť × 2 × počet jázd)
 //    - Vypočíta cenu dopravy podľa nastavenia (Paušál, km, %, Pevná cena)
 //    - Vypočíta cenu presunu hmôt podľa nastavenia
 //    - Vypočíta cenu subdodávok podľa nastavenia
 //    - Získa aktuálnu sadzbu DPH
 //    - Vypočíta celkovú sumu s DPH
 // ==============================================
+// 🔧 CHANGELOG v1.2.0 (2025-10-07):
+//    - PRIDANÉ: KROK 2b - Výpočet predpokladaného počtu km
+//    - PRIDANÉ: Funkcia calculateExpectedKm() - vzdialenosť × 2 × počet jázd
+//    - OPRAVA: Metóda "km" používa predpočítané pole expectedKm
+//    - ZJEDNODUŠENÉ: Metóda "km" - odstránený duplicitný výpočet vzdialenosti
+//    - ODSTRÁNENÉ: Diagnostic kód z metódy "Pevná cena" (už funguje správne)
 // 🔧 CHANGELOG v1.1.0 (2025-10-07):
 //    - REFACTOR: Kompletný refactoring štruktúry scriptu
 //    - PRIDANÉ: Štruktúrované kroky s progress trackingom (steps object)
@@ -48,7 +55,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky - Prepočet",
-    version: "1.1.0",
+    version: "1.2.0",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quote,
@@ -168,6 +175,56 @@ function findWorkPrice(workEntry, date) {
 }
 
 /**
+ * Vypočíta predpokladaný počet km
+ * Vzorec: Vzdialenosť × 2 × Predpokladaný počet jázd
+ * @returns {Number} - Predpokladaný počet km
+ */
+function calculateExpectedKm() {
+    try {
+        utils.addDebug(currentEntry, "  🛣️ Výpočet predpokladaného počtu km");
+
+        // Zisti vzdialenosť z miesta realizácie
+        var placeEntries = utils.safeGetLinks(currentEntry, fields.place);
+
+        if (!placeEntries || placeEntries.length === 0) {
+            utils.addDebug(currentEntry, "    ⚠️ Nie je vybrané miesto realizácie");
+            return 0;
+        }
+
+        var placeEntry = placeEntries[0];
+        var placeName = utils.safeGet(placeEntry, centralConfig.fields.place.name) || "Miesto";
+        var distance = utils.safeGet(placeEntry, centralConfig.fields.place.distance) || 0;
+
+        utils.addDebug(currentEntry, "    Miesto: " + placeName);
+        utils.addDebug(currentEntry, "    Vzdialenosť: " + distance + " km");
+
+        if (distance <= 0) {
+            utils.addDebug(currentEntry, "    ⚠️ Vzdialenosť je 0 km");
+            return 0;
+        }
+
+        // Zisti predpokladaný počet jázd
+        var ridesCount = utils.safeGet(currentEntry, fields.expectedRidesCount) || 1;
+        utils.addDebug(currentEntry, "    Počet jázd: " + ridesCount);
+
+        // Výpočet: vzdialenosť × 2 (tam a späť) × počet jázd
+        var totalKm = distance * 2 * ridesCount;
+
+        utils.addDebug(currentEntry, "    📊 Výpočet: " + distance + " km × 2 × " + ridesCount + " = " + totalKm + " km");
+        utils.addDebug(currentEntry, "    ✅ Predpokladaný počet km: " + totalKm + " km");
+
+        return totalKm;
+
+    } catch (error) {
+        var errorMsg = "Chyba pri výpočte predpokladaného počtu km: " + error.toString();
+        if (error.lineNumber) errorMsg += ", Line: " + error.lineNumber;
+        if (error.stack) errorMsg += "\nStack: " + error.stack;
+        utils.addError(currentEntry, errorMsg, "calculateExpectedKm", error);
+        throw error;
+    }
+}
+
+/**
  * Vypočíta cenu dopravy podľa nastaveného typu účtovania
  * @param {Number} totalFromParts - Celková suma z dielov
  * @param {Date} currentDate - Dátum cenovej ponuky
@@ -222,6 +279,7 @@ function calculateTransportPrice(totalFromParts, currentDate) {
         else if (rideCalc === "km") {
             utils.addDebug(currentEntry, "    Metóda: Kilometrovník");
 
+            // Zisti cenu za km
             var kmPriceEntries = utils.safeGetLinks(currentEntry, fields.kmPrice);
 
             if (!kmPriceEntries || kmPriceEntries.length === 0) {
@@ -233,7 +291,6 @@ function calculateTransportPrice(totalFromParts, currentDate) {
             var kmPriceName = utils.safeGet(kmPriceEntry, centralConfig.fields.priceList.name) || "Cena za km";
             utils.addDebug(currentEntry, "      Položka: " + kmPriceName);
 
-            // Zisti cenu za km
             var kmPriceValue = findWorkPrice(kmPriceEntry, currentDate);
 
             if (!kmPriceValue || kmPriceValue <= 0) {
@@ -242,35 +299,19 @@ function calculateTransportPrice(totalFromParts, currentDate) {
             }
             utils.addDebug(currentEntry, "      Cena za km: " + kmPriceValue.toFixed(2) + " €/km");
 
-            // Zisti vzdialenosť z miesta realizácie
-            var placeEntries = utils.safeGetLinks(currentEntry, fields.place);
+            // Zisti predpokladaný počet km (už vypočítaný v KROK 2b)
+            var totalKm = utils.safeGet(currentEntry, fields.expectedKm) || 0;
 
-            if (!placeEntries || placeEntries.length === 0) {
-                utils.addDebug(currentEntry, "      ⚠️ Nie je vybrané miesto realizácie (pole: " + fields.place + ")");
+            if (totalKm <= 0) {
+                utils.addDebug(currentEntry, "      ⚠️ Predpokladaný počet km je 0 (pole: " + fields.expectedKm + ")");
+                utils.addDebug(currentEntry, "      ℹ️ Uistite sa, že je vybrané Miesto realizácie s Vzdialenosťou a Predpokladaný počet jázd");
                 return 0;
             }
-
-            var placeEntry = placeEntries[0];
-            var placeName = utils.safeGet(placeEntry, centralConfig.fields.place.name) || "Miesto";
-            utils.addDebug(currentEntry, "      Miesto: " + placeName);
-
-            var distance = utils.safeGet(placeEntry, centralConfig.fields.place.distance) || 0;
-
-            if (distance <= 0) {
-                utils.addDebug(currentEntry, "      ⚠️ Vzdialenosť miesta je 0 km (pole: " + centralConfig.fields.place.distance + ")");
-                return 0;
-            }
-            utils.addDebug(currentEntry, "      Vzdialenosť: " + distance + " km");
-
-            var ridesCount = utils.safeGet(currentEntry, fields.expectedRidesCount) || 1;
-            utils.addDebug(currentEntry, "      Počet jázd: " + ridesCount);
-
-            // Vzdialenosť tam a nazad
-            var totalKm = distance * 2 * ridesCount;
+            utils.addDebug(currentEntry, "      Predpokladaný počet km: " + totalKm + " km");
 
             transportPrice = kmPriceValue * totalKm;
 
-            utils.addDebug(currentEntry, "      📊 Výpočet: " + kmPriceValue.toFixed(2) + " €/km × " + distance + " km × 2 × " + ridesCount + " = " + totalKm + " km");
+            utils.addDebug(currentEntry, "      📊 Výpočet: " + kmPriceValue.toFixed(2) + " €/km × " + totalKm + " km");
             utils.addDebug(currentEntry, "      ✅ Cena dopravy: " + transportPrice.toFixed(2) + " €");
         }
 
@@ -295,24 +336,12 @@ function calculateTransportPrice(totalFromParts, currentDate) {
         // ========== PEVNÁ CENA ==========
         else if (rideCalc === "Pevná cena") {
             utils.addDebug(currentEntry, "    Metóda: Pevná cena");
-            utils.addDebug(currentEntry, "      Hľadám pole: '" + fields.fixedTransportPrice + "'");
-
-            // Diagnostic - skús získať hodnotu priamo
-            var rawValue = currentEntry.field(fields.fixedTransportPrice);
-            utils.addDebug(currentEntry, "      Raw hodnota z field(): " + rawValue + " (typ: " + typeof rawValue + ")");
 
             transportPrice = utils.safeGet(currentEntry, fields.fixedTransportPrice) || 0;
-            utils.addDebug(currentEntry, "      Hodnota cez safeGet: " + transportPrice + " (typ: " + typeof transportPrice + ")");
 
             if (transportPrice <= 0) {
-                utils.addDebug(currentEntry, "      ⚠️ Pole 'Doprava pevná cena' nie je vyplnené alebo je 0");
-                utils.addDebug(currentEntry, "      ℹ️ Skontroluj pole: '" + fields.fixedTransportPrice + "'");
-
-                // Skús získať aj alternatívne pole
-                var altField = "Doprava pevná cena";
-                var altValue = currentEntry.field(altField);
-                utils.addDebug(currentEntry, "      Alt. pole '" + altField + "': " + altValue);
-
+                utils.addDebug(currentEntry, "      ⚠️ Pole 'Doprava pevná cena' nie je vyplnené (pole: " + fields.fixedTransportPrice + ")");
+                utils.addDebug(currentEntry, "      ℹ️ Zadaj pevnú cenu do poľa 'Doprava pevná cena'");
                 return 0;
             }
 
@@ -344,6 +373,7 @@ function main() {
         var steps = {
             step1: { success: false, name: "Aktualizácia názvu z miesta" },
             step2: { success: false, name: "Spočítanie dielov" },
+            step2b: { success: false, name: "Výpočet predpokladaných km" },
             step3: { success: false, name: "Výpočet dopravy" },
             step4: { success: false, name: "Výpočet DPH" },
             step5: { success: false, name: "Celková suma" }
@@ -380,6 +410,19 @@ function main() {
             utils.addError(currentEntry, "Chyba pri spočítaní dielov: " + error.toString(), CONFIG.scriptName);
             steps.step2.success = false;
             return false;
+        }
+
+        // KROK 2b: Výpočet predpokladaného počtu km
+        utils.addDebug(currentEntry, "\n" + utils.getIcon("transport") + " KROK 2b: Výpočet predpokladaného počtu km");
+        var expectedKm = 0;
+        try {
+            expectedKm = calculateExpectedKm();
+            currentEntry.set(fields.expectedKm, expectedKm);
+            steps.step2b.success = true;
+        } catch (error) {
+            utils.addError(currentEntry, "Chyba pri výpočte predpokladaných km: " + error.toString(), CONFIG.scriptName);
+            steps.step2b.success = false;
+            // Pokračujeme aj pri chybe - doprava môže byť iná metóda
         }
 
         // KROK 3: Výpočet dopravy
