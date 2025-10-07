@@ -170,7 +170,7 @@ function findWorkPrice(workEntry, date) {
  */
 function createMaterialPriceRecord(materialEntry, newPrice, validFrom) {
     try {
-        var materialPricesLib = lib(centralConfig.libraries.materialPrices);
+        var materialPricesLib = libByName(centralConfig.libraries.materialPrices);
         var priceFields = CONFIG.priceFields.materialPrices;
 
         var newPriceEntry = materialPricesLib.create({});
@@ -194,7 +194,7 @@ function createMaterialPriceRecord(materialEntry, newPrice, validFrom) {
  */
 function createWorkPriceRecord(workEntry, newPrice, validFrom) {
     try {
-        var workPricesLib = lib(centralConfig.libraries.workPrices);
+        var workPricesLib = libByName(centralConfig.libraries.workPrices);
         var priceFields = CONFIG.priceFields.workPrices;
 
         var newPriceEntry = workPricesLib.create({});
