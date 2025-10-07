@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY - Hlavný prepočet
-// Verzia: 1.2.0 | Dátum: 2025-10-07 | Autor: ASISTANTO
+// Verzia: 1.2.1 | Dátum: 2025-10-07 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky (ID: 90RmdjWuk)
 // Trigger: onChange
 // ==============================================
@@ -14,6 +14,10 @@
 //    - Získa aktuálnu sadzbu DPH
 //    - Vypočíta celkovú sumu s DPH
 // ==============================================
+// 🔧 CHANGELOG v1.2.1 (2025-10-07):
+//    - OPRAVA: expectedKm sa predáva ako parameter do calculateTransportPrice()
+//    - FIX: Metóda "km" teraz dostáva správnu hodnotu expectedKm z premennej, nie z poľa
+//    - DÔVOD: Pole expectedKm ešte nemusí byť uložené v databáze pri volaní calculateTransportPrice()
 // 🔧 CHANGELOG v1.2.0 (2025-10-07):
 //    - PRIDANÉ: KROK 2b - Výpočet predpokladaného počtu km
 //    - PRIDANÉ: Funkcia calculateExpectedKm() - vzdialenosť × 2 × počet jázd
@@ -55,7 +59,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky - Prepočet",
-    version: "1.2.0",
+    version: "1.2.1",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quote,
@@ -228,9 +232,10 @@ function calculateExpectedKm() {
  * Vypočíta cenu dopravy podľa nastaveného typu účtovania
  * @param {Number} totalFromParts - Celková suma z dielov
  * @param {Date} currentDate - Dátum cenovej ponuky
+ * @param {Number} expectedKm - Predpokladaný počet km (už vypočítaný)
  * @returns {Number} - Cena dopravy
  */
-function calculateTransportPrice(totalFromParts, currentDate) {
+function calculateTransportPrice(totalFromParts, currentDate, expectedKm) {
     try {
         utils.addDebug(currentEntry, "  🚗 Výpočet dopravy");
 
@@ -299,11 +304,11 @@ function calculateTransportPrice(totalFromParts, currentDate) {
             }
             utils.addDebug(currentEntry, "      Cena za km: " + kmPriceValue.toFixed(2) + " €/km");
 
-            // Zisti predpokladaný počet km (už vypočítaný v KROK 2b)
-            var totalKm = utils.safeGet(currentEntry, fields.expectedKm) || 0;
+            // Použij predpokladaný počet km (už vypočítaný v KROK 2b a odovzdaný ako parameter)
+            var totalKm = expectedKm || 0;
 
             if (totalKm <= 0) {
-                utils.addDebug(currentEntry, "      ⚠️ Predpokladaný počet km je 0 (pole: " + fields.expectedKm + ")");
+                utils.addDebug(currentEntry, "      ⚠️ Predpokladaný počet km je 0");
                 utils.addDebug(currentEntry, "      ℹ️ Uistite sa, že je vybrané Miesto realizácie s Vzdialenosťou a Predpokladaný počet jázd");
                 return 0;
             }
@@ -429,7 +434,7 @@ function main() {
         utils.addDebug(currentEntry, "\n" + utils.getIcon("transport") + " KROK 3: Výpočet dopravy");
         var transportPrice = 0;
         try {
-            transportPrice = calculateTransportPrice(totalFromParts, currentDate);
+            transportPrice = calculateTransportPrice(totalFromParts, currentDate, expectedKm);
             currentEntry.set(fields.transportPrice, transportPrice);
             steps.step3.success = true;
         } catch (error) {
