@@ -1,7 +1,11 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.29 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.30 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.30 (2025-10-07):
+//    - OPRAVA: Pole kmPrice: "Doprava cena za km" (bol len "Cena za km")
+//    - PRIDANÉ: Pole fixedTransportPrice: "Doprava pevná cena" pre vstup pevnej ceny
+//    - PRIDANÉ: Komentár transportPrice: "Cena dopravy" - VÝSTUP vypočítanej ceny
 // 🔧 CHANGELOG v7.0.29 (2025-10-07):
 //    - REFACTOR: Odstránené duplicitné systémové polia z fields.quote a fields.quotePart
 //    - Systémové polia (view, id, createdBy, etc.) sú teraz len v fields.common
@@ -94,7 +98,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.29",  // Refactor: Odstránené duplicitné systémové polia z quote/quotePart
+        version: "7.0.30",  // Opravené názvy polí pre dopravu v cenovej ponuke
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -974,9 +978,10 @@ var MementoConfig = (function() {
                 rideCalculation: "Účtovanie dopravy", // choice (field 126) - Paušál, Km, % zo zákazky, Pevná cena, Neúčtovať
                 ridePercentage: "Doprava %", // double (field 265)
                 expectedRidesCount: "Predpokladaný počet jázd", // int - počet predpokladaných jázd
-                kmPrice: "Cena za km", // entries (field 266) - linkToEntry Cenník prác
+                kmPrice: "Doprava cena za km", // entries (field 266) - linkToEntry Cenník prác
                 rideFlatRate: "Paušál dopravy", // entries (field 267) - linkToEntry Cenník prác
-                transportPrice: "Cena dopravy", // currency (field 268)
+                transportPrice: "Cena dopravy", // currency (field 268) - VÝSTUP vypočítanej ceny dopravy
+                fixedTransportPrice: "Doprava pevná cena", // currency - VSTUP pre pevnú cenu dopravy
 
                 // Účtovanie ďalších položiek
                 massTransferCalculation: "Účtovanie presunu hmôt", // choice - Neúčtovať, % zo zákazky, Pevná cena
