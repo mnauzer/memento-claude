@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY DIELY - Hlavný prepočet
-// Verzia: 3.4.0 | Dátum: 2025-10-07 | Autor: ASISTANTO
+// Verzia: 3.5.0 | Dátum: 2025-10-07 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky Diely (ID: nCAgQkfvK)
 // Trigger: onChange
 // ==============================================
@@ -18,6 +18,15 @@
 //    - Automatické vymazanie debug, error a info logov pri štarte
 //    - Vytvorenie prehľadného markdown reportu v info poli
 // ==============================================
+// 🔧 CHANGELOG v3.5.0 (2025-10-07):
+//    - OPRAVA: Zmena z markdown tabuliek na textový formát s pevným zarovnaním
+//    - Memento Database nepodporuje markdown tabuľky, len čistý text
+//    - PRIDANÉ: Stĺpec "mj" (merná jednotka) v info reporte
+//    - Získavanie mernej jednotky z poľa "mj" v záznamoch materiálu a prác
+//    - VYLEPŠENÉ: Pomocné funkcie padLeft() a padRight() pre zarovnanie textu
+//    - DESIGN: Použitie ═══ a ─── pre oddeľovače namiesto markdown
+//    - Pekné zarovnanie čísel doprava, textov doľava
+//    - Skrátenie príliš dlhých názvov na 35 znakov (s "...")
 // 🔧 CHANGELOG v3.4.0 (2025-10-07):
 //    - NOVÁ FUNKCIA: Automatické vymazanie debug, error a info logov pri štarte (utils.clearLogs)
 //    - NOVÁ FUNKCIA: Vytvorenie prehľadného markdown reportu v info poli
@@ -78,7 +87,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky Diely - Prepočet",
-    version: "3.4.0",
+    version: "3.5.0",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quotePart,
@@ -120,79 +129,119 @@ utils.addDebug(currentEntry, "🚀 START: Prepočet cenovej ponuky Diely");
 // ==============================================
 
 /**
- * Vytvorí prehľadný markdown report s položkami materiálu a prác
+ * Vytvorí prehľadný textový report s položkami materiálu a prác
  * @param {Number} materialSum - Suma za materiál
  * @param {Number} workSum - Suma za práce
  * @param {Number} totalSum - Celková suma
- * @returns {String} - Markdown formátovaný report
+ * @returns {String} - Textový formátovaný report
  */
 function buildQuoteInfoReport(materialSum, workSum, totalSum) {
     var report = "";
+
+    // Pomocná funkcia pre zarovnanie textu doprava
+    function padLeft(text, length) {
+        text = String(text);
+        while (text.length < length) {
+            text = " " + text;
+        }
+        return text;
+    }
+
+    // Pomocná funkcia pre zarovnanie textu doľava
+    function padRight(text, length) {
+        text = String(text);
+        while (text.length < length) {
+            text = text + " ";
+        }
+        return text;
+    }
 
     // Header s názvom cenovej ponuky
     var quoteName = utils.safeGet(currentEntry, fields.name) || "Cenová ponuka";
     var quoteNumber = utils.safeGet(currentEntry, fields.quoteNumber) || "";
     var quoteDate = utils.safeGet(currentEntry, fields.date);
 
-    report += "# 📋 " + quoteName + "\n";
+    report += "═══════════════════════════════════════════════════════\n";
+    report += "📋 " + quoteName + "\n";
     if (quoteNumber) {
-        report += "**Číslo:** " + quoteNumber + "\n";
+        report += "Číslo: " + quoteNumber + "\n";
     }
     if (quoteDate) {
-        report += "**Dátum:** " + moment(quoteDate).format("DD.MM.YYYY") + "\n";
+        report += "Dátum: " + moment(quoteDate).format("DD.MM.YYYY") + "\n";
     }
-    report += "\n---\n\n";
+    report += "═══════════════════════════════════════════════════════\n\n";
 
     // MATERIÁL
     if (materialItemsInfo.length > 0) {
-        report += "## 📦 MATERIÁL\n\n";
-        report += "| Názov | Množstvo | Cena | Celkom |\n";
-        report += "|:------|----------:|------:|--------:|\n";
+        report += "📦 MATERIÁL\n";
+        report += "───────────────────────────────────────────────────────\n";
+        report += padRight("Názov", 35) + " ";
+        report += padLeft("mj", 4) + " ";
+        report += padLeft("Množstvo", 10) + " ";
+        report += padLeft("Cena", 10) + " ";
+        report += padLeft("Celkom", 10) + "\n";
+        report += "───────────────────────────────────────────────────────\n";
 
         for (var i = 0; i < materialItemsInfo.length; i++) {
             var item = materialItemsInfo[i];
-            report += "| " + item.name + " | ";
-            report += item.quantity.toFixed(2) + " | ";
-            report += item.price.toFixed(2) + " € | ";
-            report += "**" + item.totalPrice.toFixed(2) + " €** |\n";
+            var itemName = item.name.length > 35 ? item.name.substring(0, 32) + "..." : item.name;
+
+            report += padRight(itemName, 35) + " ";
+            report += padLeft(item.unit || "-", 4) + " ";
+            report += padLeft(item.quantity.toFixed(2), 10) + " ";
+            report += padLeft(item.price.toFixed(2), 10) + " ";
+            report += padLeft(item.totalPrice.toFixed(2) + " €", 10) + "\n";
         }
 
-        report += "| | | **SPOLU MATERIÁL:** | **" + materialSum.toFixed(2) + " €** |\n";
-        report += "\n";
+        report += "───────────────────────────────────────────────────────\n";
+        report += padRight("SPOLU MATERIÁL:", 61) + " ";
+        report += padLeft(materialSum.toFixed(2) + " €", 10) + "\n\n";
     } else {
-        report += "## 📦 MATERIÁL\n\n";
-        report += "_Žiadne položky materiálu_\n\n";
+        report += "📦 MATERIÁL\n";
+        report += "───────────────────────────────────────────────────────\n";
+        report += "Žiadne položky materiálu\n\n";
     }
 
     // PRÁCE
     if (workItemsInfo.length > 0) {
-        report += "## 🔨 PRÁCE\n\n";
-        report += "| Názov | Množstvo | Cena | Celkom |\n";
-        report += "|:------|----------:|------:|--------:|\n";
+        report += "🔨 PRÁCE\n";
+        report += "───────────────────────────────────────────────────────\n";
+        report += padRight("Názov", 35) + " ";
+        report += padLeft("mj", 4) + " ";
+        report += padLeft("Množstvo", 10) + " ";
+        report += padLeft("Cena", 10) + " ";
+        report += padLeft("Celkom", 10) + "\n";
+        report += "───────────────────────────────────────────────────────\n";
 
         for (var i = 0; i < workItemsInfo.length; i++) {
             var item = workItemsInfo[i];
-            report += "| " + item.name + " | ";
-            report += item.quantity.toFixed(2) + " | ";
-            report += item.price.toFixed(2) + " € | ";
-            report += "**" + item.totalPrice.toFixed(2) + " €** |\n";
+            var itemName = item.name.length > 35 ? item.name.substring(0, 32) + "..." : item.name;
+
+            report += padRight(itemName, 35) + " ";
+            report += padLeft(item.unit || "-", 4) + " ";
+            report += padLeft(item.quantity.toFixed(2), 10) + " ";
+            report += padLeft(item.price.toFixed(2), 10) + " ";
+            report += padLeft(item.totalPrice.toFixed(2) + " €", 10) + "\n";
         }
 
-        report += "| | | **SPOLU PRÁCE:** | **" + workSum.toFixed(2) + " €** |\n";
-        report += "\n";
+        report += "───────────────────────────────────────────────────────\n";
+        report += padRight("SPOLU PRÁCE:", 61) + " ";
+        report += padLeft(workSum.toFixed(2) + " €", 10) + "\n\n";
     } else {
-        report += "## 🔨 PRÁCE\n\n";
-        report += "_Žiadne položky prác_\n\n";
+        report += "🔨 PRÁCE\n";
+        report += "───────────────────────────────────────────────────────\n";
+        report += "Žiadne položky prác\n\n";
     }
 
     // CELKOVÁ SUMA
-    report += "---\n\n";
-    report += "### 💰 CELKOVÁ SUMA\n\n";
-    report += "| Položka | Suma |\n";
-    report += "|:--------|------:|\n";
-    report += "| Materiál | " + materialSum.toFixed(2) + " € |\n";
-    report += "| Práce | " + workSum.toFixed(2) + " € |\n";
-    report += "| **CELKOM** | **" + totalSum.toFixed(2) + " €** |\n";
+    report += "═══════════════════════════════════════════════════════\n";
+    report += "💰 CELKOVÁ SUMA\n";
+    report += "═══════════════════════════════════════════════════════\n";
+    report += padRight("Materiál:", 30) + " " + padLeft(materialSum.toFixed(2) + " €", 20) + "\n";
+    report += padRight("Práce:", 30) + " " + padLeft(workSum.toFixed(2) + " €", 20) + "\n";
+    report += "───────────────────────────────────────────────────────\n";
+    report += padRight("CELKOM:", 30) + " " + padLeft(totalSum.toFixed(2) + " €", 20) + "\n";
+    report += "═══════════════════════════════════════════════════════\n";
 
     return report;
 }
@@ -579,9 +628,18 @@ try {
             item.setAttr(attrs.totalPrice, totalPrice);
             materialSum += totalPrice;
 
+            // Získaj mernú jednotku
+            var itemUnit = "";
+            try {
+                itemUnit = item.field("mj") || "";
+            } catch (e) {
+                itemUnit = "";
+            }
+
             // Zaznamenaj položku pre info report
             materialItemsInfo.push({
                 name: itemName,
+                unit: itemUnit,
                 quantity: quantity,
                 price: finalPrice,
                 totalPrice: totalPrice
@@ -713,9 +771,18 @@ try {
             item.setAttr(attrs.totalPrice, totalPrice);
             workSum += totalPrice;
 
+            // Získaj mernú jednotku
+            var itemUnit = "";
+            try {
+                itemUnit = item.field("mj") || "";
+            } catch (e) {
+                itemUnit = "";
+            }
+
             // Zaznamenaj položku pre info report
             workItemsInfo.push({
                 name: itemName,
+                unit: itemUnit,
                 quantity: quantity,
                 price: finalPrice,
                 totalPrice: totalPrice
