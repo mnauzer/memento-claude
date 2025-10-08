@@ -18,7 +18,7 @@
 var MementoUtils = (function() {
     'use strict';
     
-    var version = "7.1.0";  // Pridaná univerzálna architektúra pre výkazy
+    var version = "7.2.0";  // Pridaná funkcia generateNextNumber pre automatické generovanie čísel záznamov
     
     // ==============================================
     // LAZY LOADING MODULOV
@@ -422,7 +422,10 @@ var MementoUtils = (function() {
         showInfoDialog: lazyCall('core', 'showInfoDialog'),
 
         // === PRICE LOOKUP ===
-        findValidPrice: lazyCall('business', 'findValidPrice')
+        findValidPrice: lazyCall('business', 'findValidPrice'),
+
+        // === NUMBER GENERATION ===
+        generateNextNumber: lazyCall('business', 'generateNextNumber')
     };
     
     // === INICIALIZÁCIA ===
