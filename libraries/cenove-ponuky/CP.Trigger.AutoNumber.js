@@ -6,7 +6,7 @@
  * Knižnica:    Cenové ponuky
  * Názov:       CP.Trigger.AutoNumber
  * Typ:         Trigger (onCreate - "Opened card" / After Save)
- * Verzia:      1.0.0
+ * Verzia:      1.0.1
  * Dátum:       October 2025
  *
  * Popis:
@@ -28,8 +28,7 @@
  * - "CP-YYMMXXX" → CP-2510001, CP-2510002...
  *
  * Závislosti:
- * - MementoUtils (exportuje generateNextNumber z MementoBusiness)
- * - MementoConfig (definícia polí a knižníc)
+ * - CP.AutoNumber.Lib (shared script) - musí byť pridaný v knižnici
  * - ASISTANTO Defaults (placeholder definícia)
  *
  * ============================================================================
@@ -37,7 +36,7 @@
 
 var CONFIG = {
     scriptName: "CP.Trigger.AutoNumber",
-    version: "1.0.0",
+    version: "1.0.1",
 
     // Názvy použité pre generovanie čísla
     libraryName: "Cenové ponuky",
@@ -49,71 +48,33 @@ var CONFIG = {
 // HLAVNÁ FUNKCIA
 // ==============================================
 
-function main() {
-    var currentEntry = entry();
+var currentEntry = entry();
 
-    try {
-        // Načítaj utility
-        var utils = MementoUtils;
-        if (!utils) {
-            message("❌ MementoUtils nie je dostupný");
-            return;
-        }
-
-        // Skontroluj, či už má záznam číslo
-        var existingNumber = currentEntry.field(CONFIG.numberFieldName);
-        if (existingNumber && existingNumber !== "") {
-            // Záznam už má číslo, netreba generovať
-            utils.addDebug(currentEntry, "ℹ️ Záznam už má číslo: " + existingNumber);
-            return;
-        }
-
-        // Vygeneruj nové číslo
-        var result = utils.generateNextNumber(
+try {
+    // Skontroluj, či už má záznam číslo
+    var existingNumber = currentEntry.field(CONFIG.numberFieldName);
+    if (existingNumber && existingNumber !== "") {
+        // Záznam už má číslo, netreba generovať
+        // Ticho skončiť (bez message aby sme neotravovali užívateľa)
+    } else {
+        // Vygeneruj nové číslo pomocou shared script funkcie
+        var result = autoGenerateNumber(
             CONFIG.libraryName,
             CONFIG.numberFieldName,
             CONFIG.placeholderFieldName
         );
 
         if (!result.success) {
-            var errorMsg = "❌ Chyba pri generovaní čísla: " + result.error;
-            utils.addError(currentEntry, errorMsg, CONFIG.scriptName);
-            message(errorMsg);
-            return;
+            message("❌ Chyba pri generovaní čísla: " + result.error);
+        } else {
+            // Nastav vygenerované číslo
+            currentEntry.set(CONFIG.numberFieldName, result.number);
+
+            // Upozornenie pre užívateľa
+            message("✅ Číslo cenovej ponuky: " + result.number);
         }
-
-        // Nastav vygenerované číslo
-        currentEntry.set(CONFIG.numberFieldName, result.number);
-
-        // Log do Debug_Log
-        var debugMsg = "✅ Automaticky vygenerované číslo: " + result.number + "\n";
-        debugMsg += "   Placeholder: " + result.placeholder + "\n";
-        debugMsg += "   Prefix: " + result.prefix + "\n";
-        debugMsg += "   Poradie: " + result.sequence;
-
-        utils.addDebug(currentEntry, debugMsg);
-
-        // Upozornenie pre užívateľa
-        message("✅ Číslo cenovej ponuky: " + result.number);
-
-    } catch (error) {
-        var criticalError = "❌ KRITICKÁ CHYBA pri generovaní čísla: " + error.toString();
-
-        // Pokus sa zapísať chybu do Error_Log
-        try {
-            if (MementoUtils && MementoUtils.addError) {
-                MementoUtils.addError(currentEntry, criticalError, CONFIG.scriptName);
-            }
-        } catch (e) {
-            // Ignoruj chyby pri zápise logu
-        }
-
-        message(criticalError);
     }
+
+} catch (error) {
+    message("❌ KRITICKÁ CHYBA: " + error.toString());
 }
-
-// ==============================================
-// SPUSTENIE
-// ==============================================
-
-main();
