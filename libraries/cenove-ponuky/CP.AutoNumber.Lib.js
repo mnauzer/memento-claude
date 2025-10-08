@@ -59,7 +59,7 @@
 function autoGenerateNumber(libraryName, numberFieldName, placeholderFieldName) {
     try {
         // 1. Získaj placeholder z ASISTANTO Defaults
-        var defaultsLib = lib("ASISTANTO Defaults");
+        var defaultsLib = libByName("ASISTANTO Defaults");
         if (!defaultsLib) {
             return {
                 success: false,
@@ -116,7 +116,7 @@ function autoGenerateNumber(libraryName, numberFieldName, placeholderFieldName) 
         var sequenceLength = parsedPlaceholder.sequenceLength;
 
         // 3. Získaj knižnicu a všetky záznamy s daným prefixom
-        var targetLib = lib(libraryName);
+        var targetLib = libByName(libraryName);
         if (!targetLib) {
             return {
                 success: false,
