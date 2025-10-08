@@ -6,7 +6,7 @@
  * Knižnica:    Cenové ponuky
  * Názov:       CP.Trigger.AutoNumber
  * Typ:         Trigger (onCreate - "Opened card" / After Save)
- * Verzia:      1.0.1
+ * Verzia:      1.1.0
  * Dátum:       October 2025
  *
  * Popis:
@@ -34,9 +34,26 @@
  * ============================================================================
  */
 
+// ==============================================
+// IMPORT FUNKCIÍ zo Shared Script
+// ==============================================
+
+// Memento Database automaticky načíta shared scripts.
+// CPAutoNumber namespace je dostupný z CP.AutoNumber.Lib.js
+
+// Overenie dostupnosti importu
+if (typeof CPAutoNumber === 'undefined') {
+    message("❌ CHYBA: CP.AutoNumber.Lib shared script nie je načítaný!");
+    throw new Error("Missing CP.AutoNumber.Lib shared script");
+}
+
+// ==============================================
+// KONFIGURÁCIA
+// ==============================================
+
 var CONFIG = {
     scriptName: "CP.Trigger.AutoNumber",
-    version: "1.0.1",
+    version: "1.1.0",
 
     // Názvy použité pre generovanie čísla
     libraryName: "Cenové ponuky",
@@ -57,8 +74,8 @@ try {
         // Záznam už má číslo, netreba generovať
         // Ticho skončiť (bez message aby sme neotravovali užívateľa)
     } else {
-        // Vygeneruj nové číslo pomocou shared script funkcie
-        var result = autoGenerateNumber(
+        // Vygeneruj nové číslo pomocou importovanej funkcie z namespace
+        var result = CPAutoNumber.generateNumber(
             CONFIG.libraryName,
             CONFIG.numberFieldName,
             CONFIG.placeholderFieldName
