@@ -1,28 +1,35 @@
 /**
  * ============================================================================
- * MEMENTO DATABASE SCRIPT LIBRARY
+ * MEMENTO DATABASE - CORE LIBRARY
  * ============================================================================
  *
- * Knižnica:    Univerzálna (použiteľné v akejkoľvek knižnici)
- * Názov:       CP.AutoNumber.Lib
- * Typ:         Number Generation Library (Shared Script)
- * Verzia:      1.0.0
+ * Modul:       CP.AutoNumber.Lib
+ * Typ:         Core Shared Script (Number Generation)
+ * Verzia:      1.0.1
  * Dátum:       October 2025
+ * Lokácia:     /core/CP.AutoNumber.Lib.js
  *
  * Popis:
- * Knižničná verzia funkcie pre automatické generovanie čísel záznamov.
+ * Univerzálna knižnica pre automatické generovanie čísel záznamov.
  * Používa placeholder formát z ASISTANTO Defaults.
- * Univerzálne použiteľné pre akúkoľvek knižnicu.
+ * Použiteľné v ĽUBOVOĽNEJ knižnici (Cenové ponuky, Zákazky, Vyúčtovania, atď.)
  *
- * Použitie:
+ * DÔLEŽITÉ: Tento súbor je v CORE adresári
+ * - Načítava sa ako Shared Script v Memento Database
+ * - Exportuje CPAutoNumber namespace pre ostatné scripty
+ * - Poskytuje dual API (namespace + globálne funkcie)
+ *
+ * Použitie v trigger scripte:
  * ```javascript
- * // V trigger scripte:
+ * // Odporúčané (namespace):
+ * var result = CPAutoNumber.generateNumber("Cenové ponuky", "Číslo", "CP Placeholder");
+ *
+ * // Alternatívne (globálna funkcia):
  * var result = autoGenerateNumber("Cenové ponuky", "Číslo", "CP Placeholder");
+ *
  * if (result.success) {
  *     currentEntry.set("Číslo", result.number);
  *     message("✅ Číslo: " + result.number);
- * } else {
- *     message("❌ " + result.error);
  * }
  * ```
  *
@@ -34,13 +41,15 @@
  * - XXX = sekvenčné číslo s padding (001, 002, 003...)
  * - Ostatné znaky = literály
  *
- * Príklady:
- * - "CYYXXX" → C25001, C25002, C25003...
+ * Príklady placeholderov:
+ * - "CYYXXX" → C25001, C25002, C25003... (Cenové ponuky)
+ * - "ZYYXXX" → Z25001, Z25002... (Zákazky)
+ * - "VYYXXX" → V25001, V25002... (Vyúčtovania)
  * - "INV-YYYY-XXXX" → INV-2025-0001, INV-2025-0002...
- * - "ZYYMMXXX" → Z2510001, Z2510002...
  *
  * Závislosti:
  * - ASISTANTO Defaults knižnica (ID: KTZ6dsnY9)
+ * - Polia: CP Placeholder, Z Placeholder, V Placeholder
  *
  * ============================================================================
  */
