@@ -1,8 +1,13 @@
 // ==============================================
 // MEMENTO DATABASE - MIESTA PREPOČET
-// Verzia: 2.0.0 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 2.1.0 | Dátum: október 2025 | Autor: ASISTANTO
 // Knižnica: Miesta | Trigger: Before Save
 // ==============================================
+// ✅ REFAKTOROVANÉ v2.1:
+//    - OPRAVENÉ: Správne volanie utils.extractGPSFromPlace(entry)
+//    - OPRAVENÉ: calculateSegment vracia objekt {success, km, duration, metoda}
+//    - Odstránená duplicitná lokálna funkcia extractGPSCoordinates
+//    - Používa sa konzistentne MementoGPS.extractGPSFromPlace pre obe miesta
 // ✅ REFAKTOROVANÉ v2.0:
 //    - Integrácia s MementoGPS pre výpočet vzdialenosti
 //    - Použitie MementoUtils a MementoConfig
@@ -23,7 +28,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Miesta Prepočet",
-    version: "2.0.0",
+    version: "2.1.0",
 
     // Referencie na centrálny config
     fields: {
@@ -90,20 +95,12 @@ function calculateDistance() {
     };
 
     try {
-        // Získaj GPS súradnice aktuálneho miesta
-        var currentGPS = utils.safeGet(currentEntry, CONFIG.fields.place.gps);
+        // Extrahuj GPS súradnice aktuálneho miesta pomocou MementoGPS
+        utils.addDebug(currentEntry, "  📍 Extrakcia GPS aktuálneho miesta...");
+        var currentCoords = utils.extractGPSFromPlace(currentEntry);
 
-        if (!currentGPS) {
-            utils.addDebug(currentEntry, "  ℹ️ Miesto nemá GPS súradnice - preskakujem výpočet vzdialenosti");
-            return result;
-        }
-
-        utils.addDebug(currentEntry, "  📍 GPS aktuálneho miesta: " + JSON.stringify(currentGPS));
-
-        // Extrahuj GPS súradnice do formátu {lat, lon}
-        var currentCoords = extractGPSCoordinates(currentGPS);
         if (!currentCoords) {
-            utils.addDebug(currentEntry, "  ⚠️ Nepodarilo sa extrahovať GPS súradnice");
+            utils.addDebug(currentEntry, "  ℹ️ Miesto nemá GPS súradnice - preskakujem výpočet vzdialenosti");
             return result;
         }
 
@@ -133,15 +130,8 @@ function calculateDistance() {
         var defaultPlaceName = utils.safeGet(defaultPlace, CONFIG.fields.place.name, "Východzia adresa");
         utils.addDebug(currentEntry, "  🏠 Východzia adresa: " + defaultPlaceName);
 
-        // Získaj GPS východzej adresy
-        var defaultGPS = utils.safeGet(defaultPlace, CONFIG.fields.place.gps);
-        if (!defaultGPS) {
-            utils.addDebug(currentEntry, "  ⚠️ Východzia adresa nemá GPS súradnice");
-            return result;
-        }
-
-        //var defaultCoords = extractGPSCoordinates(defaultGPS);
-        var defaultCoords = utils.extractGPSFromPlace(defaultGPS);
+        // Extrahuj GPS súradnice východzej adresy pomocou MementoGPS
+        var defaultCoords = utils.extractGPSFromPlace(defaultPlace);
         if (!defaultCoords) {
             utils.addDebug(currentEntry, "  ⚠️ Nepodarilo sa extrahovať GPS súradnice východzej adresy");
             return result;
@@ -149,13 +139,21 @@ function calculateDistance() {
 
         // Vypočítaj vzdialenosť pomocou MementoGPS
         utils.addDebug(currentEntry, "  🧮 Výpočet vzdialenosti...");
-        //var distance = gps.calculateAirDistance(defaultCoords, currentCoords);
-        var distance = utils.calculateSegment(defaultCoords, currentCoords, "Vzdialenosť miesta");
+        var distanceResult = utils.calculateSegment(defaultCoords, currentCoords, "Vzdialenosť miesta");
+
+        if (!distanceResult.success) {
+            utils.addDebug(currentEntry, "  ⚠️ Nepodarilo sa vypočítať vzdialenosť");
+            return result;
+        }
+
+        var distance = distanceResult.km;
+        var method = distanceResult.metoda || "N/A";
 
         // Zaokrúhli na celé číslo hore
         var roundedDistance = Math.ceil(distance);
 
         utils.addDebug(currentEntry, "  ✅ Vzdialenosť: " + distance.toFixed(2) + " km (zaokrúhlené: " + roundedDistance + " km)");
+        utils.addDebug(currentEntry, "  📊 Metóda: " + method);
 
         // Ulož vzdialenosť
         utils.safeSet(currentEntry, CONFIG.fields.place.distance, roundedDistance);
@@ -268,44 +266,8 @@ function generateName() {
 // POMOCNÉ FUNKCIE
 // ==============================================
 
-/**
- * Extrahuje GPS súradnice do formátu {lat, lon}
- */
-function extractGPSCoordinates(gpsValue) {
-    try {
-        if (!gpsValue) {
-            return null;
-        }
-
-        var lat = null;
-        var lon = null;
-
-        // JSGeolocation objekt má properties lat a lng
-        if (typeof gpsValue === 'object' && gpsValue !== null) {
-            if (typeof gpsValue.lat !== 'undefined') {
-                lat = parseFloat(gpsValue.lat);
-            }
-            if (typeof gpsValue.lng !== 'undefined') {
-                lon = parseFloat(gpsValue.lng);
-            } else if (typeof gpsValue.lon !== 'undefined') {
-                lon = parseFloat(gpsValue.lon);
-            }
-        }
-
-        // Validácia
-        if (lat !== null && lon !== null && !isNaN(lat) && !isNaN(lon)) {
-            if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
-                return { lat: lat, lon: lon };
-            }
-        }
-
-        return null;
-
-    } catch (error) {
-        utils.addError(currentEntry, "Chyba pri extrakcii GPS súradníc: " + error.toString(), "extractGPSCoordinates", error);
-        return null;
-    }
-}
+// Extrakcia GPS sa rieši cez utils.extractGPSFromPlace(entry)
+// z MementoGPS modulu
 
 // ==============================================
 // SPUSTENIE
