@@ -251,3 +251,36 @@ function padLeft(str, length, char) {
     }
     return str;
 }
+
+// ==============================================
+// MODULE EXPORT - Pre explicitný import
+// ==============================================
+
+/**
+ * Namespace objekt pre explicitný import funkcií
+ * Použitie:
+ *
+ * // V inom scripte:
+ * var result = CPAutoNumber.generateNumber("Cenové ponuky", "Číslo", "CP Placeholder");
+ *
+ * // Alebo priamo:
+ * var result = autoGenerateNumber("Cenové ponuky", "Číslo", "CP Placeholder");
+ */
+var CPAutoNumber = (function() {
+    'use strict';
+
+    // Public API
+    return {
+        // Hlavná funkcia pre generovanie čísel
+        generateNumber: autoGenerateNumber,
+
+        // Helper funkcie (pre pokročilé použitie)
+        parsePlaceholder: parsePlaceholder,
+        findNextAvailableNumber: findNextAvailableNumber,
+        padLeft: padLeft,
+
+        // Metadata
+        version: "1.0.0",
+        description: "Auto-generovanie čísel záznamov s placeholder formátom"
+    };
+})();
