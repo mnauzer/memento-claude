@@ -47,6 +47,12 @@ if (typeof CPAutoNumber === 'undefined') {
     throw new Error("Missing CP.AutoNumber.Lib shared script");
 }
 
+// Overenie správnej inicializácie
+if (!CPAutoNumber.isLoaded || !CPAutoNumber.isLoaded()) {
+    message("❌ CHYBA: CPAutoNumber modul nie je správne inicializovaný!");
+    throw new Error("CPAutoNumber module initialization failed");
+}
+
 // ==============================================
 // KONFIGURÁCIA
 // ==============================================

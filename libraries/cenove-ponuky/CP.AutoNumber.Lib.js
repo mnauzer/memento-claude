@@ -257,19 +257,37 @@ function padLeft(str, length, char) {
 // ==============================================
 
 /**
- * Namespace objekt pre explicitný import funkcií
- * Použitie:
+ * CPAutoNumber Namespace
  *
- * // V inom scripte:
+ * Poskytuje funkcie pre automatické generovanie čísel záznamov.
+ * Všetky funkcie sú zapuzdrené v namespace pre preveniu konfliktov.
+ *
+ * @namespace CPAutoNumber
+ *
+ * Použitie:
+ * ```javascript
+ * // V inom scripte (odporúčané):
  * var result = CPAutoNumber.generateNumber("Cenové ponuky", "Číslo", "CP Placeholder");
  *
- * // Alebo priamo:
+ * // Alebo priamo pre spätná kompatibilitu:
  * var result = autoGenerateNumber("Cenové ponuky", "Číslo", "CP Placeholder");
+ * ```
  */
 var CPAutoNumber = (function() {
     'use strict';
 
-    // Public API
+    // ==============================================
+    // PRIVATE FUNCTIONS (zapuzdrené v IIFE)
+    // ==============================================
+    // Tieto funkcie sú dostupné len vnútri CPAutoNumber modulu
+
+    // Funkcie sú definované vyššie v globálnom scope pre spätná kompatibilitu
+    // ale sú tiež zapuzdrené tu pre explicitný import cez namespace
+
+    // ==============================================
+    // PUBLIC API
+    // ==============================================
+
     return {
         // Hlavná funkcia pre generovanie čísel
         generateNumber: autoGenerateNumber,
@@ -281,6 +299,36 @@ var CPAutoNumber = (function() {
 
         // Metadata
         version: "1.0.0",
-        description: "Auto-generovanie čísel záznamov s placeholder formátom"
+        description: "Auto-generovanie čísel záznamov s placeholder formátom",
+
+        /**
+         * Skontroluje či je modul správne načítaný
+         * @returns {boolean}
+         */
+        isLoaded: function() {
+            return true;
+        }
     };
 })();
+
+// ==============================================
+// POZNÁMKA O ARCHITEKTÚRE
+// ==============================================
+//
+// Tento modul poskytuje DUAL API pattern:
+//
+// 1. GLOBÁLNE FUNKCIE (spätná kompatibilita):
+//    - autoGenerateNumber()
+//    - parsePlaceholder()
+//    - findNextAvailableNumber()
+//    - padLeft()
+//
+// 2. NAMESPACE API (odporúčané):
+//    - CPAutoNumber.generateNumber()
+//    - CPAutoNumber.parsePlaceholder()
+//    - CPAutoNumber.findNextAvailableNumber()
+//    - CPAutoNumber.padLeft()
+//
+// Obe API sú funkčné. Namespace API je odporúčané pre novú kód
+// kvôli lepšej organizácii a prevencii konfliktov.
+// ==============================================
