@@ -7,7 +7,7 @@ output += "═══════════════════════
 
 try {
     // 1. Získaj knižnicu
-    var defaultsLib = lib("ASISTANTO Defaults");
+    var defaultsLib = libByName("ASISTANTO Defaults");
     if (!defaultsLib) {
         output += "❌ Knižnica 'ASISTANTO Defaults' nenájdená\n";
         message(output);

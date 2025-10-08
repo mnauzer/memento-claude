@@ -2914,7 +2914,7 @@ var MementoBusiness = (function() {
             var sequenceLength = parsedPlaceholder.sequenceLength;
 
             // 3. Získaj knižnicu a všetky záznamy s daným prefixom
-            var targetLib = lib(libraryName);
+            var targetLib = libByName(libraryName);
             if (!targetLib) {
                 return {
                     success: false,
