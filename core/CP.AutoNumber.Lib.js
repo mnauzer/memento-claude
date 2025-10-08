@@ -285,19 +285,13 @@ function padLeft(str, length, char) {
 var CPAutoNumber = (function() {
     'use strict';
 
-    // ==============================================
-    // PRIVATE FUNCTIONS (zapuzdrené v IIFE)
-    // ==============================================
-    // Tieto funkcie sú dostupné len vnútri CPAutoNumber modulu
-
-    // Funkcie sú definované vyššie v globálnom scope pre spätná kompatibilitu
-    // ale sú tiež zapuzdrené tu pre explicitný import cez namespace
+    var version = "1.0.1";
 
     // ==============================================
     // PUBLIC API
     // ==============================================
 
-    return {
+    var api = {
         // Hlavná funkcia pre generovanie čísel
         generateNumber: autoGenerateNumber,
 
@@ -307,7 +301,7 @@ var CPAutoNumber = (function() {
         padLeft: padLeft,
 
         // Metadata
-        version: "1.0.0",
+        version: version,
         description: "Auto-generovanie čísel záznamov s placeholder formátom",
 
         /**
@@ -318,6 +312,8 @@ var CPAutoNumber = (function() {
             return true;
         }
     };
+
+    return api;
 })();
 
 // ==============================================
