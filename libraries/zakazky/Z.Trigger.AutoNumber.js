@@ -3,29 +3,29 @@
  * MEMENTO DATABASE SCRIPT
  * ============================================================================
  *
- * Knižnica:    Cenové ponuky
- * Názov:       CP.Trigger.AutoNumber
+ * Knižnica:    Zákazky
+ * Názov:       Z.Trigger.AutoNumber
  * Typ:         Trigger (onCreate - "Opened card" / After Save)
- * Verzia:      2.0.0
+ * Verzia:      1.0.0
  * Dátum:       October 2025
  *
  * Popis:
- * Automatické generovanie čísla cenovej ponuky pri vytvorení nového záznamu.
+ * Automatické generovanie čísla zákazky pri vytvorení nového záznamu.
  *
  * Trigger fáza: "Opened card" (asynchronous, after save)
  * - Spúšťa sa PO uložení záznamu do databázy
  * - Zabráni race conditions (súčasné vytváranie viacerých záznamov)
  * - Zabráni gap-om v sekvencii (ak užívateľ zruší vytvorenie)
  *
- * Placeholder formát v ASISTANTO Defaults → CP Placeholder:
- * - "CYYXXX" → C25001, C25002, C25003...
- *   - C = literál (zostáva ako je)
+ * Placeholder formát v ASISTANTO Defaults → Z Placeholder:
+ * - "ZYYXXX" → Z25001, Z25002, Z25003...
+ *   - Z = literál (zostáva ako je)
  *   - YY = rok 2-ciferný (napr. 25 pre rok 2025)
  *   - XXX = sekvenčné číslo 3-ciferné (001, 002, 003...)
  *
  * Ďalšie podporované formáty:
  * - "YYYY-XXX" → 2025-001, 2025-002...
- * - "CP-YYMMXXX" → CP-2510001, CP-2510002...
+ * - "Z-YYMMXXX" → Z-2510001, Z-2510002...
  *
  * Závislosti:
  * - MementoAutoNumber (CORE shared script) - z adresára /core/
@@ -33,10 +33,6 @@
  *
  * DÔLEŽITÉ: MementoAutoNumber.js musí byť načítaný ako Shared Script
  * v Memento Database z CORE adresára
- *
- * CHANGELOG v2.0.0:
- * - Aktualizovaný namespace z CPAutoNumber na MementoAutoNumber
- * - Referencia na MementoAutoNumber.js (bola CP.AutoNumber.Lib.js)
  *
  * ============================================================================
  */
@@ -65,13 +61,13 @@ if (!MementoAutoNumber.isLoaded || !MementoAutoNumber.isLoaded()) {
 // ==============================================
 
 var CONFIG = {
-    scriptName: "CP.Trigger.AutoNumber",
-    version: "2.0.0",
+    scriptName: "Z.Trigger.AutoNumber",
+    version: "1.0.0",
 
     // Názvy použité pre generovanie čísla
-    libraryName: "Cenové ponuky",
-    numberFieldName: "Číslo",  // Pole v Cenových ponukách kde sa uloží číslo
-    placeholderFieldName: "CP Placeholder"  // Pole v ASISTANTO Defaults s placeholder formátom
+    libraryName: "Zákazky",
+    numberFieldName: "Číslo",  // Pole v Zákazkách kde sa uloží číslo
+    placeholderFieldName: "Z Placeholder"  // Pole v ASISTANTO Defaults s placeholder formátom
 };
 
 // ==============================================
@@ -95,13 +91,13 @@ try {
         );
 
         if (!result.success) {
-            message("❌ Chyba pri generovaní čísla: " + result.error);
+            message("❌ Chyba pri generovaní čísla zákazky: " + result.error);
         } else {
             // Nastav vygenerované číslo
             currentEntry.set(CONFIG.numberFieldName, result.number);
 
             // Upozornenie pre užívateľa
-            message("✅ Číslo cenovej ponuky: " + result.number);
+            message("✅ Číslo zákazky: " + result.number);
         }
     }
 
