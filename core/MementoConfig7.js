@@ -318,6 +318,9 @@ var MementoConfig = (function() {
 
             // Poznámka: Hlavná knižnica "Zamestnanci" (ID: nWb00Nogf) má obmedzený prístup
             // Pre scripts používať "Zamestnanci Semiramis" (qU4Br5hU6)
+
+            // Systémové knižnice
+            defaults: "KTZ6dsnY9", // ASISTANTO Defaults
         },
 
         // === NÁZVY POLÍ ===
@@ -736,47 +739,85 @@ var MementoConfig = (function() {
             },
 
             // === SYSTÉMOVÉ KNIŽNICE ===
-            // ASISTANTO Defaults polia
+            // ASISTANTO Defaults polia (ID: KTZ6dsnY9)
             defaults: {
-                // Kniha jázd
-                defaultZdrzanie: "Default zdržanie",
+                // Základné firemné údaje
+                accountingYear: "Účtovný rok", // int (id: 24)
+                date: "Dátum", // date (id: 2)
+                companyName: "Názov firmy", // text (id: 17)
+                street: "Ulica", // text (id: 18)
+                postalCode: "PSČ", // text (id: 19)
+                city: "Mesto", // text (id: 20)
+                ico: "IČO", // text (id: 21)
+                dic: "DIČ", // text (id: 23)
+                icDph: "IČ DPH", // text (id: 22)
 
-                // Main
-                date: "Dátum",
-                companyName: "Názov firmy",
-                street: "Ulica",
-                postalCode: "PSČ",
-                city: "Mesto",
-                ico: "IČO",
-                dic: "DIČ",
-                icDph: "IČ DPH",
-                accountingYear: "Účtovný rok",
-                workTimeFrom: "Pracovný čas od",
-                workTimeTo: "Pracovný čas do",
-                // Strana záznam prác
-                defaultHzs: "Default HZS",
+                // Telegram základné nastavenia
+                telegramEnabled: "Povoliť Telegram správy", // boolean (id: 38)
+                telegramDefaultGroup: "Predvolená Telegram skupina", // entries (id: 39)
+                temaNazov: "Téma Názov", // text (id: 67)
+                telegramBotApiKey: "Telegram Bot API Key", // password (id: 16)
+                telegramBot: "Telegram Bot", // text (id: 44)
+                telegramBotToken: "Telegram Bot Token", // password (id: 66)
 
-                // Telegram nastavenia
-                telegramEnabled: "Povoliť Telegram správy",
-                telegramApiKey: "Telegram Bot API Key",
-                telegramBotName: "Telegram Bot",
-                telegramDefaultGroup: "Predvolená Telegram skupina",
-                telegramAttendanceId: "Telegram Dochádzka ID",
-                telegramGroupId: "Telegram Skupina ID",
+                // Pracovný čas
+                workTimeFrom: "Pracovný čas od", // time (id: 40)
+                workTimeTo: "Pracovný čas do", // time (id: 41)
 
                 // Notifikačné nastavenia
-                notificationDelay: "Oneskorenie notifikácie (min)",
-                summaryDelay: "Oneskorenie súhrnu (min)",
-                includeStats: "Zahrnúť štatistiky",
-                includeFinancials: "Zahrnúť finančné údaje",
-                weekendMessages: "Víkendové správy",
-                individualNotifications: "Notifikácie individuálne",
-                groupNotifications: "Notifikácie skupinové",
-                attendanceIndividualNotifications: "Dochádzka individuálne notifikácie",
-                attendanceGroupNotifications: "Dochádzka skupinové notifikácie",
+                weekendMessages: "Víkendové správy", // boolean (id: 42)
+                debugMode: "Debug mód", // boolean (id: 43)
+                notificationDelay: "Oneskorenie notifikácie (min)", // int (id: 54)
+                summaryDelay: "Oneskorenie súhrnu (min)", // int (id: 55)
+                includeStats: "Zahrnúť štatistiky", // boolean (id: 56)
+                includeFinancials: "Zahrnúť finančné údaje", // boolean (id: 57)
 
-                // Debug nastavenia
-                debugMode: "Debug mód"
+                // N8N integrácia
+                n8nAuthType: "N8N Auth Type", // choice (id: 49)
+                n8nWebhookUrl: "N8N Webhook URL", // text (id: 48)
+                n8nApiKey: "N8N API Key", // text (id: 50)
+                n8nUsername: "N8N Username", // text (id: 58)
+                n8nPassword: "N8N Password", // text (id: 59)
+                n8nHeaderName: "N8N Header Name", // text (id: 60)
+
+                // Dochádzka
+                prichod: "Príchod", // time (id: 0)
+                odchod: "Odchod", // time (id: 1)
+                dochadzka: "dochádzka", // boolean (id: 51)
+                telegramAttendanceId: "Telegram Dochádzka ID", // text (id: 26)
+                telegramGroupAttendance: "Telegram skupina dochádzky", // entries (id: 31)
+                attendanceIndividualNotifications: "Dochádzka individuálne notifikácie", // boolean (id: 52)
+                attendanceGroupNotifications: "Dochádzka skupinové notifikácie", // boolean (id: 65)
+                sendGroupAttendanceNotifications: "Posielať group notifikácie dochádzky", // boolean (id: 53)
+
+                // Kniha jázd
+                defaultStartAddress: "Východzia štart adresa", // entries (id: 5)
+                defaultTargetAddress: "Východzia cieľová adresa", // entries (id: 10)
+                defaultZdrzanie: "default zdržanie", // duration (id: 11)
+                telegramGroupRideLog: "Telegram skupina knihy jázd", // entries (id: 32)
+
+                // Záznam prác
+                defaultHzs: "Default HZS", // entries (id: 6)
+                sendWorkRecordNotifications: "Posielať notifikácie záznamu prác zamestnancom", // boolean (id: 36)
+                sendGroupWorkRecordNotifications: "Posielať group notifikácie záznamu prác", // boolean (id: 37)
+                telegramGroupWorkRecords: "Telegram skupina záznamu prác", // entries (id: 33)
+
+                // Pokladňa
+                telegramGroupCashbook: "Telegram skupina pokladne", // entries (id: 34)
+                accounts: "Účty", // entries (id: 12)
+
+                // Cenové ponuky - NUMBER PLACEHOLDERS
+                cpPlaceholder: "CP Placeholder", // text (id: 7) - Cenové ponuky
+                telegramGroupQuotes: "Telegram skupina cenových ponúk", // entries (id: 64)
+
+                // Zákazky - NUMBER PLACEHOLDERS
+                zPlaceholder: "Z Placeholder", // text (id: 8) - Zákazky
+                telegramGroupOrders: "Telegram skupina zákaziek", // entries (id: 63)
+                telegramGroupOrder: "Telegram skupina zákazky", // entries (id: 68)
+                ordersGroupNotifications: "Zákazky skupinové notifikácie", // boolean (id: 69)
+
+                // Vyúčtovania - NUMBER PLACEHOLDERS
+                vPlaceholder: "V Placeholder" // text (id: 9) - Vyúčtovania
             },
 
             // === FIREMNÉ KNIŽNICE ===
