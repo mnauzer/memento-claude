@@ -28,18 +28,21 @@
  * - "CP-YYMMXXX" → CP-2510001, CP-2510002...
  *
  * Závislosti:
- * - CP.AutoNumber.Lib (shared script) - musí byť pridaný v knižnici
+ * - CP.AutoNumber.Lib (CORE shared script) - z adresára /core/
  * - ASISTANTO Defaults (placeholder definícia)
+ *
+ * DÔLEŽITÉ: CP.AutoNumber.Lib.js musí byť načítaný ako Shared Script
+ * v Memento Database z CORE adresára
  *
  * ============================================================================
  */
 
 // ==============================================
-// IMPORT FUNKCIÍ zo Shared Script
+// IMPORT FUNKCIÍ zo CORE Shared Script
 // ==============================================
 
-// Memento Database automaticky načíta shared scripts.
-// CPAutoNumber namespace je dostupný z CP.AutoNumber.Lib.js
+// Memento Database automaticky načíta shared scripts z CORE adresára.
+// CPAutoNumber namespace je dostupný z /core/CP.AutoNumber.Lib.js
 
 // Overenie dostupnosti importu
 if (typeof CPAutoNumber === 'undefined') {
