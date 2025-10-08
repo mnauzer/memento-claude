@@ -1,16 +1,21 @@
 // ==============================================
 // MEMENTO GPS - GPS integrácia
-// Verzia: 1.0 | Dátum: September 2025 | Autor: ASISTANTO
+// Verzia: 1.1 | Dátum: október 2025 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 // ==============================================
+// 🔧 CHANGELOG v1.1:
+//    - ODSTRÁNENÝ fallback na vzdušnú vzdialenosť v calculateSegment
+//    - Ak OSRM zlyhá, funkcia vráti success: false namiesto približnej vzdialenosti
+//    - calculateAirDistance ponechaná len pre špeciálne prípady (nie pre routing)
 // 🔧 CHANGELOG v1.0:
+//    - Prvá verzia s OSRM integráciou
 // ==============================================
 
 var MementoGPS = (function() {
     'use strict';
-    
-    var version = "1.0.0";
+
+    var version = "1.1.0";
     
     // Lazy loading pre závislosti
     var _config = null;
@@ -120,7 +125,8 @@ var MementoGPS = (function() {
     }
     
     /**
-     * Vypočíta segment trasy pomocou OSRM alebo fallback
+     * Vypočíta segment trasy pomocou OSRM
+     * DÔLEŽITÉ: Nepoužíva vzdušnú vzdialenosť ako fallback!
      */
     function calculateSegment(start, end, segmentName) {
         var config = getConfig();
@@ -132,39 +138,31 @@ var MementoGPS = (function() {
             duration: 0,
             metoda: "none"
         };
-        
+
         try {
             core.addDebug(currentEntry, "\n  🛣️ " + segmentName);
-            
+
             if (!start || !end) {
                 core.addDebug(currentEntry, "    ❌ Chýbajú súradnice");
                 return result;
             }
-            
+
             // Pokus o OSRM API
             result = calculateOSRMRoute(start, end);
-            
+
             if (result.success) {
                 core.addDebug(currentEntry, "    ✅ OSRM: " + result.km + " km, " + result.duration + " h");
                 result.metoda = "OSRM";
             } else {
-                // Fallback na vzdušnú vzdialenosť
-                var airDistance = calculateAirDistance(start, end);
-                var roadFactor = 1.4; // Empirický koeficient pre cestnú vzdialenosť
-                var avgSpeed = 50; // Priemerná rýchlosť v km/h
-                
-                result.km = Math.round(airDistance * roadFactor * 10) / 10;
-                result.duration = Math.round((result.km / avgSpeed) * 100) / 100;
-                result.success = true;
-                result.metoda = "Vzdušná čiara";
-                
-                core.addDebug(currentEntry, "    📐 Vzdušná vzdialenosť: " + result.km + " km, " + result.duration + " h");
+                // OSRM zlyhalo - nevolá sa fallback na vzdušnú vzdialenosť
+                core.addDebug(currentEntry, "    ❌ OSRM API nedostupné - vzdialenosť sa nedá vypočítať");
+                core.addDebug(currentEntry, "    ℹ️ Skontroluj internetové pripojenie alebo dostupnosť OSRM servera");
             }
-            
+
         } catch (error) {
-            utils.addError(currentEntry, "Chyba pri výpočte segmentu: " + error.toString(), "calculateSegment");
+            core.addError(currentEntry, "Chyba pri výpočte segmentu: " + error.toString(), "calculateSegment", error);
         }
-        
+
         return result;
     }
 
