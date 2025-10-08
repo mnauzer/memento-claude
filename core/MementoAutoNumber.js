@@ -3,11 +3,11 @@
  * MEMENTO DATABASE - CORE LIBRARY
  * ============================================================================
  *
- * Modul:       CP.AutoNumber.Lib
+ * Modul:       MementoAutoNumber
  * Typ:         Core Shared Script (Number Generation)
- * Verzia:      1.0.1
+ * Verzia:      2.0.0
  * Dátum:       October 2025
- * Lokácia:     /core/CP.AutoNumber.Lib.js
+ * Lokácia:     /core/MementoAutoNumber.js
  *
  * Popis:
  * Univerzálna knižnica pre automatické generovanie čísel záznamov.
@@ -16,15 +16,16 @@
  *
  * DÔLEŽITÉ: Tento súbor je v CORE adresári
  * - Načítava sa ako Shared Script v Memento Database
- * - Exportuje CPAutoNumber namespace pre ostatné scripty
+ * - Exportuje MementoAutoNumber namespace pre ostatné scripty
  * - Poskytuje dual API (namespace + globálne funkcie)
  *
  * Použitie v trigger scripte:
  * ```javascript
  * // Odporúčané (namespace):
- * var result = CPAutoNumber.generateNumber("Cenové ponuky", "Číslo", "CP Placeholder");
+ * var result = MementoAutoNumber.generateNumber("Cenové ponuky", "Číslo", "CP Placeholder");
+ * var result = MementoAutoNumber.generateNumber("Zákazky", "Číslo zákazky", "Z Placeholder");
  *
- * // Alternatívne (globálna funkcia):
+ * // Alternatívne (globálna funkcia - backward compatibility):
  * var result = autoGenerateNumber("Cenové ponuky", "Číslo", "CP Placeholder");
  *
  * if (result.success) {
@@ -266,26 +267,27 @@ function padLeft(str, length, char) {
 // ==============================================
 
 /**
- * CPAutoNumber Namespace
+ * MementoAutoNumber Namespace
  *
  * Poskytuje funkcie pre automatické generovanie čísel záznamov.
  * Všetky funkcie sú zapuzdrené v namespace pre preveniu konfliktov.
  *
- * @namespace CPAutoNumber
+ * @namespace MementoAutoNumber
  *
  * Použitie:
  * ```javascript
  * // V inom scripte (odporúčané):
- * var result = CPAutoNumber.generateNumber("Cenové ponuky", "Číslo", "CP Placeholder");
+ * var result = MementoAutoNumber.generateNumber("Cenové ponuky", "Číslo", "CP Placeholder");
+ * var result = MementoAutoNumber.generateNumber("Zákazky", "Číslo zákazky", "Z Placeholder");
  *
  * // Alebo priamo pre spätná kompatibilitu:
  * var result = autoGenerateNumber("Cenové ponuky", "Číslo", "CP Placeholder");
  * ```
  */
-var CPAutoNumber = (function() {
+var MementoAutoNumber = (function() {
     'use strict';
 
-    var version = "1.0.1";
+    var version = "2.0.0";
 
     // ==============================================
     // PUBLIC API
@@ -329,11 +331,16 @@ var CPAutoNumber = (function() {
 //    - padLeft()
 //
 // 2. NAMESPACE API (odporúčané):
-//    - CPAutoNumber.generateNumber()
-//    - CPAutoNumber.parsePlaceholder()
-//    - CPAutoNumber.findNextAvailableNumber()
-//    - CPAutoNumber.padLeft()
+//    - MementoAutoNumber.generateNumber()
+//    - MementoAutoNumber.parsePlaceholder()
+//    - MementoAutoNumber.findNextAvailableNumber()
+//    - MementoAutoNumber.padLeft()
 //
-// Obe API sú funkčné. Namespace API je odporúčané pre novú kód
+// Obe API sú funkčné. Namespace API je odporúčané pre nový kód
 // kvôli lepšej organizácii a prevencii konfliktov.
+//
+// CHANGELOG v2.0.0:
+//    - Premenovaný z CP.AutoNumber.Lib.js na MementoAutoNumber.js
+//    - Namespace CPAutoNumber → MementoAutoNumber
+//    - Univerzálne použiteľný vo všetkých knižniciach
 // ==============================================
