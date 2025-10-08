@@ -77,12 +77,27 @@ function autoGenerateNumber(libraryName, numberFieldName, placeholderFieldName) 
 
         // Posledný záznam obsahuje aktuálne nastavenia
         var defaultsEntry = defaultsEntries[defaultsEntries.length - 1];
-        var placeholder = defaultsEntry.field(placeholderFieldName);
 
-        if (!placeholder) {
+        // Debug: Skús rôzne spôsoby prístupu k poliam
+        var placeholder = null;
+        try {
+            placeholder = defaultsEntry.field(placeholderFieldName);
+        } catch (e) {
+            // Pokus sa použiť get() namiesto field()
+            try {
+                placeholder = defaultsEntry.get(placeholderFieldName);
+            } catch (e2) {
+                return {
+                    success: false,
+                    error: "Chyba pri čítaní poľa '" + placeholderFieldName + "': " + e2.toString()
+                };
+            }
+        }
+
+        if (!placeholder || placeholder === "") {
             return {
                 success: false,
-                error: "Placeholder '" + placeholderFieldName + "' nie je nastavený v ASISTANTO Defaults"
+                error: "Placeholder '" + placeholderFieldName + "' nie je nastavený v ASISTANTO Defaults (hodnota: " + placeholder + ")"
             };
         }
 
