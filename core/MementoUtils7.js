@@ -1,13 +1,20 @@
 // ==============================================
 // MEMENTOUTILS - Hlavný agregátor modulov
-// Verzia: 7.0 | Dátum: August 2025 | Autor: ASISTANTO
+// Verzia: 7.3.0 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - Jednotný prístupový bod pre všetky moduly
-//    - Agreguje funkcie z Core, AI, Telegram, Business
+//    - Agreguje funkcie z Core, AI, Telegram, Business, GPS, RecordTracking
 //    - Pridáva CONFIG z MementoConfig
 //    - Lazy loading pre asynchrónne načítanie
 // ==============================================
+// 🔧 CHANGELOG v7.3.0:
+//    - Pridaný MementoRecordTracking modul pre sledovanie záznamov
+//    - Exportované funkcie: setEditMode, setPrintMode, setDebugMode
+//    - trackRecordCreation, trackRecordModification
+//    - initializeNewRecord, processRecordUpdate
+// 🔧 CHANGELOG v7.2.0:
+//    - Pridaná funkcia generateNextNumber pre automatické generovanie čísel záznamov
 // 🔧 CHANGELOG v7.0:
 //    - Odstránené všetky fallbacky
 //    - Priamy a jednoduchý prístup
@@ -17,8 +24,8 @@
 
 var MementoUtils = (function() {
     'use strict';
-    
-    var version = "7.2.0";  // Pridaná funkcia generateNextNumber pre automatické generovanie čísel záznamov
+
+    var version = "7.3.0";
     
     // ==============================================
     // LAZY LOADING MODULOV
@@ -30,8 +37,8 @@ var MementoUtils = (function() {
         ai: null,
         telegram: null,
         business: null,
-        gps: null
-
+        gps: null,
+        recordTracking: null
     };
     
     /**
@@ -75,6 +82,12 @@ var MementoUtils = (function() {
                     modules.gps = MementoGPS;
                 }
                 break;
+
+            case 'recordTracking':
+                if (!modules.recordTracking && typeof MementoRecordTracking !== 'undefined') {
+                    modules.recordTracking = MementoRecordTracking;
+                }
+                break;
         }
     }
     
@@ -88,6 +101,7 @@ var MementoUtils = (function() {
         loadModule('telegram');
         loadModule('business');
         loadModule('gps');
+        loadModule('recordTracking');
     }
     
     /**
@@ -425,7 +439,21 @@ var MementoUtils = (function() {
         findValidPrice: lazyCall('business', 'findValidPrice'),
 
         // === NUMBER GENERATION ===
-        generateNextNumber: lazyCall('business', 'generateNextNumber')
+        generateNextNumber: lazyCall('business', 'generateNextNumber'),
+
+        // === RECORD TRACKING ===
+        // View režimy
+        setEditMode: lazyCall('recordTracking', 'setEditMode'),
+        setPrintMode: lazyCall('recordTracking', 'setPrintMode'),
+        setDebugMode: lazyCall('recordTracking', 'setDebugMode'),
+
+        // Tracking vytvorenia a úpravy
+        trackRecordCreation: lazyCall('recordTracking', 'trackRecordCreation'),
+        trackRecordModification: lazyCall('recordTracking', 'trackRecordModification'),
+
+        // Kombinované funkcie
+        initializeNewRecord: lazyCall('recordTracking', 'initializeNewRecord'),
+        processRecordUpdate: lazyCall('recordTracking', 'processRecordUpdate')
     };
     
     // === INICIALIZÁCIA ===

@@ -1,7 +1,11 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.31 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.32 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.32 (2025-10-09):
+//    - AKTUALIZOVANÉ: common fields s presnými typmi a možnosťami poľa view
+//    - view pole: radio s možnosťami "Tlač" (1), "Editácia " (4, má medzeru!), "Debug" (5)
+//    - Pridané konštanty VIEW_MODES pre hodnoty view poľa
 // 🔧 CHANGELOG v7.0.31 (2025-10-07):
 //    - PRIDANÉ: Pole expectedKm: "Predpokladaný počet km" - vypočítané z vzdialenosti × 2 × počet jázd
 // 🔧 CHANGELOG v7.0.30 (2025-10-07):
@@ -326,21 +330,22 @@ var MementoConfig = (function() {
         // === NÁZVY POLÍ ===
         fields: {
             // Spoločné polia vo všetkých knižniciach
+            // DÔLEŽITÉ: view pole má možnosti "Tlač", "Editácia " (s medzerou!), "Debug"
             common: {
-                id: "ID",
-                view: "view",
-                debugLog: "Debug_Log",
-                errorLog: "Error_Log",
-                info: "info",
-                createdBy: "zapísal",
-                modifiedBy: "upravil",
-                createdDate: "dátum zápisu",
-                modifiedDate: "dátum úpravy",
-                rowColor: "farba záznamu",
-                backgroundColor: "farba pozadia",
-                infoTelegram: "info_telegram",    // NOVÉ
-                notifications: "Notifikácie",     // NOVÉ - link field
-                recordIcons: "ikony záznamu"
+                id: "ID", // int - automaticky generované ID záznamu
+                view: "view", // radio - režim zobrazenia: "Tlač" (1), "Editácia " (4), "Debug" (5)
+                debugLog: "Debug_Log", // text - debug výstupy z trigger scriptov
+                errorLog: "Error_Log", // text - chybové správy
+                info: "info", // richtext - informačné pole
+                createdBy: "zapísal", // user - užívateľ ktorý vytvoril záznam
+                modifiedBy: "upravil", // user - užívateľ ktorý naposledy upravil záznam
+                createdDate: "dátum zápisu", // date - dátum vytvorenia záznamu
+                modifiedDate: "dátum úpravy", // date - dátum poslednej úpravy
+                rowColor: "farba záznamu", // color - farba riadku v zozname
+                backgroundColor: "farba pozadia", // color - farba pozadia karty
+                infoTelegram: "info_telegram", // richtext - Telegram správy
+                notifications: "Notifikácie", // linkToEntry - prepojené notifikácie
+                recordIcons: "ikony záznamu" // text - textové ikony pre záznam
             },
 
             // === EVIDENCIA - DENNÉ ZÁZNAMY ===
@@ -1408,6 +1413,14 @@ var MementoConfig = (function() {
 
         // === KONŠTANTY ===
         constants: {
+            // Režimy zobrazenia view poľa
+            // DÔLEŽITÉ: "Editácia " má medzeru na konci!
+            VIEW_MODES: {
+                PRINT: "Tlač",          // Tlačový režim (id: 1)
+                EDIT: "Editácia ",      // Editačný režim (id: 4) - POZOR: má medzeru na konci!
+                DEBUG: "Debug"          // Debug režim (id: 5)
+            },
+
             // Typy dochádzky
             attendanceTypes: {
                 work: "Práca",
