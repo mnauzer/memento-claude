@@ -1,7 +1,14 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.33 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.34 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.34 (2025-10-09):
+//    - PRIDANÉ: Polia pre Cenové ponuky default hodnoty v fields.defaults
+//    - cpDefaultRidePercentage: "CP Default % dopravy"
+//    - cpDefaultKmPrice: "CP Default cena za km"
+//    - cpDefaultRideFlatRate: "CP Default paušál dopravy"
+//    - cpDefaultMassTransferPercentage: "CP Default % presunu hmôt"
+//    - cpDefaultMassTransferPrice: "CP Default cena presunu hmôt"
 // 🔧 CHANGELOG v7.0.33 (2025-10-09):
 //    - POZNÁMKA: VIEW_MODES hodnoty v MementoRecordTracking používajú trim() normalizáciu
 //    - Funkcie setEditMode/setPrintMode/setDebugMode akceptujú hodnoty s medzerou aj bez
@@ -819,6 +826,13 @@ var MementoConfig = (function() {
                 // Cenové ponuky - NUMBER PLACEHOLDERS
                 cpPlaceholder: "CP Placeholder", // text (id: 7) - Cenové ponuky
                 telegramGroupQuotes: "Telegram skupina cenových ponúk", // entries (id: 64)
+
+                // Cenové ponuky - DEFAULT VALUES
+                cpDefaultRidePercentage: "CP Default % dopravy", // double - default % dopravy
+                cpDefaultKmPrice: "CP Default cena za km", // entries - linkToEntry Cenník prác
+                cpDefaultRideFlatRate: "CP Default paušál dopravy", // entries - linkToEntry Cenník prác
+                cpDefaultMassTransferPercentage: "CP Default % presunu hmôt", // double - default % presunu hmôt
+                cpDefaultMassTransferPrice: "CP Default cena presunu hmôt", // currency - default cena presunu hmôt
 
                 // Zákazky - NUMBER PLACEHOLDERS
                 zPlaceholder: "Z Placeholder", // text (id: 8) - Zákazky
