@@ -1,7 +1,12 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.32 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.33 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.33 (2025-10-09):
+//    - POZNÁMKA: VIEW_MODES hodnoty v MementoRecordTracking používajú trim() normalizáciu
+//    - Funkcie setEditMode/setPrintMode/setDebugMode akceptujú hodnoty s medzerou aj bez
+//    - Memento niekedy pridá medzeru na koniec hodnôt (singleChoice, options, attributes)
+//    - Riešenie: normalizeValue() funkcia s trim() pre kompatibilitu
 // 🔧 CHANGELOG v7.0.32 (2025-10-09):
 //    - AKTUALIZOVANÉ: common fields s presnými typmi a možnosťami poľa view
 //    - view pole: radio s možnosťami "Tlač" (1), "Editácia " (4, má medzeru!), "Debug" (5)
@@ -333,7 +338,7 @@ var MementoConfig = (function() {
             // DÔLEŽITÉ: view pole má možnosti "Tlač", "Editácia " (s medzerou!), "Debug"
             common: {
                 id: "ID", // int - automaticky generované ID záznamu
-                view: "view", // radio - režim zobrazenia: "Tlač" (1), "Editácia " (4), "Debug" (5)
+                view: "view", // radio - režim zobrazenia: "Tlač" (1), "Editácia" (4), "Debug" (5)
                 debugLog: "Debug_Log", // text - debug výstupy z trigger scriptov
                 errorLog: "Error_Log", // text - chybové správy
                 info: "info", // richtext - informačné pole

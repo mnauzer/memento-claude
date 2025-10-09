@@ -1,12 +1,17 @@
 // ==============================================
 // MEMENTO RECORD TRACKING - Sledovanie záznamov
-// Verzia: 1.0.0 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 1.1.0 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - Automatické sledovanie vytvorenia a úpravy záznamov
 //    - Správa view režimov (Edit, Tlač, Debug)
 //    - Zaznamenávanie užívateľov a časov zmien
 // ==============================================
+// 🔧 CHANGELOG v1.1.0:
+//    - PRIDANÉ: Normalizácia hodnôt cez trim() pre podporu hodnôt s/bez medzier
+//    - Memento niekedy pridá medzeru na koniec hodnôt (singleChoice, options, attributes)
+//    - Funkcie teraz podporujú obidve možnosti automaticky
+//    - Odstránený nepotrebný getCore() (nebolo použité)
 // 🔧 CHANGELOG v1.0.0:
 //    - Prvá verzia modulu pre sledovanie záznamov
 //    - Funkcie pre nastavenie view režimov
@@ -16,11 +21,10 @@
 var MementoRecordTracking = (function() {
     'use strict';
 
-    var version = "1.0.0";
+    var version = "1.1.0";
 
     // Lazy loading pre závislosti
     var _config = null;
-    var _core = null;
 
     function getConfig() {
         if (!_config && typeof MementoConfig !== 'undefined') {
@@ -29,11 +33,22 @@ var MementoRecordTracking = (function() {
         return _config;
     }
 
-    function getCore() {
-        if (!_core && typeof MementoCore !== 'undefined') {
-            _core = MementoCore;
+    // ==============================================
+    // HELPER FUNKCIE
+    // ==============================================
+
+    /**
+     * Normalizuje hodnotu - odstráni medzery na začiatku a konci
+     * Memento Database niekedy pridá medzeru na koniec hodnôt v singleChoice, options, attributes
+     *
+     * @param {string} value - Hodnota na normalizáciu
+     * @returns {string} Normalizovaná hodnota (bez medzier na začiatku/konci)
+     */
+    function normalizeValue(value) {
+        if (typeof value === 'string') {
+            return value.trim();
         }
-        return _core;
+        return value;
     }
 
     // ==============================================
@@ -41,8 +56,9 @@ var MementoRecordTracking = (function() {
     // ==============================================
 
     /**
-     * Nastaví view režim na "Editácia " (s medzerou!)
+     * Nastaví view režim na "Editácia"
      * Používa sa v onCreate a onUpdate trigger scriptoch (Opening card phase)
+     * Automaticky normalizuje hodnotu (odstráni medzery) pre kompatibilitu
      *
      * @param {Entry} entry - Memento entry objekt
      * @returns {boolean} true ak sa podarilo nastaviť
@@ -55,7 +71,7 @@ var MementoRecordTracking = (function() {
             }
 
             var viewField = config.fields.common.view;
-            var editMode = config.constants.VIEW_MODES.EDIT; // "Editácia " s medzerou!
+            var editMode = normalizeValue(config.constants.VIEW_MODES.EDIT); // Odstráni medzery
 
             entry.set(viewField, editMode);
             return true;
@@ -68,6 +84,7 @@ var MementoRecordTracking = (function() {
     /**
      * Nastaví view režim na "Tlač"
      * Používa sa v onUpdate trigger scriptoch (Before save phase)
+     * Automaticky normalizuje hodnotu (odstráni medzery) pre kompatibilitu
      *
      * @param {Entry} entry - Memento entry objekt
      * @returns {boolean} true ak sa podarilo nastaviť
@@ -80,7 +97,7 @@ var MementoRecordTracking = (function() {
             }
 
             var viewField = config.fields.common.view;
-            var printMode = config.constants.VIEW_MODES.PRINT; // "Tlač"
+            var printMode = normalizeValue(config.constants.VIEW_MODES.PRINT); // Odstráni medzery
 
             entry.set(viewField, printMode);
             return true;
@@ -93,6 +110,7 @@ var MementoRecordTracking = (function() {
     /**
      * Nastaví view režim na "Debug"
      * Používa sa manuálne v špeciálnych prípadoch
+     * Automaticky normalizuje hodnotu (odstráni medzery) pre kompatibilitu
      *
      * @param {Entry} entry - Memento entry objekt
      * @returns {boolean} true ak sa podarilo nastaviť
@@ -105,7 +123,7 @@ var MementoRecordTracking = (function() {
             }
 
             var viewField = config.fields.common.view;
-            var debugMode = config.constants.VIEW_MODES.DEBUG; // "Debug"
+            var debugMode = normalizeValue(config.constants.VIEW_MODES.DEBUG); // Odstráni medzery
 
             entry.set(viewField, debugMode);
             return true;

@@ -1,13 +1,17 @@
 // ==============================================
 // MEMENTOUTILS - Hlavný agregátor modulov
-// Verzia: 7.3.0 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.4.0 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - Jednotný prístupový bod pre všetky moduly
-//    - Agreguje funkcie z Core, AI, Telegram, Business, GPS, RecordTracking
+//    - Agreguje funkcie z Core, AI, Telegram, Business, GPS, RecordTracking, IDConflictResolver
 //    - Pridáva CONFIG z MementoConfig
 //    - Lazy loading pre asynchrónne načítanie
 // ==============================================
+// 🔧 CHANGELOG v7.4.0:
+//    - Pridaný MementoIDConflictResolver modul pre riešenie ID konfliktov
+//    - Exportované funkcie: checkAndResolveIDConflict, findMaxID, idExists
+//    - Podpora pre team verziu Memento Database
 // 🔧 CHANGELOG v7.3.0:
 //    - Pridaný MementoRecordTracking modul pre sledovanie záznamov
 //    - Exportované funkcie: setEditMode, setPrintMode, setDebugMode
@@ -25,7 +29,7 @@
 var MementoUtils = (function() {
     'use strict';
 
-    var version = "7.3.0";
+    var version = "7.4.0";
     
     // ==============================================
     // LAZY LOADING MODULOV
@@ -38,7 +42,8 @@ var MementoUtils = (function() {
         telegram: null,
         business: null,
         gps: null,
-        recordTracking: null
+        recordTracking: null,
+        idConflictResolver: null
     };
     
     /**
@@ -88,6 +93,12 @@ var MementoUtils = (function() {
                     modules.recordTracking = MementoRecordTracking;
                 }
                 break;
+
+            case 'idConflictResolver':
+                if (!modules.idConflictResolver && typeof MementoIDConflictResolver !== 'undefined') {
+                    modules.idConflictResolver = MementoIDConflictResolver;
+                }
+                break;
         }
     }
     
@@ -102,6 +113,7 @@ var MementoUtils = (function() {
         loadModule('business');
         loadModule('gps');
         loadModule('recordTracking');
+        loadModule('idConflictResolver');
     }
     
     /**
@@ -453,7 +465,13 @@ var MementoUtils = (function() {
 
         // Kombinované funkcie
         initializeNewRecord: lazyCall('recordTracking', 'initializeNewRecord'),
-        processRecordUpdate: lazyCall('recordTracking', 'processRecordUpdate')
+        processRecordUpdate: lazyCall('recordTracking', 'processRecordUpdate'),
+
+        // === ID CONFLICT RESOLUTION ===
+        // Detekcia a riešenie ID konfliktov (pre team verziu Memento Database)
+        checkAndResolveIDConflict: lazyCall('idConflictResolver', 'checkAndResolveIDConflict'),
+        findMaxID: lazyCall('idConflictResolver', 'findMaxID'),
+        idExists: lazyCall('idConflictResolver', 'idExists')
     };
     
     // === INICIALIZÁCIA ===

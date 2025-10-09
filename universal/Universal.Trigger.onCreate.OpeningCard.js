@@ -5,13 +5,18 @@
  *
  * Názov:       Universal.Trigger.onCreate.OpeningCard
  * Typ:         Trigger (onCreate - "Opening card" / Before Save)
- * Verzia:      1.0.0
+ * Verzia:      2.0.0
  * Dátum:       October 2025
  * Použitie:    Univerzálne použiteľný vo všetkých knižniciach
  *
  * Popis:
  * Nastaví view režim na "Editácia " pri otvorení novej karty (pred uložením).
+ * VOLITEĽNE: Kontroluje a rieši ID konflikty (pre team verziu Memento Database).
  * Tento trigger sa spúšťa SYNCHRONNE pred prvým uložením záznamu.
+ *
+ * CHANGELOG v2.0.0:
+ * - Pridaná voliteľná kontrola ID konfliktov (zakomentované)
+ * - Pre team verziu Memento Database odkomentuj sekciu ID CONFLICT CHECK
  *
  * Trigger fáza: "Opening card" (synchronous, before save)
  * - Spúšťa sa KEĎ sa otvára formulár nového záznamu
@@ -52,6 +57,21 @@ if (typeof MementoUtils === 'undefined') {
 var currentEntry = entry();
 
 try {
+    // ==============================================
+    // VOLITEĽNÉ: ID CONFLICT CHECK (pre team verziu)
+    // ==============================================
+    // Odkomentuj nasledujúce riadky ak používaš team verziu Memento Database
+    // a chceš automaticky riešiť ID konflikty:
+    
+    var idResult = MementoUtils.checkAndResolveIDConflict(currentEntry, "ID");
+    if (idResult.conflictDetected) {
+        message("⚠️ ID konflikt vyriešený: " + idResult.oldID + " → " + idResult.newID);
+    }
+   
+    // POZNÁMKA: Alternatívne môžeš použiť samostatný trigger:
+    // Universal.Trigger.onCreate.OpeningCard.IDConflict.js
+    // ==============================================
+
     // Nastav view režim na "Editácia "
     var success = MementoUtils.setEditMode(currentEntry);
 
