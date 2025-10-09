@@ -164,7 +164,7 @@ function loadDefaultValues(currentEntry, defaultsEntry) {
 // HLAVNÁ FUNKCIA
 // ==============================================
 
-var currentEntry = entry();
+var currentEntry = defaultEntry();
 
 try {
     // 1. Získaj záznam z ASISTANTO Defaults
