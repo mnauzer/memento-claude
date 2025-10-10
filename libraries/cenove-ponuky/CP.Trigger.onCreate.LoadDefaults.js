@@ -112,37 +112,53 @@ function getDefaultsEntry() {
 function loadDefaultValues(currentEntry, defaultsEntry) {
     try {
         var loadedCount = 0;
+        var debugInfo = [];
 
         // 1. Doprava % (double)
-        var ridePercentage = utils.safeGet(defaultsEntry, CONFIG.defaultsFields.cpDefaultRidePercentage);
+        var ridePercentageField = CONFIG.defaultsFields.cpDefaultRidePercentage;
+        debugInfo.push("Pole 1: '" + ridePercentageField + "'");
+        var ridePercentage = utils.safeGet(defaultsEntry, ridePercentageField);
+        debugInfo.push("Hodnota 1: " + (ridePercentage !== null ? ridePercentage : "NULL"));
         if (ridePercentage !== null && ridePercentage !== undefined) {
             currentEntry.set(CONFIG.quoteFields.ridePercentage, ridePercentage);
             loadedCount++;
         }
 
         // 2. Doprava cena za km (linkToEntry - Cenník prác)
-        var kmPriceEntries = utils.safeGetLinks(defaultsEntry, CONFIG.defaultsFields.cpDefaultKmPrice);
+        var kmPriceField = CONFIG.defaultsFields.cpDefaultKmPrice;
+        debugInfo.push("Pole 2: '" + kmPriceField + "'");
+        var kmPriceEntries = utils.safeGetLinks(defaultsEntry, kmPriceField);
+        debugInfo.push("Hodnota 2: " + (kmPriceEntries ? kmPriceEntries.length + " entries" : "NULL"));
         if (kmPriceEntries && kmPriceEntries.length > 0) {
             currentEntry.set(CONFIG.quoteFields.kmPrice, kmPriceEntries);
             loadedCount++;
         }
 
         // 3. Doprava paušál (linkToEntry - Cenník prác)
-        var rideFlatRateEntries = utils.safeGetLinks(defaultsEntry, CONFIG.defaultsFields.cpDefaultRideFlatRate);
+        var rideFlatRateField = CONFIG.defaultsFields.cpDefaultRideFlatRate;
+        debugInfo.push("Pole 3: '" + rideFlatRateField + "'");
+        var rideFlatRateEntries = utils.safeGetLinks(defaultsEntry, rideFlatRateField);
+        debugInfo.push("Hodnota 3: " + (rideFlatRateEntries ? rideFlatRateEntries.length + " entries" : "NULL"));
         if (rideFlatRateEntries && rideFlatRateEntries.length > 0) {
             currentEntry.set(CONFIG.quoteFields.rideFlatRate, rideFlatRateEntries);
             loadedCount++;
         }
 
         // 4. Presun hmôt % (double)
-        var massTransferPercentage = utils.safeGet(defaultsEntry, CONFIG.defaultsFields.cpDefaultMassTransferPercentage);
+        var massTransferPercentageField = CONFIG.defaultsFields.cpDefaultMassTransferPercentage;
+        debugInfo.push("Pole 4: '" + massTransferPercentageField + "'");
+        var massTransferPercentage = utils.safeGet(defaultsEntry, massTransferPercentageField);
+        debugInfo.push("Hodnota 4: " + (massTransferPercentage !== null ? massTransferPercentage : "NULL"));
         if (massTransferPercentage !== null && massTransferPercentage !== undefined) {
             currentEntry.set(CONFIG.quoteFields.massTransferPercentage, massTransferPercentage);
             loadedCount++;
         }
 
         // 5. Cena presunu hmôt (currency)
-        var massTransferPrice = utils.safeGet(defaultsEntry, CONFIG.defaultsFields.cpDefaultMassTransferPrice);
+        var massTransferPriceField = CONFIG.defaultsFields.cpDefaultMassTransferPrice;
+        debugInfo.push("Pole 5: '" + massTransferPriceField + "'");
+        var massTransferPrice = utils.safeGet(defaultsEntry, massTransferPriceField);
+        debugInfo.push("Hodnota 5: " + (massTransferPrice !== null ? massTransferPrice : "NULL"));
         if (massTransferPrice !== null && massTransferPrice !== undefined) {
             currentEntry.set(CONFIG.quoteFields.massTransferPrice, massTransferPrice);
             loadedCount++;
@@ -152,7 +168,7 @@ function loadDefaultValues(currentEntry, defaultsEntry) {
         if (loadedCount > 0) {
             message("✅ Načítané default hodnoty: " + loadedCount + "/5");
         } else {
-            message("⚠️ Žiadne default hodnoty nenájdené v ASISTANTO Defaults");
+            message("⚠️ Žiadne default hodnoty nenájdené\n\nDEBUG:\n" + debugInfo.join("\n"));
         }
 
     } catch (error) {
