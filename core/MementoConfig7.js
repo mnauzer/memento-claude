@@ -1,7 +1,12 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.38 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.39 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.39 (2025-10-10):
+//    - PRIDANÉ: Polia pre Zákazky Diely (orderPart) - Library ID: iEUC79O2T
+//    - Polia: number, date, quoteNumber, name, partType, materialSum, workSum, totalSum
+//    - Polia: materials, works, note
+//    - Príprava pre CP.Action.CreateOrder.js script
 // 🔧 CHANGELOG v7.0.38 (2025-10-10):
 //    - OPRAVA: Premenované pole massTransferPricePerTonne → massTransferPriceEntry
 //    - massTransferPriceEntry: "Cena presunu hmôt materiálu" (linkToEntry) - VSTUP pre metódu "Podľa hmotnosti"
@@ -341,6 +346,10 @@ var MementoConfig = (function() {
             // Obchodné dokumenty - Cenové ponuky
             quotes: "90RmdjWuk", // Cenové ponuky
             quoteParts: "nCAgQkfvK", // Cenové ponuky Diely
+
+            // Obchodné dokumenty - Zákazky
+            orders: "CfRHN7QTG", // Zákazky
+            orderParts: "iEUC79O2T", // Zákazky Diely
 
             // Aktuálne používané knižnice podľa API analýzy
             employees: "qU4Br5hU6", // Zamestnanci Semiramis (obsahuje všetky potrebné polia)
@@ -1209,6 +1218,30 @@ var MementoConfig = (function() {
 
                 vatRate: "Sadzba DPH", // text, z knižnice ASISTANTO Defaults
                 telegramGroup: "Telegram skupina" // linkToEntry Telegram Groups
+            },
+            // Zákazky Diely polia (Library ID: iEUC79O2T)
+            orderPart: {
+                // Základné identifikačné polia
+                number: "Číslo", // int (field 283) - role: name
+                date: "Dátum", // date (field 269)
+                quoteNumber: "Číslo CP", // text (field 281) - role: desc, číslo cenovej ponuky
+                name: "Názov", // text (field 250) - role: desc
+
+                // Klasifikácia dielu
+                partType: "Diel cenovej ponuky", // choice (field 257) - role: name, druh dielu
+
+                // Cenové polia - súčty za kategórie
+                materialSum: "Suma materiál", // currency (field 271), suma za materiály
+                workSum: "Suma práce", // currency (field 272), suma za práce
+                totalSum: "Celkom", // currency (field 275) - role: status, celková suma dielu
+
+                // Položky po kategóriách - linkToEntry polia
+                materials: "Materiál", // entries (field 264), linkToEntry do materiálov
+                works: "Práce", // entries (field 265), linkToEntry do prác
+
+                // Poznámky
+                note: "Poznámka" // text (field 207), poznámky k dielu
+                // info (field 284), debugLog (field 277), errorLog (field 278) - použiť fields.common
             },
             // Pohľadávky
             receivables: {
