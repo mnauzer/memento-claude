@@ -282,6 +282,17 @@ try {
     utils.addDebug(logEntry, "=== CP.Trigger.onCreate.LoadDefaults v" + CONFIG.version + " ===");
     utils.addDebug(logEntry, "Čas spustenia: " + moment().format("DD.MM.YYYY HH:mm:ss"));
 
+    // DEBUG: Skontroluj utils.config
+    utils.addDebug(logEntry, "DEBUG: Kontrolujem utils.config...");
+    utils.addDebug(logEntry, "  utils.config existuje: " + (utils.config ? "ÁNO" : "NIE"));
+    utils.addDebug(logEntry, "  utils.config.fields existuje: " + (utils.config.fields ? "ÁNO" : "NIE"));
+    utils.addDebug(logEntry, "  utils.config.fields.defaults existuje: " + (utils.config.fields && utils.config.fields.defaults ? "ÁNO" : "NIE"));
+
+    if (utils.config.fields && utils.config.fields.defaults) {
+        utils.addDebug(logEntry, "  CONFIG.defaultsFields.cpDefaultRidePercentage = " + CONFIG.defaultsFields.cpDefaultRidePercentage);
+        utils.addDebug(logEntry, "  CONFIG.defaultsFields.cpDefaultKmPrice = " + CONFIG.defaultsFields.cpDefaultKmPrice);
+    }
+
     // 2. Získaj záznam z ASISTANTO Defaults
     var defaultsEntry = getDefaultsEntry(logEntry);
 
