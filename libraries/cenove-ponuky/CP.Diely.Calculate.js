@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY DIELY - Hlavný prepočet
-// Verzia: 3.6.0 | Dátum: 2025-10-10 | Autor: ASISTANTO
+// Verzia: 3.6.1 | Dátum: 2025-10-10 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky Diely (ID: nCAgQkfvK)
 // Trigger: onChange
 // ==============================================
@@ -19,6 +19,12 @@
 //    - Automatické vymazanie debug, error a info logov pri štarte
 //    - Vytvorenie prehľadného markdown reportu v info poli
 // ==============================================
+// 🔧 CHANGELOG v3.6.1 (2025-10-10):
+//    - KRITICKÁ OPRAVA: Zaokrúhlenie totalPrice pred zápisom do atribútu
+//    - PRIDANÉ: Try-catch wrappery pre všetky setAttr() volania
+//    - FIX: Aplikácia padala pri zápise neza okrúhlených hodnôt do atribútov
+//    - Konzistentné zaokrúhľovanie: Math.round(value * 100) / 100 pre všetky ceny
+//    - Bezpečné zapisovanie s error handlingom pre materiál aj práce
 // 🔧 CHANGELOG v3.6.0 (2025-10-10):
 //    - PRIDANÉ: Výpočet celkovej hmotnosti materiálu v tonách
 //    - Hmotnosť sa získava z poľa "Hmotnosť" v položkách materiálu (v kg)
@@ -101,7 +107,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky Diely - Prepočet",
-    version: "3.6.0",
+    version: "3.6.1",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quotePart,
@@ -594,8 +600,12 @@ try {
                 } else {
                     // Nie je zadaná ručná cena, použij DB cenu
                     finalPrice = dbPrice;
-                    item.setAttr(attrs.price, finalPrice);
-                    utils.addDebug(currentEntry, "    → Nastavená cena z DB: " + finalPrice.toFixed(2) + " €");
+                    try {
+                        item.setAttr(attrs.price, finalPrice);
+                        utils.addDebug(currentEntry, "    → Nastavená cena z DB: " + finalPrice.toFixed(2) + " €");
+                    } catch (e) {
+                        utils.addError(currentEntry, "⚠️ Chyba pri zápise ceny do atribútu: " + e.toString(), "setPrice", e);
+                    }
                 }
             } else {
                 // Cena nie je v databáze
@@ -635,8 +645,12 @@ try {
 
                         finalPrice = itemPrice;
                         // Doplň do atribútu
-                        item.setAttr(attrs.price, finalPrice);
-                        utils.addDebug(currentEntry, "    → Doplnená cena do atribútu: " + finalPrice.toFixed(2) + " €");
+                        try {
+                            item.setAttr(attrs.price, finalPrice);
+                            utils.addDebug(currentEntry, "    → Doplnená cena do atribútu: " + finalPrice.toFixed(2) + " €");
+                        } catch (e) {
+                            utils.addError(currentEntry, "⚠️ Chyba pri doplnení ceny do atribútu: " + e.toString(), "setAttrPrice", e);
+                        }
                     } else {
                         utils.addDebug(currentEntry, "    ❌ Žiadna cena - ani v DB ani ručná ani v zázname");
                         finalPrice = 0;
@@ -647,9 +661,16 @@ try {
             // Zaokrúhli finalPrice na 2 desatinné miesta pre správny výpočet
             finalPrice = Math.round(finalPrice * 100) / 100;
 
-            // Vypočítaj cenu celkom
-            var totalPrice = quantity * finalPrice;
-            item.setAttr(attrs.totalPrice, totalPrice);
+            // Vypočítaj cenu celkom a zaokrúhli na 2 desatinné miesta
+            var totalPrice = Math.round(quantity * finalPrice * 100) / 100;
+
+            // Bezpečné zapisovanie atribútu
+            try {
+                item.setAttr(attrs.totalPrice, totalPrice);
+            } catch (e) {
+                utils.addError(currentEntry, "⚠️ Chyba pri zápise totalPrice do atribútu materiálu: " + e.toString(), "materialTotalPrice", e);
+            }
+
             materialSum += totalPrice;
 
             // Získaj hmotnosť položky (v kg)
@@ -754,8 +775,12 @@ try {
                 } else {
                     // Nie je zadaná ručná cena, použij DB cenu
                     finalPrice = dbPrice;
-                    item.setAttr(attrs.price, finalPrice);
-                    utils.addDebug(currentEntry, "    → Nastavená cena z DB: " + finalPrice.toFixed(2) + " €");
+                    try {
+                        item.setAttr(attrs.price, finalPrice);
+                        utils.addDebug(currentEntry, "    → Nastavená cena z DB: " + finalPrice.toFixed(2) + " €");
+                    } catch (e) {
+                        utils.addError(currentEntry, "⚠️ Chyba pri zápise ceny do atribútu: " + e.toString(), "setPrice", e);
+                    }
                 }
             } else {
                 // Cena nie je v databáze
@@ -795,8 +820,12 @@ try {
 
                         finalPrice = itemPrice;
                         // Doplň do atribútu
-                        item.setAttr(attrs.price, finalPrice);
-                        utils.addDebug(currentEntry, "    → Doplnená cena do atribútu: " + finalPrice.toFixed(2) + " €");
+                        try {
+                            item.setAttr(attrs.price, finalPrice);
+                            utils.addDebug(currentEntry, "    → Doplnená cena do atribútu: " + finalPrice.toFixed(2) + " €");
+                        } catch (e) {
+                            utils.addError(currentEntry, "⚠️ Chyba pri doplnení ceny do atribútu: " + e.toString(), "setAttrPrice", e);
+                        }
                     } else {
                         utils.addDebug(currentEntry, "    ❌ Žiadna cena - ani v DB ani ručná ani v zázname");
                         finalPrice = 0;
@@ -807,9 +836,16 @@ try {
             // Zaokrúhli finalPrice na 2 desatinné miesta pre správny výpočet
             finalPrice = Math.round(finalPrice * 100) / 100;
 
-            // Vypočítaj cenu celkom
-            var totalPrice = quantity * finalPrice;
-            item.setAttr(attrs.totalPrice, totalPrice);
+            // Vypočítaj cenu celkom a zaokrúhli na 2 desatinné miesta
+            var totalPrice = Math.round(quantity * finalPrice * 100) / 100;
+
+            // Bezpečné zapisovanie atribútu
+            try {
+                item.setAttr(attrs.totalPrice, totalPrice);
+            } catch (e) {
+                utils.addError(currentEntry, "⚠️ Chyba pri zápise totalPrice do atribútu práce: " + e.toString(), "workTotalPrice", e);
+            }
+
             workSum += totalPrice;
 
             // Získaj mernú jednotku
