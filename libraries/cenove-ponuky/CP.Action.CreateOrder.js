@@ -11,11 +11,15 @@
  * - Prepojenie: Zákazky → linkToEntry Cenové ponuky (vytvorí linksFrom)
  * - Automatické generovanie čísla zákazky pomocou MementoAutoNumber
  *
- * Verzia: 1.2.0
+ * Verzia: 1.2.1
  * Dátum: 2025-10-10
  * Autor: ASISTANTO
  *
  * CHANGELOG:
+ * v1.2.1 (2025-10-10):
+ * - OPRAVA: Vylepšená detekcia existujúcej zákazky cez linksFrom
+ * - Porovnáva ID aj názov knižnice pre spoľahlivejšiu kontrolu
+ * - Pridaný detailný debug log pre kontrolu prepojení
  * v1.2.0 (2025-10-10):
  * - NOVÉ: Dátum zákazky sa nastaví na dátum generovania (nie z CP)
  * - NOVÉ: Dátum dielov sa nastaví na dátum generovania (nie z CP)
@@ -103,19 +107,40 @@ try {
     var existingOrders = [];
     try {
         var linkedEntries = currentEntry.linksFrom();
-        for (var i = 0; i < linkedEntries.length; i++) {
-            var linkedEntry = linkedEntries[i];
-            if (linkedEntry.lib().id() === ordersLib.id()) {
-                existingOrders.push(linkedEntry);
+        utils.addDebug(currentEntry, "  🔍 Kontrolujem linksFrom: " + (linkedEntries ? linkedEntries.length : 0) + " prepojení");
+
+        if (linkedEntries && linkedEntries.length > 0) {
+            for (var i = 0; i < linkedEntries.length; i++) {
+                var linkedEntry = linkedEntries[i];
+                try {
+                    // Skontroluj či prepojenie je z knižnice Zákazky
+                    var linkedLib = linkedEntry.lib();
+                    var linkedLibName = linkedLib.name();
+                    var linkedLibId = linkedLib.id();
+                    var ordersLibId = ordersLib.id();
+
+                    utils.addDebug(currentEntry, "    Prepojenie " + (i + 1) + ": Knižnica '" + linkedLibName + "' (ID: " + linkedLibId + ")");
+
+                    // Porovnaj ID knižnice alebo názov
+                    if (linkedLibId === ordersLibId || linkedLibName === "Zákazky") {
+                        existingOrders.push(linkedEntry);
+                        utils.addDebug(currentEntry, "      ✅ Toto je zákazka!");
+                    }
+                } catch (e2) {
+                    utils.addDebug(currentEntry, "    ⚠️ Chyba pri kontrole prepojenia: " + e2.toString());
+                }
             }
         }
     } catch (e) {
-        utils.addDebug(currentEntry, "  ℹ️ Žiadne existujúce prepojenia zo Zákaziek");
+        utils.addDebug(currentEntry, "  ℹ️ Žiadne existujúce prepojenia zo Zákaziek (chyba: " + e.toString() + ")");
     }
 
     var orderExists = existingOrders.length > 0;
     var order = orderExists ? existingOrders[0] : null;
     var mode = orderExists ? "UPDATE" : "CREATE";
+
+    utils.addDebug(currentEntry, "");
+    utils.addDebug(currentEntry, "  📊 Počet nájdených zákaziek: " + existingOrders.length);
 
     utils.addDebug(currentEntry, "  Režim: " + mode);
     if (orderExists) {
