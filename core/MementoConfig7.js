@@ -1,7 +1,12 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.37 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.38 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.38 (2025-10-10):
+//    - OPRAVA: Premenované pole massTransferPricePerTonne → massTransferPriceEntry
+//    - massTransferPriceEntry: "Cena presunu hmôt materiálu" (linkToEntry) - VSTUP pre metódu "Podľa hmotnosti"
+//    - massTransferPrice: "Cena presunu hmôt" (currency) - VÝSTUP vypočítanej ceny
+//    - Vyriešený konflikt názvov polí pre presun hmôt
 // 🔧 CHANGELOG v7.0.37 (2025-10-10):
 //    - PRIDANÉ: Pole materialWeight v quote - "Hmotnosť materiálu" (celková váha v tonách)
 //    - PRIDANÉ: Pole massTransferFlatRate - "Paušál presunu hmôt" (linkToEntry Cenník prác)
@@ -1067,8 +1072,8 @@ var MementoConfig = (function() {
                 massTransferCalculation: "Účtovanie presunu hmôt", // choice - Neúčtovať, Paušál, Podľa hmotnosti materiálu, % zo zákazky, Pevná cena
                 massTransferPercentage: "Presun hmôt %", // double
                 massTransferPrice: "Cena presunu hmôt", // currency - VÝSTUP vypočítanej ceny presunu hmôt
+                massTransferPriceEntry: "Cena presunu hmôt materiálu", // entries - linkToEntry Cenník prác - VSTUP pre metódu "Podľa hmotnosti"
                 massTransferFlatRate: "Paušál presunu hmôt", // entries - linkToEntry Cenník prác
-                massTransferPricePerTonne: "Cena presunu hmôt za tonu", // entries - linkToEntry Cenník prác
                 fixedMassTransferPrice: "Pevná cena presunu hmôt", // currency - VSTUP pre pevnú cenu presunu hmôt
                 subcontractsCalculation: "Účtovanie subdodávok", // choice - Neúčtovať, % zo zákazky, Pevná cena
                 subcontractsPercentage: "Subdodávky %", // double

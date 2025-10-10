@@ -1,11 +1,12 @@
 // ==============================================
 // CENOVÉ PONUKY - Hlavný prepočet
-// Verzia: 1.4.0 | Dátum: 2025-10-10 | Autor: ASISTANTO
+// Verzia: 1.4.2 | Dátum: 2025-10-10 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky (ID: 90RmdjWuk)
 // Trigger: onChange
 // ==============================================
 // 📋 FUNKCIA:
 //    - Aktualizuje názov z Miesta realizácie
+//    - Validuje prepojenia dielov s cenovou ponukou (Číslo CP)
 //    - Spočíta hodnoty "Celkom" zo všetkých dielov cenovej ponuky
 //    - Automatická správa subdodávok (presun medzi Diely/Subdodávky podľa nastavenia)
 //    - Vypočíta predpokladaný počet km (vzdialenosť × 2 × počet jázd)
@@ -16,6 +17,17 @@
 //    - Získa aktuálnu sadzbu DPH
 //    - Vypočíta celkovú sumu s DPH
 // ==============================================
+// 🔧 CHANGELOG v1.4.2 (2025-10-10):
+//    - PRIDANÉ: KROK 2a - Validácia prepojení dielov s cenovou ponukou (validatePartsLinks)
+//    - PRIDANÉ: Kontrola zhody "Číslo" CP s "Číslo CP" dielu - neplatné diely sa unlinknu
+//    - PRIDANÉ: Kontrola duplicitného linkovania dielov - duplicity sa odstránia
+//    - VYLEPŠENÉ: Správa subdodávok - keď je "Neúčtovať" a subdodávka neexistuje, nezobrazuje sa warning
+//    - VYLEPŠENÉ: Debug logy dielov používajú pole "Diel cenovej ponuky" namiesto "Názov"
+// 🔧 CHANGELOG v1.4.1 (2025-10-10):
+//    - OPRAVA: Metóda "Podľa hmotnosti materiálu" teraz číta z poľa "Cena presunu hmôt materiálu" (massTransferPriceEntry)
+//    - OPRAVA: Pole "Cena presunu hmôt" (massTransferPrice) je VÝSTUPNÉ pole (currency) pre vypočítanú cenu
+//    - AKTUALIZOVANÉ: KROK 5 - Pole "Celkom" (fields.total) obsahuje diely + doprava + presun hmôt (bez DPH)
+//    - AKTUALIZOVANÉ: Rozšírený finálny debug výpis - zobrazuje Celkom (bez DPH) aj Celkom s DPH
 // 🔧 CHANGELOG v1.4.0 (2025-10-10):
 //    - PRIDANÉ: KROK 2d - Výpočet celkovej hmotnosti materiálu (calculateMaterialWeight)
 //    - PRIDANÉ: KROK 3b - Výpočet ceny presunu hmôt (calculateMassTransferPrice)
@@ -95,7 +107,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky - Prepočet",
-    version: "1.4.0",
+    version: "1.4.2",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quote,
@@ -148,6 +160,81 @@ function updateNameFromPlace() {
 }
 
 /**
+ * Validuje prepojenie dielov s cenovou ponukou
+ * Kontroluje zhodu "Číslo" CP s "Číslo CP" dielu a odstráni duplicity
+ * @returns {Array} - Validované pole dielov
+ */
+function validatePartsLinks() {
+    try {
+        utils.addDebug(currentEntry, "  🔍 Kontrola prepojenia dielov s cenovou ponukou");
+
+        var quoteNumber = utils.safeGet(currentEntry, fields.number) || "";
+        utils.addDebug(currentEntry, "    Číslo CP: " + quoteNumber);
+
+        var partsEntries = utils.safeGetLinks(currentEntry, fields.parts) || [];
+
+        if (partsEntries.length === 0) {
+            utils.addDebug(currentEntry, "    ℹ️ Žiadne diely na kontrolu");
+            return [];
+        }
+
+        var validParts = [];
+        var seenPartIds = {}; // Pre kontrolu duplicít
+        var removedCount = 0;
+        var duplicateCount = 0;
+
+        for (var i = 0; i < partsEntries.length; i++) {
+            var part = partsEntries[i];
+            var partQuoteNumber = utils.safeGet(part, centralConfig.fields.quotePart.quoteNumber) || "";
+            var partType = utils.safeGet(part, centralConfig.fields.quotePart.partType) || ("Diel #" + (i + 1));
+            var partId = part.id();
+
+            // Kontrola duplicít
+            if (seenPartIds[partId]) {
+                utils.addDebug(currentEntry, "    ⊗ Duplicita: " + partType + " - odstránená");
+                duplicateCount++;
+                continue;
+            }
+
+            // Kontrola zhody čísla CP
+            if (partQuoteNumber !== quoteNumber) {
+                utils.addDebug(currentEntry, "    ✗ Neplatné prepojenie: " + partType);
+                utils.addDebug(currentEntry, "      Očakávané číslo CP: '" + quoteNumber + "'");
+                utils.addDebug(currentEntry, "      Číslo CP v dieli: '" + partQuoteNumber + "'");
+                utils.addDebug(currentEntry, "      → Diel unlinknutý z cenovej ponuky");
+                removedCount++;
+                continue;
+            }
+
+            // Diel je validný
+            validParts.push(part);
+            seenPartIds[partId] = true;
+        }
+
+        // Uložiť vyčistené pole dielov
+        if (removedCount > 0 || duplicateCount > 0) {
+            currentEntry.set(fields.parts, validParts);
+            var msg = "    ✅ Prepojenia validované:";
+            if (removedCount > 0) msg += " " + removedCount + " neplatných odstránených,";
+            if (duplicateCount > 0) msg += " " + duplicateCount + " duplicít odstránených,";
+            msg += " zostáva " + validParts.length + " dielov";
+            utils.addDebug(currentEntry, msg);
+        } else {
+            utils.addDebug(currentEntry, "    ✅ Všetky prepojenia sú validné (" + validParts.length + " dielov)");
+        }
+
+        return validParts;
+
+    } catch (error) {
+        var errorMsg = "Chyba pri validácii prepojení dielov: " + error.toString();
+        if (error.lineNumber) errorMsg += ", Line: " + error.lineNumber;
+        if (error.stack) errorMsg += "\nStack: " + error.stack;
+        utils.addError(currentEntry, errorMsg, "validatePartsLinks", error);
+        throw error;
+    }
+}
+
+/**
  * Spočíta hodnoty "Celkom" zo všetkých dielov cenovej ponuky
  * @returns {Number} - Suma všetkých dielov
  */
@@ -171,8 +258,8 @@ function calculatePartsTotal() {
             var part = partsEntries[i];
             var partTotal = utils.safeGet(part, partTotalField) || 0;
 
-            var partName = utils.safeGet(part, centralConfig.fields.quotePart.name) || "Diel #" + (i + 1);
-            utils.addDebug(currentEntry, "      • " + partName + ": " + partTotal.toFixed(2) + " €");
+            var partType = utils.safeGet(part, centralConfig.fields.quotePart.partType) || ("Diel #" + (i + 1));
+            utils.addDebug(currentEntry, "      • " + partType + ": " + partTotal.toFixed(2) + " €");
 
             totalSum += partTotal;
         }
@@ -428,12 +515,11 @@ function calculateMaterialWeight() {
             var part = parts[i];
 
             // Zisti typ dielu
-            var partType = utils.safeGet(part, centralConfig.fields.quotePart.partType) || "";
-            var partName = utils.safeGet(part, centralConfig.fields.quotePart.name) || ("Diel " + (i + 1));
+            var partType = utils.safeGet(part, centralConfig.fields.quotePart.partType) || ("Diel " + (i + 1));
 
             // VYNECHAJ subdodávky - tie sa nepočítajú do hmotnosti materiálu
             if (partType === "Subdodávky") {
-                utils.addDebug(currentEntry, "    ⊗ " + partName + " (Subdodávka - vynechané)");
+                utils.addDebug(currentEntry, "    ⊗ " + partType + " (Subdodávka - vynechané)");
                 continue;
             }
 
@@ -443,9 +529,9 @@ function calculateMaterialWeight() {
             if (partWeight > 0) {
                 totalWeight += partWeight;
                 processedCount++;
-                utils.addDebug(currentEntry, "    ✓ " + partName + ": " + partWeight.toFixed(3) + " t");
+                utils.addDebug(currentEntry, "    ✓ " + partType + ": " + partWeight.toFixed(3) + " t");
             } else {
-                utils.addDebug(currentEntry, "    ○ " + partName + ": 0.000 t (bez materiálu)");
+                utils.addDebug(currentEntry, "    ○ " + partType + ": 0.000 t (bez materiálu)");
             }
         }
 
@@ -520,25 +606,25 @@ function calculateMassTransferPrice(totalFromParts, materialWeight, currentDate)
         else if (massTransferCalc === "Podľa hmotnosti materiálu") {
             utils.addDebug(currentEntry, "    Metóda: Podľa hmotnosti materiálu");
 
-            // Zisti cenu za tonu
-            var pricePerTonneEntries = utils.safeGetLinks(currentEntry, fields.massTransferPricePerTonne);
+            // Zisti cenu z poľa "Cena presunu hmôt materiálu"
+            var priceEntries = utils.safeGetLinks(currentEntry, fields.massTransferPriceEntry);
 
-            if (!pricePerTonneEntries || pricePerTonneEntries.length === 0) {
-                utils.addDebug(currentEntry, "      ⚠️ Nie je vybraná položka Cena za tonu (pole: " + fields.massTransferPricePerTonne + ")");
+            if (!priceEntries || priceEntries.length === 0) {
+                utils.addDebug(currentEntry, "      ⚠️ Nie je vybraná položka Cena presunu hmôt materiálu (pole: " + fields.massTransferPriceEntry + ")");
                 return 0;
             }
 
-            var pricePerTonneEntry = pricePerTonneEntries[0];
-            var pricePerTonneName = utils.safeGet(pricePerTonneEntry, centralConfig.fields.priceList.name) || "Cena za tonu";
-            utils.addDebug(currentEntry, "      Položka: " + pricePerTonneName);
+            var priceEntry = priceEntries[0];
+            var priceName = utils.safeGet(priceEntry, centralConfig.fields.priceList.name) || "Cena presunu hmôt materiálu";
+            utils.addDebug(currentEntry, "      Položka: " + priceName);
 
-            var pricePerTonneValue = findWorkPrice(pricePerTonneEntry, currentDate);
+            var priceValue = findWorkPrice(priceEntry, currentDate);
 
-            if (!pricePerTonneValue || pricePerTonneValue <= 0) {
-                utils.addDebug(currentEntry, "      ⚠️ Neplatná cena za tonu (cena: " + pricePerTonneValue + ")");
+            if (!priceValue || priceValue <= 0) {
+                utils.addDebug(currentEntry, "      ⚠️ Neplatná cena (cena: " + priceValue + ")");
                 return 0;
             }
-            utils.addDebug(currentEntry, "      Cena za tonu: " + pricePerTonneValue.toFixed(2) + " €/t");
+            utils.addDebug(currentEntry, "      Cena za jednotku: " + priceValue.toFixed(2) + " €");
 
             if (materialWeight <= 0) {
                 utils.addDebug(currentEntry, "      ⚠️ Hmotnosť materiálu je 0 t");
@@ -547,9 +633,9 @@ function calculateMassTransferPrice(totalFromParts, materialWeight, currentDate)
             }
             utils.addDebug(currentEntry, "      Hmotnosť materiálu: " + materialWeight.toFixed(3) + " t");
 
-            massTransferPrice = pricePerTonneValue * materialWeight;
+            massTransferPrice = priceValue * materialWeight;
 
-            utils.addDebug(currentEntry, "      📊 Výpočet: " + pricePerTonneValue.toFixed(2) + " €/t × " + materialWeight.toFixed(3) + " t");
+            utils.addDebug(currentEntry, "      📊 Výpočet: " + priceValue.toFixed(2) + " € × " + materialWeight.toFixed(3) + " t");
             utils.addDebug(currentEntry, "      ✅ Cena presunu hmôt: " + massTransferPrice.toFixed(2) + " €");
         }
 
@@ -656,11 +742,16 @@ function manageSubcontracts() {
 
         // 3. Ak subdodávka neexistuje
         if (!subcontractEntry) {
-            utils.addDebug(currentEntry, "    ℹ️ Subdodávka nenájdená v žiadnom poli");
-
-            if (subcontractsCalc !== "Neúčtovať") {
-                utils.addDebug(currentEntry, "    ⚠️ Účtovanie je nastavené na '" + subcontractsCalc + "', ale subdodávka neexistuje");
+            // Ak je nastavené "Neúčtovať" a subdodávka neexistuje - je to OK, vynechaj ostatné kroky
+            if (subcontractsCalc === "Neúčtovať") {
+                utils.addDebug(currentEntry, "    ✅ Subdodávka neexistuje, účtovanie je nastavené na 'Neúčtovať' - OK");
+                currentEntry.set(subcontractsTotalFieldName, 0);
+                return { subcontractEntry: null, location: null, totalSubcontracts: 0 };
             }
+
+            // Ak je nastavené inak (Zarátať do ceny / Vytvoriť dodatok) a subdodávka neexistuje - upozorni
+            utils.addDebug(currentEntry, "    ℹ️ Subdodávka nenájdená v žiadnom poli");
+            utils.addDebug(currentEntry, "    ⚠️ Účtovanie je nastavené na '" + subcontractsCalc + "', ale subdodávka neexistuje");
 
             // Vynulovať pole "Celkom subdodávky"
             currentEntry.set(subcontractsTotalFieldName, 0);
@@ -826,6 +917,7 @@ function main() {
         // Kroky prepočtu
         var steps = {
             step1: { success: false, name: "Aktualizácia názvu z miesta" },
+            step2a: { success: false, name: "Validácia prepojení dielov" },
             step2: { success: false, name: "Spočítanie dielov" },
             step2c: { success: false, name: "Správa subdodávok" },
             step2d: { success: false, name: "Výpočet hmotnosti materiálu" },
@@ -854,6 +946,17 @@ function main() {
         } catch (error) {
             utils.addError(currentEntry, "Chyba pri aktualizácii názvu: " + error.toString(), CONFIG.scriptName);
             steps.step1.success = false;
+        }
+
+        // KROK 2a: Validácia prepojení dielov s cenovou ponukou
+        utils.addDebug(currentEntry, "\n" + utils.getIcon("settings") + " KROK 2a: Validácia prepojení dielov");
+        try {
+            validatePartsLinks();
+            steps.step2a.success = true;
+        } catch (error) {
+            utils.addError(currentEntry, "Chyba pri validácii prepojení dielov: " + error.toString(), CONFIG.scriptName);
+            steps.step2a.success = false;
+            // Pokračujeme aj pri chybe - môžu existovať validné diely
         }
 
         // KROK 2: Spočítanie súčtov z dielov
@@ -968,10 +1071,13 @@ function main() {
             utils.addDebug(currentEntry, "  Doprava:             " + transportPrice.toFixed(2) + " €");
             utils.addDebug(currentEntry, "  Presun hmôt:         " + massTransferPrice.toFixed(2) + " €");
             utils.addDebug(currentEntry, "  Hmotnosť materiálu:  " + materialWeight.toFixed(3) + " t");
+            utils.addDebug(currentEntry, "  " + "-".repeat(50));
+            utils.addDebug(currentEntry, "  Celkom (bez DPH):    " + baseForVat.toFixed(2) + " €");
             utils.addDebug(currentEntry, "  DPH:                 " + vatAmount.toFixed(2) + " €");
             utils.addDebug(currentEntry, "  " + "-".repeat(50));
             utils.addDebug(currentEntry, "  ✅ CELKOM S DPH:      " + totalWithVat.toFixed(2) + " €");
 
+            currentEntry.set(fields.total, baseForVat);
             currentEntry.set(fields.totalWithVat, totalWithVat);
             steps.step5.success = true;
         } catch (error) {
