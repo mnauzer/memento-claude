@@ -9,12 +9,18 @@
  * - Pri CREATE: Vytvorí zákazku + všetky diely v Zákazky Diely
  * - Pri UPDATE: Sync všetky polia okrem dielov (diely sa upravujú ručne)
  * - Prepojenie: Zákazky → linkToEntry Cenové ponuky (vytvorí linksFrom)
+ * - Automatické generovanie čísla zákazky pomocou MementoAutoNumber
  *
- * Verzia: 1.0.0
+ * Verzia: 1.1.0
  * Dátum: 2025-10-10
  * Autor: ASISTANTO
  *
  * CHANGELOG:
+ * v1.1.0 (2025-10-10):
+ * - PRIDANÉ: Automatické generovanie čísla zákazky pomocou MementoAutoNumber
+ * - Používa "Z Placeholder" z ASISTANTO Defaults (formát: ZYYXXX)
+ * - Fallback: Ak MementoAutoNumber nie je dostupný, použije číslo z cenovej ponuky
+ * - Detailný debug log pre generovanie čísla
  * v1.0.0 (2025-10-10):
  * - Vytvorený script pre tvorbu zákaziek z cenových ponúk
  * - Implementovaná CREATE logika (zákazka + diely)
@@ -173,6 +179,42 @@ try {
 
         order = ordersLib.create();
 
+        // === GENEROVANIE ČÍSLA ZÁKAZKY ===
+        utils.addDebug(currentEntry, "  🔢 Generujem číslo zákazky...");
+
+        // Použitie MementoAutoNumber pre generovanie čísla
+        var orderNumber = "";
+        try {
+            if (typeof MementoAutoNumber !== 'undefined' && MementoAutoNumber.isLoaded && MementoAutoNumber.isLoaded()) {
+                var numberResult = MementoAutoNumber.generateNumber(
+                    "Zákazky",
+                    "Číslo",
+                    "Z Placeholder"
+                );
+
+                if (numberResult.success) {
+                    orderNumber = numberResult.number;
+                    utils.addDebug(currentEntry, "    ✅ Vygenerované číslo: " + orderNumber);
+                } else {
+                    utils.addDebug(currentEntry, "    ⚠️ Chyba pri generovaní čísla: " + numberResult.error);
+                    utils.addDebug(currentEntry, "    ℹ️ Použije sa číslo z cenovej ponuky");
+                    orderNumber = quoteNumber;
+                }
+            } else {
+                utils.addDebug(currentEntry, "    ℹ️ MementoAutoNumber nie je dostupný");
+                utils.addDebug(currentEntry, "    ℹ️ Použije sa číslo z cenovej ponuky");
+                orderNumber = quoteNumber;
+            }
+        } catch (e) {
+            utils.addDebug(currentEntry, "    ⚠️ Chyba pri volaní MementoAutoNumber: " + e.toString());
+            utils.addDebug(currentEntry, "    ℹ️ Použije sa číslo z cenovej ponuky");
+            orderNumber = quoteNumber;
+        }
+
+        // Nastav číslo zákazky
+        syncData[orderFields.number] = orderNumber;
+        utils.addDebug(currentEntry, "");
+
         // Nastav všetky polia
         for (var fieldName in syncData) {
             if (syncData.hasOwnProperty(fieldName)) {
@@ -199,9 +241,14 @@ try {
         // === UPDATE MODE ===
         utils.addDebug(currentEntry, "  🔄 Aktualizujem existujúcu zákazku...");
 
-        // Aktualizuj všetky polia
+        // Aktualizuj všetky polia OKREM čísla zákazky (číslo sa nemení pri update)
         for (var fieldName in syncData) {
             if (syncData.hasOwnProperty(fieldName)) {
+                // Preskočiť číslo zákazky - to sa nemení pri aktualizácii
+                if (fieldName === orderFields.number) {
+                    continue;
+                }
+
                 var value = syncData[fieldName];
                 if (value !== null && value !== undefined) {
                     try {
