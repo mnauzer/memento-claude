@@ -54,6 +54,7 @@ wheels/
 
 # Screenshots
 screenshots/
+.screenshots/
 
 # Skryté adresáre
 .backup/
