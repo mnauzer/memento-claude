@@ -1,14 +1,17 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.34 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.35 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.35 (2025-10-10):
+//    - OPRAVA: massTransferPrice je linkToEntry (nie currency) - "Cena presunu hmôt"
+//    - OPRAVA: cpDefaultMassTransferPrice je linkToEntry (nie currency)
 // 🔧 CHANGELOG v7.0.34 (2025-10-09):
 //    - PRIDANÉ: Polia pre Cenové ponuky default hodnoty v fields.defaults
-//    - cpDefaultRidePercentage: "CP Default % dopravy"
-//    - cpDefaultKmPrice: "CP Default cena za km"
-//    - cpDefaultRideFlatRate: "CP Default paušál dopravy"
-//    - cpDefaultMassTransferPercentage: "CP Default % presunu hmôt"
-//    - cpDefaultMassTransferPrice: "CP Default cena presunu hmôt"
+//    - cpDefaultRidePercentage: "CP Default % dopravy" (double)
+//    - cpDefaultKmPrice: "CP Default cena za km" (linkToEntry)
+//    - cpDefaultRideFlatRate: "CP Default paušál dopravy" (linkToEntry)
+//    - cpDefaultMassTransferPercentage: "CP Default % presunu hmôt" (double)
+//    - cpDefaultMassTransferPrice: "CP Default cena presunu hmôt" (linkToEntry)
 // 🔧 CHANGELOG v7.0.33 (2025-10-09):
 //    - POZNÁMKA: VIEW_MODES hodnoty v MementoRecordTracking používajú trim() normalizáciu
 //    - Funkcie setEditMode/setPrintMode/setDebugMode akceptujú hodnoty s medzerou aj bez
@@ -116,7 +119,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.31",  // Pridané pole expectedKm pre výpočet predpokladaného počtu km
+        version: "7.0.35",  // Oprava typov polí massTransferPrice a cpDefaultMassTransferPrice
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -832,7 +835,7 @@ var MementoConfig = (function() {
                 cpDefaultKmPrice: "CP Default cena za km", // entries - linkToEntry Cenník prác
                 cpDefaultRideFlatRate: "CP Default paušál dopravy", // entries - linkToEntry Cenník prác
                 cpDefaultMassTransferPercentage: "CP Default % presunu hmôt", // double - default % presunu hmôt
-                cpDefaultMassTransferPrice: "CP Default cena presunu hmôt", // currency - default cena presunu hmôt
+                cpDefaultMassTransferPrice: "CP Default cena presunu hmôt", // entries - linkToEntry Cenník prác
 
                 // Zákazky - NUMBER PLACEHOLDERS
                 zPlaceholder: "Z Placeholder", // text (id: 8) - Zákazky
@@ -1054,7 +1057,7 @@ var MementoConfig = (function() {
                 // Účtovanie ďalších položiek
                 massTransferCalculation: "Účtovanie presunu hmôt", // choice - Neúčtovať, % zo zákazky, Pevná cena
                 massTransferPercentage: "Presun hmôt %", // double
-                massTransferPrice: "Cena za presun hmôt", // currency
+                massTransferPrice: "Cena presunu hmôt", // entries - linkToEntry Cenník prác
                 subcontractsCalculation: "Účtovanie subdodávok", // choice - Neúčtovať, % zo zákazky, Pevná cena
                 subcontractsPercentage: "Subdodávky %", // double
                 subcontractsPrice: "Cena subdodávok", // currency
