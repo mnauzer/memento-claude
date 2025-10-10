@@ -1,7 +1,14 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.39 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.40 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.40 (2025-10-10):
+//    - OPRAVA: Doplnené chýbajúce polia v order (fields 296-307, 260)
+//    - Účtovanie dopravy: rideCalculation, transportPercentage, kmPrice, rideFlatRate, fixedTransportPrice
+//    - Účtovanie presunu hmôt: massTransferCalculation, massTransferPercentage, massTransferPrice, massTransferFlatRate, fixedMassTransferPrice, materialWeight
+//    - Účtovanie subdodávok: subcontractsCalculation
+//    - Pole parts: linkToEntry Zákazky Diely
+//    - Fix pre CP.Action.CreateOrder.js script
 // 🔧 CHANGELOG v7.0.39 (2025-10-10):
 //    - PRIDANÉ: Polia pre Zákazky Diely (orderPart) - Library ID: iEUC79O2T
 //    - Polia: number, date, quoteNumber, name, partType, materialSum, workSum, totalSum
@@ -1215,6 +1222,27 @@ var MementoConfig = (function() {
                 // PRIRÁŽKY - Percentuálne prirážky na náklady
                 subcontractorMarkup: "Prirážka subdodávky", // real number, percentuálna prirážka na subdodávky
                 otherMarkup: "Prirážka ostatné", // real number, percentuálna prirážka na ostatné náklady
+
+                // ÚČTOVANIE DOPRAVY (fields 296-301)
+                rideCalculation: "Účtovanie dopravy", // choice (field 296) - Neúčtovať, Paušál, Km, % zo zákazky, Pevná cena
+                transportPercentage: "Doprava %", // double (field 298) - percentuálna prirážka dopravy
+                kmPrice: "Doprava cena za km", // entries (field 300) - linkToEntry Cenník prác
+                rideFlatRate: "Doprava paušál", // entries (field 299) - linkToEntry Cenník prác
+                fixedTransportPrice: "Doprava pevná cena", // currency (field 301) - pevná cena dopravy
+
+                // ÚČTOVANIE PRESUNU HMÔT (fields 297, 302-307, 306)
+                massTransferCalculation: "Účtovanie presunu hmôt", // choice (field 297) - Neúčtovať, Paušál, Podľa hmotnosti materiálu, % zo zákazky, Pevná cena
+                massTransferPercentage: "Presun hmôt %", // double (field 304) - percentuálna prirážka presunu hmôt
+                massTransferPrice: "Cena presunu hmôt", // entries (field 302) - linkToEntry Cenník prác
+                massTransferFlatRate: "Paušál presunu hmôt", // entries (field 307) - linkToEntry Cenník prác
+                fixedMassTransferPrice: "Presun hmôt pevná cena", // currency (field 303) - pevná cena presunu hmôt
+                materialWeight: "Hmotnosť materiálu", // double (field 306) - celková hmotnosť materiálov v tonách
+
+                // ÚČTOVANIE SUBDODÁVOK (field 305)
+                subcontractsCalculation: "Účtovanie subdodávok", // choice (field 305) - Neúčtovať, Zarátať do ceny, Vytvoriť dodatok
+
+                // DIELY ZÁKAZKY
+                parts: "Diely", // entries (field 260) - linkToEntry Zákazky Diely
 
                 vatRate: "Sadzba DPH", // text, z knižnice ASISTANTO Defaults
                 telegramGroup: "Telegram skupina" // linkToEntry Telegram Groups
