@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY - Hlavný prepočet
-// Verzia: 1.4.2 | Dátum: 2025-10-10 | Autor: ASISTANTO
+// Verzia: 1.4.3 | Dátum: 2025-10-10 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky (ID: 90RmdjWuk)
 // Trigger: onChange
 // ==============================================
@@ -17,6 +17,9 @@
 //    - Získa aktuálnu sadzbu DPH
 //    - Vypočíta celkovú sumu s DPH
 // ==============================================
+// 🔧 CHANGELOG v1.4.3 (2025-10-10):
+//    - OPRAVA: part.id() -> utils.safeGet(part, centralConfig.fields.common.id)
+//    - FIX: TypeError "Cannot call property id" - id je vlastnosť, nie funkcia
 // 🔧 CHANGELOG v1.4.2 (2025-10-10):
 //    - PRIDANÉ: KROK 2a - Validácia prepojení dielov s cenovou ponukou (validatePartsLinks)
 //    - PRIDANÉ: Kontrola zhody "Číslo" CP s "Číslo CP" dielu - neplatné diely sa unlinknu
@@ -107,7 +110,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky - Prepočet",
-    version: "1.4.2",
+    version: "1.4.3",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quote,
@@ -187,7 +190,7 @@ function validatePartsLinks() {
             var part = partsEntries[i];
             var partQuoteNumber = utils.safeGet(part, centralConfig.fields.quotePart.quoteNumber) || "";
             var partType = utils.safeGet(part, centralConfig.fields.quotePart.partType) || ("Diel #" + (i + 1));
-            var partId = part.id();
+            var partId = utils.safeGet(part, centralConfig.fields.common.id);
 
             // Kontrola duplicít
             if (seenPartIds[partId]) {
