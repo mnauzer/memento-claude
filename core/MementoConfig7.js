@@ -1,7 +1,12 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.41 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.42 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.42 (2025-10-10):
+//    - OPRAVA: Premenované pole orderPart.partType z "Diel cenovej ponuky" → "Diel zákazky"
+//    - V Zákazky Diely sa pole 257 volá "Diel zákazky", nie "Diel cenovej ponuky"
+//    - V Cenové ponuky Diely sa pole 257 volá "Diel cenovej ponuky"
+//    - Fix pre chybu na riadku 379 v CP.Action.CreateOrder.js
 // 🔧 CHANGELOG v7.0.41 (2025-10-10):
 //    - OPRAVA: Premenované pole orderPart.quoteNumber z "Číslo CP" → "Číslo zákazky"
 //    - Pole bolo premenované v Memento Database, aktualizovaný mapping v MementoConfig
@@ -148,7 +153,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.41",  // Opravené názvy polí v orderPart (Číslo CP → Číslo zákazky)
+        version: "7.0.42",  // Opravené názvy polí v orderPart (partType: Diel zákazky)
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -1260,7 +1265,7 @@ var MementoConfig = (function() {
                 name: "Názov", // text (field 250) - role: desc
 
                 // Klasifikácia dielu
-                partType: "Diel cenovej ponuky", // choice (field 257) - role: name, druh dielu
+                partType: "Diel zákazky", // choice (field 257) - role: name, druh dielu zákazky
 
                 // Cenové polia - súčty za kategórie
                 materialSum: "Suma materiál", // currency (field 271), suma za materiály
