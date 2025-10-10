@@ -21,11 +21,11 @@
  * - Vytvorí log záznam v ASISTANTO Logs s detailným priebehom
  *
  * NAČÍTAVANÉ HODNOTY:
- * 1. Doprava % → z "CP Default % dopravy"
- * 2. Doprava cena za km → z "CP Default cena za km" (linkToEntry)
- * 3. Doprava paušál → z "CP Default paušál dopravy" (linkToEntry)
- * 4. Presun hmôt % → z "CP Default % presunu hmôt"
- * 5. Cena presunu hmôt → z "CP Default cena presunu hmôt"
+ * 1. Doprava % → z "CP Default % dopravy" (double)
+ * 2. Doprava cena za km → z "CP Default cena za km" (linkToEntry → Cenník prác)
+ * 3. Doprava paušál → z "CP Default paušál dopravy" (linkToEntry → Cenník prác)
+ * 4. Presun hmôt % → z "CP Default % presunu hmôt" (double)
+ * 5. Cena presunu hmôt → z "CP Default cena presunu hmôt" (linkToEntry → Cenník prác)
  *
  * Závislosti:
  * - MementoUtils (exportuje funkcie z MementoCore)
@@ -230,13 +230,13 @@ function loadDefaultValues(currentEntry, defaultsEntry, logEntry) {
             utils.addDebug(logEntry, "   ✗ Preskočené (prázdne)");
         }
 
-        // 5. Cena presunu hmôt (currency)
+        // 5. Cena presunu hmôt (linkToEntry - Cenník prác)
         var massTransferPriceField = CONFIG.defaultsFields.cpDefaultMassTransferPrice;
         utils.addDebug(logEntry, "5. Cena presunu hmôt - pole: '" + massTransferPriceField + "'");
-        var massTransferPrice = utils.safeGet(defaultsEntry, massTransferPriceField);
-        utils.addDebug(logEntry, "   Hodnota: " + (massTransferPrice !== null ? massTransferPrice : "NULL"));
-        if (massTransferPrice !== null && massTransferPrice !== undefined) {
-            currentEntry.set(CONFIG.quoteFields.massTransferPrice, massTransferPrice);
+        var massTransferPriceEntries = utils.safeGetLinks(defaultsEntry, massTransferPriceField);
+        utils.addDebug(logEntry, "   Hodnota: " + (massTransferPriceEntries ? massTransferPriceEntries.length + " entries" : "NULL"));
+        if (massTransferPriceEntries && massTransferPriceEntries.length > 0) {
+            currentEntry.set(CONFIG.quoteFields.massTransferPrice, massTransferPriceEntries);
             utils.addDebug(logEntry, "   ✓ Nastavené");
             loadedCount++;
         } else {
@@ -281,17 +281,6 @@ try {
 
     utils.addDebug(logEntry, "=== CP.Trigger.onCreate.LoadDefaults v" + CONFIG.version + " ===");
     utils.addDebug(logEntry, "Čas spustenia: " + moment().format("DD.MM.YYYY HH:mm:ss"));
-
-    // DEBUG: Skontroluj utils.config
-    utils.addDebug(logEntry, "DEBUG: Kontrolujem utils.config...");
-    utils.addDebug(logEntry, "  utils.config existuje: " + (utils.config ? "ÁNO" : "NIE"));
-    utils.addDebug(logEntry, "  utils.config.fields existuje: " + (utils.config.fields ? "ÁNO" : "NIE"));
-    utils.addDebug(logEntry, "  utils.config.fields.defaults existuje: " + (utils.config.fields && utils.config.fields.defaults ? "ÁNO" : "NIE"));
-
-    if (utils.config.fields && utils.config.fields.defaults) {
-        utils.addDebug(logEntry, "  CONFIG.defaultsFields.cpDefaultRidePercentage = " + CONFIG.defaultsFields.cpDefaultRidePercentage);
-        utils.addDebug(logEntry, "  CONFIG.defaultsFields.cpDefaultKmPrice = " + CONFIG.defaultsFields.cpDefaultKmPrice);
-    }
 
     // 2. Získaj záznam z ASISTANTO Defaults
     var defaultsEntry = getDefaultsEntry(logEntry);
