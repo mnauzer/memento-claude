@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY - Hlavný prepočet
-// Verzia: 1.3.2 | Dátum: 2025-10-07 | Autor: ASISTANTO
+// Verzia: 1.4.0 | Dátum: 2025-10-10 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky (ID: 90RmdjWuk)
 // Trigger: onChange
 // ==============================================
@@ -9,12 +9,20 @@
 //    - Spočíta hodnoty "Celkom" zo všetkých dielov cenovej ponuky
 //    - Automatická správa subdodávok (presun medzi Diely/Subdodávky podľa nastavenia)
 //    - Vypočíta predpokladaný počet km (vzdialenosť × 2 × počet jázd)
+//    - Vypočíta celkovú hmotnosť materiálu zo všetkých dielov (v tonách)
 //    - Vypočíta cenu dopravy podľa nastavenia (Neúčtovať, Paušál, Km, % zo zákazky, Pevná cena)
-//    - Vypočíta cenu presunu hmôt podľa nastavenia
+//    - Vypočíta cenu presunu hmôt podľa nastavenia (Neúčtovať, Paušál, Podľa hmotnosti, % zo zákazky, Pevná cena)
 //    - Vypočíta cenu subdodávok podľa nastavenia
 //    - Získa aktuálnu sadzbu DPH
 //    - Vypočíta celkovú sumu s DPH
 // ==============================================
+// 🔧 CHANGELOG v1.4.0 (2025-10-10):
+//    - PRIDANÉ: KROK 2d - Výpočet celkovej hmotnosti materiálu (calculateMaterialWeight)
+//    - PRIDANÉ: KROK 3b - Výpočet ceny presunu hmôt (calculateMassTransferPrice)
+//    - PRIDANÉ: Funkcia calculateMaterialWeight() - suma hmotností zo všetkých dielov (vynecháva Subdodávky)
+//    - PRIDANÉ: Funkcia calculateMassTransferPrice() - 5 metód výpočtu (Neúčtovať, Paušál, Podľa hmotnosti, %, Pevná cena)
+//    - AKTUALIZOVANÉ: Pridaná cena presunu hmôt do základu pre DPH a finálnej sumy
+//    - AKTUALIZOVANÉ: Rozšírený finálny debug výpis o hmotnosť a cenu presunu hmôt
 // 🔧 CHANGELOG v1.3.1 (2025-10-07):
 //    - OPRAVA: "undefined is not defined" chyba na riadku 454
 //    - FIX: Použitie priamych názvov polí z centralConfig namiesto fields.subcontracts
@@ -87,7 +95,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky - Prepočet",
-    version: "1.3.1",
+    version: "1.4.0",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quote,
@@ -397,6 +405,200 @@ function calculateTransportPrice(totalFromParts, currentDate, expectedKm) {
 }
 
 /**
+ * Vypočíta celkovú hmotnosť materiálu zo všetkých dielov
+ * @returns {number} - celková hmotnosť v tonách
+ */
+function calculateMaterialWeight() {
+    try {
+        utils.addDebug(currentEntry, "  ⚖️ Výpočet hmotnosti materiálu");
+
+        var parts = utils.safeGetLinks(currentEntry, fields.parts) || [];
+
+        if (parts.length === 0) {
+            utils.addDebug(currentEntry, "    ℹ️ Žiadne diely v cenovej ponuke");
+            return 0;
+        }
+
+        utils.addDebug(currentEntry, "    Počet dielov: " + parts.length);
+
+        var totalWeight = 0;
+        var processedCount = 0;
+
+        for (var i = 0; i < parts.length; i++) {
+            var part = parts[i];
+
+            // Zisti typ dielu
+            var partType = utils.safeGet(part, centralConfig.fields.quotePart.partType) || "";
+            var partName = utils.safeGet(part, centralConfig.fields.quotePart.name) || ("Diel " + (i + 1));
+
+            // VYNECHAJ subdodávky - tie sa nepočítajú do hmotnosti materiálu
+            if (partType === "Subdodávky") {
+                utils.addDebug(currentEntry, "    ⊗ " + partName + " (Subdodávka - vynechané)");
+                continue;
+            }
+
+            // Zisti hmotnosť tohto dielu
+            var partWeight = utils.safeGet(part, centralConfig.fields.quotePart.materialWeight) || 0;
+
+            if (partWeight > 0) {
+                totalWeight += partWeight;
+                processedCount++;
+                utils.addDebug(currentEntry, "    ✓ " + partName + ": " + partWeight.toFixed(3) + " t");
+            } else {
+                utils.addDebug(currentEntry, "    ○ " + partName + ": 0.000 t (bez materiálu)");
+            }
+        }
+
+        utils.addDebug(currentEntry, "    " + "-".repeat(40));
+        utils.addDebug(currentEntry, "    ✅ Celková hmotnosť: " + totalWeight.toFixed(3) + " t (z " + processedCount + " dielov)");
+
+        return totalWeight;
+
+    } catch (error) {
+        var errorMsg = "Chyba pri výpočte hmotnosti materiálu: " + error.toString();
+        if (error.lineNumber) errorMsg += ", Line: " + error.lineNumber;
+        if (error.stack) errorMsg += "\nStack: " + error.stack;
+        utils.addError(currentEntry, errorMsg, "calculateMaterialWeight", error);
+        throw error;
+    }
+}
+
+/**
+ * Vypočíta cenu presunu hmôt podľa zvolenej metódy
+ * @param {number} totalFromParts - celková suma z dielov
+ * @param {number} materialWeight - celková hmotnosť materiálu v tonách
+ * @param {Date} currentDate - dátum cenovej ponuky
+ * @returns {number} - vypočítaná cena presunu hmôt
+ */
+function calculateMassTransferPrice(totalFromParts, materialWeight, currentDate) {
+    try {
+        utils.addDebug(currentEntry, "  📦 Výpočet presunu hmôt");
+
+        var massTransferCalc = utils.safeGet(currentEntry, fields.massTransferCalculation) || "Neúčtovať";
+        utils.addDebug(currentEntry, "    Typ účtovania: " + massTransferCalc);
+
+        var massTransferPrice = 0;
+
+        // ========== NEÚČTOVAŤ ==========
+        if (massTransferCalc === "Neúčtovať" || !massTransferCalc) {
+            utils.addDebug(currentEntry, "    Metóda: Neúčtovať");
+            utils.addDebug(currentEntry, "      ℹ️ Presun hmôt sa neúčtuje");
+            utils.addDebug(currentEntry, "      ✅ Cena presunu hmôt: 0.00 €");
+            return 0;
+        }
+
+        // ========== PAUŠÁL ==========
+        else if (massTransferCalc === "Paušál") {
+            utils.addDebug(currentEntry, "    Metóda: Paušál presunu hmôt");
+
+            var flatRateEntries = utils.safeGetLinks(currentEntry, fields.massTransferFlatRate);
+
+            if (!flatRateEntries || flatRateEntries.length === 0) {
+                utils.addDebug(currentEntry, "      ⚠️ Nie je vybraná položka Paušál presunu hmôt (pole: " + fields.massTransferFlatRate + ")");
+                return 0;
+            }
+
+            var flatRateEntry = flatRateEntries[0];
+            var flatRateName = utils.safeGet(flatRateEntry, centralConfig.fields.priceList.name) || "Paušál presunu hmôt";
+            utils.addDebug(currentEntry, "      Položka: " + flatRateName);
+
+            // Zisti cenu paušálu
+            var flatRatePrice = findWorkPrice(flatRateEntry, currentDate);
+
+            if (!flatRatePrice || flatRatePrice <= 0) {
+                utils.addDebug(currentEntry, "      ⚠️ Neplatná cena paušálu (cena: " + flatRatePrice + ")");
+                return 0;
+            }
+
+            massTransferPrice = flatRatePrice;
+
+            utils.addDebug(currentEntry, "      📊 Paušál: " + flatRatePrice.toFixed(2) + " €");
+            utils.addDebug(currentEntry, "      ✅ Cena presunu hmôt: " + massTransferPrice.toFixed(2) + " €");
+        }
+
+        // ========== PODĽA HMOTNOSTI MATERIÁLU ==========
+        else if (massTransferCalc === "Podľa hmotnosti materiálu") {
+            utils.addDebug(currentEntry, "    Metóda: Podľa hmotnosti materiálu");
+
+            // Zisti cenu za tonu
+            var pricePerTonneEntries = utils.safeGetLinks(currentEntry, fields.massTransferPricePerTonne);
+
+            if (!pricePerTonneEntries || pricePerTonneEntries.length === 0) {
+                utils.addDebug(currentEntry, "      ⚠️ Nie je vybraná položka Cena za tonu (pole: " + fields.massTransferPricePerTonne + ")");
+                return 0;
+            }
+
+            var pricePerTonneEntry = pricePerTonneEntries[0];
+            var pricePerTonneName = utils.safeGet(pricePerTonneEntry, centralConfig.fields.priceList.name) || "Cena za tonu";
+            utils.addDebug(currentEntry, "      Položka: " + pricePerTonneName);
+
+            var pricePerTonneValue = findWorkPrice(pricePerTonneEntry, currentDate);
+
+            if (!pricePerTonneValue || pricePerTonneValue <= 0) {
+                utils.addDebug(currentEntry, "      ⚠️ Neplatná cena za tonu (cena: " + pricePerTonneValue + ")");
+                return 0;
+            }
+            utils.addDebug(currentEntry, "      Cena za tonu: " + pricePerTonneValue.toFixed(2) + " €/t");
+
+            if (materialWeight <= 0) {
+                utils.addDebug(currentEntry, "      ⚠️ Hmotnosť materiálu je 0 t");
+                utils.addDebug(currentEntry, "      ℹ️ Uistite sa, že diely majú vypočítanú hmotnosť materiálu");
+                return 0;
+            }
+            utils.addDebug(currentEntry, "      Hmotnosť materiálu: " + materialWeight.toFixed(3) + " t");
+
+            massTransferPrice = pricePerTonneValue * materialWeight;
+
+            utils.addDebug(currentEntry, "      📊 Výpočet: " + pricePerTonneValue.toFixed(2) + " €/t × " + materialWeight.toFixed(3) + " t");
+            utils.addDebug(currentEntry, "      ✅ Cena presunu hmôt: " + massTransferPrice.toFixed(2) + " €");
+        }
+
+        // ========== PERCENTO ZO ZÁKAZKY ==========
+        else if (massTransferCalc === "% zo zákazky") {
+            utils.addDebug(currentEntry, "    Metóda: % zo zákazky");
+
+            var massTransferPercentage = utils.safeGet(currentEntry, fields.massTransferPercentage) || 0;
+
+            if (massTransferPercentage <= 0) {
+                utils.addDebug(currentEntry, "      ⚠️ Percento presunu hmôt je 0% (pole: " + fields.massTransferPercentage + ")");
+                return 0;
+            }
+            utils.addDebug(currentEntry, "      Percento: " + massTransferPercentage + "%");
+
+            massTransferPrice = totalFromParts * (massTransferPercentage / 100);
+
+            utils.addDebug(currentEntry, "      📊 Výpočet: " + totalFromParts.toFixed(2) + " € × " + massTransferPercentage + "%");
+            utils.addDebug(currentEntry, "      ✅ Cena presunu hmôt: " + massTransferPrice.toFixed(2) + " €");
+        }
+
+        // ========== PEVNÁ CENA ==========
+        else if (massTransferCalc === "Pevná cena") {
+            utils.addDebug(currentEntry, "    Metóda: Pevná cena");
+
+            massTransferPrice = utils.safeGet(currentEntry, fields.fixedMassTransferPrice) || 0;
+
+            if (massTransferPrice <= 0) {
+                utils.addDebug(currentEntry, "      ⚠️ Pole 'Pevná cena presunu hmôt' nie je vyplnené (pole: " + fields.fixedMassTransferPrice + ")");
+                utils.addDebug(currentEntry, "      ℹ️ Zadaj pevnú cenu do poľa 'Pevná cena presunu hmôt'");
+                return 0;
+            }
+
+            utils.addDebug(currentEntry, "      📊 Pevná cena: " + massTransferPrice.toFixed(2) + " €");
+            utils.addDebug(currentEntry, "      ✅ Cena presunu hmôt: " + massTransferPrice.toFixed(2) + " €");
+        }
+
+        return massTransferPrice;
+
+    } catch (error) {
+        var errorMsg = "Chyba pri výpočte ceny presunu hmôt: " + error.toString();
+        if (error.lineNumber) errorMsg += ", Line: " + error.lineNumber;
+        if (error.stack) errorMsg += "\nStack: " + error.stack;
+        utils.addError(currentEntry, errorMsg, "calculateMassTransferPrice", error);
+        throw error;
+    }
+}
+
+/**
  * Správa subdodávok podľa nastavenia "Účtovanie subdodávok"
  * Presúva subdodávky medzi polami "Diely" a "Subdodávky" podľa potreby
  * @returns {Object} - { subcontractEntry, location, totalSubcontracts }
@@ -626,8 +828,10 @@ function main() {
             step1: { success: false, name: "Aktualizácia názvu z miesta" },
             step2: { success: false, name: "Spočítanie dielov" },
             step2c: { success: false, name: "Správa subdodávok" },
+            step2d: { success: false, name: "Výpočet hmotnosti materiálu" },
             step2b: { success: false, name: "Výpočet predpokladaných km" },
             step3: { success: false, name: "Výpočet dopravy" },
+            step3b: { success: false, name: "Výpočet presunu hmôt" },
             step4: { success: false, name: "Výpočet DPH" },
             step5: { success: false, name: "Celková suma" }
         };
@@ -682,6 +886,19 @@ function main() {
             steps.step2c.success = false;
         }
 
+        // KROK 2d: Výpočet celkovej hmotnosti materiálu
+        utils.addDebug(currentEntry, "\n" + utils.getIcon("calculation") + " KROK 2d: Výpočet hmotnosti materiálu");
+        var materialWeight = 0;
+        try {
+            materialWeight = calculateMaterialWeight();
+            currentEntry.set(fields.materialWeight, materialWeight);
+            steps.step2d.success = true;
+        } catch (error) {
+            utils.addError(currentEntry, "Chyba pri výpočte hmotnosti materiálu: " + error.toString(), CONFIG.scriptName);
+            steps.step2d.success = false;
+            // Pokračujeme aj pri chybe - presun hmôt môže byť iná metóda
+        }
+
         // KROK 2b: Výpočet predpokladaného počtu km
         utils.addDebug(currentEntry, "\n" + utils.getIcon("transport") + " KROK 2b: Výpočet predpokladaného počtu km");
         var expectedKm = 0;
@@ -707,6 +924,18 @@ function main() {
             steps.step3.success = false;
         }
 
+        // KROK 3b: Výpočet ceny presunu hmôt
+        utils.addDebug(currentEntry, "\n" + utils.getIcon("calculation") + " KROK 3b: Výpočet ceny presunu hmôt");
+        var massTransferPrice = 0;
+        try {
+            massTransferPrice = calculateMassTransferPrice(totalFromParts, materialWeight, currentDate);
+            currentEntry.set(fields.massTransferPrice, massTransferPrice);
+            steps.step3b.success = true;
+        } catch (error) {
+            utils.addError(currentEntry, "Chyba pri výpočte presunu hmôt: " + error.toString(), CONFIG.scriptName);
+            steps.step3b.success = false;
+        }
+
         // KROK 4: Výpočet DPH
         utils.addDebug(currentEntry, "\n" + utils.getIcon("calculation") + " KROK 4: Výpočet DPH");
         try {
@@ -715,7 +944,7 @@ function main() {
 
             currentEntry.set(fields.vatRate, vatRatePercentage);
 
-            var baseForVat = totalFromParts + transportPrice;
+            var baseForVat = totalFromParts + transportPrice + massTransferPrice;
             var vatAmount = baseForVat * (vatRatePercentage / 100);
 
             utils.addDebug(currentEntry, "  Základ pre DPH: " + baseForVat.toFixed(2) + " €");
@@ -731,15 +960,17 @@ function main() {
         // KROK 5: Celková suma s DPH
         utils.addDebug(currentEntry, "\n" + utils.getIcon("finish") + " KROK 5: Celková suma");
         try {
-            var baseForVat = totalFromParts + transportPrice;
+            var baseForVat = totalFromParts + transportPrice + massTransferPrice;
             var vatAmount = baseForVat * (vatRatePercentage / 100);
             var totalWithVat = baseForVat + vatAmount;
 
-            utils.addDebug(currentEntry, "  Celkom z dielov: " + totalFromParts.toFixed(2) + " €");
-            utils.addDebug(currentEntry, "  Doprava:         " + transportPrice.toFixed(2) + " €");
-            utils.addDebug(currentEntry, "  DPH:             " + vatAmount.toFixed(2) + " €");
-            utils.addDebug(currentEntry, "  " + "-".repeat(48));
-            utils.addDebug(currentEntry, "  ✅ CELKOM S DPH:  " + totalWithVat.toFixed(2) + " €");
+            utils.addDebug(currentEntry, "  Celkom z dielov:     " + totalFromParts.toFixed(2) + " €");
+            utils.addDebug(currentEntry, "  Doprava:             " + transportPrice.toFixed(2) + " €");
+            utils.addDebug(currentEntry, "  Presun hmôt:         " + massTransferPrice.toFixed(2) + " €");
+            utils.addDebug(currentEntry, "  Hmotnosť materiálu:  " + materialWeight.toFixed(3) + " t");
+            utils.addDebug(currentEntry, "  DPH:                 " + vatAmount.toFixed(2) + " €");
+            utils.addDebug(currentEntry, "  " + "-".repeat(50));
+            utils.addDebug(currentEntry, "  ✅ CELKOM S DPH:      " + totalWithVat.toFixed(2) + " €");
 
             currentEntry.set(fields.totalWithVat, totalWithVat);
             steps.step5.success = true;

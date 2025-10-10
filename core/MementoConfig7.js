@@ -1,7 +1,13 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.36 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.37 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.37 (2025-10-10):
+//    - PRIDANÉ: Pole materialWeight v quote - "Hmotnosť materiálu" (celková váha v tonách)
+//    - PRIDANÉ: Pole massTransferFlatRate - "Paušál presunu hmôt" (linkToEntry Cenník prác)
+//    - PRIDANÉ: Pole fixedMassTransferPrice - "Pevná cena presunu hmôt" (currency)
+//    - PRIDANÉ: Pole massTransferPricePerTonne - "Cena presunu hmôt za tonu" (linkToEntry Cenník prác)
+//    - AKTUALIZOVANÉ: massTransferCalculation comment - pridané všetky 5 možnosti
 // 🔧 CHANGELOG v7.0.36 (2025-10-10):
 //    - PRIDANÉ: Pole materialWeight v quotePart - "Hmotnosť materiálu" (v tonách)
 // 🔧 CHANGELOG v7.0.35 (2025-10-10):
@@ -1057,9 +1063,13 @@ var MementoConfig = (function() {
                 fixedTransportPrice: "Doprava pevná cena", // currency - VSTUP pre pevnú cenu dopravy
 
                 // Účtovanie ďalších položiek
-                massTransferCalculation: "Účtovanie presunu hmôt", // choice - Neúčtovať, % zo zákazky, Pevná cena
+                materialWeight: "Hmotnosť materiálu", // double - celková hmotnosť materiálov v tonách (t)
+                massTransferCalculation: "Účtovanie presunu hmôt", // choice - Neúčtovať, Paušál, Podľa hmotnosti materiálu, % zo zákazky, Pevná cena
                 massTransferPercentage: "Presun hmôt %", // double
-                massTransferPrice: "Cena presunu hmôt", // entries - linkToEntry Cenník prác
+                massTransferPrice: "Cena presunu hmôt", // currency - VÝSTUP vypočítanej ceny presunu hmôt
+                massTransferFlatRate: "Paušál presunu hmôt", // entries - linkToEntry Cenník prác
+                massTransferPricePerTonne: "Cena presunu hmôt za tonu", // entries - linkToEntry Cenník prác
+                fixedMassTransferPrice: "Pevná cena presunu hmôt", // currency - VSTUP pre pevnú cenu presunu hmôt
                 subcontractsCalculation: "Účtovanie subdodávok", // choice - Neúčtovať, % zo zákazky, Pevná cena
                 subcontractsPercentage: "Subdodávky %", // double
                 subcontractsPrice: "Cena subdodávok", // currency
