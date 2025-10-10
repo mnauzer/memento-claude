@@ -11,11 +11,14 @@
  * - Prepojenie: Zákazky → linkToEntry Cenové ponuky (vytvorí linksFrom)
  * - Automatické generovanie čísla zákazky pomocou MementoAutoNumber
  *
- * Verzia: 1.1.0
+ * Verzia: 1.1.1
  * Dátum: 2025-10-10
  * Autor: ASISTANTO
  *
  * CHANGELOG:
+ * v1.1.1 (2025-10-10):
+ * - OPRAVA: MementoConfig.getConfig() namiesto priameho prístupu
+ * - FIX: "Cannot read property quote of undefined" - použitý getConfig()
  * v1.1.0 (2025-10-10):
  * - PRIDANÉ: Automatické generovanie čísla zákazky pomocou MementoAutoNumber
  * - Používa "Z Placeholder" z ASISTANTO Defaults (formát: ZYYXXX)
@@ -35,7 +38,7 @@
 var lib = lib();
 var currentEntry = entry();
 var utils = MementoUtils;
-var centralConfig = MementoConfig;
+var centralConfig = MementoConfig.getConfig(); // Získaj CONFIG objekt
 
 // ==============================================
 // SKRIPT START
