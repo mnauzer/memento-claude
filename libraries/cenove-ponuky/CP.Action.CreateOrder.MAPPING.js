@@ -308,14 +308,15 @@ const PARTS_MAPPING = {
             source: "Dátum",                    // quotePart.date
             target: "Dátum",                    // orderPart.date
             type: "date",
-            sync: "create_only"
+            sync: "create_only",
+            note: "⚠️ V1.2.0: Nelinkovať! Nastaviť na dátum generovania zákazky (new Date())"
         },
         quoteNumber: {
             source: "Číslo CP",                 // quotePart.quoteNumber
-            target: "Číslo CP",                 // orderPart.quoteNumber
+            target: "Číslo zákazky",            // orderPart.quoteNumber ⚠️ ZMENENÉ V1.2.0
             type: "text",
             sync: "create_only",
-            note: "Uložiť číslo cenovej ponuky pre referenciu"
+            note: "⚠️ V1.2.0: Obsahuje číslo vygenerovanej ZÁKAZKY, nie cenovej ponuky!"
         },
         name: {
             source: "Názov",                    // quotePart.name
@@ -367,13 +368,15 @@ const PARTS_MAPPING = {
             source: "Materiál",                 // quotePart.materials
             target: "Materiál",                 // orderPart.materials
             type: "entries (linkToEntry)",
-            sync: "create_only"
+            sync: "create_only",
+            note: "⚠️ V1.2.0: Mapovať aj atribúty (množstvo, cena, cena celkom)"
         },
         works: {
             source: "Práce",                    // quotePart.works
             target: "Práce",                    // orderPart.works
             type: "entries (linkToEntry)",
-            sync: "create_only"
+            sync: "create_only",
+            note: "⚠️ V1.2.0: Mapovať aj atribúty (množstvo, cena, cena celkom)"
         }
     },
 
