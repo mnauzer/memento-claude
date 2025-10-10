@@ -11,11 +11,17 @@
  * - Prepojenie: Zákazky → linkToEntry Cenové ponuky (vytvorí linksFrom)
  * - Automatické generovanie čísla zákazky pomocou MementoAutoNumber
  *
- * Verzia: 1.1.3
+ * Verzia: 1.2.0
  * Dátum: 2025-10-10
  * Autor: ASISTANTO
  *
  * CHANGELOG:
+ * v1.2.0 (2025-10-10):
+ * - NOVÉ: Dátum zákazky sa nastaví na dátum generovania (nie z CP)
+ * - NOVÉ: Dátum dielov sa nastaví na dátum generovania (nie z CP)
+ * - ZMENA: Pole "Číslo CP" v dieloch zákazky teraz obsahuje číslo zákazky (nie CP)
+ * - NOVÉ: Automatické získanie Klienta z poľa Miesto → Klient
+ * - NOVÉ: Kopirovanie atribútov (množstvo, cena, cena celkom) pre Materiál a Práce
  * v1.1.3 (2025-10-10):
  * - OPRAVA: Použitie lib.create({}) s prázdnym objektom namiesto lib.create()
  * - FIX: NullPointerException pri vytváraní zákazky - potrebný prázdny objekt ako parameter
@@ -54,7 +60,7 @@ var centralConfig = MementoConfig.getConfig(); // Získaj CONFIG objekt
 
 try {
     utils.clearLogs(currentEntry);
-    utils.addDebug(currentEntry, "╔═══════════════════════════════════════════════════════╗");
+    utils.addDebug(currentEntry, "\n╔═══════════════════════════════════════════════════════╗");
     utils.addDebug(currentEntry, "║   VYTVORENIE/AKTUALIZÁCIA ZÁKAZKY Z CENOVEJ PONUKY   ║");
     utils.addDebug(currentEntry, "╚═══════════════════════════════════════════════════════╝");
     utils.addDebug(currentEntry, "");
@@ -136,13 +142,26 @@ try {
     syncData[orderFields.number] = utils.safeGet(currentEntry, fields.number);
     syncData[orderFields.name] = utils.safeGet(currentEntry, fields.name);
     syncData[orderFields.description] = utils.safeGet(currentEntry, fields.description); // Popis cenovej ponuky → Popis zákazky
-    syncData[orderFields.date] = utils.safeGet(currentEntry, fields.date);
+    // Dátum bude nastavený na dátum generovania (nie z cenovej ponuky)
+    syncData[orderFields.date] = new Date();
 
     // Typ cenovej ponuky → Typ zákazky
     syncData[orderFields.orderCalculationType] = utils.safeGet(currentEntry, fields.type);
 
     // Miesto realizácie → Miesto
     syncData[orderFields.place] = utils.safeGetLinks(currentEntry, fields.place);
+
+    // === KLIENT Z MIESTA ===
+    // Zisti klienta z poľa Miesto -> Klient
+    var placeEntries = utils.safeGetLinks(currentEntry, fields.place);
+    if (placeEntries && placeEntries.length > 0) {
+        var placeEntry = placeEntries[0];
+        var clientEntries = utils.safeGetLinks(placeEntry, centralConfig.fields.place.customer);
+        if (clientEntries && clientEntries.length > 0) {
+            syncData[orderFields.client] = clientEntries;
+            utils.addDebug(currentEntry, "  ℹ️ Klient získaný z miesta: " + utils.safeGet(clientEntries[0], centralConfig.fields.client.name || "Názov"));
+        }
+    }
 
     utils.addDebug(currentEntry, "  ✅ Základné polia pripravené");
 
@@ -302,6 +321,8 @@ try {
             utils.addDebug(currentEntry, "  ℹ️ Cenová ponuka nemá žiadne diely");
         } else {
             var createdPartsCount = 0;
+            var generatedOrderNumber = utils.safeGet(order, orderFields.number) || quoteNumber; // Číslo vygenerovanej zákazky
+            var creationDate = new Date(); // Dátum generovania
 
             for (var i = 0; i < quoteParts.length; i++) {
                 var quotePart = quoteParts[i];
@@ -319,8 +340,8 @@ try {
 
                     // === ZÁKLADNÉ POLIA ===
                     orderPart.set(orderPartFields.number, utils.safeGet(quotePart, quotePartFields.number));
-                    orderPart.set(orderPartFields.date, utils.safeGet(quotePart, quotePartFields.date));
-                    orderPart.set(orderPartFields.quoteNumber, quoteNumber); // Číslo CP
+                    orderPart.set(orderPartFields.date, creationDate); // Dátum generovania zákazky
+                    orderPart.set(orderPartFields.quoteNumber, generatedOrderNumber); // Číslo zákazky (bolo Číslo CP)
                     orderPart.set(orderPartFields.name, partName);
                     orderPart.set(orderPartFields.partType, partType);
                     orderPart.set(orderPartFields.note, utils.safeGet(quotePart, quotePartFields.note));
@@ -330,15 +351,50 @@ try {
                     orderPart.set(orderPartFields.workSum, utils.safeGet(quotePart, quotePartFields.workSum));
                     orderPart.set(orderPartFields.totalSum, utils.safeGet(quotePart, quotePartFields.totalSum));
 
-                    // === POLOŽKY ===
+                    // === POLOŽKY S ATRIBÚTMI ===
                     var materials = utils.safeGetLinks(quotePart, quotePartFields.materials);
                     var works = utils.safeGetLinks(quotePart, quotePartFields.works);
 
+                    // Mapuj materiály s atribútmi
                     if (materials && materials.length > 0) {
-                        orderPart.set(orderPartFields.materials, materials);
+                        var materialsWithAttrs = [];
+                        for (var m = 0; m < materials.length; m++) {
+                            var material = materials[m];
+                            var attrs = {};
+
+                            // Skopíruj atribúty z cenovej ponuky
+                            try {
+                                attrs["množstvo"] = material.a("množstvo") || 0;
+                                attrs["cena"] = material.a("cena") || 0;
+                                attrs["cena celkom"] = material.a("cena celkom") || 0;
+                            } catch (e) {
+                                utils.addDebug(currentEntry, "      ⚠️ Chyba pri kopírovaní atribútov materiálu: " + e.toString());
+                            }
+
+                            materialsWithAttrs.push({entry: material, attributes: attrs});
+                        }
+                        orderPart.set(orderPartFields.materials, materialsWithAttrs);
                     }
+
+                    // Mapuj práce s atribútmi
                     if (works && works.length > 0) {
-                        orderPart.set(orderPartFields.works, works);
+                        var worksWithAttrs = [];
+                        for (var w = 0; w < works.length; w++) {
+                            var work = works[w];
+                            var attrs = {};
+
+                            // Skopíruj atribúty z cenovej ponuky
+                            try {
+                                attrs["množstvo"] = work.a("množstvo") || 0;
+                                attrs["cena"] = work.a("cena") || 0;
+                                attrs["cena celkom"] = work.a("cena celkom") || 0;
+                            } catch (e) {
+                                utils.addDebug(currentEntry, "      ⚠️ Chyba pri kopírovaní atribútov práce: " + e.toString());
+                            }
+
+                            worksWithAttrs.push({entry: work, attributes: attrs});
+                        }
+                        orderPart.set(orderPartFields.works, worksWithAttrs);
                     }
 
                     utils.addDebug(currentEntry, "    Materiály: " + (materials ? materials.length : 0));
