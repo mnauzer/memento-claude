@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY DIELY - Hlavný prepočet
-// Verzia: 3.5.1 | Dátum: 2025-10-07 | Autor: ASISTANTO
+// Verzia: 3.6.0 | Dátum: 2025-10-10 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky Diely (ID: nCAgQkfvK)
 // Trigger: onChange
 // ==============================================
@@ -15,9 +15,16 @@
 //    - Automatické použitie ceny z poľa "Cena" ak atribút nie je zadaný
 //    - Výpočet súčtov za jednotlivé kategórie
 //    - Výpočet celkovej sumy cenovej ponuky
+//    - Výpočet celkovej hmotnosti materiálu v tonách
 //    - Automatické vymazanie debug, error a info logov pri štarte
 //    - Vytvorenie prehľadného markdown reportu v info poli
 // ==============================================
+// 🔧 CHANGELOG v3.6.0 (2025-10-10):
+//    - PRIDANÉ: Výpočet celkovej hmotnosti materiálu v tonách
+//    - Hmotnosť sa získava z poľa "Hmotnosť" v položkách materiálu (v kg)
+//    - Vynásobenie množstvom z atribútu, súčet za všetky položky
+//    - Konverzia z kg na tony (delenie 1000)
+//    - Zápis do poľa "Hmotnosť materiálu" (v tonách)
 // 🔧 CHANGELOG v3.5.1 (2025-10-07):
 //    - SKRÁTENÉ ČIARY: Z 55 na 41 znakov pre lepšie zobrazenie na mobile
 //    - PRIDANÉ: Číslo a názov DIELU v headeri (napr. "1 • Trávnik")
@@ -94,7 +101,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky Diely - Prepočet",
-    version: "3.5.1",
+    version: "3.6.0",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quotePart,
@@ -522,9 +529,10 @@ try {
     }
 
     utils.addDebug(currentEntry, "📅 Dátum pre výpočty: " + moment(currentDate).format("DD.MM.YYYY"));
-    
+
     var materialSum = 0;
     var workSum = 0;
+    var materialWeightKg = 0;  // Celková hmotnosť materiálu v kg
 
     // ========== SPRACOVANIE MATERIÁLU ==========
     utils.addDebug(currentEntry, "\n📦 MATERIÁL");
@@ -643,6 +651,23 @@ try {
             var totalPrice = quantity * finalPrice;
             item.setAttr(attrs.totalPrice, totalPrice);
             materialSum += totalPrice;
+
+            // Získaj hmotnosť položky (v kg)
+            var itemWeight = 0;
+            try {
+                itemWeight = utils.safeGet(item, CONFIG.itemFields.material.weight) || 0;
+            } catch (e) {
+                itemWeight = 0;
+            }
+
+            // Vypočítaj celkovú hmotnosť tejto položky
+            if (itemWeight > 0) {
+                var itemTotalWeight = quantity * itemWeight;
+                materialWeightKg += itemTotalWeight;
+                utils.addDebug(currentEntry, "    ⚖️ Hmotnosť: " + itemWeight.toFixed(2) + " kg × " + quantity + " = " + itemTotalWeight.toFixed(2) + " kg");
+            } else {
+                utils.addDebug(currentEntry, "    ⚠️ Hmotnosť nie je zadaná alebo je 0");
+            }
 
             // Získaj mernú jednotku
             var itemUnit = "";
@@ -825,9 +850,13 @@ try {
     // ========== ZÁPIS VÝSLEDKOV ==========
     var totalSum = materialSum + workSum;
 
+    // Konverzia hmotnosti z kg na tony
+    var materialWeightTons = materialWeightKg / 1000;
+
     currentEntry.set(fields.materialSum, materialSum);
     currentEntry.set(fields.workSum, workSum);
     currentEntry.set(fields.totalSum, totalSum);
+    currentEntry.set(fields.materialWeight, materialWeightTons);
 
     // Debug výstup
     utils.addDebug(currentEntry, "\n" + "=".repeat(50));
@@ -836,6 +865,8 @@ try {
     utils.addDebug(currentEntry, "  • Práce:        " + workSum.toFixed(2) + " €");
     utils.addDebug(currentEntry, "  " + "-".repeat(48));
     utils.addDebug(currentEntry, "  • CELKOM:       " + totalSum.toFixed(2) + " €");
+    utils.addDebug(currentEntry, "  " + "-".repeat(48));
+    utils.addDebug(currentEntry, "  • Hmotnosť mat: " + materialWeightKg.toFixed(2) + " kg (" + materialWeightTons.toFixed(3) + " t)");
     utils.addDebug(currentEntry, "=".repeat(50));
 
     // ========== VYTVORENIE INFO REPORTU ==========
