@@ -61,7 +61,6 @@ if (typeof MementoUtils === 'undefined') {
 }
 
 var utils = MementoUtils;
-var centralConfig = utils.config;
 
 // ==============================================
 // KONFIGURÁCIA
@@ -71,15 +70,24 @@ var CONFIG = {
     scriptName: "Cenové ponuky - Load Defaults",
     version: "1.1.0",
 
-    // Názvy knižníc
-    defaultsLibraryName: centralConfig.libraries.defaults || "ASISTANTO Defaults",
-    logsLibrary: centralConfig.libraries.globalLogs || "ASISTANTO Logs",
+    // Názvy knižníc - priamy prístup cez utils.config
+    get defaultsLibraryName() {
+        return utils.config.libraries.defaults || "ASISTANTO Defaults";
+    },
 
-    // Názvy polí v Cenových ponukách
-    quoteFields: centralConfig.fields.quote,
+    get logsLibrary() {
+        return utils.config.libraries.globalLogs || "ASISTANTO Logs";
+    },
 
-    // Názvy polí v ASISTANTO Defaults
-    defaultsFields: centralConfig.fields.defaults,
+    // Názvy polí v Cenových ponukách - priamy prístup
+    get quoteFields() {
+        return utils.config.fields.quote;
+    },
+
+    // Názvy polí v ASISTANTO Defaults - priamy prístup
+    get defaultsFields() {
+        return utils.config.fields.defaults;
+    },
 
     // Polia v ASISTANTO Logs
     logFields: {
