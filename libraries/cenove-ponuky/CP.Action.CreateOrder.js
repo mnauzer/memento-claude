@@ -11,11 +11,19 @@
  * - Prepojenie: Zákazky → linkToEntry Cenové ponuky (vytvorí linksFrom)
  * - Automatické generovanie čísla zákazky pomocou MementoAutoNumber
  *
- * Verzia: 1.1.1
+ * Verzia: 1.1.3
  * Dátum: 2025-10-10
  * Autor: ASISTANTO
  *
  * CHANGELOG:
+ * v1.1.3 (2025-10-10):
+ * - OPRAVA: Použitie lib.create({}) s prázdnym objektom namiesto lib.create()
+ * - FIX: NullPointerException pri vytváraní zákazky - potrebný prázdny objekt ako parameter
+ * - Aplikované na ordersLib.create({}) aj orderPartsLib.create({})
+ * v1.1.2 (2025-10-10):
+ * - OPRAVA: Pridaná kontrola či sa zákazka vytvorila
+ * - DIAGNOSTIKA: Jasná chybová hláška ak Manual Action nemôže vytvárať záznamy
+ * - Návrh riešenia: Použiť Trigger script namiesto Manual Action
  * v1.1.1 (2025-10-10):
  * - OPRAVA: MementoConfig.getConfig() namiesto priameho prístupu
  * - FIX: "Cannot read property quote of undefined" - použitý getConfig()
@@ -180,7 +188,15 @@ try {
         // === CREATE MODE ===
         utils.addDebug(currentEntry, "  🆕 Vytváram novú zákazku...");
 
-        order = ordersLib.create();
+        // Vytvor záznam s prázdnym objektom
+        order = ordersLib.create({});
+
+        // Kontrola či sa zákazka vytvorila
+        if (!order) {
+            throw new Error("Nepodarilo sa vytvoriť záznam v knižnici Zákazky. Skontroluj oprávnenia a či knižnica existuje.");
+        }
+
+        utils.addDebug(currentEntry, "  ✅ Nový záznam vytvorený v knižnici Zákazky");
 
         // === GENEROVANIE ČÍSLA ZÁKAZKY ===
         utils.addDebug(currentEntry, "  🔢 Generujem číslo zákazky...");
@@ -299,7 +315,7 @@ try {
                     utils.addDebug(currentEntry, "    Názov: " + partName);
 
                     // Vytvor nový diel v Zákazky Diely
-                    var orderPart = orderPartsLib.create();
+                    var orderPart = orderPartsLib.create({});
 
                     // === ZÁKLADNÉ POLIA ===
                     orderPart.set(orderPartFields.number, utils.safeGet(quotePart, quotePartFields.number));
