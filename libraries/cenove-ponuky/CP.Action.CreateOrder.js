@@ -11,11 +11,16 @@
  * - Prepojenie: Zákazky → linkToEntry Cenové ponuky (vytvorí linksFrom)
  * - Automatické generovanie čísla zákazky pomocou MementoAutoNumber
  *
- * Verzia: 1.3.0
+ * Verzia: 1.3.1
  * Dátum: 2025-10-10
  * Autor: ASISTANTO
  *
  * CHANGELOG:
+ * v1.3.1 (2025-10-10):
+ *   - OPRAVA: Použitá správna metóda .attr() namiesto .a() pre čítanie atribútov
+ *   - Fix pre TypeError: Cannot find function a in object [object Entry]
+ *   - Opravené kopírovanie atribútov pre materiály a práce
+ *   - Verifikované podľa Memento Database Wiki dokumentácie
  * v1.3.0 (2025-10-10):
  *   - Pridaná kontrola existencie dielov pri UPDATE režime
  *   - Script teraz vytvára len chýbajúce diely (porovnanie podľa čísla dielu)
@@ -397,9 +402,9 @@ try {
 
                             // Skopíruj atribúty z cenovej ponuky
                             try {
-                                attrs["množstvo"] = material.a("množstvo") || 0;
-                                attrs["cena"] = material.a("cena") || 0;
-                                attrs["cena celkom"] = material.a("cena celkom") || 0;
+                                attrs["množstvo"] = material.attr("množstvo") || 0;
+                                attrs["cena"] = material.attr("cena") || 0;
+                                attrs["cena celkom"] = material.attr("cena celkom") || 0;
                             } catch (e) {
                                 utils.addDebug(currentEntry, "      ⚠️ Chyba pri kopírovaní atribútov materiálu: " + e.toString());
                             }
@@ -418,9 +423,9 @@ try {
 
                             // Skopíruj atribúty z cenovej ponuky
                             try {
-                                attrs["množstvo"] = work.a("množstvo") || 0;
-                                attrs["cena"] = work.a("cena") || 0;
-                                attrs["cena celkom"] = work.a("cena celkom") || 0;
+                                attrs["množstvo"] = work.attr("množstvo") || 0;
+                                attrs["cena"] = work.attr("cena") || 0;
+                                attrs["cena celkom"] = work.attr("cena celkom") || 0;
                             } catch (e) {
                                 utils.addDebug(currentEntry, "      ⚠️ Chyba pri kopírovaní atribútov práce: " + e.toString());
                             }

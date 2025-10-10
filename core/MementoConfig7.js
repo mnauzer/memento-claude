@@ -1,7 +1,10 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.42 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.43 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.43 (2025-10-10):
+//    - PRIDANÉ: Pole order.client - "Klient" (field 256) v Zákazky library
+//    - Fix pre ReferenceError: "undefined" is not defined v CP.Action.CreateOrder.js
 // 🔧 CHANGELOG v7.0.42 (2025-10-10):
 //    - OPRAVA: Premenované pole orderPart.partType z "Diel cenovej ponuky" → "Diel zákazky"
 //    - V Zákazky Diely sa pole 257 volá "Diel zákazky", nie "Diel cenovej ponuky"
@@ -153,7 +156,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.42",  // Opravené názvy polí v orderPart (partType: Diel zákazky)
+        version: "7.0.43",  // Pridané pole order.client v Zákazky
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -1178,6 +1181,7 @@ var MementoConfig = (function() {
                 name: "Názov", // text
                 description: "Popis zákazky", // text
                 place: "Miesto", // linkToEntry Miesta
+                client: "Klient", // linkToEntry Klienti (field 256)
                 quote: "Cenová ponuka", // linkToEntry Cenové ponuky
                 date: "Dátum",
                 startDate: "Dátum začatia",
