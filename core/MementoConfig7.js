@@ -1,7 +1,9 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.35 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.36 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.36 (2025-10-10):
+//    - PRIDANÉ: Pole materialWeight v quotePart - "Hmotnosť materiálu" (v tonách)
 // 🔧 CHANGELOG v7.0.35 (2025-10-10):
 //    - OPRAVA: massTransferPrice je linkToEntry (nie currency) - "Cena presunu hmôt"
 //    - OPRAVA: cpDefaultMassTransferPrice je linkToEntry (nie currency)
@@ -119,7 +121,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.35",  // Oprava typov polí massTransferPrice a cpDefaultMassTransferPrice
+        version: "7.0.36",  // Pridané pole materialWeight v quotePart
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -1110,6 +1112,9 @@ var MementoConfig = (function() {
                 materialSum: "Suma materiál", // currency (field 271)
                 workSum: "Suma práce", // currency (field 272)
                 totalSum: "Celkom", // currency (field 275) - role: status
+
+                // Hmotnosť materiálu
+                materialWeight: "Hmotnosť materiálu", // double - celková hmotnosť materiálov v tonách (t)
 
                 // Položky po kategóriách - linkToEntry polia
                 materials: "Materiál", // entries (field 264) - linkToEntry Materiál
