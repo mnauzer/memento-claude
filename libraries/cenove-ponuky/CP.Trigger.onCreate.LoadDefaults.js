@@ -170,13 +170,11 @@ try {
     // 1. Získaj záznam z ASISTANTO Defaults
     var defaultsEntry = getDefaultsEntry();
 
-    if (!defaultsEntry) {
-        // Chyba už bola zobrazená v getDefaultsEntry()
-        return;
+    if (defaultsEntry) {
+        // 2. Načítaj a nastav default hodnoty
+        loadDefaultValues(currentEntry, defaultsEntry);
     }
-
-    // 2. Načítaj a nastav default hodnoty
-    loadDefaultValues(currentEntry, defaultsEntry);
+    // Ak defaultsEntry je null, chyba už bola zobrazená v getDefaultsEntry()
 
 } catch (error) {
     message("❌ KRITICKÁ CHYBA: " + error.toString());
