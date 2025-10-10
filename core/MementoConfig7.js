@@ -1,7 +1,11 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.40 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.41 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.41 (2025-10-10):
+//    - OPRAVA: Premenované pole orderPart.quoteNumber z "Číslo CP" → "Číslo zákazky"
+//    - Pole bolo premenované v Memento Database, aktualizovaný mapping v MementoConfig
+//    - Fix pre ReferenceError: "Číslo CP" is not defined
 // 🔧 CHANGELOG v7.0.40 (2025-10-10):
 //    - OPRAVA: Doplnené chýbajúce polia v order (fields 296-307, 260)
 //    - Účtovanie dopravy: rideCalculation, transportPercentage, kmPrice, rideFlatRate, fixedTransportPrice
@@ -144,7 +148,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.36",  // Pridané pole materialWeight v quotePart
+        version: "7.0.41",  // Opravené názvy polí v orderPart (Číslo CP → Číslo zákazky)
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -1131,13 +1135,13 @@ var MementoConfig = (function() {
             // Cenové ponuky Diely polia (Library ID: nCAgQkfvK)
             quotePart: {
                 // Základné identifikačné polia
-                number: "Číslo", // text (field 186) - role: name
+                number: "Číslo", // int (field 283) - role: name
                 quoteNumber: "Číslo CP", // text (field 281) - role: desc - číslo nadradenej cenovej ponuky
                 name: "Názov", // text (field 250) - role: desc
                 date: "Dátum", // date (field 269)
 
                 // Klasifikácia dielu
-                partType: "Diel cenovej ponuky", // choice (field 257) - role: name - typ dielu ponuky
+                partType: "Diel cenovej ponuky", // choice (field 257) - role: name, typ dielu ponuky
 
                 // Cenové polia - súčty za kategórie
                 materialSum: "Suma materiál", // currency (field 271)
@@ -1252,7 +1256,7 @@ var MementoConfig = (function() {
                 // Základné identifikačné polia
                 number: "Číslo", // int (field 283) - role: name
                 date: "Dátum", // date (field 269)
-                quoteNumber: "Číslo CP", // text (field 281) - role: desc, číslo cenovej ponuky
+                quoteNumber: "Číslo zákazky", // text (field 281) - role: desc, číslo zákazky (bolo "Číslo CP")
                 name: "Názov", // text (field 250) - role: desc
 
                 // Klasifikácia dielu
