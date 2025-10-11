@@ -1,6 +1,6 @@
 // ==============================================
 // ZÁKAZKY - Hlavný prepočet
-// Verzia: 1.0.0 | Dátum: 2025-10-11 | Autor: ASISTANTO
+// Verzia: 1.0.1 | Dátum: 2025-10-11 | Autor: ASISTANTO
 // Knižnica: Zákazky (ID: CfRHN7QTG)
 // Trigger: onChange
 // ==============================================
@@ -17,6 +17,10 @@
 //    - Získa aktuálnu sadzbu DPH
 //    - Vypočíta celkovú sumu s DPH
 // ==============================================
+// 🔧 CHANGELOG v1.0.1 (2025-10-11):
+//    - FIX: Validácia dielov - použitie orderPart.quoteNumber namiesto neexistujúceho orderPart.orderNumber
+//    - FIX: Pridaný .trim() pre čísla zákazky pri validácii (odstráni medzery)
+//    - FIX: Ak diel nemá číslo zákazky (prázdne pole), považuje sa za validný
 // 🔧 CHANGELOG v1.0.0 (2025-10-11):
 //    - Prvá verzia pre knižnicu Zákazky
 //    - Adaptované z CP.Calculate.js v1.4.3
@@ -36,7 +40,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Zákazky - Prepočet",
-    version: "1.0.0",
+    version: "1.0.1",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.order,
@@ -97,7 +101,7 @@ function validatePartsLinks() {
     try {
         utils.addDebug(currentEntry, "  🔍 Kontrola prepojenia dielov so zákazkou");
 
-        var orderNumber = utils.safeGet(currentEntry, fields.number) || "";
+        var orderNumber = (utils.safeGet(currentEntry, fields.number) || "").toString().trim();
         utils.addDebug(currentEntry, "    Číslo zákazky: " + orderNumber);
 
         var partsEntries = utils.safeGetLinks(currentEntry, fields.parts) || [];
@@ -114,7 +118,7 @@ function validatePartsLinks() {
 
         for (var i = 0; i < partsEntries.length; i++) {
             var part = partsEntries[i];
-            var partOrderNumber = utils.safeGet(part, centralConfig.fields.orderPart.orderNumber) || "";
+            var partOrderNumber = (utils.safeGet(part, centralConfig.fields.orderPart.quoteNumber) || "").toString().trim();
             var partType = utils.safeGet(part, centralConfig.fields.orderPart.partType) || ("Diel #" + (i + 1));
             var partId = utils.safeGet(part, centralConfig.fields.common.id);
 
@@ -125,8 +129,8 @@ function validatePartsLinks() {
                 continue;
             }
 
-            // Kontrola zhody čísla zákazky
-            if (partOrderNumber !== orderNumber) {
+            // Kontrola zhody čísla zákazky (ak diel nemá číslo, považuj za validný)
+            if (partOrderNumber && partOrderNumber !== orderNumber) {
                 utils.addDebug(currentEntry, "    ✗ Neplatné prepojenie: " + partType);
                 utils.addDebug(currentEntry, "      Očakávané číslo zákazky: '" + orderNumber + "'");
                 utils.addDebug(currentEntry, "      Číslo zákazky v dieli: '" + partOrderNumber + "'");
