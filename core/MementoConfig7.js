@@ -1,7 +1,11 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.43 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.44 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.44 (2025-10-11):
+//    - OPRAVA: Premenované orderPart.quoteNumber → orderPart.orderNumber
+//    - Knižnica Zákazky Diely má pole "Číslo zákazky", nie "Číslo CP"
+//    - Konzistentný názov: order → orderNumber, quote → quoteNumber
 // 🔧 CHANGELOG v7.0.43 (2025-10-10):
 //    - PRIDANÉ: Pole order.client - "Klient" (field 256) v Zákazky library
 //    - Fix pre ReferenceError: "undefined" is not defined v CP.Action.CreateOrder.js
@@ -1265,7 +1269,7 @@ var MementoConfig = (function() {
                 // Základné identifikačné polia
                 number: "Číslo", // int (field 283) - role: name
                 date: "Dátum", // date (field 269)
-                quoteNumber: "Číslo zákazky", // text (field 281) - role: desc, číslo zákazky (bolo "Číslo CP")
+                orderNumber: "Číslo zákazky", // text (field 281) - role: desc, číslo zákazky
                 name: "Názov", // text (field 250) - role: desc
 
                 // Klasifikácia dielu
