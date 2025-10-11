@@ -11,11 +11,16 @@
  * - Prepojenie: Zákazky → linkToEntry Cenové ponuky (vytvorí linksFrom)
  * - Automatické generovanie čísla zákazky pomocou MementoAutoNumber
  *
- * Verzia: 1.3.2
+ * Verzia: 1.4.0
  * Dátum: 2025-10-10
  * Autor: ASISTANTO
  *
  * CHANGELOG:
+ * v1.4.0 (2025-10-10):
+ *   - FIX: Zmenené poradie operácií - diel sa pripája k zákazke PRED nastavením materiálov/prác
+ *   - Materiály a práce sa nastavujú až PO pripojení orderPart k order
+ *   - Opravuje problém kde linkToEntry polia neboli zapísané
+ *   - Zachovaný detailný debug logging
  * v1.3.2 (2025-10-10):
  *   - DEBUG: Pridaný detailný logging pre diagnostiku materiálov a prác
  *   - Pridané výpisy počtu položiek, atribútov a krokov nastavovania
@@ -393,7 +398,14 @@ try {
                     orderPart.set(orderPartFields.workSum, utils.safeGet(quotePart, quotePartFields.workSum));
                     orderPart.set(orderPartFields.totalSum, utils.safeGet(quotePart, quotePartFields.totalSum));
 
-                    // === POLOŽKY S ATRIBÚTMI ===
+                    // NAJPRV pripoj diel k zákazke (potrebné pre linkToEntry polia)
+                    utils.addDebug(currentEntry, "    🔗 Pripájam diel k zákazke...");
+                    var existingParts = utils.safeGetLinks(order, orderFields.parts) || [];
+                    existingParts.push(orderPart);
+                    order.set(orderFields.parts, existingParts);
+                    utils.addDebug(currentEntry, "    ✅ Diel pripojený k zákazke");
+
+                    // === POLOŽKY S ATRIBÚTMI (PO PRIPOJENÍ K ZÁKAZKE) ===
                     var materials = utils.safeGetLinks(quotePart, quotePartFields.materials);
                     var works = utils.safeGetLinks(quotePart, quotePartFields.works);
 
@@ -455,11 +467,6 @@ try {
                     utils.addDebug(currentEntry, "    Materiály: " + (materials ? materials.length : 0));
                     utils.addDebug(currentEntry, "    Práce: " + (works ? works.length : 0));
                     utils.addDebug(currentEntry, "    Celkom: " + (utils.safeGet(quotePart, quotePartFields.totalSum) || 0).toFixed(2) + " €");
-
-                    // Pripoj diel k zákazke
-                    var existingParts = utils.safeGetLinks(order, orderFields.parts) || [];
-                    existingParts.push(orderPart);
-                    order.set(orderFields.parts, existingParts);
 
                     createdPartsCount++;
                     utils.addDebug(currentEntry, "    ✅ Diel vytvorený");
