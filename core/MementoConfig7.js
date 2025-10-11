@@ -1,7 +1,15 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.46 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.47 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.47 (2025-10-11):
+//    - PRIDANÉ: order.total - "Celkom" (field 331) - celková suma bez DPH
+//    - PRIDANÉ: order.totalWithVat - "Celkom s DPH" (field 332) - celková suma s DPH
+//    - PRIDANÉ: order.expectedRidesCount - "Počet jázd" (field 145)
+//    - PRIDANÉ: order.transportPrice - "Cena dopravy" (field 321) - OUTPUT field
+//    - OPRAVENÉ: order.massTransferPrice správny field 320 (OUTPUT)
+//    - PRIDANÉ: order.massTransferPriceEntry - field 302 (INPUT pre "Podľa hmotnosti")
+//    - Fix: Všetky polia potrebné pre Order.Calculate.js sú teraz definované
 // 🔧 CHANGELOG v7.0.46 (2025-10-11):
 //    - PRIDANÉ: order.subcontracts - "Subdodávky" (field 318)
 //    - PRIDANÉ: order.subcontractsTotal - "Celkom Subdodávky" (field 325)
@@ -169,7 +177,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.43",  // Pridané pole order.client v Zákazky
+        version: "7.0.47",  // Doplnené všetky polia pre Order.Calculate.js
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -1249,19 +1257,22 @@ var MementoConfig = (function() {
                 subcontractorMarkup: "Prirážka subdodávky", // real number, percentuálna prirážka na subdodávky
                 otherMarkup: "Prirážka ostatné", // real number, percentuálna prirážka na ostatné náklady
 
-                // ÚČTOVANIE DOPRAVY (fields 296-301)
+                // ÚČTOVANIE DOPRAVY (fields 145, 296-301, 321)
                 rideCalculation: "Účtovanie dopravy", // choice (field 296) - Neúčtovať, Paušál, Km, % zo zákazky, Pevná cena
                 transportPercentage: "Doprava %", // double (field 298) - percentuálna prirážka dopravy
+                expectedRidesCount: "Počet jázd", // int (field 145) - počet jázd (WARNING: v API môže byť už najazdené, nie predpokladané!)
                 kmPrice: "Doprava cena za km", // entries (field 300) - linkToEntry Cenník prác
                 rideFlatRate: "Doprava paušál", // entries (field 299) - linkToEntry Cenník prác
-                fixedTransportPrice: "Doprava pevná cena", // currency (field 301) - pevná cena dopravy
+                transportPrice: "Cena dopravy", // currency (field 321) - VÝSTUP vypočítanej ceny dopravy
+                fixedTransportPrice: "Doprava pevná cena", // currency (field 301) - VSTUP pevná cena dopravy
 
-                // ÚČTOVANIE PRESUNU HMÔT (fields 297, 302-307, 306)
+                // ÚČTOVANIE PRESUNU HMÔT (fields 297, 302-307, 306, 320)
                 massTransferCalculation: "Účtovanie presunu hmôt", // choice (field 297) - Neúčtovať, Paušál, Podľa hmotnosti materiálu, % zo zákazky, Pevná cena
                 massTransferPercentage: "Presun hmôt %", // double (field 304) - percentuálna prirážka presunu hmôt
-                massTransferPrice: "Cena presunu hmôt", // entries (field 302) - linkToEntry Cenník prác
+                massTransferPrice: "Cena presunu hmôt", // currency (field 320) - VÝSTUP vypočítanej ceny presunu hmôt
+                massTransferPriceEntry: "Cena presunu hmôt", // entries (field 302) - linkToEntry Cenník prác - VSTUP pre metódu "Podľa hmotnosti"
                 massTransferFlatRate: "Paušál presunu hmôt", // entries (field 307) - linkToEntry Cenník prác
-                fixedMassTransferPrice: "Presun hmôt pevná cena", // currency (field 303) - pevná cena presunu hmôt
+                fixedMassTransferPrice: "Presun hmôt pevná cena", // currency (field 303) - VSTUP pevná cena presunu hmôt
                 materialWeight: "Hmotnosť materiálu", // double (field 306) - celková hmotnosť materiálov v tonách
 
                 // ÚČTOVANIE SUBDODÁVOK (fields 305, 318, 325)
@@ -1271,6 +1282,10 @@ var MementoConfig = (function() {
 
                 // DIELY ZÁKAZKY
                 parts: "Diely", // entries (field 260) - linkToEntry Zákazky Diely
+
+                // CELKOVÉ SUMY (fields 331, 332)
+                total: "Celkom", // currency (field 331) - celková suma bez DPH
+                totalWithVat: "Celkom s DPH", // currency (field 332) - celková suma s DPH
 
                 // DPH
                 vat: "DPH", // currency (field 324)
