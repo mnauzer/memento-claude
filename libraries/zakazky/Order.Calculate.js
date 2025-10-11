@@ -1,6 +1,6 @@
 // ==============================================
 // ZÁKAZKY - Hlavný prepočet
-// Verzia: 1.0.1 | Dátum: 2025-10-11 | Autor: ASISTANTO
+// Verzia: 1.0.2 | Dátum: 2025-10-11 | Autor: ASISTANTO
 // Knižnica: Zákazky (ID: CfRHN7QTG)
 // Trigger: onChange
 // ==============================================
@@ -17,8 +17,11 @@
 //    - Získa aktuálnu sadzbu DPH
 //    - Vypočíta celkovú sumu s DPH
 // ==============================================
+// 🔧 CHANGELOG v1.0.2 (2025-10-11):
+//    - FIX: Použitie orderPart.orderNumber (správny názov pre Zákazky Diely)
+//    - MementoConfig v7.0.44: orderPart.quoteNumber → orderPart.orderNumber
 // 🔧 CHANGELOG v1.0.1 (2025-10-11):
-//    - FIX: Validácia dielov - použitie orderPart.quoteNumber namiesto neexistujúceho orderPart.orderNumber
+//    - FIX: Validácia dielov - hľadanie správneho názvu poľa v orderPart
 //    - FIX: Pridaný .trim() pre čísla zákazky pri validácii (odstráni medzery)
 //    - FIX: Ak diel nemá číslo zákazky (prázdne pole), považuje sa za validný
 // 🔧 CHANGELOG v1.0.0 (2025-10-11):
@@ -40,7 +43,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Zákazky - Prepočet",
-    version: "1.0.1",
+    version: "1.0.2",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.order,
@@ -118,7 +121,7 @@ function validatePartsLinks() {
 
         for (var i = 0; i < partsEntries.length; i++) {
             var part = partsEntries[i];
-            var partOrderNumber = (utils.safeGet(part, centralConfig.fields.orderPart.quoteNumber) || "").toString().trim();
+            var partOrderNumber = (utils.safeGet(part, centralConfig.fields.orderPart.orderNumber) || "").toString().trim();
             var partType = utils.safeGet(part, centralConfig.fields.orderPart.partType) || ("Diel #" + (i + 1));
             var partId = utils.safeGet(part, centralConfig.fields.common.id);
 
