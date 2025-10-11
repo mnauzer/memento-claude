@@ -1,6 +1,6 @@
 // ==============================================
 // ZÁKAZKY - Hlavný prepočet
-// Verzia: 1.0.2 | Dátum: 2025-10-11 | Autor: ASISTANTO
+// Verzia: 1.0.3 | Dátum: 2025-10-11 | Autor: ASISTANTO
 // Knižnica: Zákazky (ID: CfRHN7QTG)
 // Trigger: onChange
 // ==============================================
@@ -17,6 +17,10 @@
 //    - Získa aktuálnu sadzbu DPH
 //    - Vypočíta celkovú sumu s DPH
 // ==============================================
+// 🔧 CHANGELOG v1.0.3 (2025-10-11):
+//    - FIX: Optional materialWeight v orderPart (pole zatiaľ nie je v knižnici)
+//    - FIX: Pridaný message() do error handlera pre lepšiu diagnostiku
+//    - MementoConfig v7.0.45: Pridané orderPart.materialWeight (optional)
 // 🔧 CHANGELOG v1.0.2 (2025-10-11):
 //    - FIX: Použitie orderPart.orderNumber (správny názov pre Zákazky Diely)
 //    - MementoConfig v7.0.44: orderPart.quoteNumber → orderPart.orderNumber
@@ -43,7 +47,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Zákazky - Prepočet",
-    version: "1.0.2",
+    version: "1.0.3",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.order,
@@ -208,6 +212,7 @@ function calculatePartsTotal() {
         if (error.lineNumber) errorMsg += ", Line: " + error.lineNumber;
         if (error.stack) errorMsg += "\nStack: " + error.stack;
         utils.addError(currentEntry, errorMsg, "calculatePartsTotal", error);
+        message("❌ Chyba pri spočítaní dielov!\\nLine: " + (error.lineNumber || "N/A") + "\\n" + error.toString());
         throw error;
     }
 }
@@ -459,8 +464,12 @@ function calculateMaterialWeight() {
                 continue;
             }
 
-            // Zisti hmotnosť tohto dielu
-            var partWeight = utils.safeGet(part, centralConfig.fields.orderPart.materialWeight) || 0;
+            // Zisti hmotnosť tohto dielu (ak pole existuje)
+            var materialWeightField = centralConfig.fields.orderPart.materialWeight;
+            var partWeight = 0;
+            if (materialWeightField) {
+                partWeight = utils.safeGet(part, materialWeightField) || 0;
+            }
 
             if (partWeight > 0) {
                 totalWeight += partWeight;

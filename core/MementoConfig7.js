@@ -1,7 +1,10 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.44 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.45 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.45 (2025-10-11):
+//    - PRIDANÉ: orderPart.materialWeight - "Hmotnosť materiálu" (optional)
+//    - Pole zatiaľ nie je v knižnici Zákazky Diely, ale je pripravené pre budúce použitie
 // 🔧 CHANGELOG v7.0.44 (2025-10-11):
 //    - OPRAVA: Premenované orderPart.quoteNumber → orderPart.orderNumber
 //    - Knižnica Zákazky Diely má pole "Číslo zákazky", nie "Číslo CP"
@@ -1279,6 +1282,9 @@ var MementoConfig = (function() {
                 materialSum: "Suma materiál", // currency (field 271), suma za materiály
                 workSum: "Suma práce", // currency (field 272), suma za práce
                 totalSum: "Celkom", // currency (field 275) - role: status, celková suma dielu
+
+                // Hmotnosť (optional - zatiaľ nie je v knižnici)
+                materialWeight: "Hmotnosť materiálu", // double, celková hmotnosť materiálov v tonách (optional)
 
                 // Položky po kategóriách - linkToEntry polia
                 materials: "Materiál", // entries (field 264), linkToEntry do materiálov
