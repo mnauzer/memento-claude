@@ -407,24 +407,52 @@ try {
                     utils.addDebug(currentEntry, "    🔍 DEBUG - Materiály z CP: " + (materials ? materials.length : 0));
                     utils.addDebug(currentEntry, "    🔍 DEBUG - Práce z CP: " + (works ? works.length : 0));
 
-                    // Mapuj materiály s atribútmi - použij .set() s celým poľom
+                    // Mapuj materiály s atribútmi - použitie link() metódy
                     if (materials && materials.length > 0) {
                         utils.addDebug(currentEntry, "    📦 Kopírujem materiály s atribútmi...");
 
-                        // Najprv nastav celé pole naraz (atribúty sa skopírujú automaticky)
                         try {
-                            orderPart.set(orderPartFields.materials, materials);
-                            utils.addDebug(currentEntry, "      ✅ Materiály nastavené cez .set(): " + materials.length);
-
-                            // Debug - skontroluj či sa atribúty preniesli
+                            // Prejdi všetky materiály a linkuj ich postupne
                             for (var m = 0; m < materials.length; m++) {
-                                var material = materials[m];
-                                var materialName = utils.safeGet(material, "Názov") || ("Materiál #" + (m + 1));
-                                var qty = material.attr("množstvo") || 0;
-                                var price = material.attr("cena") || 0;
-                                var total = material.attr("cena celkom") || 0;
-                                utils.addDebug(currentEntry, "      • " + materialName + ": m=" + qty + ", c=" + price + "€, t=" + total + "€");
+                                var sourceMaterial = materials[m];
+                                var materialName = utils.safeGet(sourceMaterial, "Názov") || ("Materiál #" + (m + 1));
+
+                                // Prečítaj atribúty zo zdrojového materiálu
+                                var qty = 0, price = 0, total = 0;
+                                try {
+                                    qty = sourceMaterial.attr("množstvo") || 0;
+                                    price = sourceMaterial.attr("cena") || 0;
+                                    total = sourceMaterial.attr("cena celkom") || 0;
+                                    utils.addDebug(currentEntry, "      📖 Čítam: " + materialName + " (m=" + qty + ", c=" + price + "€, t=" + total + "€)");
+                                } catch (e) {
+                                    utils.addDebug(currentEntry, "      ⚠️ Chyba pri čítaní atribútov: " + e.toString());
+                                }
+
+                                // KROK 1: Linkni materiál pomocou .link()
+                                try {
+                                    orderPart.link(orderPartFields.materials, sourceMaterial);
+                                    utils.addDebug(currentEntry, "      ✅ Materiál #" + (m + 1) + " nalinkovaný");
+
+                                    // KROK 2: Nastav atribúty IHNEĎ po linkovaní
+                                    try {
+                                        var currentMaterials = orderPart.field(orderPartFields.materials);
+                                        if (currentMaterials && currentMaterials.length > 0) {
+                                            var lastMaterial = currentMaterials[currentMaterials.length - 1];
+                                            lastMaterial.a("množstvo", qty);
+                                            lastMaterial.a("cena", price);
+                                            lastMaterial.a("cena celkom", total);
+                                            utils.addDebug(currentEntry, "      ✅ Atribúty nastavené: m=" + qty + ", c=" + price + "€, t=" + total + "€");
+                                        }
+                                    } catch (e) {
+                                        utils.addDebug(currentEntry, "      ⚠️ Chyba pri nastavení atribútov: " + e.toString());
+                                    }
+                                } catch (e) {
+                                    utils.addDebug(currentEntry, "      ❌ Chyba pri linkovaní materiálu #" + (m + 1) + ": " + e.toString());
+                                }
                             }
+
+                            utils.addDebug(currentEntry, "      ✅ Všetky materiály spracované: " + materials.length);
+
                         } catch (e) {
                             utils.addDebug(currentEntry, "      ❌ Chyba pri kopírovaní materiálov: " + e.toString());
                         }
@@ -432,24 +460,52 @@ try {
                         utils.addDebug(currentEntry, "    ℹ️ Žiadne materiály na kopírovanie");
                     }
 
-                    // Mapuj práce s atribútmi - použij .set() s celým poľom
+                    // Mapuj práce s atribútmi - použitie link() metódy
                     if (works && works.length > 0) {
                         utils.addDebug(currentEntry, "    🔧 Kopírujem práce s atribútmi...");
 
-                        // Najprv nastav celé pole naraz (atribúty sa skopírujú automaticky)
                         try {
-                            orderPart.set(orderPartFields.works, works);
-                            utils.addDebug(currentEntry, "      ✅ Práce nastavené cez .set(): " + works.length);
-
-                            // Debug - skontroluj či sa atribúty preniesli
+                            // Prejdi všetky práce a linkuj ich postupne
                             for (var w = 0; w < works.length; w++) {
-                                var work = works[w];
-                                var workName = utils.safeGet(work, "Názov") || ("Práca #" + (w + 1));
-                                var qty = work.attr("množstvo") || 0;
-                                var price = work.attr("cena") || 0;
-                                var total = work.attr("cena celkom") || 0;
-                                utils.addDebug(currentEntry, "      • " + workName + ": h=" + qty + ", c=" + price + "€, t=" + total + "€");
+                                var sourceWork = works[w];
+                                var workName = utils.safeGet(sourceWork, "Názov") || ("Práca #" + (w + 1));
+
+                                // Prečítaj atribúty zo zdrojovej práce
+                                var qty = 0, price = 0, total = 0;
+                                try {
+                                    qty = sourceWork.attr("množstvo") || 0;
+                                    price = sourceWork.attr("cena") || 0;
+                                    total = sourceWork.attr("cena celkom") || 0;
+                                    utils.addDebug(currentEntry, "      📖 Čítam: " + workName + " (h=" + qty + ", c=" + price + "€, t=" + total + "€)");
+                                } catch (e) {
+                                    utils.addDebug(currentEntry, "      ⚠️ Chyba pri čítaní atribútov: " + e.toString());
+                                }
+
+                                // KROK 1: Linkni prácu pomocou .link()
+                                try {
+                                    orderPart.link(orderPartFields.works, sourceWork);
+                                    utils.addDebug(currentEntry, "      ✅ Práca #" + (w + 1) + " nalinkovaná");
+
+                                    // KROK 2: Nastav atribúty IHNEĎ po linkovaní
+                                    try {
+                                        var currentWorks = orderPart.field(orderPartFields.works);
+                                        if (currentWorks && currentWorks.length > 0) {
+                                            var lastWork = currentWorks[currentWorks.length - 1];
+                                            lastWork.a("množstvo", qty);
+                                            lastWork.a("cena", price);
+                                            lastWork.a("cena celkom", total);
+                                            utils.addDebug(currentEntry, "      ✅ Atribúty nastavené: h=" + qty + ", c=" + price + "€, t=" + total + "€");
+                                        }
+                                    } catch (e) {
+                                        utils.addDebug(currentEntry, "      ⚠️ Chyba pri nastavení atribútov: " + e.toString());
+                                    }
+                                } catch (e) {
+                                    utils.addDebug(currentEntry, "      ❌ Chyba pri linkovaní práce #" + (w + 1) + ": " + e.toString());
+                                }
                             }
+
+                            utils.addDebug(currentEntry, "      ✅ Všetky práce spracované: " + works.length);
+
                         } catch (e) {
                             utils.addDebug(currentEntry, "      ❌ Chyba pri kopírovaní prác: " + e.toString());
                         }
