@@ -11,11 +11,15 @@
  * - Prepojenie: Zákazky → linkToEntry Cenové ponuky (vytvorí linksFrom)
  * - Automatické generovanie čísla zákazky pomocou MementoAutoNumber
  *
- * Verzia: 1.3.1
+ * Verzia: 1.3.2
  * Dátum: 2025-10-10
  * Autor: ASISTANTO
  *
  * CHANGELOG:
+ * v1.3.2 (2025-10-10):
+ *   - DEBUG: Pridaný detailný logging pre diagnostiku materiálov a prác
+ *   - Pridané výpisy počtu položiek, atribútov a krokov nastavovania
+ *   - Pomôže identifikovať prečo sa položky nevytvárajú v dieloch zákazky
  * v1.3.1 (2025-10-10):
  *   - OPRAVA: Použitá správna metóda .attr() namiesto .a() pre čítanie atribútov
  *   - Fix pre TypeError: Cannot find function a in object [object Entry]
@@ -393,6 +397,9 @@ try {
                     var materials = utils.safeGetLinks(quotePart, quotePartFields.materials);
                     var works = utils.safeGetLinks(quotePart, quotePartFields.works);
 
+                    utils.addDebug(currentEntry, "    🔍 DEBUG - Materiály z CP: " + (materials ? materials.length : 0));
+                    utils.addDebug(currentEntry, "    🔍 DEBUG - Práce z CP: " + (works ? works.length : 0));
+
                     // Mapuj materiály s atribútmi
                     if (materials && materials.length > 0) {
                         var materialsWithAttrs = [];
@@ -405,13 +412,18 @@ try {
                                 attrs["množstvo"] = material.attr("množstvo") || 0;
                                 attrs["cena"] = material.attr("cena") || 0;
                                 attrs["cena celkom"] = material.attr("cena celkom") || 0;
+                                utils.addDebug(currentEntry, "      📦 Materiál #" + (m + 1) + ": množstvo=" + attrs["množstvo"] + ", cena=" + attrs["cena"]);
                             } catch (e) {
                                 utils.addDebug(currentEntry, "      ⚠️ Chyba pri kopírovaní atribútov materiálu: " + e.toString());
                             }
 
                             materialsWithAttrs.push({entry: material, attributes: attrs});
                         }
+                        utils.addDebug(currentEntry, "    ➡️ Nastavujem " + materialsWithAttrs.length + " materiálov do orderPart");
                         orderPart.set(orderPartFields.materials, materialsWithAttrs);
+                        utils.addDebug(currentEntry, "    ✅ Materiály nastavené");
+                    } else {
+                        utils.addDebug(currentEntry, "    ℹ️ Žiadne materiály na kopírovanie");
                     }
 
                     // Mapuj práce s atribútmi
@@ -426,13 +438,18 @@ try {
                                 attrs["množstvo"] = work.attr("množstvo") || 0;
                                 attrs["cena"] = work.attr("cena") || 0;
                                 attrs["cena celkom"] = work.attr("cena celkom") || 0;
+                                utils.addDebug(currentEntry, "      🔧 Práca #" + (w + 1) + ": množstvo=" + attrs["množstvo"] + ", cena=" + attrs["cena"]);
                             } catch (e) {
                                 utils.addDebug(currentEntry, "      ⚠️ Chyba pri kopírovaní atribútov práce: " + e.toString());
                             }
 
                             worksWithAttrs.push({entry: work, attributes: attrs});
                         }
+                        utils.addDebug(currentEntry, "    ➡️ Nastavujem " + worksWithAttrs.length + " prác do orderPart");
                         orderPart.set(orderPartFields.works, worksWithAttrs);
+                        utils.addDebug(currentEntry, "    ✅ Práce nastavené");
+                    } else {
+                        utils.addDebug(currentEntry, "    ℹ️ Žiadne práce na kopírovanie");
                     }
 
                     utils.addDebug(currentEntry, "    Materiály: " + (materials ? materials.length : 0));
