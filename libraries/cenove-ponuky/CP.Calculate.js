@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY - Hlavný prepočet
-// Verzia: 1.4.3 | Dátum: 2025-10-10 | Autor: ASISTANTO
+// Verzia: 1.4.4 | Dátum: 2025-10-11 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky (ID: 90RmdjWuk)
 // Trigger: onChange
 // ==============================================
@@ -17,6 +17,9 @@
 //    - Získa aktuálnu sadzbu DPH
 //    - Vypočíta celkovú sumu s DPH
 // ==============================================
+// 🔧 CHANGELOG v1.4.4 (2025-10-11):
+//    - FIX: Pridaný .trim() pre čísla CP pri validácii dielov (odstráni medzery)
+//    - FIX: Ak diel nemá číslo CP (prázdne pole), považuje sa za validný
 // 🔧 CHANGELOG v1.4.3 (2025-10-10):
 //    - OPRAVA: part.id() -> utils.safeGet(part, centralConfig.fields.common.id)
 //    - FIX: TypeError "Cannot call property id" - id je vlastnosť, nie funkcia
@@ -110,7 +113,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky - Prepočet",
-    version: "1.4.3",
+    version: "1.4.4",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quote,
@@ -171,7 +174,7 @@ function validatePartsLinks() {
     try {
         utils.addDebug(currentEntry, "  🔍 Kontrola prepojenia dielov s cenovou ponukou");
 
-        var quoteNumber = utils.safeGet(currentEntry, fields.number) || "";
+        var quoteNumber = (utils.safeGet(currentEntry, fields.number) || "").toString().trim();
         utils.addDebug(currentEntry, "    Číslo CP: " + quoteNumber);
 
         var partsEntries = utils.safeGetLinks(currentEntry, fields.parts) || [];
@@ -188,7 +191,7 @@ function validatePartsLinks() {
 
         for (var i = 0; i < partsEntries.length; i++) {
             var part = partsEntries[i];
-            var partQuoteNumber = utils.safeGet(part, centralConfig.fields.quotePart.quoteNumber) || "";
+            var partQuoteNumber = (utils.safeGet(part, centralConfig.fields.quotePart.quoteNumber) || "").toString().trim();
             var partType = utils.safeGet(part, centralConfig.fields.quotePart.partType) || ("Diel #" + (i + 1));
             var partId = utils.safeGet(part, centralConfig.fields.common.id);
 
@@ -199,8 +202,8 @@ function validatePartsLinks() {
                 continue;
             }
 
-            // Kontrola zhody čísla CP
-            if (partQuoteNumber !== quoteNumber) {
+            // Kontrola zhody čísla CP (ak diel nemá číslo, považuj za validný)
+            if (partQuoteNumber && partQuoteNumber !== quoteNumber) {
                 utils.addDebug(currentEntry, "    ✗ Neplatné prepojenie: " + partType);
                 utils.addDebug(currentEntry, "      Očakávané číslo CP: '" + quoteNumber + "'");
                 utils.addDebug(currentEntry, "      Číslo CP v dieli: '" + partQuoteNumber + "'");
