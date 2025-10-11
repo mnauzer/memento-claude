@@ -91,9 +91,7 @@ var centralConfig = MementoConfig.getConfig(); // Získaj CONFIG objekt
 
 try {
     utils.clearLogs(currentEntry);
-    utils.addDebug(currentEntry, "\n╔═══════════════════════════════════════════════════════╗");
-    utils.addDebug(currentEntry, "║   VYTVORENIE/AKTUALIZÁCIA ZÁKAZKY Z CENOVEJ PONUKY   ║");
-    utils.addDebug(currentEntry, "╚═══════════════════════════════════════════════════════╝");
+    utils.addDebug(currentEntry, "   VYTVORENIE/AKTUALIZÁCIA ZÁKAZKY Z CENOVEJ PONUKY   ");
     utils.addDebug(currentEntry, "");
 
     // Získaj konfiguračné polia
@@ -491,10 +489,8 @@ try {
     // VÝSLEDOK
     // ==============================================
 
-    utils.addDebug(currentEntry, "╔═══════════════════════════════════════════════════════╗");
     if (!orderExists) {
-        utils.addDebug(currentEntry, "║         ✅ ZÁKAZKA ÚSPEŠNE VYTVORENÁ                  ║");
-        utils.addDebug(currentEntry, "╚═══════════════════════════════════════════════════════╝");
+        utils.addDebug(currentEntry, "         ✅ ZÁKAZKA ÚSPEŠNE VYTVORENÁ                  ");
         utils.addDebug(currentEntry, "");
         utils.addDebug(currentEntry, "Zákazka: " + utils.safeGet(order, orderFields.number) + " - " + utils.safeGet(order, orderFields.name));
         utils.addDebug(currentEntry, "Počet dielov: " + (quoteParts ? quoteParts.length : 0));
@@ -503,8 +499,7 @@ try {
                 "Číslo: " + utils.safeGet(order, orderFields.number) + "\n" +
                 "Počet dielov: " + (quoteParts ? quoteParts.length : 0));
     } else {
-        utils.addDebug(currentEntry, "║         ✅ ZÁKAZKA ÚSPEŠNE AKTUALIZOVANÁ              ║");
-        utils.addDebug(currentEntry, "╚═══════════════════════════════════════════════════════╝");
+        utils.addDebug(currentEntry, "         ✅ ZÁKAZKA ÚSPEŠNE AKTUALIZOVANÁ              ");
         utils.addDebug(currentEntry, "");
         utils.addDebug(currentEntry, "Zákazka: " + utils.safeGet(order, orderFields.number) + " - " + utils.safeGet(order, orderFields.name));
         utils.addDebug(currentEntry, "Aktualizované polia: Všetky");
@@ -532,9 +527,7 @@ try {
     utils.addError(currentEntry, errorMsg, "CP.Action.CreateOrder", error);
 
     utils.addDebug(currentEntry, "");
-    utils.addDebug(currentEntry, "╔═══════════════════════════════════════════════════════╗");
-    utils.addDebug(currentEntry, "║         ❌ CHYBA PRI VYTVÁRANÍ/AKTUALIZÁCII           ║");
-    utils.addDebug(currentEntry, "╚═══════════════════════════════════════════════════════╝");
+    utils.addDebug(currentEntry, "         ❌ CHYBA PRI VYTVÁRANÍ/AKTUALIZÁCII           ");
     utils.addDebug(currentEntry, "");
     utils.addDebug(currentEntry, errorMsg);
 
