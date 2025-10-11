@@ -1,7 +1,13 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.45 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.46 | Dátum: October 2025 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.46 (2025-10-11):
+//    - PRIDANÉ: order.subcontracts - "Subdodávky" (field 318)
+//    - PRIDANÉ: order.subcontractsTotal - "Celkom Subdodávky" (field 325)
+//    - PRIDANÉ: order.vat - "DPH" (field 324)
+//    - PRIDANÉ: order.vatRate - "Sadzba DPH" (field 317)
+//    - Fix: Management subdodávok v Order.Calculate.js teraz má všetky potrebné polia
 // 🔧 CHANGELOG v7.0.45 (2025-10-11):
 //    - PRIDANÉ: orderPart.materialWeight - "Hmotnosť materiálu" (optional)
 //    - Pole zatiaľ nie je v knižnici Zákazky Diely, ale je pripravené pre budúce použitie
@@ -1258,13 +1264,19 @@ var MementoConfig = (function() {
                 fixedMassTransferPrice: "Presun hmôt pevná cena", // currency (field 303) - pevná cena presunu hmôt
                 materialWeight: "Hmotnosť materiálu", // double (field 306) - celková hmotnosť materiálov v tonách
 
-                // ÚČTOVANIE SUBDODÁVOK (field 305)
+                // ÚČTOVANIE SUBDODÁVOK (fields 305, 318, 325)
                 subcontractsCalculation: "Účtovanie subdodávok", // choice (field 305) - Neúčtovať, Zarátať do ceny, Vytvoriť dodatok
+                subcontracts: "Subdodávky", // entries (field 318) - linkToEntry Zákazky Diely (samostatné pole pre subdodávky)
+                subcontractsTotal: "Celkom Subdodávky", // currency (field 325) - celková suma subdodávok
 
                 // DIELY ZÁKAZKY
                 parts: "Diely", // entries (field 260) - linkToEntry Zákazky Diely
 
-                vatRate: "Sadzba DPH", // text, z knižnice ASISTANTO Defaults
+                // DPH
+                vat: "DPH", // currency (field 324)
+                vatRate: "Sadzba DPH", // double (field 317)
+
+                // OSTATNÉ
                 telegramGroup: "Telegram skupina" // linkToEntry Telegram Groups
             },
             // Zákazky Diely polia (Library ID: iEUC79O2T)
