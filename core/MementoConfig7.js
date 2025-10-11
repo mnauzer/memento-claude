@@ -298,7 +298,7 @@ var MementoConfig = (function() {
         defaults: {
             debug: false, // Predvolený debug mód
             workHoursPerDay: 8, // Predvolená pracovná doba za deň
-            roundToQuarterHour: false // Zaokrúhľovanie na 15 minút
+            roundToQuarterHour: true // Zaokrúhľovanie na 15 minút
         },
         // === GLOBÁLNE NASTAVENIA ===
         global: {
@@ -392,14 +392,10 @@ var MementoConfig = (function() {
             orderParts: "iEUC79O2T", // Zákazky Diely
 
             // Aktuálne používané knižnice podľa API analýzy
-            employees: "qU4Br5hU6", // Zamestnanci Semiramis (obsahuje všetky potrebné polia)
-            employeesBackup: "nmDvBcEwg", // Zamestnanci Backup
-            employeesArchive2019: "hNasN9vjf", // del Zamestnanci 2019 (archív)
             employeeRates: "CqXNnosKP", // sadzby zamestnancov
 
             // Poznámka: Hlavná knižnica "Zamestnanci" (ID: nWb00Nogf) má obmedzený prístup
-            // Pre scripts používať "Zamestnanci Semiramis" (qU4Br5hU6)
-
+         
             // Systémové knižnice
             defaults: "KTZ6dsnY9", // ASISTANTO Defaults
         },
