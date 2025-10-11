@@ -433,16 +433,16 @@ try {
                                     orderPart.link(orderPartFields.materials, sourceMaterial);
                                     utils.addDebug(currentEntry, "      ✅ Materiál #" + (m + 1) + " nalinkovaný");
 
-                                    // KROK 2: Nastav atribúty IHNEĎ po linkovaní
+                                    // KROK 2: Nastav atribúty IHNEĎ po linkovaní pomocou utils.safeSetAttribute()
                                     try {
                                         var currentMaterials = orderPart.field(orderPartFields.materials);
-                                        if (currentMaterials && currentMaterials.length > 0) {
-                                            var lastMaterial = currentMaterials[currentMaterials.length - 1];
-                                            lastMaterial.a("množstvo", qty);
-                                            lastMaterial.a("cena", price);
-                                            lastMaterial.a("cena celkom", total);
-                                            utils.addDebug(currentEntry, "      ✅ Atribúty nastavené: m=" + qty + ", c=" + price + "€, t=" + total + "€");
-                                        }
+                                        var lastIndex = currentMaterials.length - 1;
+
+                                        utils.safeSetAttribute(orderPart, orderPartFields.materials, "množstvo", qty, lastIndex);
+                                        utils.safeSetAttribute(orderPart, orderPartFields.materials, "cena", price, lastIndex);
+                                        utils.safeSetAttribute(orderPart, orderPartFields.materials, "cena celkom", total, lastIndex);
+
+                                        utils.addDebug(currentEntry, "      ✅ Atribúty nastavené: m=" + qty + ", c=" + price + "€, t=" + total + "€");
                                     } catch (e) {
                                         utils.addDebug(currentEntry, "      ⚠️ Chyba pri nastavení atribútov: " + e.toString());
                                     }
@@ -486,16 +486,16 @@ try {
                                     orderPart.link(orderPartFields.works, sourceWork);
                                     utils.addDebug(currentEntry, "      ✅ Práca #" + (w + 1) + " nalinkovaná");
 
-                                    // KROK 2: Nastav atribúty IHNEĎ po linkovaní
+                                    // KROK 2: Nastav atribúty IHNEĎ po linkovaní pomocou utils.safeSetAttribute()
                                     try {
                                         var currentWorks = orderPart.field(orderPartFields.works);
-                                        if (currentWorks && currentWorks.length > 0) {
-                                            var lastWork = currentWorks[currentWorks.length - 1];
-                                            lastWork.a("množstvo", qty);
-                                            lastWork.a("cena", price);
-                                            lastWork.a("cena celkom", total);
-                                            utils.addDebug(currentEntry, "      ✅ Atribúty nastavené: h=" + qty + ", c=" + price + "€, t=" + total + "€");
-                                        }
+                                        var lastIndex = currentWorks.length - 1;
+
+                                        utils.safeSetAttribute(orderPart, orderPartFields.works, "množstvo", qty, lastIndex);
+                                        utils.safeSetAttribute(orderPart, orderPartFields.works, "cena", price, lastIndex);
+                                        utils.safeSetAttribute(orderPart, orderPartFields.works, "cena celkom", total, lastIndex);
+
+                                        utils.addDebug(currentEntry, "      ✅ Atribúty nastavené: h=" + qty + ", c=" + price + "€, t=" + total + "€");
                                     } catch (e) {
                                         utils.addDebug(currentEntry, "      ⚠️ Chyba pri nastavení atribútov: " + e.toString());
                                     }
