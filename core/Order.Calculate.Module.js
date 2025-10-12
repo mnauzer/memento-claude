@@ -1,8 +1,14 @@
 // ==============================================
 // ZÁKAZKY - Prepočet (MODULE VERSION)
-// Verzia: 1.0.0 | Dátum: 2025-10-12 | Autor: ASISTANTO
+// Verzia: 1.0.1 | Dátum: 2025-10-12 | Autor: ASISTANTO
 // Knižnica: Zákazky
 // Použitie: OrderCalculate.orderCalculate(entry());
+// ==============================================
+// 🔧 CHANGELOG v1.0.1 (2025-10-12):
+//    - FIX: Safe debug logging - kontrola dostupnosti utils.addDebug
+//    - FIX: Použitie utils.safeSet() namiesto priameho .set()
+//    - FIX: Odstránené polia transportPrice a massTransferPrice (neexistujú v Zákazky)
+//    - IMPROVEMENT: Lepšie error handling s názvami polí
 // ==============================================
 // 📋 FUNKCIA:
 //    - Exportovaná funkcia orderCalculate(orderEntry) pre použitie z iných scriptov
@@ -40,13 +46,18 @@ var OrderCalculate = (function() {
         // INICIALIZÁCIA MODULOV
         // ==============================================
 
+        // Kontrola dostupnosti MementoUtils
+        if (typeof MementoUtils === 'undefined') {
+            throw new Error("OrderCalculate: MementoUtils nie je načítaný! Importujte MementoUtils7.js v Memento Database.");
+        }
+
         var utils = MementoUtils;
         var centralConfig = utils.config;
         var currentEntry = orderEntry;
 
         var CONFIG = {
             scriptName: "Zákazky - Prepočet (Module)",
-            version: "1.0.0",
+            version: "1.0.1",
             fields: centralConfig.fields.order,
             orderPartFields: centralConfig.fields.orderPart,
             icons: centralConfig.icons
@@ -55,9 +66,16 @@ var OrderCalculate = (function() {
         var fields = CONFIG.fields;
         var orderPartFields = CONFIG.orderPartFields;
 
-        utils.addDebug(currentEntry, "🚀 ŠTART: " + CONFIG.scriptName + " v" + CONFIG.version);
-        utils.addDebug(currentEntry, "📅 Dátum: " + moment().format("DD.MM.YYYY HH:mm:ss"));
-        utils.addDebug(currentEntry, "");
+        // Safe debug logging - kontrola či je addDebug dostupný
+        var addDebug = function(entry, message) {
+            if (utils && typeof addDebug === 'function') {
+                addDebug(entry, message);
+            }
+        };
+
+        addDebug(currentEntry, "🚀 ŠTART: " + CONFIG.scriptName + " v" + CONFIG.version);
+        addDebug(currentEntry, "📅 Dátum: " + moment().format("DD.MM.YYYY HH:mm:ss"));
+        addDebug(currentEntry, "");
 
         // ==============================================
         // POMOCNÉ FUNKCIE
@@ -69,11 +87,11 @@ var OrderCalculate = (function() {
          */
         function recalculateAllParts() {
             try {
-                utils.addDebug(currentEntry, "  🔄 Prepočet všetkých dielov");
+                addDebug(currentEntry, "  🔄 Prepočet všetkých dielov");
 
                 // Kontrola dostupnosti OrderDielyCalculate modulu
                 if (typeof OrderDielyCalculate === 'undefined' || typeof OrderDielyCalculate.partCalculate !== 'function') {
-                    utils.addDebug(currentEntry, "    ⚠️ OrderDielyCalculate modul nie je dostupný - preskakujem prepočet dielov");
+                    addDebug(currentEntry, "    ⚠️ OrderDielyCalculate modul nie je dostupný - preskakujem prepočet dielov");
                     return;
                 }
 
@@ -93,14 +111,14 @@ var OrderCalculate = (function() {
                         continue;
                     }
 
-                    utils.addDebug(currentEntry, "    📦 Pole: " + field.name + " (počet: " + partsEntries.length + ")");
+                    addDebug(currentEntry, "    📦 Pole: " + field.name + " (počet: " + partsEntries.length + ")");
 
                     for (var i = 0; i < partsEntries.length; i++) {
                         var part = partsEntries[i];
                         var partNumber = utils.safeGet(part, orderPartFields.number) || ("#" + (i + 1));
 
                         try {
-                            utils.addDebug(currentEntry, "      🔄 Prepočítavam diel: " + partNumber);
+                            addDebug(currentEntry, "      🔄 Prepočítavam diel: " + partNumber);
                             OrderDielyCalculate.partCalculate(part);
                             totalRecalculated++;
                         } catch (partError) {
@@ -109,7 +127,7 @@ var OrderCalculate = (function() {
                     }
                 }
 
-                utils.addDebug(currentEntry, "    ✅ Prepočítaných dielov: " + totalRecalculated);
+                addDebug(currentEntry, "    ✅ Prepočítaných dielov: " + totalRecalculated);
 
             } catch (error) {
                 var errorMsg = "Chyba pri prepočte všetkých dielov: " + error.toString();
@@ -125,12 +143,12 @@ var OrderCalculate = (function() {
          */
         function calculateBudget() {
             try {
-                utils.addDebug(currentEntry, "  💰 Výpočet rozpočtu (z atribútov CP)");
+                addDebug(currentEntry, "  💰 Výpočet rozpočtu (z atribútov CP)");
 
                 var subcontractCalculation = utils.safeGet(currentEntry, fields.subcontractCalculation) || "Nezapočítavať";
                 var createAddendum = (subcontractCalculation === "Vytvoriť dodatok");
 
-                utils.addDebug(currentEntry, "    Účtovanie subdodávok: " + subcontractCalculation);
+                addDebug(currentEntry, "    Účtovanie subdodávok: " + subcontractCalculation);
 
                 var budget = 0;
                 var budgetSubcontracts = 0;
@@ -149,7 +167,7 @@ var OrderCalculate = (function() {
 
                     if (partsEntries.length === 0) continue;
 
-                    utils.addDebug(currentEntry, "    📦 Pole: " + field.name + " (počet: " + partsEntries.length + ")");
+                    addDebug(currentEntry, "    📦 Pole: " + field.name + " (počet: " + partsEntries.length + ")");
 
                     for (var i = 0; i < partsEntries.length; i++) {
                         var part = partsEntries[i];
@@ -178,7 +196,7 @@ var OrderCalculate = (function() {
                             partSum += total;
                         }
 
-                        utils.addDebug(currentEntry, "      • " + partType + ": " + partSum.toFixed(2) + " €");
+                        addDebug(currentEntry, "      • " + partType + ": " + partSum.toFixed(2) + " €");
                         budget += partSum;
                     }
                 }
@@ -186,7 +204,7 @@ var OrderCalculate = (function() {
                 // Subdodávky
                 var subcontractParts = utils.safeGetLinks(currentEntry, fields.subcontracts) || [];
                 if (subcontractParts.length > 0) {
-                    utils.addDebug(currentEntry, "    📦 Pole: Subdodávky (počet: " + subcontractParts.length + ")");
+                    addDebug(currentEntry, "    📦 Pole: Subdodávky (počet: " + subcontractParts.length + ")");
 
                     for (var s = 0; s < subcontractParts.length; s++) {
                         var part = subcontractParts[s];
@@ -215,7 +233,7 @@ var OrderCalculate = (function() {
                             partSum += total;
                         }
 
-                        utils.addDebug(currentEntry, "      • " + partType + ": " + partSum.toFixed(2) + " €");
+                        addDebug(currentEntry, "      • " + partType + ": " + partSum.toFixed(2) + " €");
 
                         if (createAddendum) {
                             budgetSubcontracts += partSum;
@@ -225,9 +243,9 @@ var OrderCalculate = (function() {
                     }
                 }
 
-                utils.addDebug(currentEntry, "    ✅ Rozpočet: " + budget.toFixed(2) + " €");
+                addDebug(currentEntry, "    ✅ Rozpočet: " + budget.toFixed(2) + " €");
                 if (createAddendum) {
-                    utils.addDebug(currentEntry, "    ✅ Rozpočet subdodávky: " + budgetSubcontracts.toFixed(2) + " €");
+                    addDebug(currentEntry, "    ✅ Rozpočet subdodávky: " + budgetSubcontracts.toFixed(2) + " €");
                 }
 
                 return {
@@ -250,7 +268,7 @@ var OrderCalculate = (function() {
          */
         function calculateSpent() {
             try {
-                utils.addDebug(currentEntry, "  💸 Výpočet spotrebovanej sumy (z skutočných atribútov)");
+                addDebug(currentEntry, "  💸 Výpočet spotrebovanej sumy (z skutočných atribútov)");
 
                 var spent = 0;
                 var defaultMatAttrs = centralConfig.attributes.orderPartMaterials;
@@ -281,7 +299,7 @@ var OrderCalculate = (function() {
 
                     if (partsEntries.length === 0) continue;
 
-                    utils.addDebug(currentEntry, "    📦 Pole: " + field.name + " (počet: " + partsEntries.length + ")");
+                    addDebug(currentEntry, "    📦 Pole: " + field.name + " (počet: " + partsEntries.length + ")");
 
                     for (var i = 0; i < partsEntries.length; i++) {
                         var part = partsEntries[i];
@@ -310,12 +328,12 @@ var OrderCalculate = (function() {
                             partSum += total;
                         }
 
-                        utils.addDebug(currentEntry, "      • " + partType + ": " + partSum.toFixed(2) + " €");
+                        addDebug(currentEntry, "      • " + partType + ": " + partSum.toFixed(2) + " €");
                         spent += partSum;
                     }
                 }
 
-                utils.addDebug(currentEntry, "    ✅ Spotrebované: " + spent.toFixed(2) + " €");
+                addDebug(currentEntry, "    ✅ Spotrebované: " + spent.toFixed(2) + " €");
                 return spent;
 
             } catch (error) {
@@ -333,7 +351,7 @@ var OrderCalculate = (function() {
          */
         function calculateAdditionalFields(budget) {
             try {
-                utils.addDebug(currentEntry, "  🚛 Výpočet dodatočných nákladov");
+                addDebug(currentEntry, "  🚛 Výpočet dodatočných nákladov");
 
                 var transportPrice = 0;
                 var massTransferPrice = 0;
@@ -370,8 +388,8 @@ var OrderCalculate = (function() {
                     }
                 }
 
-                utils.addDebug(currentEntry, "    Doprava: " + transportPrice.toFixed(2) + " €");
-                utils.addDebug(currentEntry, "    Presun hmôt: " + massTransferPrice.toFixed(2) + " €");
+                addDebug(currentEntry, "    Doprava: " + transportPrice.toFixed(2) + " €");
+                addDebug(currentEntry, "    Presun hmôt: " + massTransferPrice.toFixed(2) + " €");
 
                 return {
                     transportPrice: transportPrice,
@@ -393,60 +411,60 @@ var OrderCalculate = (function() {
 
         try {
             // Krok 1: Prepočítaj všetky diely
-            utils.addDebug(currentEntry, "📋 KROK 1: Prepočet dielov zákazky");
+            addDebug(currentEntry, "📋 KROK 1: Prepočet dielov zákazky");
             recalculateAllParts();
-            utils.addDebug(currentEntry, "");
+            addDebug(currentEntry, "");
 
             // Krok 2: Vypočítaj rozpočet
-            utils.addDebug(currentEntry, "📋 KROK 2: Výpočet rozpočtu");
+            addDebug(currentEntry, "📋 KROK 2: Výpočet rozpočtu");
             var budgetResult = calculateBudget();
-            utils.addDebug(currentEntry, "");
+            addDebug(currentEntry, "");
 
             // Krok 3: Vypočítaj spotrebované
-            utils.addDebug(currentEntry, "📋 KROK 3: Výpočet spotrebovanej sumy");
+            addDebug(currentEntry, "📋 KROK 3: Výpočet spotrebovanej sumy");
             var spent = calculateSpent();
-            utils.addDebug(currentEntry, "");
+            addDebug(currentEntry, "");
 
             // Krok 4: Vypočítaj dodatočné náklady
-            utils.addDebug(currentEntry, "📋 KROK 4: Výpočet dodatočných nákladov");
+            addDebug(currentEntry, "📋 KROK 4: Výpočet dodatočných nákladov");
             var additional = calculateAdditionalFields(budgetResult.budget);
-            utils.addDebug(currentEntry, "");
+            addDebug(currentEntry, "");
 
             // Krok 5: Celkové sumy
-            utils.addDebug(currentEntry, "📋 KROK 5: Zápis výsledkov");
+            addDebug(currentEntry, "📋 KROK 5: Zápis výsledkov");
 
             var totalBudget = budgetResult.budget + additional.transportPrice + additional.massTransferPrice;
             var remaining = totalBudget - spent;
 
             // Zapíš výsledky pomocou safeSet (vracia true/false)
             if (!utils.safeSet(currentEntry, fields.budget, budgetResult.budget)) {
-                utils.addDebug(currentEntry, "❌ Nepodarilo sa nastaviť pole 'budget' (" + fields.budget + ")");
+                addDebug(currentEntry, "❌ Nepodarilo sa nastaviť pole 'budget' (" + fields.budget + ")");
             }
 
             if (!utils.safeSet(currentEntry, fields.budgetSubcontracts, budgetResult.budgetSubcontracts)) {
-                utils.addDebug(currentEntry, "❌ Nepodarilo sa nastaviť pole 'budgetSubcontracts' (" + fields.budgetSubcontracts + ")");
+                addDebug(currentEntry, "❌ Nepodarilo sa nastaviť pole 'budgetSubcontracts' (" + fields.budgetSubcontracts + ")");
             }
 
             if (!utils.safeSet(currentEntry, fields.spent, spent)) {
-                utils.addDebug(currentEntry, "❌ Nepodarilo sa nastaviť pole 'spent' (" + fields.spent + ")");
+                addDebug(currentEntry, "❌ Nepodarilo sa nastaviť pole 'spent' (" + fields.spent + ")");
             }
 
             if (!utils.safeSet(currentEntry, fields.remaining, remaining)) {
-                utils.addDebug(currentEntry, "❌ Nepodarilo sa nastaviť pole 'remaining' (" + fields.remaining + ")");
+                addDebug(currentEntry, "❌ Nepodarilo sa nastaviť pole 'remaining' (" + fields.remaining + ")");
             }
 
             // Polia transportPrice a massTransferPrice sú len v Cenové ponuky, nie v Zákazky
             // Pre Zákazky sa tieto údaje počítajú inak alebo nie sú potrebné
 
-            utils.addDebug(currentEntry, "  ✅ Rozpočet: " + budgetResult.budget.toFixed(2) + " €");
+            addDebug(currentEntry, "  ✅ Rozpočet: " + budgetResult.budget.toFixed(2) + " €");
             if (budgetResult.budgetSubcontracts > 0) {
-                utils.addDebug(currentEntry, "  ✅ Rozpočet subdodávky: " + budgetResult.budgetSubcontracts.toFixed(2) + " €");
+                addDebug(currentEntry, "  ✅ Rozpočet subdodávky: " + budgetResult.budgetSubcontracts.toFixed(2) + " €");
             }
-            utils.addDebug(currentEntry, "  ✅ Spotrebované: " + spent.toFixed(2) + " €");
-            utils.addDebug(currentEntry, "  ✅ Zostatok: " + remaining.toFixed(2) + " €");
-            utils.addDebug(currentEntry, "");
+            addDebug(currentEntry, "  ✅ Spotrebované: " + spent.toFixed(2) + " €");
+            addDebug(currentEntry, "  ✅ Zostatok: " + remaining.toFixed(2) + " €");
+            addDebug(currentEntry, "");
 
-            utils.addDebug(currentEntry, "✅ Prepočet zákazky úspešne dokončený");
+            addDebug(currentEntry, "✅ Prepočet zákazky úspešne dokončený");
             return true;
 
         } catch (error) {
@@ -455,10 +473,10 @@ var OrderCalculate = (function() {
             if (error.stack) errorMsg += "\nStack: " + error.stack;
 
             utils.addError(currentEntry, errorMsg, "OrderCalculate.orderCalculate", error);
-            utils.addDebug(currentEntry, "");
-            utils.addDebug(currentEntry, "❌ CHYBA PRI PREPOČTE ZÁKAZKY");
-            utils.addDebug(currentEntry, "");
-            utils.addDebug(currentEntry, errorMsg);
+            addDebug(currentEntry, "");
+            addDebug(currentEntry, "❌ CHYBA PRI PREPOČTE ZÁKAZKY");
+            addDebug(currentEntry, "");
+            addDebug(currentEntry, errorMsg);
 
             return false;
         }
