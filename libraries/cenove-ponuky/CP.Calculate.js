@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY - Hlavný prepočet
-// Verzia: 1.5.0 | Dátum: 2025-10-12 | Autor: ASISTANTO
+// Verzia: 1.5.1 | Dátum: 2025-10-12 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky (ID: 90RmdjWuk)
 // Trigger: onChange
 // ==============================================
@@ -17,6 +17,11 @@
 //    - Získa aktuálnu sadzbu DPH
 //    - Vypočíta celkovú sumu s DPH
 // ==============================================
+// 🔧 CHANGELOG v1.5.1 (2025-10-12):
+//    - VYLEPŠENÉ: manageSubcontracts() - Agresívne čistenie duplicít subdodávok zo VŠETKÝCH polí
+//    - FIX: Aj keď je subdodávka na správnom mieste, vyčistia sa duplicity z ostatných polí
+//    - PRIDANÉ: Debug logging pre odstránené duplicity z nesprávnych polí
+//    - ZABEZPEČENÉ: Subdodávka môže byť len v JEDNOM poli (Diely / Diely HZS / Subdodávky)
 // 🔧 CHANGELOG v1.5.0 (2025-10-12):
 //    - NOVÁ FUNKCIA: Podpora pre pole "Diely HZS" pre typ cenovej ponuky "Hodinovka"
 //    - PRIDANÉ: getPartsFieldByType() - Automatické prepínanie medzi "Diely" a "Diely HZS"
@@ -121,7 +126,7 @@ var currentEntry = entry();
 var CONFIG = {
     // Script špecifické nastavenia
     scriptName: "Cenové ponuky - Prepočet",
-    version: "1.5.0",
+    version: "1.5.1",
 
     // Referencie na centrálny config
     fields: centralConfig.fields.quote,
@@ -895,10 +900,66 @@ function manageSubcontracts() {
             currentLocation = targetField;
             utils.addDebug(currentEntry, "    ✅ Subdodávka presunutá (duplicity odstránené)");
         } else {
-            // Aj keď je na správnom mieste, vyčisti duplicity
+            // Aj keď je na správnom mieste, vyčisti duplicity zo VŠETKÝCH polí
             utils.addDebug(currentEntry, "    ✅ Subdodávka je už na správnom mieste");
+            utils.addDebug(currentEntry, "    🔍 Kontrola duplicít vo všetkých poliach...");
 
-            // Kontrola duplicít v aktuálnom poli
+            // Krok 1: Odstráň subdodávky z NESPRÁVNYCH polí (kde by nemali byť)
+            if (currentLocation !== "parts") {
+                var cleanedParts = [];
+                var partsCheck = utils.safeGetLinks(currentEntry, fields.parts) || [];
+                var removedFromParts = 0;
+                for (var i = 0; i < partsCheck.length; i++) {
+                    var partType = utils.safeGet(partsCheck[i], centralConfig.fields.quotePart.partType);
+                    if (partType !== "Subdodávky") {
+                        cleanedParts.push(partsCheck[i]);
+                    } else {
+                        removedFromParts++;
+                    }
+                }
+                if (removedFromParts > 0) {
+                    currentEntry.set(fields.parts, cleanedParts);
+                    utils.addDebug(currentEntry, "    🗑️ Odstránených " + removedFromParts + " subdodávok z poľa Diely");
+                }
+            }
+
+            if (currentLocation !== "partsHzs") {
+                var cleanedPartsHzs = [];
+                var partsHzsCheck = utils.safeGetLinks(currentEntry, fields.partsHzs) || [];
+                var removedFromPartsHzs = 0;
+                for (var i = 0; i < partsHzsCheck.length; i++) {
+                    var partType = utils.safeGet(partsHzsCheck[i], centralConfig.fields.quotePart.partType);
+                    if (partType !== "Subdodávky") {
+                        cleanedPartsHzs.push(partsHzsCheck[i]);
+                    } else {
+                        removedFromPartsHzs++;
+                    }
+                }
+                if (removedFromPartsHzs > 0) {
+                    currentEntry.set(fields.partsHzs, cleanedPartsHzs);
+                    utils.addDebug(currentEntry, "    🗑️ Odstránených " + removedFromPartsHzs + " subdodávok z poľa Diely HZS");
+                }
+            }
+
+            if (currentLocation !== "subcontracts") {
+                var cleanedSubcontracts = [];
+                var subcontractsCheck = utils.safeGetLinks(currentEntry, subcontractsFieldName) || [];
+                var removedFromSubcontracts = 0;
+                for (var i = 0; i < subcontractsCheck.length; i++) {
+                    var partType = utils.safeGet(subcontractsCheck[i], centralConfig.fields.quotePart.partType);
+                    if (partType !== "Subdodávky") {
+                        cleanedSubcontracts.push(subcontractsCheck[i]);
+                    } else {
+                        removedFromSubcontracts++;
+                    }
+                }
+                if (removedFromSubcontracts > 0) {
+                    currentEntry.set(subcontractsFieldName, cleanedSubcontracts);
+                    utils.addDebug(currentEntry, "    🗑️ Odstránených " + removedFromSubcontracts + " subdodávok z poľa Subdodávky");
+                }
+            }
+
+            // Krok 2: Kontrola duplicít v aktuálnom (správnom) poli
             var hasDuplicates = false;
             if (currentLocation === "parts") {
                 var count = 0;
