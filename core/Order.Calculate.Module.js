@@ -68,8 +68,8 @@ var OrderCalculate = (function() {
 
         // Safe debug logging - kontrola či je addDebug dostupný
         var addDebug = function(entry, message) {
-            if (utils && typeof addDebug === 'function') {
-                addDebug(entry, message);
+            if (utils && typeof utils.addDebug === 'function') {
+                utils.addDebug(entry, message);
             }
         };
 
@@ -271,11 +271,8 @@ var OrderCalculate = (function() {
                 addDebug(currentEntry, "  💸 Výpočet spotrebovanej sumy (z skutočných atribútov)");
 
                 var spent = 0;
-                var defaultMatAttrs = centralConfig.attributes.orderPartMaterials;
-                var defaultWrkAttrs = centralConfig.attributes.orderPartWorks;
 
-                // Použijeme štandardné atribúty pre skutočné hodnoty
-                // Ak máš iné názvy atribútov pre skutočné hodnoty, zmeň tu
+                // Atribúty pre skutočné hodnoty (nie CP atribúty)
                 var actualMatAttrs = {
                     quantity: "množstvo",  // skutočné množstvo
                     price: "cena",         // skutočná cena
