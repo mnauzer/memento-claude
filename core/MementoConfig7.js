@@ -180,7 +180,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.47",  // Doplnené všetky polia pre Order.Calculate.js
+        version: "7.0.50",  // Aktualizované atribúty Zákazky Diely: množstvo cp, cena cp, cena celkom cp
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -1510,14 +1510,14 @@ var MementoConfig = (function() {
 
             // Zákazky Diely - atribúty položiek (2025-10-12)
             orderPartMaterials: {
-                quantity: "množstvo", // real number - množstvo materiálu
+                quantity: "množstvo cp", // real number - množstvo materiálu z cenovej ponuky
                 price: "cena cp", // currency - cena z cenovej ponuky (source: "cena" z quote)
-                totalPrice: "cena celkom" // currency - celková cena (množstvo × cena cp)
+                totalPrice: "cena celkom cp" // currency - celková cena z cenovej ponuky
             },
             orderPartWorks: {
-                quantity: "množstvo", // real number - množstvo hodín/jednotiek
+                quantity: "množstvo cp", // real number - množstvo hodín/jednotiek z cenovej ponuky
                 price: "cena cp", // currency - cena z cenovej ponuky (source: "cena" z quote)
-                totalPrice: "cena celkom" // currency - celková cena (množstvo × cena cp)
+                totalPrice: "cena celkom cp" // currency - celková cena z cenovej ponuky
             },
 
             // Výkaz strojov - atribúty strojov (field 103) - aktualizované podľa API (2025-10-04)
