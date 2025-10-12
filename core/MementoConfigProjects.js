@@ -643,24 +643,7 @@ var MementoConfig = (function() {
             workRecordHzs: {
                 price: "cena",
             },
-            workRecordMachines: {
-                calculationType: "účtovanie", // options: paušál, mth - attr 3 (radio)
-                usedMth: "mth", // motohodiny - attr 0 (double)
-                priceMth: "sadzba", // cena za motohodinu - attr 5 (double) - OPRAVENÉ z "cena mth"
-                flatRate: "paušál", // cena za celoddenné použitie stroja - attr 6 (double) - OPRAVENÉ z "cena paušál"
-                totalPrice: "účtovaná suma" // suma ktorá sa účtuje za použitie stroja - attr 7 (double) - OPRAVENÉ z "cena celkom"
-            },
-            workRecordWorkItems: {
-                quantity: "množstvo", // real number - množstvo jednotiek
-                price: "cena", // currency - cena za jednotku
-                totalPrice: "cena celkom" // currency - celková cena (množstvo × cena)
-            },
-            workReport: {
-                workDescription: "vykonané práce",
-                hoursCount: "počet hodín",
-                billedRate: "účtovaná sadzba",
-                totalPrice: "cena celkom"
-            },
+
             quotePartMaterials: {
                 quantity: "množstvo", // real number - množstvo materiálu
                 price: "cena", // currency - cena za jednotku
@@ -695,16 +678,6 @@ var MementoConfig = (function() {
                 DEBUG: "Debug"          // Debug režim (id: 5)
             },
 
-            // Typy dochádzky
-            attendanceTypes: {
-                work: "Práca",
-                holiday: "Sviatok",
-                vacation: "Dovolenka",
-                sick: "PN",
-                doctor: "Lekár",
-                office: "Úrad"
-            },
-            
             // Stavové hodnoty
             status: {
                 active: "Aktívny",
@@ -723,73 +696,11 @@ var MementoConfig = (function() {
                 debug: "Debug"
             },
             
-            // Stavy záväzkov
-            obligationStates: {
-                unpaid: "Neuhradené",
-                partiallyPaid: "Čiastočne uhradené",
-                paid: "Uhradené"
-            },
-            
-            // Typy správ
-            messageTypes: {
-                attendance: "Dochádzka",
-                workRecord: "Záznam prác",
-                bookOfRides: "Kniha jázd",
-                todo: "ToDo",
-                manual: "Manuálna",
-                reminder: "Pripomienka",
-                summary: "Súhrn"
-            },
-            
-            // Priority
-            priorities: {
-                low: "Nízka",
-                normal: "Normálna",
-                high: "Vysoká",
-                urgent: "Urgentné"
-            },
-            
-            // Typ jazdy
-            rideTypes: {
-                business: "Firemná",
-                private: "Súkromná",
-                other: "Iná"
-            },
-            
-            // Účel jazdy
-            ridePurposes: {
-                work: "Pracovná",
-                consultations: "Konzultácie",
-                unspecified: "Neurčené"
-            },
-            
             // Typ pohybu v pokladni
             cashMovementTypes: {
                 income: "Príjem",
                 expense: "Výdavok",
                 transfer: "PP"
-            },
-            
-            // Typ záväzku
-            obligationTypes: {
-                wages: "Mzdy",
-                invoices: "Faktúry",
-                rent: "Nájomné",
-                leasing: "Leasing"
-            },
-            
-            // Formátovanie správ
-            messageFormatting: {
-                text: "Text",
-                markdown: "Markdown",
-                html: "HTML"
-            },
-            
-            // Zdroj správy
-            messageSources: {
-                automatic: "Automatická",
-                manual: "Manuálna",
-                scheduled: "Naplánovaná"
             },
             
             // Typ adresáta
@@ -801,13 +712,7 @@ var MementoConfig = (function() {
                 customer: "Zákazka"
             },
             
-            // Typ Telegram skupiny
-            telegramGroupTypes: {
-                general: "Všeobecná",
-                customer: "Zákazka",
-                hr: "HR",
-                individual: "Individuálne"
-            }
+
         },
         
         // === EMOJI A IKONY ===
@@ -889,51 +794,7 @@ var MementoConfig = (function() {
             machine_use: "⚙️",        // Použitie stroja (rovnaké ako inProgress - OK!)
             material: "🧰",            // Materiál
             daily_report: "📋",        // Denný report (linknutý na záznam)
-            // ═══════════════════════════════════════════════════════════════
-            // POČASIE (kombinované emoji sú skvelé!)
-            // ═══════════════════════════════════════════════════════════════
-            weather: "🌤️",           // Všeobecné počasie
-            rain: "🌧️",              // Dážď
-            heavy_rain: "⛈️",        // Silný dážď  
-            light_rain: "🌦️",        // Slabý dážď
-            storm: "⛈️",             // Búrka (rovnaké ako heavy_rain - OK!)
-            wet: "💧",               // Mokro
-            // Mraky
-            cloud: "☁️",             // Mrak
-            cloudy: "🌥️",           // Oblačno
-            overcast: "☁️",          // Zamračené (rovnaké ako cloud - OK!)
-            fog: "🌫️",              // Hmla
-            mist: "🌫️",             // Opar (rovnaké ako fog - OK!)
-            // Podmienky
-            muddy: "🟤",             // Bahno
-            slippery: "⚠️",          // Šmykľavo (rovnaké ako warning - OK!)  
-            splash: "💦",            // Striekanie
-            
-            // Pracovné podmienky  
-            work_stop: "🛑",         // Zastavenie práce
-            weather_delay: "⏰🌧️",  // Odklad kvôli počasiu
-            indoor_work: "🏠",       // Práca v interiéri
-            weather_ok: "☀️",        // Vhodné počasie
-            
-            // Špeciálne kombinované (výborné!)
-            rain_cross: "🌧️❌",     // Dážď - nemožno pracovať
-            wet_warn: "⚠️💧",       // Mokro - varovanie  
-            fog_eye: "🌫️👁️",       // Hmla - viditeľnosť
-            wind: "💨⚠️",           // Vietor - varovanie
-            frost: "❄️🛑",          // Mráz - stop
-            soil_wet: "🌱💧",       // Mokrá pôda
 
-            // ═══════════════════════════════════════════════════════════════
-            // FINANČNÉ A ZÁVÄZKY  
-            // ═══════════════════════════════════════════════════════════════
-            obligations: "💸",       // Záväzky
-            debt: "🔴",             // Dlh
-            liability: "⚖️",         // Zodpovednosť
-            payment: "💳",          // Platba
-            
-            // Zmluvy
-            obligation: "⚖️",        // Povinnosť (rovnaké ako liability - OK!)
-            bond: "🔗",             // Spojenie
 
             // ═══════════════════════════════════════════════════════════════
             // SYSTÉMOVÉ A APLIKAČNÉ
@@ -945,24 +806,7 @@ var MementoConfig = (function() {
             security: "🔒",         // Bezpečnosť
             key: "🔑",              // Kľúč
             
-            // Aplikačné
-            notification: "🔔",      // Notifikácia
-            telegram: "📱",          // Telegram
-            validation: "🛡️",       // Validácia  
-            calculation: "🧮",       // Výpočet
-            note: "📝",             // Poznámka (rovnaké ako contract - OK!)
 
-            // DÔVERNOSŤ A BEZPEČNOSŤ
-            confidential: "🔒",       // Dôverné
-            classified: "🔐",         // Utajované
-            private: "🛡️",           // Súkromné
-            restricted: "🚫",         // Obmedzené
-            secure: "🔑",             // Zabezpečené
-            // ÚROVNE DÔVERNOSTI
-            top_secret: "㊙️",        // Prísne tajné
-            // BEZPEČNOSTNÉ AKCIE
-            access_granted: "✅🔑",   // Prístup povolený
-            access_denied: "❌🔒",    // Prístup zamietnutý
         }
     }
 
