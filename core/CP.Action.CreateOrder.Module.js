@@ -282,42 +282,73 @@ var CPCreateOrder = (function() {
             utils.addDebug(quoteEntry, "📋 KROK 4: " + (orderExists ? "Aktualizácia dielov zákazky" : "Vytvorenie dielov zákazky"));
             utils.addDebug(quoteEntry, "");
 
-            // Zbieranie dielov zo všetkých troch polí: Diely, Diely HZS, Subdodávky
+            // Zbieranie dielov zo všetkých troch polí do objektov s metadátami
             var quoteParts = [];
 
-            // Pole 1: Diely
+            // Pole 1: Diely -> Diely
             var parts1 = utils.safeGetLinks(quoteEntry, fields.parts) || [];
             utils.addDebug(quoteEntry, "  Diely: " + parts1.length + " položiek");
             for (var p1 = 0; p1 < parts1.length; p1++) {
-                quoteParts.push(parts1[p1]);
+                quoteParts.push({
+                    entry: parts1[p1],
+                    sourceField: "Diely",
+                    targetField: orderFields.parts
+                });
             }
 
-            // Pole 2: Diely HZS
+            // Pole 2: Diely HZS -> Diely HZS
             var parts2 = utils.safeGetLinks(quoteEntry, fields.partsHzs) || [];
             utils.addDebug(quoteEntry, "  Diely HZS: " + parts2.length + " položiek");
             for (var p2 = 0; p2 < parts2.length; p2++) {
-                quoteParts.push(parts2[p2]);
+                quoteParts.push({
+                    entry: parts2[p2],
+                    sourceField: "Diely HZS",
+                    targetField: orderFields.partsHzs
+                });
             }
 
-            // Pole 3: Subdodávky
+            // Pole 3: Subdodávky -> Subdodávky
             var parts3 = utils.safeGetLinks(quoteEntry, fields.subcontracts) || [];
             utils.addDebug(quoteEntry, "  Subdodávky: " + parts3.length + " položiek");
             for (var p3 = 0; p3 < parts3.length; p3++) {
-                quoteParts.push(parts3[p3]);
+                quoteParts.push({
+                    entry: parts3[p3],
+                    sourceField: "Subdodávky",
+                    targetField: orderFields.subcontracts
+                });
             }
 
             utils.addDebug(quoteEntry, "  📊 CELKOM dielov v cenovej ponuke: " + quoteParts.length);
 
-            // Pri UPDATE: Získaj existujúce diely zákazky a vytvor mapu podľa čísla
+            // Pri UPDATE: Získaj existujúce diely zákazky zo všetkých troch polí a vytvor mapu podľa čísla
             var existingPartsMap = {};
             if (orderExists) {
-                var existingOrderParts = utils.safeGetLinks(order, orderFields.parts) || [];
-                utils.addDebug(quoteEntry, "  Počet existujúcich dielov v zákazke: " + existingOrderParts.length);
+                var allExistingParts = [];
 
-                for (var ep = 0; ep < existingOrderParts.length; ep++) {
-                    var existingPartNumber = utils.safeGet(existingOrderParts[ep], orderPartFields.number);
+                // Diely
+                var existingParts1 = utils.safeGetLinks(order, orderFields.parts) || [];
+                for (var e1 = 0; e1 < existingParts1.length; e1++) {
+                    allExistingParts.push(existingParts1[e1]);
+                }
+
+                // Diely HZS
+                var existingParts2 = utils.safeGetLinks(order, orderFields.partsHzs) || [];
+                for (var e2 = 0; e2 < existingParts2.length; e2++) {
+                    allExistingParts.push(existingParts2[e2]);
+                }
+
+                // Subdodávky
+                var existingParts3 = utils.safeGetLinks(order, orderFields.subcontracts) || [];
+                for (var e3 = 0; e3 < existingParts3.length; e3++) {
+                    allExistingParts.push(existingParts3[e3]);
+                }
+
+                utils.addDebug(quoteEntry, "  Počet existujúcich dielov v zákazke: " + allExistingParts.length);
+
+                for (var ep = 0; ep < allExistingParts.length; ep++) {
+                    var existingPartNumber = utils.safeGet(allExistingParts[ep], orderPartFields.number);
                     if (existingPartNumber) {
-                        existingPartsMap[existingPartNumber] = existingOrderParts[ep];
+                        existingPartsMap[existingPartNumber] = allExistingParts[ep];
                     }
                 }
                 utils.addDebug(quoteEntry, "  Existujúce čísla dielov: " + Object.keys(existingPartsMap).join(", "));
@@ -334,7 +365,9 @@ var CPCreateOrder = (function() {
                 var creationDate = new Date();
 
                 for (var i = 0; i < quoteParts.length; i++) {
-                    var quotePart = quoteParts[i];
+                    var quotePartInfo = quoteParts[i];
+                    var quotePart = quotePartInfo.entry;
+                    var targetField = quotePartInfo.targetField;
 
                     try {
                         var partNumber = utils.safeGet(quotePart, quotePartFields.number);
@@ -459,14 +492,15 @@ var CPCreateOrder = (function() {
                             }
                         }
 
-                        // Pripoj diel k zákazke (len ak je nový)
+                        // Pripoj diel k zákazke do správneho poľa (len ak je nový)
                         if (!isUpdate) {
-                            var existingParts = utils.safeGetLinks(order, orderFields.parts) || [];
+                            var existingParts = utils.safeGetLinks(order, targetField) || [];
                             existingParts.push(orderPart);
-                            order.set(orderFields.parts, existingParts);
+                            order.set(targetField, existingParts);
+                            utils.addDebug(quoteEntry, "    ✅ Diel vytvorený a pripojený do poľa: " + quotePartInfo.sourceField);
+                        } else {
+                            utils.addDebug(quoteEntry, "    ✅ Diel aktualizovaný");
                         }
-
-                        utils.addDebug(quoteEntry, "    ✅ Diel " + (isUpdate ? "aktualizovaný" : "vytvorený a pripojený"));
 
                     } catch (e) {
                         var errorMsg = "Chyba pri vytváraní dielu " + (i + 1) + ": " + e.toString();
