@@ -427,7 +427,9 @@ var OrderCalculate = (function() {
             currentEntry.set(fields.massTransferPrice, additional.massTransferPrice);
 
             utils.addDebug(currentEntry, "  ✅ Rozpočet: " + budgetResult.budget.toFixed(2) + " €");
-            utils.addDebug(currentEntry, "  ✅ Rozpočet subdodávky: " + budgetResult.budgetSubcontracts.toFixed(2) + " €");
+            if (budgetResult.budgetSubcontracts > 0) {
+                utils.addDebug(currentEntry, "  ✅ Rozpočet subdodávky: " + budgetResult.budgetSubcontracts.toFixed(2) + " €");
+            }
             utils.addDebug(currentEntry, "  ✅ Spotrebované: " + spent.toFixed(2) + " €");
             utils.addDebug(currentEntry, "  ✅ Zostatok: " + remaining.toFixed(2) + " €");
             utils.addDebug(currentEntry, "");
