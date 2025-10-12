@@ -1,149 +1,8 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.48 | Dátum: 2025-10-12 | Autor: ASISTANTO
+// Verzia: 7.0.52 | Dátum: 2025-10-12 | Autor: ASISTANTO
 // ==============================================
-// 🔧 CHANGELOG v7.0.48 (2025-10-12):
-//    - PRIDANÉ: quote.partsHzs - "Diely HZS" - linkToEntry Cenové ponuky Diely (pre hodinovku)
-//    - AKTUALIZOVANÉ: Rozšírená logika pre prepínanie medzi "Diely" a "Diely HZS" podľa typu ponuky
-// 🔧 CHANGELOG v7.0.47 (2025-10-11):
-//    - PRIDANÉ: order.total - "Celkom" (field 331) - celková suma bez DPH
-//    - PRIDANÉ: order.totalWithVat - "Celkom s DPH" (field 332) - celková suma s DPH
-//    - PRIDANÉ: order.expectedRidesCount - "Počet jázd" (field 145)
-//    - PRIDANÉ: order.transportPrice - "Cena dopravy" (field 321) - OUTPUT field
-//    - OPRAVENÉ: order.massTransferPrice správny field 320 (OUTPUT)
-//    - PRIDANÉ: order.massTransferPriceEntry - field 302 (INPUT pre "Podľa hmotnosti")
-//    - Fix: Všetky polia potrebné pre Order.Calculate.js sú teraz definované
-// 🔧 CHANGELOG v7.0.46 (2025-10-11):
-//    - PRIDANÉ: order.subcontracts - "Subdodávky" (field 318)
-//    - PRIDANÉ: order.subcontractsTotal - "Celkom Subdodávky" (field 325)
-//    - PRIDANÉ: order.vat - "DPH" (field 324)
-//    - PRIDANÉ: order.vatRate - "Sadzba DPH" (field 317)
-//    - Fix: Management subdodávok v Order.Calculate.js teraz má všetky potrebné polia
-// 🔧 CHANGELOG v7.0.45 (2025-10-11):
-//    - PRIDANÉ: orderPart.materialWeight - "Hmotnosť materiálu" (optional)
-//    - Pole zatiaľ nie je v knižnici Zákazky Diely, ale je pripravené pre budúce použitie
-// 🔧 CHANGELOG v7.0.44 (2025-10-11):
-//    - OPRAVA: Premenované orderPart.quoteNumber → orderPart.orderNumber
-//    - Knižnica Zákazky Diely má pole "Číslo zákazky", nie "Číslo CP"
-//    - Konzistentný názov: order → orderNumber, quote → quoteNumber
-// 🔧 CHANGELOG v7.0.43 (2025-10-10):
-//    - PRIDANÉ: Pole order.client - "Klient" (field 256) v Zákazky library
-//    - Fix pre ReferenceError: "undefined" is not defined v CP.Action.CreateOrder.js
-// 🔧 CHANGELOG v7.0.42 (2025-10-10):
-//    - OPRAVA: Premenované pole orderPart.partType z "Diel cenovej ponuky" → "Diel zákazky"
-//    - V Zákazky Diely sa pole 257 volá "Diel zákazky", nie "Diel cenovej ponuky"
-//    - V Cenové ponuky Diely sa pole 257 volá "Diel cenovej ponuky"
-//    - Fix pre chybu na riadku 379 v CP.Action.CreateOrder.js
-// 🔧 CHANGELOG v7.0.41 (2025-10-10):
-//    - OPRAVA: Premenované pole orderPart.quoteNumber z "Číslo CP" → "Číslo zákazky"
-//    - Pole bolo premenované v Memento Database, aktualizovaný mapping v MementoConfig
-//    - Fix pre ReferenceError: "Číslo CP" is not defined
-// 🔧 CHANGELOG v7.0.40 (2025-10-10):
-//    - OPRAVA: Doplnené chýbajúce polia v order (fields 296-307, 260)
-//    - Účtovanie dopravy: rideCalculation, transportPercentage, kmPrice, rideFlatRate, fixedTransportPrice
-//    - Účtovanie presunu hmôt: massTransferCalculation, massTransferPercentage, massTransferPrice, massTransferFlatRate, fixedMassTransferPrice, materialWeight
-//    - Účtovanie subdodávok: subcontractsCalculation
-//    - Pole parts: linkToEntry Zákazky Diely
-//    - Fix pre CP.Action.CreateOrder.js script
-// 🔧 CHANGELOG v7.0.39 (2025-10-10):
-//    - PRIDANÉ: Polia pre Zákazky Diely (orderPart) - Library ID: iEUC79O2T
-//    - Polia: number, date, quoteNumber, name, partType, materialSum, workSum, totalSum
-//    - Polia: materials, works, note
-//    - Príprava pre CP.Action.CreateOrder.js script
-// 🔧 CHANGELOG v7.0.38 (2025-10-10):
-//    - OPRAVA: Premenované pole massTransferPricePerTonne → massTransferPriceEntry
-//    - massTransferPriceEntry: "Cena presunu hmôt materiálu" (linkToEntry) - VSTUP pre metódu "Podľa hmotnosti"
-//    - massTransferPrice: "Cena presunu hmôt" (currency) - VÝSTUP vypočítanej ceny
-//    - Vyriešený konflikt názvov polí pre presun hmôt
-// 🔧 CHANGELOG v7.0.37 (2025-10-10):
-//    - PRIDANÉ: Pole materialWeight v quote - "Hmotnosť materiálu" (celková váha v tonách)
-//    - PRIDANÉ: Pole massTransferFlatRate - "Paušál presunu hmôt" (linkToEntry Cenník prác)
-//    - PRIDANÉ: Pole fixedMassTransferPrice - "Pevná cena presunu hmôt" (currency)
-//    - PRIDANÉ: Pole massTransferPricePerTonne - "Cena presunu hmôt za tonu" (linkToEntry Cenník prác)
-//    - AKTUALIZOVANÉ: massTransferCalculation comment - pridané všetky 5 možnosti
-// 🔧 CHANGELOG v7.0.36 (2025-10-10):
-//    - PRIDANÉ: Pole materialWeight v quotePart - "Hmotnosť materiálu" (v tonách)
-// 🔧 CHANGELOG v7.0.35 (2025-10-10):
-//    - OPRAVA: massTransferPrice je linkToEntry (nie currency) - "Cena presunu hmôt"
-//    - OPRAVA: cpDefaultMassTransferPrice je linkToEntry (nie currency)
-// 🔧 CHANGELOG v7.0.34 (2025-10-09):
-//    - PRIDANÉ: Polia pre Cenové ponuky default hodnoty v fields.defaults
-//    - cpDefaultRidePercentage: "CP Default % dopravy" (double)
-//    - cpDefaultKmPrice: "CP Default cena za km" (linkToEntry)
-//    - cpDefaultRideFlatRate: "CP Default paušál dopravy" (linkToEntry)
-//    - cpDefaultMassTransferPercentage: "CP Default % presunu hmôt" (double)
-//    - cpDefaultMassTransferPrice: "CP Default cena presunu hmôt" (linkToEntry)
-// 🔧 CHANGELOG v7.0.33 (2025-10-09):
-//    - POZNÁMKA: VIEW_MODES hodnoty v MementoRecordTracking používajú trim() normalizáciu
-//    - Funkcie setEditMode/setPrintMode/setDebugMode akceptujú hodnoty s medzerou aj bez
-//    - Memento niekedy pridá medzeru na koniec hodnôt (singleChoice, options, attributes)
-//    - Riešenie: normalizeValue() funkcia s trim() pre kompatibilitu
-// 🔧 CHANGELOG v7.0.32 (2025-10-09):
-//    - AKTUALIZOVANÉ: common fields s presnými typmi a možnosťami poľa view
-//    - view pole: radio s možnosťami "Tlač" (1), "Editácia " (4, má medzeru!), "Debug" (5)
-//    - Pridané konštanty VIEW_MODES pre hodnoty view poľa
-// 🔧 CHANGELOG v7.0.31 (2025-10-07):
-//    - PRIDANÉ: Pole expectedKm: "Predpokladaný počet km" - vypočítané z vzdialenosti × 2 × počet jázd
-// 🔧 CHANGELOG v7.0.30 (2025-10-07):
-//    - OPRAVA: Pole kmPrice: "Doprava cena za km" (bol len "Cena za km")
-//    - PRIDANÉ: Pole fixedTransportPrice: "Doprava pevná cena" pre vstup pevnej ceny
-//    - PRIDANÉ: Komentár transportPrice: "Cena dopravy" - VÝSTUP vypočítanej ceny
-// 🔧 CHANGELOG v7.0.29 (2025-10-07):
-//    - REFACTOR: Odstránené duplicitné systémové polia z fields.quote a fields.quotePart
-//    - Systémové polia (view, id, createdBy, etc.) sú teraz len v fields.common
-//    - Pridané komentáre ako použiť fields.common pre systémové polia
-// 🔧 CHANGELOG v7.0.28 (2025-10-07):
-//    - Pridané polia pre Cenové ponuky: expectedRidesCount, massTransferCalculation,
-//      massTransferPercentage, massTransferPrice, subcontractsCalculation,
-//      subcontractsPercentage, subcontractsPrice
-// 🔧 CHANGELOG v7.0.27 (2025-10-06):
-//    - REVERT: Odstránená sekcia processing.quotePart (príliš zložité, nepotrebné)
-//    - Scripty použijú priamo CONFIG.fields.quotePart.materials / works
-//    - Štandardné Memento funkcie pre prístup k linkToEntry poliam
-// 🔧 CHANGELOG v7.0.25 (2025-10-06):
-//    - Kompletná API analýza knižníc Cenové ponuky (90RmdjWuk) a Cenové ponuky Diely (nCAgQkfvK)
-//    - Pridané library IDs pre quotes a quoteParts do libraryIds
-//    - Nová fields definícia quote s 30+ field definitions podľa API
-//    - Nová fields definícia quotePart s kompletnou štruktúrou položiek
-//    - Pridaný quoteParts do libraries
-//    - Deprecated staré field names pre backward compatibility
-// 🔧 CHANGELOG v7.0.23 (2025-10-05):
-//    - Rozšírené dailyReport fields (recordIcons, recordDescription, hoursWorked)
-//    - Pridané info polia pre agregácie (infoAttendance, infoWorkRecords, infoCashBook, infoRideLog)
-// 🔧 CHANGELOG v7.0.18 (2025-10-05):
-//    - Pridaná knižnica transportPrices (ceny dopravy)
-//    - Pridané polia pre transportPrices (vehicle, validFrom, price)
-// 🔧 CHANGELOG v7.0.17 (2025-10-04):
-//    - Pridané atribúty pre rideLogOrders (počet, km)
-//    - Atribút km = vzdialenosť tam a nazad (2× vzdialenosť miesta)
-// 🔧 CHANGELOG v7.0.16 (2025-10-04):
-//    - Pridané kompletné field definitions pre client, supplier, partner, employee z API
-//    - Opravené place polia (distance, nick, locality)
-//    - Pridané rideLog ikony a dailyReport field
-// 🔧 CHANGELOG v7.0.15 (2025-10-04):
-//    - Opravená place fields definícia (distantce → distance)
-// 🔧 CHANGELOG v7.0.14 (2025-10-04):
-//    - Pridané workRecord ikony a dailyReport field
-// 🔧 CHANGELOG v7.0.13 (2025-10-04):
-//    - Pridané polia costPriceMth, costPriceFlatRate pre machines
-//    - Pridané pole machinesCosts pre workRecord
-// 🔧 CHANGELOG v7.0.12 (2025-10-04):
-//    - KRITICKÁ OPRAVA: Atribúty workRecordMachines overené cez Memento API
-//    - Opravené názvy atribútov v workRecordMachines (sadzba, paušál, účtovaná suma)
-//    - API Library ID pre Záznam prác: ArdaPo5TU
-//    - API Field ID pre Mechanizácia: 130
-//    - Atribúty overené: účtovanie(3), mth(0), sadzba(5), paušál(6), účtovaná suma(7)
-// 🔧 CHANGELOG v7.0.11 (2025-10-04):
-//    - Aktualizované polia všetkých typov výkazov podľa najnovších zmien
-//    - Pridané ID pre všetky výkazové knižnice (workReport, rideReport)
-//    - Aktualizované field names pre Výkaz prác a Výkaz dopravy
-//    - Pridané nové atribúty pre workReportWorkRecords a rideReportRides
-//    - Aktualizované reportConfigs s fieldMapping pre vytvorenie výkazov
-//    - Opravené LinkToEntry pole názvy (workRecords, rides)
-//    - Pridané všetky súčtové polia pre agregované dáta
-// 🔧 CHANGELOG v7.0.10 (2025-10-04):
-//    - Opravená konfigurácia knižnice "Výkaz strojov" (uCRaUwsTo)
-//    - Aktualizované field IDs podľa skutočnej API štruktúry
+// 📋 CHANGELOG: /home/rasto/memento-claude/docs/CHANGELOG-MementoConfig.md
 // ==============================================
 // 📋 ÚČEL:
 //    - Centrálny CONFIG pre všetky scripty
@@ -180,7 +39,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.51",  // Pridané pole budgetSubcontracts do order fields
+        version: "7.0.52",  // CHANGELOG moved to /docs/CHANGELOG-MementoConfig.md - saved ~9KB
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
