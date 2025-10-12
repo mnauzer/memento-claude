@@ -438,9 +438,9 @@ try {
                         utils.addDebug(currentEntry, "    📖 Prečítané atribúty prác: " + worksData.length);
                     }
 
-                    // KROK 2: Len LINKNI položky (bez nastavovania atribútov)
+                    // KROK 2: Linkni položky (create() už uložil orderPart do DB)
                     if (materialsData.length > 0) {
-                        utils.addDebug(currentEntry, "    📦 Linkujem materiály (bez atribútov)...");
+                        utils.addDebug(currentEntry, "    📦 Linkujem materiály...");
                         for (var m = 0; m < materialsData.length; m++) {
                             orderPart.link(orderPartFields.materials, materialsData[m].entry);
                         }
@@ -448,51 +448,63 @@ try {
                     }
 
                     if (worksData.length > 0) {
-                        utils.addDebug(currentEntry, "    🔧 Linkujem práce (bez atribútov)...");
+                        utils.addDebug(currentEntry, "    🔧 Linkujem práce...");
                         for (var w = 0; w < worksData.length; w++) {
                             orderPart.link(orderPartFields.works, worksData[w].entry);
                         }
                         utils.addDebug(currentEntry, "      ✅ Linknutých prác: " + worksData.length);
                     }
 
-                    utils.addDebug(currentEntry, "    Materiály: " + materialsData.length);
-                    utils.addDebug(currentEntry, "    Práce: " + worksData.length);
-                    utils.addDebug(currentEntry, "    Celkom: " + (utils.safeGet(quotePart, quotePartFields.totalSum) || 0).toFixed(2) + " €");
-
-                    // KROK 3: ULOŽ orderPart aby sa stal platným záznamom v DB
-                    orderPartsLib.save(orderPart);
-                    utils.addDebug(currentEntry, "    💾 Diel uložený do databázy");
-
-                    // KROK 4: Teraz ZNOVA načítaj uložený diel a nastav atribúty
+                    // KROK 3: Nastav atribúty na linknutých položkách (porovnaj podľa id)
                     if (materialsData.length > 0) {
-                        utils.addDebug(currentEntry, "    🔄 Nastavujem atribúty materiálov na uloženom diele...");
-                        var savedOrderPartMaterials = orderPart.field(orderPartFields.materials);
-                        for (var m = 0; m < savedOrderPartMaterials.length; m++) {
-                            var matData = materialsData[m];
-                            savedOrderPartMaterials[m].setAttr("množstvo", matData.qty);
-                            savedOrderPartMaterials[m].setAttr("cena", matData.price);
-                            savedOrderPartMaterials[m].setAttr("cena celkom", matData.total);
-                            utils.addDebug(currentEntry, "      ✅ " + matData.name + ": m=" + matData.qty + ", c=" + matData.price + "€");
+                        utils.addDebug(currentEntry, "    🔄 Nastavujem atribúty materiálov...");
+                        var linkedMaterials = orderPart.field(orderPartFields.materials);
+
+                        for (var m = 0; m < linkedMaterials.length; m++) {
+                            var linkedMat = linkedMaterials[m];
+                            var linkedMatId = linkedMat.id();
+
+                            // Nájdi zodpovedajúce dáta podľa id
+                            for (var d = 0; d < materialsData.length; d++) {
+                                var matData = materialsData[d];
+                                if (matData.entry.id() === linkedMatId) {
+                                    linkedMat.setAttr("množstvo", matData.qty);
+                                    linkedMat.setAttr("cena", matData.price);
+                                    linkedMat.setAttr("cena celkom", matData.total);
+                                    utils.addDebug(currentEntry, "      ✅ " + matData.name + " (id:" + linkedMatId + "): m=" + matData.qty + ", c=" + matData.price + "€");
+                                    break;
+                                }
+                            }
                         }
                     }
 
                     if (worksData.length > 0) {
-                        utils.addDebug(currentEntry, "    🔄 Nastavujem atribúty prác na uloženom diele...");
-                        var savedOrderPartWorks = orderPart.field(orderPartFields.works);
-                        for (var w = 0; w < savedOrderPartWorks.length; w++) {
-                            var wrkData = worksData[w];
-                            savedOrderPartWorks[w].setAttr("množstvo", wrkData.qty);
-                            savedOrderPartWorks[w].setAttr("cena", wrkData.price);
-                            savedOrderPartWorks[w].setAttr("cena celkom", wrkData.total);
-                            utils.addDebug(currentEntry, "      ✅ " + wrkData.name + ": h=" + wrkData.qty + ", c=" + wrkData.price + "€");
+                        utils.addDebug(currentEntry, "    🔄 Nastavujem atribúty prác...");
+                        var linkedWorks = orderPart.field(orderPartFields.works);
+
+                        for (var w = 0; w < linkedWorks.length; w++) {
+                            var linkedWrk = linkedWorks[w];
+                            var linkedWrkId = linkedWrk.id();
+
+                            // Nájdi zodpovedajúce dáta podľa id
+                            for (var d = 0; d < worksData.length; d++) {
+                                var wrkData = worksData[d];
+                                if (wrkData.entry.id() === linkedWrkId) {
+                                    linkedWrk.setAttr("množstvo", wrkData.qty);
+                                    linkedWrk.setAttr("cena", wrkData.price);
+                                    linkedWrk.setAttr("cena celkom", wrkData.total);
+                                    utils.addDebug(currentEntry, "      ✅ " + wrkData.name + " (id:" + linkedWrkId + "): h=" + wrkData.qty + ", c=" + wrkData.price + "€");
+                                    break;
+                                }
+                            }
                         }
                     }
 
-                    // KROK 5: Ulož orderPart s atribútmi
-                    orderPartsLib.save(orderPart);
-                    utils.addDebug(currentEntry, "    💾 Atribúty uložené");
+                    utils.addDebug(currentEntry, "    Materiály: " + materialsData.length);
+                    utils.addDebug(currentEntry, "    Práce: " + worksData.length);
+                    utils.addDebug(currentEntry, "    Celkom: " + (utils.safeGet(quotePart, quotePartFields.totalSum) || 0).toFixed(2) + " €");
 
-                    // KROK 6: Pripoj diel k zákazke
+                    // KROK 4: Pripoj diel k zákazke
                     var existingParts = utils.safeGetLinks(order, orderFields.parts) || [];
                     existingParts.push(orderPart);
                     order.set(orderFields.parts, existingParts);
