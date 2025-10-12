@@ -11,11 +11,19 @@
  * - Prepojenie: Zákazky → linkToEntry Cenové ponuky (vytvorí linksFrom)
  * - Automatické generovanie čísla zákazky pomocou MementoAutoNumber
  *
- * Verzia: 1.5.0
- * Dátum: 2025-10-10
+ * Verzia: 1.7.0
+ * Dátum: 2025-10-12
  * Autor: ASISTANTO
  *
  * CHANGELOG:
+ * v1.7.0 (2025-10-12):
+ *   - FIX: Mapovanie atribútov: cena -> cena cp pre Zákazky Diely
+ *   - Používa centralConfig.attributes.orderPartMaterials a orderPartWorks
+ * v1.6.0 (2025-10-12):
+ *   - FIX: Zbieranie dielov zo všetkých troch polí (Diely, Diely HZS, Subdodávky)
+ *   - Subdodávky sa teraz správne vytvárajú v knižnici Zákazky Diely
+ *   - Pridaný debug výstup pre každé pole (počet položiek)
+ *   - Zlepšená podpora pre rôzne typy cenovej ponuky (Položky, Hodinovka)
  * v1.5.0 (2025-10-10):
  *   - FIX: Použitá link() metóda namiesto set() pre materiály a práce
  *   - Atribúty sa nastavujú pomocou setAttr() PO linkovaní
@@ -334,9 +342,31 @@ try {
     utils.addDebug(currentEntry, "📋 KROK 4: " + (orderExists ? "Kontrola a vytvorenie chýbajúcich dielov" : "Vytvorenie dielov zákazky"));
     utils.addDebug(currentEntry, "");
 
-    // Získaj diely z cenovej ponuky
-    var quoteParts = utils.safeGetLinks(currentEntry, fields.parts) || [];
-    utils.addDebug(currentEntry, "  Počet dielov v cenovej ponuke: " + quoteParts.length);
+    // Zbieranie dielov zo všetkých troch polí: Diely, Diely HZS, Subdodávky
+    var quoteParts = [];
+
+    // Pole 1: Diely
+    var parts1 = utils.safeGetLinks(currentEntry, fields.parts) || [];
+    utils.addDebug(currentEntry, "  Diely: " + parts1.length + " položiek");
+    for (var p1 = 0; p1 < parts1.length; p1++) {
+        quoteParts.push(parts1[p1]);
+    }
+
+    // Pole 2: Diely HZS
+    var parts2 = utils.safeGetLinks(currentEntry, fields.partsHzs) || [];
+    utils.addDebug(currentEntry, "  Diely HZS: " + parts2.length + " položiek");
+    for (var p2 = 0; p2 < parts2.length; p2++) {
+        quoteParts.push(parts2[p2]);
+    }
+
+    // Pole 3: Subdodávky
+    var parts3 = utils.safeGetLinks(currentEntry, fields.subcontracts) || [];
+    utils.addDebug(currentEntry, "  Subdodávky: " + parts3.length + " položiek");
+    for (var p3 = 0; p3 < parts3.length; p3++) {
+        quoteParts.push(parts3[p3]);
+    }
+
+    utils.addDebug(currentEntry, "  📊 CELKOM dielov v cenovej ponuke: " + quoteParts.length);
 
     // Pri UPDATE: Získaj existujúce diely zákazky
     var existingOrderParts = [];
@@ -441,6 +471,7 @@ try {
                     // KROK 2: Linkni položky a IHNEĎ nastav atribúty (v jednom cykle)
                     if (materialsData.length > 0) {
                         utils.addDebug(currentEntry, "    📦 Linkujem materiály a nastavujem atribúty...");
+                        var orderMatAttrs = centralConfig.attributes.orderPartMaterials;
                         for (var m = 0; m < materialsData.length; m++) {
                             var matData = materialsData[m];
 
@@ -452,9 +483,9 @@ try {
                             var justLinkedMat = currentMaterials[currentMaterials.length - 1];
 
                             if (justLinkedMat) {
-                                justLinkedMat.setAttr("množstvo", matData.qty);
-                                justLinkedMat.setAttr("cena", matData.price);
-                                justLinkedMat.setAttr("cena celkom", matData.total);
+                                justLinkedMat.setAttr(orderMatAttrs.quantity, matData.qty);
+                                justLinkedMat.setAttr(orderMatAttrs.price, matData.price);
+                                justLinkedMat.setAttr(orderMatAttrs.totalPrice, matData.total);
                                 utils.addDebug(currentEntry, "      ✅ [" + m + "] " + matData.name + ": m=" + matData.qty + ", c=" + matData.price + "€");
                             } else {
                                 utils.addDebug(currentEntry, "      ❌ [" + m + "] Nie je možné získať linknutý materiál!");
@@ -464,6 +495,7 @@ try {
 
                     if (worksData.length > 0) {
                         utils.addDebug(currentEntry, "    🔧 Linkujem práce a nastavujem atribúty...");
+                        var orderWrkAttrs = centralConfig.attributes.orderPartWorks;
                         for (var w = 0; w < worksData.length; w++) {
                             var wrkData = worksData[w];
 
@@ -475,9 +507,9 @@ try {
                             var justLinkedWrk = currentWorks[currentWorks.length - 1];
 
                             if (justLinkedWrk) {
-                                justLinkedWrk.setAttr("množstvo", wrkData.qty);
-                                justLinkedWrk.setAttr("cena", wrkData.price);
-                                justLinkedWrk.setAttr("cena celkom", wrkData.total);
+                                justLinkedWrk.setAttr(orderWrkAttrs.quantity, wrkData.qty);
+                                justLinkedWrk.setAttr(orderWrkAttrs.price, wrkData.price);
+                                justLinkedWrk.setAttr(orderWrkAttrs.totalPrice, wrkData.total);
                                 utils.addDebug(currentEntry, "      ✅ [" + w + "] " + wrkData.name + ": h=" + wrkData.qty + ", c=" + wrkData.price + "€");
                             } else {
                                 utils.addDebug(currentEntry, "      ❌ [" + w + "] Nie je možné získať linknutú prácu!");
