@@ -1,7 +1,10 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.47 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.0.48 | Dátum: 2025-10-12 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v7.0.48 (2025-10-12):
+//    - PRIDANÉ: quote.partsHzs - "Diely HZS" - linkToEntry Cenové ponuky Diely (pre hodinovku)
+//    - AKTUALIZOVANÉ: Rozšírená logika pre prepínanie medzi "Diely" a "Diely HZS" podľa typu ponuky
 // 🔧 CHANGELOG v7.0.47 (2025-10-11):
 //    - PRIDANÉ: order.total - "Celkom" (field 331) - celková suma bez DPH
 //    - PRIDANÉ: order.totalWithVat - "Celkom s DPH" (field 332) - celková suma s DPH
@@ -1125,7 +1128,8 @@ var MementoConfig = (function() {
                 subcontractsPrice: "Cena subdodávok", // currency
 
                 // Položky cenovej ponuky
-                parts: "Diely", // entries (field 263) - linkToEntry Cenové ponuky Diely
+                parts: "Diely", // entries (field 263) - linkToEntry Cenové ponuky Diely (pre typ "Položky")
+                partsHzs: "Diely HZS", // entries - linkToEntry Cenové ponuky Diely (pre typ "Hodinovka")
                 subcontracts: "Subdodávky", // entries - linkToEntry Cenové ponuky Diely (diely s partType = "Subdodávky")
                 subcontractsTotal: "Celkom subdodávky", // currency - súčet subdodávok v samostatnom poli
 
