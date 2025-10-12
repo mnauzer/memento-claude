@@ -1,12 +1,13 @@
 // ==============================================
 // CENOVÉ PONUKY - Prepočet (MODULE VERSION)
-// Verzia: 2.0.0 | Dátum: 2025-10-12 | Autor: ASISTANTO
+// Verzia: 2.1.0 | Dátum: 2025-10-12 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky (ID: 90RmdjWuk)
 // Použitie: CPCalculate.quoteCalculate(entry());
 // ==============================================
 // 📋 FUNKCIA:
 //    - Exportovaná funkcia quoteCalculate(quoteEntry) pre použitie z iných scriptov
-//    - Všetky funkcie a logika identická s CP.Calculate.js v1.5.1
+//    - Automatický prepočet všetkých dielov pomocou CPDielyCalculate.partCalculate()
+//    - Podporuje polia: Diely, Diely HZS, Subdodávky
 //    - Plná podpora debug a error logov
 // ==============================================
 // 🔧 POUŽITIE:
@@ -17,6 +18,11 @@
 //    var quoteEntry = lib("Cenové ponuky").find("Číslo", "CP-2025-001")[0];
 //    CPCalculate.quoteCalculate(quoteEntry);
 // ==============================================
+// 🔧 CHANGELOG v2.1.0 (2025-10-12):
+//    - NOVÁ FUNKCIA: recalculateAllParts() - automatický prepočet všetkých dielov
+//    - INTEGRÁCIA: Používa CPDielyCalculate.partCalculate() modul
+//    - PODPORA: Prepočet dielov v poliach Diely, Diely HZS, Subdodávky
+//    - ODOLNOSŤ: Kontrola dostupnosti modulu, pokračovanie pri chybách
 // 🔧 CHANGELOG v2.0.0 (2025-10-12):
 //    - NOVÁ VERZIA: Module pattern s exportovanou funkciou
 //    - KOMPATIBILITA: 1:1 funkčnosť s CP.Calculate.js v1.5.1
@@ -46,7 +52,7 @@ var CPCalculate = (function() {
 
         var CONFIG = {
             scriptName: "Cenové ponuky - Prepočet (Module)",
-            version: "2.0.0",
+            version: "2.1.0",
             fields: centralConfig.fields.quote,
             icons: centralConfig.icons
         };
@@ -202,38 +208,96 @@ var CPCalculate = (function() {
          * Spočíta hodnoty "Celkom" zo všetkých dielov cenovej ponuky
          * @returns {Number} - Suma všetkých dielov
          */
+        /**
+         * Prepočíta všetky diely v polí Diely, Diely HZS a Subdodávky
+         * Používa CPDielyCalculate.partCalculate() modul
+         */
+        function recalculateAllParts() {
+            try {
+                utils.addDebug(currentEntry, "  🔄 Prepočet všetkých dielov");
+
+                // Kontrola dostupnosti CPDielyCalculate modulu
+                if (typeof CPDielyCalculate === 'undefined' || typeof CPDielyCalculate.partCalculate !== 'function') {
+                    utils.addDebug(currentEntry, "    ⚠️ CPDielyCalculate modul nie je dostupný - preskakujem prepočet dielov");
+                    return;
+                }
+
+                var allPartsFields = [
+                    { name: "Diely", fieldName: fields.parts },
+                    { name: "Diely HZS", fieldName: fields.partsHzs },
+                    { name: "Subdodávky", fieldName: fields.subcontracts }
+                ];
+
+                var totalRecalculated = 0;
+
+                for (var f = 0; f < allPartsFields.length; f++) {
+                    var field = allPartsFields[f];
+                    var partsEntries = utils.safeGetLinks(currentEntry, field.fieldName) || [];
+
+                    if (partsEntries.length === 0) {
+                        continue;
+                    }
+
+                    utils.addDebug(currentEntry, "    📦 Pole: " + field.name + " (počet: " + partsEntries.length + ")");
+
+                    for (var i = 0; i < partsEntries.length; i++) {
+                        var part = partsEntries[i];
+                        var partNumber = utils.safeGet(part, centralConfig.fields.quotePart.number) || ("#" + (i + 1));
+
+                        try {
+                            utils.addDebug(currentEntry, "      🔄 Prepočítavam diel: " + partNumber);
+                            CPDielyCalculate.partCalculate(part);
+                            totalRecalculated++;
+                        } catch (partError) {
+                            utils.addError(currentEntry, "⚠️ Chyba pri prepočte dielu " + partNumber + ": " + partError.toString(), "recalculateAllParts", partError);
+                            // Pokračujeme s ďalšími dielmi
+                        }
+                    }
+                }
+
+                utils.addDebug(currentEntry, "    ✅ Prepočítaných dielov: " + totalRecalculated);
+
+            } catch (error) {
+                var errorMsg = "Chyba pri prepočte všetkých dielov: " + error.toString();
+                if (error.lineNumber) errorMsg += ", Line: " + error.lineNumber;
+                if (error.stack) errorMsg += "\nStack: " + error.stack;
+                utils.addError(currentEntry, errorMsg, "recalculateAllParts", error);
+                // Neprerušujeme, pokračujeme v hlavnom výpočte
+            }
+        }
+
         function calculatePartsTotal() {
             try {
                 utils.addDebug(currentEntry, "  📋 Spočítanie súčtov z dielov");
-        
+
                 // Získaj správne pole dielov podľa typu CP
                 var partsField = getPartsFieldByType();
                 var partsEntries = partsField.partsArray;
-        
+
                 if (!partsEntries || partsEntries.length === 0) {
                     utils.addDebug(currentEntry, "    ⚠️ Žiadne diely cenovej ponuky");
                     return 0;
                 }
-        
+
                 utils.addDebug(currentEntry, "    Pole dielov: " + partsField.fieldName);
                 utils.addDebug(currentEntry, "    Počet dielov: " + partsEntries.length);
-        
+
                 var totalSum = 0;
                 var partTotalField = centralConfig.fields.quotePart.totalSum; // "Celkom"
-        
+
                 for (var i = 0; i < partsEntries.length; i++) {
                     var part = partsEntries[i];
                     var partTotal = utils.safeGet(part, partTotalField) || 0;
-        
+
                     var partType = utils.safeGet(part, centralConfig.fields.quotePart.partType) || ("Diel #" + (i + 1));
                     utils.addDebug(currentEntry, "      • " + partType + ": " + partTotal.toFixed(2) + " €");
-        
+
                     totalSum += partTotal;
                 }
-        
+
                 utils.addDebug(currentEntry, "    ✅ Celkový súčet dielov: " + totalSum.toFixed(2) + " €");
                 return totalSum;
-        
+
             } catch (error) {
                 var errorMsg = "Chyba pri spočítaní dielov: " + error.toString();
                 if (error.lineNumber) errorMsg += ", Line: " + error.lineNumber;
@@ -1046,7 +1110,16 @@ var CPCalculate = (function() {
                     steps.step2a.success = false;
                     // Pokračujeme aj pri chybe - môžu existovať validné diely
                 }
-        
+
+                // KROK 1b: Prepočet všetkých dielov (Diely, Diely HZS, Subdodávky)
+                utils.addDebug(currentEntry, "\n" + utils.getIcon("calculation") + " KROK 1b: Prepočet všetkých dielov");
+                try {
+                    recalculateAllParts();
+                } catch (error) {
+                    utils.addError(currentEntry, "Chyba pri prepočte dielov: " + error.toString(), CONFIG.scriptName);
+                    // Pokračujeme aj pri chybe - môžu byť už prepočítané
+                }
+
                 // KROK 2: Spočítanie súčtov z dielov
                 utils.addDebug(currentEntry, "\n" + utils.getIcon("calculation") + " KROK 2: Spočítanie súčtov z dielov");
                 var totalFromParts = 0;
@@ -1202,7 +1275,7 @@ var CPCalculate = (function() {
 
     return {
         quoteCalculate: quoteCalculate,
-        version: "2.0.0"
+        version: "2.1.0"
     };
 
 })();  // koniec CPCalculate module
