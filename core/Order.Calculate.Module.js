@@ -55,7 +55,6 @@ var OrderCalculate = (function() {
         var fields = CONFIG.fields;
         var orderPartFields = CONFIG.orderPartFields;
 
-        utils.clearLogs(currentEntry);
         utils.addDebug(currentEntry, "🚀 ŠTART: " + CONFIG.scriptName + " v" + CONFIG.version);
         utils.addDebug(currentEntry, "📅 Dátum: " + moment().format("DD.MM.YYYY HH:mm:ss"));
         utils.addDebug(currentEntry, "");
