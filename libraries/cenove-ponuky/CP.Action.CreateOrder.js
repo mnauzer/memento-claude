@@ -462,12 +462,12 @@ try {
 
                         for (var m = 0; m < linkedMaterials.length; m++) {
                             var linkedMat = linkedMaterials[m];
-                            var linkedMatId = linkedMat.id();
+                            var linkedMatId = linkedMat.id;
 
                             // Nájdi zodpovedajúce dáta podľa id
                             for (var d = 0; d < materialsData.length; d++) {
                                 var matData = materialsData[d];
-                                if (matData.entry.id() === linkedMatId) {
+                                if (matData.entry.id === linkedMatId) {
                                     linkedMat.setAttr("množstvo", matData.qty);
                                     linkedMat.setAttr("cena", matData.price);
                                     linkedMat.setAttr("cena celkom", matData.total);
@@ -484,12 +484,12 @@ try {
 
                         for (var w = 0; w < linkedWorks.length; w++) {
                             var linkedWrk = linkedWorks[w];
-                            var linkedWrkId = linkedWrk.id();
+                            var linkedWrkId = linkedWrk.id;
 
                             // Nájdi zodpovedajúce dáta podľa id
                             for (var d = 0; d < worksData.length; d++) {
                                 var wrkData = worksData[d];
-                                if (wrkData.entry.id() === linkedWrkId) {
+                                if (wrkData.entry.id === linkedWrkId) {
                                     linkedWrk.setAttr("množstvo", wrkData.qty);
                                     linkedWrk.setAttr("cena", wrkData.price);
                                     linkedWrk.setAttr("cena celkom", wrkData.total);
