@@ -13,11 +13,13 @@
  * - Automatické generovanie čísla zákazky pomocou MementoAutoNumber
  * - Zbieranie dielov zo všetkých troch polí (Diely, Diely HZS, Subdodávky)
  *
- * Verzia: 2.1.0
+ * Verzia: 2.1.1
  * Dátum: 2025-10-12
  * Autor: ASISTANTO
  *
  * CHANGELOG:
+ * v2.1.1 (2025-10-12):
+ *   - FIX: Duplikácia materials/works v UPDATE móde - vyčistenie existujúcich linkov pred pridaním nových
  * v2.1.0 (2025-10-12):
  *   - FIX: Mapovanie atribútov: cena -> cena cp pre Zákazky Diely
  *   - Používa centralConfig.attributes.orderPartMaterials a orderPartWorks
@@ -458,6 +460,12 @@ var CPCreateOrder = (function() {
                         if (materialsData.length > 0) {
                             utils.addDebug(quoteEntry, "    🔧 Linkujem materiály a nastavujem atribúty...");
                             var orderMatAttrs = centralConfig.attributes.orderPartMaterials;
+
+                            // V UPDATE móde vyčisti existujúce linky aby sa predišlo duplikácii
+                            if (isUpdate) {
+                                orderPart.set(orderPartFields.materials, []);
+                            }
+
                             for (var m = 0; m < materialsData.length; m++) {
                                 var matData = materialsData[m];
                                 orderPart.link(orderPartFields.materials, matData.entry);
@@ -477,6 +485,12 @@ var CPCreateOrder = (function() {
                         if (worksData.length > 0) {
                             utils.addDebug(quoteEntry, "    🔧 Linkujem práce a nastavujem atribúty...");
                             var orderWrkAttrs = centralConfig.attributes.orderPartWorks;
+
+                            // V UPDATE móde vyčisti existujúce linky aby sa predišlo duplikácii
+                            if (isUpdate) {
+                                orderPart.set(orderPartFields.works, []);
+                            }
+
                             for (var w = 0; w < worksData.length; w++) {
                                 var wrkData = worksData[w];
                                 orderPart.link(orderPartFields.works, wrkData.entry);
