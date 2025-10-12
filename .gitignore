@@ -65,12 +65,8 @@ screenshots/
 .docs/
 .vscode/
 
-# Dokumentačné súbory
+# Dokumentačné súbory (obsahujú API kľúče a credentials)
 *.md
-!MEMENTO_PROJECT_STRUCTURE.md
-!MEMENTO_NAMING_CONVENTION.md
-!MEMENTO_API_ACCESS.md
-!libraries/**/README.md
 *.txt
 
 # Claude/Docker/Config súbory

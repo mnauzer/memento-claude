@@ -180,7 +180,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.50",  // Aktualizované atribúty Zákazky Diely: množstvo cp, cena cp, cena celkom cp
+        version: "7.0.51",  // Pridané pole budgetSubcontracts do order fields
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -1208,6 +1208,7 @@ var MementoConfig = (function() {
                 startDate: "Dátum začatia",
                 endDate: "Dátum ukončenia",
                 budget: "Rozpočet", // real number
+                budgetSubcontracts: "Rozpočet subdodávky", // real number - rozpočet subdodávok pri "Vytvoriť dodatok"
                 spent: "Spotrebované", // real number
                 remaining: "Zostatok", // real number, budget - spent
                 daysCount: "Počet dní", // integer, endDate - startDate
