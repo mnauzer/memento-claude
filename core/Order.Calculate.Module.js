@@ -418,37 +418,21 @@ var OrderCalculate = (function() {
             var totalBudget = budgetResult.budget + additional.transportPrice + additional.massTransferPrice;
             var remaining = totalBudget - spent;
 
-            // Zapíš výsledky s error handlingom
-            try {
-                currentEntry.set(fields.budget, budgetResult.budget);
-            } catch (e) {
-                var errorMsg = "❌ Pole 'budget' (" + fields.budget + ") neexistuje v knižnici Zákazky";
-                utils.addDebug(currentEntry, errorMsg);
-                throw new Error(errorMsg + ": " + e.toString());
+            // Zapíš výsledky pomocou safeSet (vracia true/false)
+            if (!utils.safeSet(currentEntry, fields.budget, budgetResult.budget)) {
+                utils.addDebug(currentEntry, "❌ Nepodarilo sa nastaviť pole 'budget' (" + fields.budget + ")");
             }
 
-            try {
-                currentEntry.set(fields.budgetSubcontracts, budgetResult.budgetSubcontracts);
-            } catch (e) {
-                var errorMsg = "❌ Pole 'budgetSubcontracts' (" + fields.budgetSubcontracts + ") neexistuje v knižnici Zákazky";
-                utils.addDebug(currentEntry, errorMsg);
-                throw new Error(errorMsg + ": " + e.toString());
+            if (!utils.safeSet(currentEntry, fields.budgetSubcontracts, budgetResult.budgetSubcontracts)) {
+                utils.addDebug(currentEntry, "❌ Nepodarilo sa nastaviť pole 'budgetSubcontracts' (" + fields.budgetSubcontracts + ")");
             }
 
-            try {
-                currentEntry.set(fields.spent, spent);
-            } catch (e) {
-                var errorMsg = "❌ Pole 'spent' (" + fields.spent + ") neexistuje v knižnici Zákazky";
-                utils.addDebug(currentEntry, errorMsg);
-                throw new Error(errorMsg + ": " + e.toString());
+            if (!utils.safeSet(currentEntry, fields.spent, spent)) {
+                utils.addDebug(currentEntry, "❌ Nepodarilo sa nastaviť pole 'spent' (" + fields.spent + ")");
             }
 
-            try {
-                currentEntry.set(fields.remaining, remaining);
-            } catch (e) {
-                var errorMsg = "❌ Pole 'remaining' (" + fields.remaining + ") neexistuje v knižnici Zákazky";
-                utils.addDebug(currentEntry, errorMsg);
-                throw new Error(errorMsg + ": " + e.toString());
+            if (!utils.safeSet(currentEntry, fields.remaining, remaining)) {
+                utils.addDebug(currentEntry, "❌ Nepodarilo sa nastaviť pole 'remaining' (" + fields.remaining + ")");
             }
 
             // Polia transportPrice a massTransferPrice sú len v Cenové ponuky, nie v Zákazky
