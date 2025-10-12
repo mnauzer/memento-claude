@@ -182,37 +182,89 @@ var CPCreateOrder = (function() {
             utils.addDebug(quoteEntry, "");
 
             if (!orderExists) {
-                // CREATE: Vytvor novú zákazku
+                // === CREATE MODE ===
                 order = ordersLib.create({});
+
+                if (!order) {
+                    throw new Error("Nepodarilo sa vytvoriť záznam v knižnici Zákazky");
+                }
+
                 utils.addDebug(quoteEntry, "  ✅ Nová zákazka vytvorená");
 
                 // Automatické generovanie čísla zákazky
-                if (typeof MementoAutoNumber !== 'undefined') {
-                    try {
-                        var generatedNumber = MementoAutoNumber.generateNumber("Z Placeholder");
-                        if (generatedNumber) {
-                            syncData[orderFields.number] = generatedNumber;
-                            utils.addDebug(quoteEntry, "  ✅ Automaticky vygenerované číslo zákazky: " + generatedNumber);
+                var orderNumber = "";
+                try {
+                    if (typeof MementoAutoNumber !== 'undefined' && MementoAutoNumber.isLoaded && MementoAutoNumber.isLoaded()) {
+                        var numberResult = MementoAutoNumber.generateNumber(
+                            "Zákazky",
+                            "Číslo",
+                            "Z Placeholder"
+                        );
+
+                        if (numberResult.success) {
+                            orderNumber = numberResult.number;
+                            utils.addDebug(quoteEntry, "    ✅ Vygenerované číslo: " + orderNumber);
                         } else {
-                            utils.addDebug(quoteEntry, "  ⚠️ Automatické generovanie čísla zlyhalo, použijem číslo z CP: " + quoteNumber);
+                            utils.addDebug(quoteEntry, "    ⚠️ Chyba pri generovaní čísla: " + numberResult.error);
+                            utils.addDebug(quoteEntry, "    ℹ️ Použije sa číslo z cenovej ponuky");
+                            orderNumber = quoteNumber;
                         }
-                    } catch (e) {
-                        utils.addDebug(quoteEntry, "  ⚠️ Chyba pri generovaní čísla: " + e.toString());
-                        utils.addDebug(quoteEntry, "  ℹ️ Použijem číslo z CP: " + quoteNumber);
+                    } else {
+                        utils.addDebug(quoteEntry, "    ℹ️ MementoAutoNumber nie je dostupný");
+                        utils.addDebug(quoteEntry, "    ℹ️ Použije sa číslo z cenovej ponuky");
+                        orderNumber = quoteNumber;
                     }
-                } else {
-                    utils.addDebug(quoteEntry, "  ℹ️ MementoAutoNumber nie je dostupný, použijem číslo z CP");
+                } catch (e) {
+                    utils.addDebug(quoteEntry, "    ⚠️ Chyba pri volaní MementoAutoNumber: " + e.toString());
+                    utils.addDebug(quoteEntry, "    ℹ️ Použije sa číslo z cenovej ponuky");
+                    orderNumber = quoteNumber;
                 }
-            }
 
-            // Aplikuj všetky polia
-            for (var fieldKey in syncData) {
-                if (syncData.hasOwnProperty(fieldKey)) {
-                    order.set(fieldKey, syncData[fieldKey]);
+                syncData[orderFields.number] = orderNumber;
+
+                // Nastav všetky polia
+                for (var fieldName in syncData) {
+                    if (syncData.hasOwnProperty(fieldName)) {
+                        var value = syncData[fieldName];
+                        if (value !== null && value !== undefined) {
+                            try {
+                                order.set(fieldName, value);
+                            } catch (e) {
+                                utils.addDebug(quoteEntry, "  ⚠️ Chyba pri nastavení poľa '" + fieldName + "': " + e.toString());
+                            }
+                        }
+                    }
                 }
-            }
 
-            if (orderExists) {
+                // Vytvor linkToEntry: Zákazka → Cenová ponuka
+                order.set(orderFields.quote, [quoteEntry]);
+
+                utils.addDebug(quoteEntry, "  ✅ Zákazka vytvorená");
+                utils.addDebug(quoteEntry, "    Číslo: " + utils.safeGet(order, orderFields.number));
+                utils.addDebug(quoteEntry, "    Názov: " + utils.safeGet(order, orderFields.name));
+                utils.addDebug(quoteEntry, "");
+
+            } else {
+                // === UPDATE MODE ===
+                // Aktualizuj všetky polia OKREM čísla zákazky
+                for (var fieldName in syncData) {
+                    if (syncData.hasOwnProperty(fieldName)) {
+                        // Preskočiť číslo zákazky - to sa nemení pri aktualizácii
+                        if (fieldName === orderFields.number) {
+                            continue;
+                        }
+
+                        var value = syncData[fieldName];
+                        if (value !== null && value !== undefined) {
+                            try {
+                                order.set(fieldName, value);
+                            } catch (e) {
+                                utils.addDebug(quoteEntry, "  ⚠️ Chyba pri aktualizácii poľa '" + fieldName + "': " + e.toString());
+                            }
+                        }
+                    }
+                }
+
                 utils.addDebug(quoteEntry, "  ✅ Zákazka aktualizovaná");
                 utils.addDebug(quoteEntry, "    Číslo: " + utils.safeGet(order, orderFields.number));
                 utils.addDebug(quoteEntry, "    Názov: " + utils.safeGet(order, orderFields.name));
