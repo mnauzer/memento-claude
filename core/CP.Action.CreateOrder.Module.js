@@ -279,7 +279,7 @@ var CPCreateOrder = (function() {
             // KROK 4: VYTVORENIE/AKTUALIZÁCIA DIELOV
             // ==============================================
 
-            utils.addDebug(quoteEntry, "📋 KROK 4: " + (orderExists ? "Kontrola a vytvorenie chýbajúcich dielov" : "Vytvorenie dielov zákazky"));
+            utils.addDebug(quoteEntry, "📋 KROK 4: " + (orderExists ? "Aktualizácia dielov zákazky" : "Vytvorenie dielov zákazky"));
             utils.addDebug(quoteEntry, "");
 
             // Zbieranie dielov zo všetkých troch polí: Diely, Diely HZS, Subdodávky
@@ -308,26 +308,24 @@ var CPCreateOrder = (function() {
 
             utils.addDebug(quoteEntry, "  📊 CELKOM dielov v cenovej ponuke: " + quoteParts.length);
 
-            // Pri UPDATE: Získaj existujúce diely zákazky
-            var existingOrderParts = [];
-            var existingPartNumbers = [];
+            // Pri UPDATE: Získaj existujúce diely zákazky a vytvor mapu podľa čísla
+            var existingPartsMap = {};
             if (orderExists) {
-                existingOrderParts = utils.safeGetLinks(order, orderFields.parts) || [];
+                var existingOrderParts = utils.safeGetLinks(order, orderFields.parts) || [];
                 utils.addDebug(quoteEntry, "  Počet existujúcich dielov v zákazke: " + existingOrderParts.length);
 
-                // Vytvor mapu existujúcich čísel dielov
                 for (var ep = 0; ep < existingOrderParts.length; ep++) {
                     var existingPartNumber = utils.safeGet(existingOrderParts[ep], orderPartFields.number);
                     if (existingPartNumber) {
-                        existingPartNumbers.push(existingPartNumber);
+                        existingPartsMap[existingPartNumber] = existingOrderParts[ep];
                     }
                 }
-                utils.addDebug(quoteEntry, "  Existujúce čísla dielov: " + existingPartNumbers.join(", "));
+                utils.addDebug(quoteEntry, "  Existujúce čísla dielov: " + Object.keys(existingPartsMap).join(", "));
             }
             utils.addDebug(quoteEntry, "");
 
             var createdPartsCount = 0;
-            var skippedPartsCount = 0;
+            var updatedPartsCount = 0;
 
             if (quoteParts.length === 0) {
                 utils.addDebug(quoteEntry, "  ℹ️ Cenová ponuka nemá žiadne diely");
@@ -342,19 +340,25 @@ var CPCreateOrder = (function() {
                         var partNumber = utils.safeGet(quotePart, quotePartFields.number);
                         var partType = utils.safeGet(quotePart, quotePartFields.partType) || ("Diel #" + (i + 1));
 
-                        // Pri UPDATE: Skontroluj či diel už existuje
-                        if (orderExists && partNumber && existingPartNumbers.indexOf(partNumber) !== -1) {
-                            utils.addDebug(quoteEntry, "  ⏭️ Diel " + (i + 1) + "/" + quoteParts.length + " (číslo " + partNumber + ") už existuje - preskakujem");
-                            skippedPartsCount++;
-                            continue;
+                        // Kontrola či diel už existuje
+                        var orderPart = null;
+                        var isUpdate = false;
+
+                        if (orderExists && partNumber && existingPartsMap[partNumber]) {
+                            // UPDATE: Použij existujúci diel
+                            orderPart = existingPartsMap[partNumber];
+                            isUpdate = true;
+                            utils.addDebug(quoteEntry, "  🔄 Aktualizujem diel " + (i + 1) + "/" + quoteParts.length + ":");
+                            updatedPartsCount++;
+                        } else {
+                            // CREATE: Vytvor nový diel
+                            orderPart = orderPartsLib.create({});
+                            utils.addDebug(quoteEntry, "  🔧 Vytváram diel " + (i + 1) + "/" + quoteParts.length + ":");
+                            createdPartsCount++;
                         }
 
-                        utils.addDebug(quoteEntry, "  🔧 Vytváram diel " + (i + 1) + "/" + quoteParts.length + ":");
                         utils.addDebug(quoteEntry, "    Typ dielu: " + partType);
                         utils.addDebug(quoteEntry, "    Číslo: " + partNumber);
-
-                        // Vytvor nový diel
-                        var orderPart = orderPartsLib.create({});
 
                         // === ZÁKLADNÉ POLIA ===
                         orderPart.set(orderPartFields.number, utils.safeGet(quotePart, quotePartFields.number));
@@ -455,13 +459,14 @@ var CPCreateOrder = (function() {
                             }
                         }
 
-                        // Pripoj diel k zákazke
-                        var existingParts = utils.safeGetLinks(order, orderFields.parts) || [];
-                        existingParts.push(orderPart);
-                        order.set(orderFields.parts, existingParts);
+                        // Pripoj diel k zákazke (len ak je nový)
+                        if (!isUpdate) {
+                            var existingParts = utils.safeGetLinks(order, orderFields.parts) || [];
+                            existingParts.push(orderPart);
+                            order.set(orderFields.parts, existingParts);
+                        }
 
-                        createdPartsCount++;
-                        utils.addDebug(quoteEntry, "    ✅ Diel vytvorený a pripojený");
+                        utils.addDebug(quoteEntry, "    ✅ Diel " + (isUpdate ? "aktualizovaný" : "vytvorený a pripojený"));
 
                     } catch (e) {
                         var errorMsg = "Chyba pri vytváraní dielu " + (i + 1) + ": " + e.toString();
@@ -473,9 +478,11 @@ var CPCreateOrder = (function() {
                     utils.addDebug(quoteEntry, "");
                 }
 
-                utils.addDebug(quoteEntry, "  📊 Vytvorené diely: " + createdPartsCount + " / " + quoteParts.length);
-                if (orderExists && skippedPartsCount > 0) {
-                    utils.addDebug(quoteEntry, "  📊 Preskočené existujúce diely: " + skippedPartsCount);
+                if (orderExists) {
+                    utils.addDebug(quoteEntry, "  📊 Vytvorené nové diely: " + createdPartsCount);
+                    utils.addDebug(quoteEntry, "  📊 Aktualizované diely: " + updatedPartsCount);
+                } else {
+                    utils.addDebug(quoteEntry, "  📊 Vytvorené diely: " + createdPartsCount + " / " + quoteParts.length);
                 }
             }
 
@@ -500,19 +507,16 @@ var CPCreateOrder = (function() {
             } else {
                 result.message = "✅ Zákazka aktualizovaná\n" +
                                 "Číslo: " + utils.safeGet(order, orderFields.number) + "\n" +
-                                "Nové diely: " + createdPartsCount + " / " + quoteParts.length;
+                                "Nové diely: " + createdPartsCount + "\n" +
+                                "Aktualizované diely: " + updatedPartsCount;
 
                 utils.addDebug(quoteEntry, "");
                 utils.addDebug(quoteEntry, "✅ ZÁKAZKA ÚSPEŠNE AKTUALIZOVANÁ");
                 utils.addDebug(quoteEntry, "");
                 utils.addDebug(quoteEntry, "Zákazka: " + utils.safeGet(order, orderFields.number) + " - " + utils.safeGet(order, orderFields.name));
                 utils.addDebug(quoteEntry, "Aktualizované polia: Všetky");
-                if (quoteParts.length > 0) {
-                    utils.addDebug(quoteEntry, "Vytvorené nové diely: " + createdPartsCount + " / " + quoteParts.length);
-                    if (skippedPartsCount > 0) {
-                        utils.addDebug(quoteEntry, "Preskočené existujúce: " + skippedPartsCount);
-                    }
-                }
+                utils.addDebug(quoteEntry, "Vytvorené nové diely: " + createdPartsCount);
+                utils.addDebug(quoteEntry, "Aktualizované diely: " + updatedPartsCount);
             }
 
             return result;
