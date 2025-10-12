@@ -57,10 +57,14 @@ var CPCreateOrder = (function() {
             var utils = MementoUtils;
             var centralConfig = MementoConfig.getConfig();
 
+            var CONFIG = {
+                scriptName: "Cenové ponuky - Vytvorenie/Aktualizácia zákazky (Module)",
+                version: "2.1.0"
+            };
+
             utils.clearLogs(quoteEntry);
-            utils.addDebug(quoteEntry, "═══════════════════════════════════════════════════════");
-            utils.addDebug(quoteEntry, "   VYTVORENIE/AKTUALIZÁCIA ZÁKAZKY Z CENOVEJ PONUKY   ");
-            utils.addDebug(quoteEntry, "═══════════════════════════════════════════════════════");
+            utils.addDebug(quoteEntry, "🚀 ŠTART: " + CONFIG.scriptName + " v" + CONFIG.version);
+            utils.addDebug(quoteEntry, "📅 Dátum: " + moment().format("DD.MM.YYYY HH:mm:ss"));
             utils.addDebug(quoteEntry, "");
 
             // Získaj konfiguračné polia
@@ -488,9 +492,8 @@ var CPCreateOrder = (function() {
                                 "Číslo: " + utils.safeGet(order, orderFields.number) + "\n" +
                                 "Počet dielov: " + quoteParts.length;
 
-                utils.addDebug(quoteEntry, "═══════════════════════════════════════════════════════");
-                utils.addDebug(quoteEntry, "         ✅ ZÁKAZKA ÚSPEŠNE VYTVORENÁ                  ");
-                utils.addDebug(quoteEntry, "═══════════════════════════════════════════════════════");
+                utils.addDebug(quoteEntry, "");
+                utils.addDebug(quoteEntry, "✅ ZÁKAZKA ÚSPEŠNE VYTVORENÁ");
                 utils.addDebug(quoteEntry, "");
                 utils.addDebug(quoteEntry, "Zákazka: " + utils.safeGet(order, orderFields.number) + " - " + utils.safeGet(order, orderFields.name));
                 utils.addDebug(quoteEntry, "Počet dielov: " + quoteParts.length);
@@ -499,9 +502,8 @@ var CPCreateOrder = (function() {
                                 "Číslo: " + utils.safeGet(order, orderFields.number) + "\n" +
                                 "Nové diely: " + createdPartsCount + " / " + quoteParts.length;
 
-                utils.addDebug(quoteEntry, "═══════════════════════════════════════════════════════");
-                utils.addDebug(quoteEntry, "         ✅ ZÁKAZKA ÚSPEŠNE AKTUALIZOVANÁ              ");
-                utils.addDebug(quoteEntry, "═══════════════════════════════════════════════════════");
+                utils.addDebug(quoteEntry, "");
+                utils.addDebug(quoteEntry, "✅ ZÁKAZKA ÚSPEŠNE AKTUALIZOVANÁ");
                 utils.addDebug(quoteEntry, "");
                 utils.addDebug(quoteEntry, "Zákazka: " + utils.safeGet(order, orderFields.number) + " - " + utils.safeGet(order, orderFields.name));
                 utils.addDebug(quoteEntry, "Aktualizované polia: Všetky");
@@ -523,9 +525,7 @@ var CPCreateOrder = (function() {
             utils.addError(quoteEntry, errorMsg, "CPCreateOrder.createOrder", error);
 
             utils.addDebug(quoteEntry, "");
-            utils.addDebug(quoteEntry, "═══════════════════════════════════════════════════════");
-            utils.addDebug(quoteEntry, "         ❌ CHYBA PRI VYTVÁRANÍ/AKTUALIZÁCII           ");
-            utils.addDebug(quoteEntry, "═══════════════════════════════════════════════════════");
+            utils.addDebug(quoteEntry, "❌ CHYBA PRI VYTVÁRANÍ/AKTUALIZÁCII");
             utils.addDebug(quoteEntry, "");
             utils.addDebug(quoteEntry, errorMsg);
 
