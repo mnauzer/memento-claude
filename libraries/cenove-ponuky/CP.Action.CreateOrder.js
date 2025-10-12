@@ -455,26 +455,20 @@ try {
                         utils.addDebug(currentEntry, "      ✅ Linknutých prác: " + worksData.length);
                     }
 
-                    // KROK 3: Nastav atribúty na linknutých položkách (porovnaj podľa id)
+                    // KROK 3: Nastav atribúty na linknutých položkách (podľa poradia indexov)
                     if (materialsData.length > 0) {
                         utils.addDebug(currentEntry, "    🔄 Nastavujem atribúty materiálov...");
                         var linkedMaterials = orderPart.field(orderPartFields.materials);
 
-                        for (var m = 0; m < linkedMaterials.length; m++) {
+                        // Poradie v linkedMaterials zodpovedá poradiu linkovania v materialsData
+                        for (var m = 0; m < linkedMaterials.length && m < materialsData.length; m++) {
                             var linkedMat = linkedMaterials[m];
-                            var linkedMatId = linkedMat.id;
+                            var matData = materialsData[m];
 
-                            // Nájdi zodpovedajúce dáta podľa id
-                            for (var d = 0; d < materialsData.length; d++) {
-                                var matData = materialsData[d];
-                                if (matData.entry.id === linkedMatId) {
-                                    linkedMat.setAttr("množstvo", matData.qty);
-                                    linkedMat.setAttr("cena", matData.price);
-                                    linkedMat.setAttr("cena celkom", matData.total);
-                                    utils.addDebug(currentEntry, "      ✅ " + matData.name + " (id:" + linkedMatId + "): m=" + matData.qty + ", c=" + matData.price + "€");
-                                    break;
-                                }
-                            }
+                            linkedMat.setAttr("množstvo", matData.qty);
+                            linkedMat.setAttr("cena", matData.price);
+                            linkedMat.setAttr("cena celkom", matData.total);
+                            utils.addDebug(currentEntry, "      ✅ [" + m + "] " + matData.name + ": m=" + matData.qty + ", c=" + matData.price + "€");
                         }
                     }
 
@@ -482,21 +476,15 @@ try {
                         utils.addDebug(currentEntry, "    🔄 Nastavujem atribúty prác...");
                         var linkedWorks = orderPart.field(orderPartFields.works);
 
-                        for (var w = 0; w < linkedWorks.length; w++) {
+                        // Poradie v linkedWorks zodpovedá poradiu linkovania v worksData
+                        for (var w = 0; w < linkedWorks.length && w < worksData.length; w++) {
                             var linkedWrk = linkedWorks[w];
-                            var linkedWrkId = linkedWrk.id;
+                            var wrkData = worksData[w];
 
-                            // Nájdi zodpovedajúce dáta podľa id
-                            for (var d = 0; d < worksData.length; d++) {
-                                var wrkData = worksData[d];
-                                if (wrkData.entry.id === linkedWrkId) {
-                                    linkedWrk.setAttr("množstvo", wrkData.qty);
-                                    linkedWrk.setAttr("cena", wrkData.price);
-                                    linkedWrk.setAttr("cena celkom", wrkData.total);
-                                    utils.addDebug(currentEntry, "      ✅ " + wrkData.name + " (id:" + linkedWrkId + "): h=" + wrkData.qty + ", c=" + wrkData.price + "€");
-                                    break;
-                                }
-                            }
+                            linkedWrk.setAttr("množstvo", wrkData.qty);
+                            linkedWrk.setAttr("cena", wrkData.price);
+                            linkedWrk.setAttr("cena celkom", wrkData.total);
+                            utils.addDebug(currentEntry, "      ✅ [" + w + "] " + wrkData.name + ": h=" + wrkData.qty + ", c=" + wrkData.price + "€");
                         }
                     }
 
