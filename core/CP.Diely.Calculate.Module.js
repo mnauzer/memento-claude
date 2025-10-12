@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY DIELY - Hlavný prepočet (MODULE)
-// Verzia: 4.0.0 | Dátum: 2025-10-12 | Autor: ASISTANTO
+// Verzia: 4.1.0 | Dátum: 2025-10-12 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky Diely (ID: nCAgQkfvK)
 // ==============================================
 // 📋 FUNKCIA:
@@ -9,9 +9,9 @@
 //    - VŽDY získava ceny z databázy (ceny materiálu / ceny prác)
 //    - Porovnanie ručne zadaných cien s cenami z databázy
 //    - Dialóg pre update cien v databáze pri rozdieloch
-//    - Automatické vytvorenie nových cenových záznamov
+//    - Automatické vytvorenie/aktualizácia cenových záznamov (max 1 na deň)
 //    - Aktualizácia čísla, názvu A DÁTUMU z nadriadenej cenovej ponuky
-//    - Aktualizácia poľa "Cena" v záznamy materiálu/práce pri vytvorení novej ceny
+//    - Aktualizácia poľa "Cena" v záznamy materiálu/práce pri vytvorení/aktualizácii ceny
 //    - Automatické použitie ceny z poľa "Cena" ak atribút nie je zadaný
 //    - Výpočet súčtov za jednotlivé kategórie
 //    - Výpočet celkovej sumy cenovej ponuky
@@ -19,6 +19,12 @@
 //    - Automatické vymazanie debug, error a info logov pri štarte
 //    - Vytvorenie prehľadného markdown reportu v info poli
 // ==============================================
+// 🔧 CHANGELOG v4.1.0 (2025-10-12):
+//    - FIX: Prevencia duplicitných cenových záznamov - hľadanie existujúceho záznamu
+//    - FIX: Ak existuje záznam pre daný materiál/prácu a dátum, aktualizuje sa namiesto vytvorenia nového
+//    - ZLEPŠENIE: Kontrola materiálu/práce cez entry.id namiesto porovnávania polí
+//    - ZLEPŠENIE: Normalizácia dátumu na začiatok dňa (00:00:00) pre presné porovnanie
+//    - ZLEPŠENIE: Debug logy informujú či sa vytvára nový alebo aktualizuje existujúci záznam
 // 🔧 CHANGELOG v4.0.0 (2025-10-12):
 //    - MODULE VERSION: Zabalený do exportovateľného modulu
 //    - NOVÁ FUNKCIA: partCalculate(partEntry) - hlavná exportovaná funkcia
@@ -51,7 +57,7 @@ var CPDielyCalculate = (function() {
         var CONFIG = {
             // Script špecifické nastavenia
             scriptName: "Cenové ponuky Diely - Prepočet (Module)",
-            version: "4.0.0",
+            version: "4.1.0",
 
             // Referencie na centrálny config
             fields: centralConfig.fields.quotePart,
@@ -338,7 +344,8 @@ var CPDielyCalculate = (function() {
         }
 
         /**
-         * Vytvorí nový záznam ceny pre materiál a aktualizuje pole "Cena" v samotnom zázname
+         * Vytvorí alebo aktualizuje záznam ceny pre materiál a aktualizuje pole "Cena" v samotnom zázname
+         * Ak už existuje záznam pre daný dátum, aktualizuje ho namiesto vytvárania nového
          * @param {Entry} materialEntry - Záznam materiálu
          * @param {Number} newPrice - Nová cena
          * @param {Date} validFrom - Platnosť od
@@ -348,25 +355,73 @@ var CPDielyCalculate = (function() {
                 var materialPricesLib = libByName(centralConfig.libraries.materialPrices);
                 var priceFields = CONFIG.priceFields.materialPrices;
 
-                var newPriceEntry = materialPricesLib.create({});
-                newPriceEntry.set(priceFields.material, [materialEntry]);
-                newPriceEntry.set(priceFields.date, validFrom);
-                newPriceEntry.set(priceFields.sellPrice, newPrice);
+                // Konverzia dátumu na začiatok dňa pre presné porovnanie
+                var dateOnly = new Date(validFrom);
+                dateOnly.setHours(0, 0, 0, 0);
 
-                utils.addDebug(currentEntry, "    ✅ Vytvorený nový cenový záznam pre materiál, cena: " + newPrice);
+                // Hľadaj existujúci záznam pre tento materiál a dátum
+                utils.addDebug(currentEntry, "    🔍 Hľadám existujúci cenový záznam pre dátum: " + moment(dateOnly).format("DD.MM.YYYY"));
+
+                var existingPriceEntries = materialPricesLib.entries();
+                var existingEntry = null;
+
+                for (var i = 0; i < existingPriceEntries.length; i++) {
+                    var priceEntry = existingPriceEntries[i];
+
+                    // Kontrola či tento záznam patrí k našemu materiálu
+                    var linkedMaterials = utils.safeGetLinks(priceEntry, priceFields.material) || [];
+                    var isSameMaterial = false;
+
+                    for (var j = 0; j < linkedMaterials.length; j++) {
+                        if (linkedMaterials[j].id === materialEntry.id) {
+                            isSameMaterial = true;
+                            break;
+                        }
+                    }
+
+                    if (!isSameMaterial) {
+                        continue;
+                    }
+
+                    // Kontrola dátumu
+                    var priceDate = utils.safeGet(priceEntry, priceFields.date);
+                    if (priceDate) {
+                        var priceDateOnly = new Date(priceDate);
+                        priceDateOnly.setHours(0, 0, 0, 0);
+
+                        if (priceDateOnly.getTime() === dateOnly.getTime()) {
+                            existingEntry = priceEntry;
+                            break;
+                        }
+                    }
+                }
+
+                if (existingEntry) {
+                    // Aktualizuj existujúci záznam
+                    utils.addDebug(currentEntry, "    🔄 Aktualizujem existujúci cenový záznam, nová cena: " + newPrice.toFixed(2) + " €");
+                    existingEntry.set(priceFields.sellPrice, newPrice);
+                } else {
+                    // Vytvor nový záznam
+                    utils.addDebug(currentEntry, "    ✅ Vytváram nový cenový záznam, cena: " + newPrice.toFixed(2) + " €");
+                    var newPriceEntry = materialPricesLib.create({});
+                    newPriceEntry.set(priceFields.material, [materialEntry]);
+                    newPriceEntry.set(priceFields.date, dateOnly);
+                    newPriceEntry.set(priceFields.sellPrice, newPrice);
+                }
 
                 // Aktualizuj aj pole "Cena" v samotnom zázname materiálu
                 updateMaterialItemPrice(materialEntry, newPrice);
 
                 return true;
             } catch (error) {
-                utils.addError(currentEntry, "❌ Chyba pri vytváraní cenového záznamu pre materiál: " + error.toString(), "createMaterialPriceRecord", error);
+                utils.addError(currentEntry, "❌ Chyba pri vytváraní/aktualizácii cenového záznamu pre materiál: " + error.toString(), "createMaterialPriceRecord", error);
                 return false;
             }
         }
 
         /**
-         * Vytvorí nový záznam ceny pre prácu a aktualizuje pole "Cena" v samotnom zázname
+         * Vytvorí alebo aktualizuje záznam ceny pre prácu a aktualizuje pole "Cena" v samotnom zázname
+         * Ak už existuje záznam pre daný dátum, aktualizuje ho namiesto vytvárania nového
          * @param {Entry} workEntry - Záznam práce
          * @param {Number} newPrice - Nová cena
          * @param {Date} validFrom - Platnosť od
@@ -376,19 +431,66 @@ var CPDielyCalculate = (function() {
                 var workPricesLib = libByName(centralConfig.libraries.workPrices);
                 var priceFields = CONFIG.priceFields.workPrices;
 
-                var newPriceEntry = workPricesLib.create({});
-                newPriceEntry.set(priceFields.work, [workEntry]);
-                newPriceEntry.set(priceFields.validFrom, validFrom);
-                newPriceEntry.set(priceFields.price, newPrice);
+                // Konverzia dátumu na začiatok dňa pre presné porovnanie
+                var dateOnly = new Date(validFrom);
+                dateOnly.setHours(0, 0, 0, 0);
 
-                utils.addDebug(currentEntry, "    ✅ Vytvorený nový cenový záznam pre prácu, cena: " + newPrice);
+                // Hľadaj existujúci záznam pre túto prácu a dátum
+                utils.addDebug(currentEntry, "    🔍 Hľadám existujúci cenový záznam pre dátum: " + moment(dateOnly).format("DD.MM.YYYY"));
+
+                var existingPriceEntries = workPricesLib.entries();
+                var existingEntry = null;
+
+                for (var i = 0; i < existingPriceEntries.length; i++) {
+                    var priceEntry = existingPriceEntries[i];
+
+                    // Kontrola či tento záznam patrí k našej práci
+                    var linkedWorks = utils.safeGetLinks(priceEntry, priceFields.work) || [];
+                    var isSameWork = false;
+
+                    for (var j = 0; j < linkedWorks.length; j++) {
+                        if (linkedWorks[j].id === workEntry.id) {
+                            isSameWork = true;
+                            break;
+                        }
+                    }
+
+                    if (!isSameWork) {
+                        continue;
+                    }
+
+                    // Kontrola dátumu
+                    var priceDate = utils.safeGet(priceEntry, priceFields.validFrom);
+                    if (priceDate) {
+                        var priceDateOnly = new Date(priceDate);
+                        priceDateOnly.setHours(0, 0, 0, 0);
+
+                        if (priceDateOnly.getTime() === dateOnly.getTime()) {
+                            existingEntry = priceEntry;
+                            break;
+                        }
+                    }
+                }
+
+                if (existingEntry) {
+                    // Aktualizuj existujúci záznam
+                    utils.addDebug(currentEntry, "    🔄 Aktualizujem existujúci cenový záznam, nová cena: " + newPrice.toFixed(2) + " €");
+                    existingEntry.set(priceFields.price, newPrice);
+                } else {
+                    // Vytvor nový záznam
+                    utils.addDebug(currentEntry, "    ✅ Vytváram nový cenový záznam, cena: " + newPrice.toFixed(2) + " €");
+                    var newPriceEntry = workPricesLib.create({});
+                    newPriceEntry.set(priceFields.work, [workEntry]);
+                    newPriceEntry.set(priceFields.validFrom, dateOnly);
+                    newPriceEntry.set(priceFields.price, newPrice);
+                }
 
                 // Aktualizuj aj pole "Cena" v samotnom zázname práce
                 updateWorkItemPrice(workEntry, newPrice);
 
                 return true;
             } catch (error) {
-                utils.addError(currentEntry, "❌ Chyba pri vytváraní cenového záznamu pre prácu: " + error.toString(), "createWorkPriceRecord", error);
+                utils.addError(currentEntry, "❌ Chyba pri vytváraní/aktualizácii cenového záznamu pre prácu: " + error.toString(), "createWorkPriceRecord", error);
                 return false;
             }
         }
@@ -874,7 +976,7 @@ var CPDielyCalculate = (function() {
 
     return {
         partCalculate: partCalculate,
-        version: "4.0.0"
+        version: "4.1.0"
     };
 })();
 
