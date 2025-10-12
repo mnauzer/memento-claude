@@ -1508,6 +1508,18 @@ var MementoConfig = (function() {
                 totalPrice: "cena celkom" // currency - celková cena (množstvo × cena)
             },
 
+            // Zákazky Diely - atribúty položiek (2025-10-12)
+            orderPartMaterials: {
+                quantity: "množstvo", // real number - množstvo materiálu
+                price: "cena cp", // currency - cena z cenovej ponuky (source: "cena" z quote)
+                totalPrice: "cena celkom" // currency - celková cena (množstvo × cena cp)
+            },
+            orderPartWorks: {
+                quantity: "množstvo", // real number - množstvo hodín/jednotiek
+                price: "cena cp", // currency - cena z cenovej ponuky (source: "cena" z quote)
+                totalPrice: "cena celkom" // currency - celková cena (množstvo × cena cp)
+            },
+
             // Výkaz strojov - atribúty strojov (field 103) - aktualizované podľa API (2025-10-04)
             machinesReportMachines: {
                 // Skutočné atribúty podľa API
