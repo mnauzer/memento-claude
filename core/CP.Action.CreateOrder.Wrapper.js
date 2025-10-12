@@ -9,11 +9,15 @@
  * - Použitie: var CPActions = CPCreateOrderWrapper; CPActions.createOrder(entry);
  * - Vracia objekt s výsledkom operácie (success, message, order, parts)
  *
- * Verzia: 1.0.0
- * Dátum: 2025-10-11
+ * Verzia: 1.1.0
+ * Dátum: 2025-10-12
  * Autor: ASISTANTO
  *
  * CHANGELOG:
+ * v1.1.0 (2025-10-12):
+ *   - FIX: Zbieranie dielov zo všetkých troch polí (Diely, Diely HZS, Subdodávky)
+ *   - Subdodávky sa teraz správne vytvárajú v knižnici Zákazky Diely
+ *   - Zlepšená podpora pre rôzne typy cenovej ponuky (Položky, Hodinovka)
  * v1.0.0 (2025-10-11):
  *   - Prvá verzia wrapper funkcie
  *   - Umožňuje volanie createOrder(entry) z iných scriptov
@@ -195,7 +199,27 @@ var CPCreateOrderWrapper = (function() {
             // KROK 4: VYTVORENIE/AKTUALIZÁCIA DIELOV
             // ==============================================
 
-            var quoteParts = utils.safeGetLinks(quoteEntry, fields.parts) || [];
+            // Zbieranie dielov zo všetkých troch polí: Diely, Diely HZS, Subdodávky
+            var allQuoteParts = [];
+
+            // Pole 1: Diely
+            var parts1 = utils.safeGetLinks(quoteEntry, fields.parts) || [];
+            for (var p1 = 0; p1 < parts1.length; p1++) {
+                allQuoteParts.push(parts1[p1]);
+            }
+
+            // Pole 2: Diely HZS
+            var parts2 = utils.safeGetLinks(quoteEntry, fields.partsHzs) || [];
+            for (var p2 = 0; p2 < parts2.length; p2++) {
+                allQuoteParts.push(parts2[p2]);
+            }
+
+            // Pole 3: Subdodávky
+            var parts3 = utils.safeGetLinks(quoteEntry, fields.subcontracts) || [];
+            for (var p3 = 0; p3 < parts3.length; p3++) {
+                allQuoteParts.push(parts3[p3]);
+            }
+
             var createdPartsCount = 0;
             var skippedPartsCount = 0;
 
@@ -214,8 +238,8 @@ var CPCreateOrderWrapper = (function() {
             var generatedOrderNumber = utils.safeGet(order, orderFields.number) || quoteNumber;
             var creationDate = new Date();
 
-            for (var i = 0; i < quoteParts.length; i++) {
-                var quotePart = quoteParts[i];
+            for (var i = 0; i < allQuoteParts.length; i++) {
+                var quotePart = allQuoteParts[i];
 
                 try {
                     var partNumber = utils.safeGet(quotePart, quotePartFields.number);
