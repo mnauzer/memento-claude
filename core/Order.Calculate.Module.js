@@ -418,13 +418,41 @@ var OrderCalculate = (function() {
             var totalBudget = budgetResult.budget + additional.transportPrice + additional.massTransferPrice;
             var remaining = totalBudget - spent;
 
-            // Zapíš výsledky
-            currentEntry.set(fields.budget, budgetResult.budget);
-            currentEntry.set(fields.budgetSubcontracts, budgetResult.budgetSubcontracts);
-            currentEntry.set(fields.spent, spent);
-            currentEntry.set(fields.remaining, remaining);
-            currentEntry.set(fields.transportPrice, additional.transportPrice);
-            currentEntry.set(fields.massTransferPrice, additional.massTransferPrice);
+            // Zapíš výsledky s error handlingom
+            try {
+                currentEntry.set(fields.budget, budgetResult.budget);
+            } catch (e) {
+                var errorMsg = "❌ Pole 'budget' (" + fields.budget + ") neexistuje v knižnici Zákazky";
+                utils.addDebug(currentEntry, errorMsg);
+                throw new Error(errorMsg + ": " + e.toString());
+            }
+
+            try {
+                currentEntry.set(fields.budgetSubcontracts, budgetResult.budgetSubcontracts);
+            } catch (e) {
+                var errorMsg = "❌ Pole 'budgetSubcontracts' (" + fields.budgetSubcontracts + ") neexistuje v knižnici Zákazky";
+                utils.addDebug(currentEntry, errorMsg);
+                throw new Error(errorMsg + ": " + e.toString());
+            }
+
+            try {
+                currentEntry.set(fields.spent, spent);
+            } catch (e) {
+                var errorMsg = "❌ Pole 'spent' (" + fields.spent + ") neexistuje v knižnici Zákazky";
+                utils.addDebug(currentEntry, errorMsg);
+                throw new Error(errorMsg + ": " + e.toString());
+            }
+
+            try {
+                currentEntry.set(fields.remaining, remaining);
+            } catch (e) {
+                var errorMsg = "❌ Pole 'remaining' (" + fields.remaining + ") neexistuje v knižnici Zákazky";
+                utils.addDebug(currentEntry, errorMsg);
+                throw new Error(errorMsg + ": " + e.toString());
+            }
+
+            // Polia transportPrice a massTransferPrice sú len v Cenové ponuky, nie v Zákazky
+            // Pre Zákazky sa tieto údaje počítajú inak alebo nie sú potrebné
 
             utils.addDebug(currentEntry, "  ✅ Rozpočet: " + budgetResult.budget.toFixed(2) + " €");
             if (budgetResult.budgetSubcontracts > 0) {
