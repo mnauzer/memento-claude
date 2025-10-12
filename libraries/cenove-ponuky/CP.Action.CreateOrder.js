@@ -438,53 +438,50 @@ try {
                         utils.addDebug(currentEntry, "    📖 Prečítané atribúty prác: " + worksData.length);
                     }
 
-                    // KROK 2: Linkni položky (create() už uložil orderPart do DB)
+                    // KROK 2: Linkni položky a IHNEĎ nastav atribúty (v jednom cykle)
                     if (materialsData.length > 0) {
-                        utils.addDebug(currentEntry, "    📦 Linkujem materiály...");
+                        utils.addDebug(currentEntry, "    📦 Linkujem materiály a nastavujem atribúty...");
                         for (var m = 0; m < materialsData.length; m++) {
-                            orderPart.link(orderPartFields.materials, materialsData[m].entry);
-                        }
-                        utils.addDebug(currentEntry, "      ✅ Linknutých materiálov: " + materialsData.length);
-                    }
-
-                    if (worksData.length > 0) {
-                        utils.addDebug(currentEntry, "    🔧 Linkujem práce...");
-                        for (var w = 0; w < worksData.length; w++) {
-                            orderPart.link(orderPartFields.works, worksData[w].entry);
-                        }
-                        utils.addDebug(currentEntry, "      ✅ Linknutých prác: " + worksData.length);
-                    }
-
-                    // KROK 3: Nastav atribúty na linknutých položkách (podľa poradia indexov)
-                    if (materialsData.length > 0) {
-                        utils.addDebug(currentEntry, "    🔄 Nastavujem atribúty materiálov...");
-                        var linkedMaterials = orderPart.field(orderPartFields.materials);
-
-                        // Poradie v linkedMaterials zodpovedá poradiu linkovania v materialsData
-                        for (var m = 0; m < linkedMaterials.length && m < materialsData.length; m++) {
-                            var linkedMat = linkedMaterials[m];
                             var matData = materialsData[m];
 
-                            linkedMat.setAttr("množstvo", matData.qty);
-                            linkedMat.setAttr("cena", matData.price);
-                            linkedMat.setAttr("cena celkom", matData.total);
-                            utils.addDebug(currentEntry, "      ✅ [" + m + "] " + matData.name + ": m=" + matData.qty + ", c=" + matData.price + "€");
+                            // Linkni
+                            orderPart.link(orderPartFields.materials, matData.entry);
+
+                            // IHNEĎ po linknutí získaj pole a nastav atribúty na poslednom prvku
+                            var currentMaterials = orderPart.field(orderPartFields.materials);
+                            var justLinkedMat = currentMaterials[currentMaterials.length - 1];
+
+                            if (justLinkedMat) {
+                                justLinkedMat.setAttr("množstvo", matData.qty);
+                                justLinkedMat.setAttr("cena", matData.price);
+                                justLinkedMat.setAttr("cena celkom", matData.total);
+                                utils.addDebug(currentEntry, "      ✅ [" + m + "] " + matData.name + ": m=" + matData.qty + ", c=" + matData.price + "€");
+                            } else {
+                                utils.addDebug(currentEntry, "      ❌ [" + m + "] Nie je možné získať linknutý materiál!");
+                            }
                         }
                     }
 
                     if (worksData.length > 0) {
-                        utils.addDebug(currentEntry, "    🔄 Nastavujem atribúty prác...");
-                        var linkedWorks = orderPart.field(orderPartFields.works);
-
-                        // Poradie v linkedWorks zodpovedá poradiu linkovania v worksData
-                        for (var w = 0; w < linkedWorks.length && w < worksData.length; w++) {
-                            var linkedWrk = linkedWorks[w];
+                        utils.addDebug(currentEntry, "    🔧 Linkujem práce a nastavujem atribúty...");
+                        for (var w = 0; w < worksData.length; w++) {
                             var wrkData = worksData[w];
 
-                            linkedWrk.setAttr("množstvo", wrkData.qty);
-                            linkedWrk.setAttr("cena", wrkData.price);
-                            linkedWrk.setAttr("cena celkom", wrkData.total);
-                            utils.addDebug(currentEntry, "      ✅ [" + w + "] " + wrkData.name + ": h=" + wrkData.qty + ", c=" + wrkData.price + "€");
+                            // Linkni
+                            orderPart.link(orderPartFields.works, wrkData.entry);
+
+                            // IHNEĎ po linknutí získaj pole a nastav atribúty na poslednom prvku
+                            var currentWorks = orderPart.field(orderPartFields.works);
+                            var justLinkedWrk = currentWorks[currentWorks.length - 1];
+
+                            if (justLinkedWrk) {
+                                justLinkedWrk.setAttr("množstvo", wrkData.qty);
+                                justLinkedWrk.setAttr("cena", wrkData.price);
+                                justLinkedWrk.setAttr("cena celkom", wrkData.total);
+                                utils.addDebug(currentEntry, "      ✅ [" + w + "] " + wrkData.name + ": h=" + wrkData.qty + ", c=" + wrkData.price + "€");
+                            } else {
+                                utils.addDebug(currentEntry, "      ❌ [" + w + "] Nie je možné získať linknutú prácu!");
+                            }
                         }
                     }
 
