@@ -664,9 +664,12 @@ var MementoConfig = (function() {
                 totalPrice: "cena celkom" // currency - celková cena dodaného materiálu
             },
             orderPartWorks: {
-                quantity: "množstvo cp", // real number - množstvo hodín/jednotiek z cenovej ponuky
-                price: "cena cp", // currency - cena z cenovej ponuky (source: "cena" z quote)
-                totalPrice: "cena celkom cp" // currency - celková cena z cenovej ponuky
+                qoteQuantity: "množstvo cp", // real number - množstvo hodín/jednotiek z cenovej ponuky
+                qutePrice: "cena cp", // currency - cena z cenovej ponuky (source: "cena" z quote)
+                quoteTotalPrice: "cena celkom cp", // currency - celková cena z cenovej ponuky
+                quantity: "množstvo", // real number - množstvo hodín/jednotiek dodané
+                price: "cena", // currency - cena dodané (source: "cena" z quote)
+                totalPrice: "cena celkom" // currency - celková cena dodané
             },
 
         },
