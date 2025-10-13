@@ -1,12 +1,17 @@
 // ==============================================
 // ZÁKAZKY DIELY - Hlavný prepočet (MODULE)
-// Verzia: 1.0.0 | Dátum: 2025-10-12 | Autor: ASISTANTO
+// Verzia: 2.0.0 | Dátum: 2025-10-12 | Autor: ASISTANTO
 // Knižnica: Zákazky Diely (ID: iEUC79O2T)
 // ==============================================
 // 📋 FUNKCIA:
 //    - Exportovateľný modul pre prepočet položiek zákazky (Materiál, Práce)
 //    - Použitie: OrderDielyCalculate.partCalculate(entry());
-//    - Prepočet súčtov z atribútov (bez cenovej logiky - ceny sú fixované)
+//    - VŽDY získava ceny z databázy (ceny materiálu / ceny prác)
+//    - Porovnanie ručne zadaných cien s cenami z databázy
+//    - Dialóg pre update cien v databáze pri rozdieloch (PRED výpočtami)
+//    - Automatické vytvorenie/aktualizácia cenových záznamov (max 1 na deň)
+//    - Aktualizácia poľa "Cena" v záznamy materiálu/práce pri vytvorení/aktualizácii ceny
+//    - Automatické použitie ceny z poľa "Cena" ak atribút nie je zadaný
 //    - Automatické vyčistenie debug, error a info logov pri štarte
 //    - Vytvorenie prehľadného textového reportu v info poli
 //    - Výpočet celkovej hmotnosti materiálu v tonách (ak pole existuje)
@@ -19,12 +24,18 @@
 //    var orderPart = lib("Zákazky Diely").find("Číslo", 1)[0];
 //    OrderDielyCalculate.partCalculate(orderPart);
 // ==============================================
+// 🔧 CHANGELOG v2.0.0 (2025-10-12):
+//    - REFACTOR: Pridaný cenový systém z CP.Diely.Calculate.Module.js v4.2.0
+//    - NOVÁ FUNKCIA: Vždy kontroluje ceny v databáze a umožňuje ich aktualizáciu
+//    - NOVÁ FUNKCIA: Dialóg pre update cien pri rozdieloch (PRED výpočtami)
+//    - NOVÁ FUNKCIA: Automatické vytvorenie cenových záznamov pre položky bez DB ceny
+//    - ZLEPŠENIE: Výpočty používajú DB ceny namiesto ručných cien z atribútov
+//    - ZLEPŠENIE: Kontrola duplicít pri vytváraní cenových záznamov
 // 🔧 CHANGELOG v1.0.0 (2025-10-12):
 //    - MODULE VERSION: Zabalený do exportovateľného modulu
 //    - NOVÁ FUNKCIA: partCalculate(partEntry) - hlavná exportovaná funkcia
 //    - Použiteľné z iných scriptov, triggerov, action eventov
 //    - Backward compatibility: Ak je dostupné entry(), automaticky sa zavolá
-//    - Zjednodušená logika oproti CP.Diely - len súčty z atribútov, bez cenového systému
 // ==============================================
 
 var OrderDielyCalculate = (function() {
@@ -51,7 +62,7 @@ var OrderDielyCalculate = (function() {
         var CONFIG = {
             // Script špecifické nastavenia
             scriptName: "Zákazky Diely - Prepočet (Module)",
-            version: "1.0.0",
+            version: "2.0.0",
 
             // Referencie na centrálny config
             fields: centralConfig.fields.orderPart,
@@ -69,22 +80,35 @@ var OrderDielyCalculate = (function() {
             },
             icons: centralConfig.icons,
 
+            // Polia pre cenové knižnice
+            priceFields: {
+                materialPrices: centralConfig.fields.materialPrices,
+                workPrices: centralConfig.fields.workPrices
+            },
+
             // Polia pre položky (materiál a práce)
             itemFields: {
-                material: centralConfig.fields.items  // Materiál
+                material: centralConfig.fields.items,  // Materiál
+                work: "Cena"  // Cenník prác - priamo názov poľa
             }
         };
+
+        // Globálne premenné pre zbieranie rozdielov v cenách
+        var priceDifferences = [];
 
         // Globálne premenné pre zbieranie info o položkách
         var materialItemsInfo = [];
         var workItemsInfo = [];
+
+        // Dátum pre cenové výpočty (bude nastavený v hlavnej logike)
+        var currentDate = null;
 
         var fields = CONFIG.fields;
 
         // Vyčistiť debug, error a info logy pred začiatkom
         utils.clearLogs(currentEntry, true);  // true = vyčistí aj Error_Log
 
-        utils.addDebug(currentEntry, "🚀 START: Prepočet zákazky Diely (Module v1.0.0)");
+        utils.addDebug(currentEntry, "🚀 START: Prepočet zákazky Diely (Module v2.0.0)");
 
         // ==============================================
         // POMOCNÉ FUNKCIE
@@ -218,6 +242,306 @@ var OrderDielyCalculate = (function() {
         }
 
         /**
+         * Nájde platnú cenu materiálu k danému dátumu
+         * @param {Entry} materialEntry - Záznam materiálu
+         * @param {Date} date - Dátum pre ktorý hľadáme cenu
+         * @returns {Number|null} - Platná cena alebo null
+         */
+        function findMaterialPrice(materialEntry, date) {
+            var options = {
+                priceLibrary: "materialPrices",
+                linkField: "material",
+                dateField: "date",
+                priceField: "sellPrice",
+                fallbackPriceField: "price",
+                currentEntry: currentEntry
+            };
+            return utils.findValidPrice(materialEntry, date, options);
+        }
+
+        /**
+         * Nájde platnú cenu práce k danému dátumu
+         * @param {Entry} workEntry - Záznam práce
+         * @param {Date} date - Dátum pre ktorý hľadáme cenu
+         * @returns {Number|null} - Platná cena alebo null
+         */
+        function findWorkPrice(workEntry, date) {
+            var options = {
+                priceLibrary: "workPrices",
+                linkField: "work",
+                priceField: "price",
+                currentEntry: currentEntry
+            };
+            return utils.findValidPrice(workEntry, date, options);
+        }
+
+        /**
+         * Aktualizuje pole "Cena" v zázname materiálu
+         * @param {Entry} materialEntry - Záznam materiálu
+         * @param {Number} newPrice - Nová cena
+         */
+        function updateMaterialItemPrice(materialEntry, newPrice) {
+            try {
+                var priceFieldName = CONFIG.itemFields.material.price;
+                materialEntry.set(priceFieldName, newPrice);
+                utils.addDebug(currentEntry, "    🔄 Aktualizované pole Cena v materiáli: " + newPrice.toFixed(2) + " €");
+            } catch (error) {
+                utils.addError(currentEntry, "⚠️ Chyba pri aktualizácii Cena v materiáli: " + error.toString(), "updateMaterialItemPrice", error);
+            }
+        }
+
+        /**
+         * Aktualizuje pole "Cena" v zázname práce
+         * @param {Entry} workEntry - Záznam práce
+         * @param {Number} newPrice - Nová cena
+         */
+        function updateWorkItemPrice(workEntry, newPrice) {
+            try {
+                var priceFieldName = CONFIG.itemFields.work;
+                workEntry.set(priceFieldName, newPrice);
+                utils.addDebug(currentEntry, "    🔄 Aktualizované pole Cena v práci: " + newPrice.toFixed(2) + " €");
+            } catch (error) {
+                utils.addError(currentEntry, "⚠️ Chyba pri aktualizácii Cena v práci: " + error.toString(), "updateWorkItemPrice", error);
+            }
+        }
+
+        /**
+         * Vytvorí alebo aktualizuje záznam ceny pre materiál a aktualizuje pole "Cena" v samotnom zázname
+         * Ak už existuje záznam pre daný dátum, aktualizuje ho namiesto vytvárania nového
+         * @param {Entry} materialEntry - Záznam materiálu
+         * @param {Number} newPrice - Nová cena
+         * @param {Date} validFrom - Platnosť od
+         */
+        function createMaterialPriceRecord(materialEntry, newPrice, validFrom) {
+            try {
+                var materialPricesLib = libByName(centralConfig.libraries.materialPrices);
+                var priceFields = CONFIG.priceFields.materialPrices;
+
+                var dateOnly = new Date(validFrom);
+                dateOnly.setHours(0, 0, 0, 0);
+
+                utils.addDebug(currentEntry, "    🔍 Hľadám existujúci cenový záznam pre dátum: " + moment(dateOnly).format("DD.MM.YYYY"));
+
+                var existingPriceEntries = materialPricesLib.entries();
+                var existingEntry = null;
+
+                for (var i = 0; i < existingPriceEntries.length; i++) {
+                    var priceEntry = existingPriceEntries[i];
+                    var linkedMaterials = utils.safeGetLinks(priceEntry, priceFields.material) || [];
+                    var isSameMaterial = false;
+
+                    for (var j = 0; j < linkedMaterials.length; j++) {
+                        if (linkedMaterials[j].id === materialEntry.id) {
+                            isSameMaterial = true;
+                            break;
+                        }
+                    }
+
+                    if (!isSameMaterial) continue;
+
+                    var priceDate = utils.safeGet(priceEntry, priceFields.date);
+                    if (priceDate) {
+                        var priceDateOnly = new Date(priceDate);
+                        priceDateOnly.setHours(0, 0, 0, 0);
+
+                        if (priceDateOnly.getTime() === dateOnly.getTime()) {
+                            existingEntry = priceEntry;
+                            break;
+                        }
+                    }
+                }
+
+                if (existingEntry) {
+                    utils.addDebug(currentEntry, "    🔄 Aktualizujem existujúci cenový záznam, nová cena: " + newPrice.toFixed(2) + " €");
+                    existingEntry.set(priceFields.sellPrice, newPrice);
+                } else {
+                    utils.addDebug(currentEntry, "    ✅ Vytváram nový cenový záznam, cena: " + newPrice.toFixed(2) + " €");
+                    var newPriceEntry = materialPricesLib.create({});
+                    newPriceEntry.set(priceFields.material, [materialEntry]);
+                    newPriceEntry.set(priceFields.date, dateOnly);
+                    newPriceEntry.set(priceFields.sellPrice, newPrice);
+                }
+
+                updateMaterialItemPrice(materialEntry, newPrice);
+
+                return true;
+            } catch (error) {
+                utils.addError(currentEntry, "❌ Chyba pri vytváraní/aktualizácii cenového záznamu pre materiál: " + error.toString(), "createMaterialPriceRecord", error);
+                return false;
+            }
+        }
+
+        /**
+         * Vytvorí alebo aktualizuje záznam ceny pre prácu a aktualizuje pole "Cena" v samotnom zázname
+         * Ak už existuje záznam pre daný dátum, aktualizuje ho namiesto vytvárania nového
+         * @param {Entry} workEntry - Záznam práce
+         * @param {Number} newPrice - Nová cena
+         * @param {Date} validFrom - Platnosť od
+         */
+        function createWorkPriceRecord(workEntry, newPrice, validFrom) {
+            try {
+                var workPricesLib = libByName(centralConfig.libraries.workPrices);
+                var priceFields = CONFIG.priceFields.workPrices;
+
+                var dateOnly = new Date(validFrom);
+                dateOnly.setHours(0, 0, 0, 0);
+
+                utils.addDebug(currentEntry, "    🔍 Hľadám existujúci cenový záznam pre dátum: " + moment(dateOnly).format("DD.MM.YYYY"));
+
+                var existingPriceEntries = workPricesLib.entries();
+                var existingEntry = null;
+
+                for (var i = 0; i < existingPriceEntries.length; i++) {
+                    var priceEntry = existingPriceEntries[i];
+                    var linkedWorks = utils.safeGetLinks(priceEntry, priceFields.work) || [];
+                    var isSameWork = false;
+
+                    for (var j = 0; j < linkedWorks.length; j++) {
+                        if (linkedWorks[j].id === workEntry.id) {
+                            isSameWork = true;
+                            break;
+                        }
+                    }
+
+                    if (!isSameWork) continue;
+
+                    var priceDate = utils.safeGet(priceEntry, priceFields.validFrom);
+                    if (priceDate) {
+                        var priceDateOnly = new Date(priceDate);
+                        priceDateOnly.setHours(0, 0, 0, 0);
+
+                        if (priceDateOnly.getTime() === dateOnly.getTime()) {
+                            existingEntry = priceEntry;
+                            break;
+                        }
+                    }
+                }
+
+                if (existingEntry) {
+                    utils.addDebug(currentEntry, "    🔄 Aktualizujem existujúci cenový záznam, nová cena: " + newPrice.toFixed(2) + " €");
+                    existingEntry.set(priceFields.price, newPrice);
+                } else {
+                    utils.addDebug(currentEntry, "    ✅ Vytváram nový cenový záznam, cena: " + newPrice.toFixed(2) + " €");
+                    var newPriceEntry = workPricesLib.create({});
+                    newPriceEntry.set(priceFields.work, [workEntry]);
+                    newPriceEntry.set(priceFields.validFrom, dateOnly);
+                    newPriceEntry.set(priceFields.price, newPrice);
+                }
+
+                updateWorkItemPrice(workEntry, newPrice);
+
+                return true;
+            } catch (error) {
+                utils.addError(currentEntry, "❌ Chyba pri vytváraní/aktualizácii cenového záznamu pre prácu: " + error.toString(), "createWorkPriceRecord", error);
+                return false;
+            }
+        }
+
+        /**
+         * Automaticky vytvorí cenové záznamy pre položky s autoCreate flag
+         * @param {Array} autoCreateItems - Položky na automatické vytvorenie
+         */
+        function processAutoCreatePrices(autoCreateItems) {
+            if (!autoCreateItems || autoCreateItems.length === 0) return;
+
+            utils.addDebug(currentEntry, "\n🤖 Automatické vytvorenie cenových záznamov");
+            utils.addDebug(currentEntry, "  Počet položiek: " + autoCreateItems.length);
+
+            var successCount = 0;
+            var failCount = 0;
+
+            for (var i = 0; i < autoCreateItems.length; i++) {
+                var diff = autoCreateItems[i];
+                utils.addDebug(currentEntry, "  Vytváram: " + diff.itemName + " (" + diff.type + "), cena: " + diff.manualPrice.toFixed(2) + " €");
+
+                var success = false;
+                if (diff.type === "Materiál") {
+                    success = createMaterialPriceRecord(diff.itemEntry, diff.manualPrice, currentDate);
+                } else if (diff.type === "Práce") {
+                    success = createWorkPriceRecord(diff.itemEntry, diff.manualPrice, currentDate);
+                }
+
+                if (success) successCount++;
+                else failCount++;
+            }
+
+            utils.addDebug(currentEntry, "  ✅ Úspešne vytvorených: " + successCount);
+            if (failCount > 0) utils.addDebug(currentEntry, "  ❌ Neúspešných: " + failCount);
+        }
+
+        /**
+         * Zobrazí dialóg s rozdielmi v cenách a umožní používateľovi potvrdiť aktualizáciu
+         */
+        function showPriceDifferenceDialog() {
+            var autoCreateItems = [];
+            var manualUpdateItems = [];
+
+            for (var i = 0; i < priceDifferences.length; i++) {
+                var diff = priceDifferences[i];
+                if (diff.autoCreate === true) autoCreateItems.push(diff);
+                else manualUpdateItems.push(diff);
+            }
+
+            if (autoCreateItems.length > 0) processAutoCreatePrices(autoCreateItems);
+            if (manualUpdateItems.length === 0) return;
+
+            var dialogMessage = "Našli sa rozdiely medzi zadanými cenami a cenami v databáze:\n\n";
+
+            for (var i = 0; i < manualUpdateItems.length; i++) {
+                var diff = manualUpdateItems[i];
+                dialogMessage += (i + 1) + ". " + diff.itemName + " (" + diff.type + ")\n";
+                dialogMessage += "   • Zadaná cena: " + diff.manualPrice.toFixed(2) + " €\n";
+                dialogMessage += "   • Cena v DB:   " + (diff.dbPrice ? diff.dbPrice.toFixed(2) + " €" : "neexistuje") + "\n";
+                dialogMessage += "   • Rozdiel:     " + diff.difference.toFixed(2) + " €\n\n";
+            }
+
+            dialogMessage += "Chcete aktualizovať ceny v databáze?\n";
+            dialogMessage += "(Vytvorí/aktualizuje cenový záznam s dátumom: " + moment(currentDate).format("DD.MM.YYYY") + ")";
+
+            dialog()
+                .title("🔍 Zistené rozdiely v cenách")
+                .text(dialogMessage)
+                .positiveButton("Áno, aktualizovať", function() {
+                    processPriceUpdates(manualUpdateItems);
+                })
+                .negativeButton("Nie, zrušiť", function() {
+                    utils.addDebug(currentEntry, "  ℹ️ Používateľ zrušil aktualizáciu cien");
+                })
+                .show();
+        }
+
+        /**
+         * Spracuje update cien v databáze
+         * @param {Array} itemsToUpdate - Položky na aktualizáciu (z dialógu)
+         */
+        function processPriceUpdates(itemsToUpdate) {
+            utils.addDebug(currentEntry, "\n💾 Aktualizácia cien v databáze (manuálne potvrdené)");
+
+            var successCount = 0;
+            var failCount = 0;
+
+            for (var i = 0; i < itemsToUpdate.length; i++) {
+                var diff = itemsToUpdate[i];
+                utils.addDebug(currentEntry, "  Aktualizujem: " + diff.itemName + " (" + diff.type + ")");
+
+                var success = false;
+                if (diff.type === "Materiál") {
+                    success = createMaterialPriceRecord(diff.itemEntry, diff.manualPrice, currentDate);
+                } else if (diff.type === "Práce") {
+                    success = createWorkPriceRecord(diff.itemEntry, diff.manualPrice, currentDate);
+                }
+
+                if (success) successCount++;
+                else failCount++;
+            }
+
+            utils.addDebug(currentEntry, "  ✅ Úspešne aktualizovaných: " + successCount);
+            if (failCount > 0) utils.addDebug(currentEntry, "  ❌ Neúspešných: " + failCount);
+
+            message("Aktualizácia dokončená:\n✅ Úspešných: " + successCount + "\n" + (failCount > 0 ? "❌ Chýb: " + failCount : ""));
+        }
+
+        /**
          * Aktualizuje číslo, názov a dátum zákazky z nadriadeného záznamu
          * Hľadá linksFrom z knižnice "Zákazky" a kopíruje Číslo, Názov a Dátum
          * @returns {Date|null} - Dátum zo zákazky alebo null
@@ -315,16 +639,106 @@ var OrderDielyCalculate = (function() {
                     }
 
                     var quantity = item.attr(attrs.quantity) || 0;
-                    var price = item.attr(attrs.price) || 0;
+                    var manualPrice = item.attr(attrs.price); // Ručne zadaná cena
 
                     utils.addDebug(currentEntry, "  • Položka #" + (i + 1) + ": " + itemName);
-                    utils.addDebug(currentEntry, "    Množstvo: " + quantity + ", Cena: " + price.toFixed(2) + " €");
+                    utils.addDebug(currentEntry, "    Množstvo: " + quantity + ", Ručná cena: " + (manualPrice || "nie je zadaná"));
 
-                    // Zaokrúhli cenu na 2 desatinné miesta
-                    price = Math.round(price * 100) / 100;
+                    // VŽDY získaj cenu z databázy
+                    utils.addDebug(currentEntry, "    🔍 Získavam cenu z databázy...");
+                    var dbPrice = findMaterialPrice(item, currentDate);
+
+                    var finalPrice = 0;
+
+                    if (dbPrice !== null && dbPrice !== undefined) {
+                        utils.addDebug(currentEntry, "    ✅ Cena v DB: " + dbPrice.toFixed(2) + " €");
+
+                        // VŽDY používaj DB cenu pre výpočty
+                        finalPrice = dbPrice;
+
+                        // Ak je zadaná ručná cena, porovnaj a zaznamenaj rozdiel
+                        if (manualPrice && manualPrice > 0) {
+                            var difference = Math.abs(manualPrice - dbPrice);
+
+                            if (difference > 0.01) { // Tolerancia 1 cent
+                                utils.addDebug(currentEntry, "    ⚠️ ROZDIEL: Ručná cena (" + manualPrice.toFixed(2) + " €) vs DB cena (" + dbPrice.toFixed(2) + " €)");
+                                utils.addDebug(currentEntry, "    → Pre výpočty použijem DB cenu: " + dbPrice.toFixed(2) + " €");
+
+                                // Zaznamenaj rozdiel pre dialóg a update DB
+                                priceDifferences.push({
+                                    itemEntry: item,
+                                    itemName: itemName,
+                                    type: "Materiál",
+                                    manualPrice: manualPrice,
+                                    dbPrice: dbPrice,
+                                    difference: difference
+                                });
+                            }
+                        } else {
+                            // Nie je zadaná ručná cena, doplň DB cenu do atribútu
+                            try {
+                                item.setAttr(attrs.price, finalPrice);
+                                utils.addDebug(currentEntry, "    → Doplnená cena z DB do atribútu: " + finalPrice.toFixed(2) + " €");
+                            } catch (e) {
+                                utils.addError(currentEntry, "⚠️ Chyba pri zápise ceny do atribútu: " + e.toString(), "setPrice", e);
+                            }
+                        }
+                    } else {
+                        // Cena nie je v databáze
+                        if (manualPrice && manualPrice > 0) {
+                            utils.addDebug(currentEntry, "    ⚠️ Cena nie je v DB, použijem ručnú: " + manualPrice.toFixed(2) + " €");
+
+                            // Zaznamenaj pre vytvorenie nového záznamu
+                            priceDifferences.push({
+                                itemEntry: item,
+                                itemName: itemName,
+                                type: "Materiál",
+                                manualPrice: manualPrice,
+                                dbPrice: null,
+                                difference: manualPrice
+                            });
+
+                            finalPrice = manualPrice;
+                        } else {
+                            // Ani v DB ani ručná cena nie je zadaná - skús získať z poľa "Cena" v zázname
+                            utils.addDebug(currentEntry, "    🔍 Pokúšam sa získať cenu z poľa Cena v zázname materiálu...");
+                            var itemPriceField = CONFIG.itemFields.material.price;
+                            var itemPrice = utils.safeGet(item, itemPriceField);
+
+                            if (itemPrice && itemPrice > 0) {
+                                utils.addDebug(currentEntry, "    ✅ Nájdená cena v zázname: " + itemPrice.toFixed(2) + " €");
+
+                                // Zaznamenaj pre automatické vytvorenie cenového záznamu
+                                priceDifferences.push({
+                                    itemEntry: item,
+                                    itemName: itemName,
+                                    type: "Materiál",
+                                    manualPrice: itemPrice,
+                                    dbPrice: null,
+                                    difference: itemPrice,
+                                    autoCreate: true
+                                });
+
+                                finalPrice = itemPrice;
+                                // Doplň do atribútu
+                                try {
+                                    item.setAttr(attrs.price, finalPrice);
+                                    utils.addDebug(currentEntry, "    → Doplnená cena do atribútu: " + finalPrice.toFixed(2) + " €");
+                                } catch (e) {
+                                    utils.addError(currentEntry, "⚠️ Chyba pri doplnení ceny do atribútu: " + e.toString(), "setAttrPrice", e);
+                                }
+                            } else {
+                                utils.addDebug(currentEntry, "    ❌ Žiadna cena - ani v DB ani ručná ani v zázname");
+                                finalPrice = 0;
+                            }
+                        }
+                    }
+
+                    // Zaokrúhli finalPrice na 2 desatinné miesta
+                    finalPrice = Math.round(finalPrice * 100) / 100;
 
                     // Vypočítaj cenu celkom a zaokrúhli na 2 desatinné miesta
-                    var totalPrice = Math.round(quantity * price * 100) / 100;
+                    var totalPrice = Math.round(quantity * finalPrice * 100) / 100;
 
                     // Bezpečné zapisovanie atribútu
                     try {
@@ -363,11 +777,11 @@ var OrderDielyCalculate = (function() {
                         name: itemName,
                         unit: itemUnit,
                         quantity: quantity,
-                        price: price,
+                        price: finalPrice,
                         totalPrice: totalPrice
                     });
 
-                    utils.addDebug(currentEntry, "    💰 Cena: " + price.toFixed(2) + " €, Celkom: " + totalPrice.toFixed(2) + " €");
+                    utils.addDebug(currentEntry, "    💰 Finálna cena: " + finalPrice.toFixed(2) + " €, Celkom: " + totalPrice.toFixed(2) + " €");
                 }
 
                 utils.addDebug(currentEntry, "  ✅ Materiál suma: " + materialSum.toFixed(2) + " €");
@@ -397,16 +811,106 @@ var OrderDielyCalculate = (function() {
                     }
 
                     var quantity = item.attr(attrs.quantity) || 0;
-                    var price = item.attr(attrs.price) || 0;
+                    var manualPrice = item.attr(attrs.price); // Ručne zadaná cena
 
                     utils.addDebug(currentEntry, "  • Položka #" + (i + 1) + ": " + itemName);
-                    utils.addDebug(currentEntry, "    Množstvo: " + quantity + ", Cena: " + price.toFixed(2) + " €");
+                    utils.addDebug(currentEntry, "    Množstvo: " + quantity + ", Ručná cena: " + (manualPrice || "nie je zadaná"));
 
-                    // Zaokrúhli cenu na 2 desatinné miesta
-                    price = Math.round(price * 100) / 100;
+                    // VŽDY získaj cenu z databázy
+                    utils.addDebug(currentEntry, "    🔍 Získavam cenu z databázy...");
+                    var dbPrice = findWorkPrice(item, currentDate);
+
+                    var finalPrice = 0;
+
+                    if (dbPrice !== null && dbPrice !== undefined) {
+                        utils.addDebug(currentEntry, "    ✅ Cena v DB: " + dbPrice.toFixed(2) + " €");
+
+                        // VŽDY používaj DB cenu pre výpočty
+                        finalPrice = dbPrice;
+
+                        // Ak je zadaná ručná cena, porovnaj a zaznamenaj rozdiel
+                        if (manualPrice && manualPrice > 0) {
+                            var difference = Math.abs(manualPrice - dbPrice);
+
+                            if (difference > 0.01) { // Tolerancia 1 cent
+                                utils.addDebug(currentEntry, "    ⚠️ ROZDIEL: Ručná cena (" + manualPrice.toFixed(2) + " €) vs DB cena (" + dbPrice.toFixed(2) + " €)");
+                                utils.addDebug(currentEntry, "    → Pre výpočty použijem DB cenu: " + dbPrice.toFixed(2) + " €");
+
+                                // Zaznamenaj rozdiel pre dialóg a update DB
+                                priceDifferences.push({
+                                    itemEntry: item,
+                                    itemName: itemName,
+                                    type: "Práce",
+                                    manualPrice: manualPrice,
+                                    dbPrice: dbPrice,
+                                    difference: difference
+                                });
+                            }
+                        } else {
+                            // Nie je zadaná ručná cena, doplň DB cenu do atribútu
+                            try {
+                                item.setAttr(attrs.price, finalPrice);
+                                utils.addDebug(currentEntry, "    → Doplnená cena z DB do atribútu: " + finalPrice.toFixed(2) + " €");
+                            } catch (e) {
+                                utils.addError(currentEntry, "⚠️ Chyba pri zápise ceny do atribútu: " + e.toString(), "setPrice", e);
+                            }
+                        }
+                    } else {
+                        // Cena nie je v databáze
+                        if (manualPrice && manualPrice > 0) {
+                            utils.addDebug(currentEntry, "    ⚠️ Cena nie je v DB, použijem ručnú: " + manualPrice.toFixed(2) + " €");
+
+                            // Zaznamenaj pre vytvorenie nového záznamu
+                            priceDifferences.push({
+                                itemEntry: item,
+                                itemName: itemName,
+                                type: "Práce",
+                                manualPrice: manualPrice,
+                                dbPrice: null,
+                                difference: manualPrice
+                            });
+
+                            finalPrice = manualPrice;
+                        } else {
+                            // Ani v DB ani ručná cena nie je zadaná - skús získať z poľa "Cena" v zázname
+                            utils.addDebug(currentEntry, "    🔍 Pokúšam sa získať cenu z poľa Cena v zázname práce...");
+                            var itemPriceField = CONFIG.itemFields.work;
+                            var itemPrice = utils.safeGet(item, itemPriceField);
+
+                            if (itemPrice && itemPrice > 0) {
+                                utils.addDebug(currentEntry, "    ✅ Nájdená cena v zázname: " + itemPrice.toFixed(2) + " €");
+
+                                // Zaznamenaj pre automatické vytvorenie cenového záznamu
+                                priceDifferences.push({
+                                    itemEntry: item,
+                                    itemName: itemName,
+                                    type: "Práce",
+                                    manualPrice: itemPrice,
+                                    dbPrice: null,
+                                    difference: itemPrice,
+                                    autoCreate: true
+                                });
+
+                                finalPrice = itemPrice;
+                                // Doplň do atribútu
+                                try {
+                                    item.setAttr(attrs.price, finalPrice);
+                                    utils.addDebug(currentEntry, "    → Doplnená cena do atribútu: " + finalPrice.toFixed(2) + " €");
+                                } catch (e) {
+                                    utils.addError(currentEntry, "⚠️ Chyba pri doplnení ceny do atribútu: " + e.toString(), "setAttrPrice", e);
+                                }
+                            } else {
+                                utils.addDebug(currentEntry, "    ❌ Žiadna cena - ani v DB ani ručná ani v zázname");
+                                finalPrice = 0;
+                            }
+                        }
+                    }
+
+                    // Zaokrúhli finalPrice na 2 desatinné miesta
+                    finalPrice = Math.round(finalPrice * 100) / 100;
 
                     // Vypočítaj cenu celkom a zaokrúhli na 2 desatinné miesta
-                    var totalPrice = Math.round(quantity * price * 100) / 100;
+                    var totalPrice = Math.round(quantity * finalPrice * 100) / 100;
 
                     // Bezpečné zapisovanie atribútu
                     try {
@@ -430,16 +934,26 @@ var OrderDielyCalculate = (function() {
                         name: itemName,
                         unit: itemUnit,
                         quantity: quantity,
-                        price: price,
+                        price: finalPrice,
                         totalPrice: totalPrice
                     });
 
-                    utils.addDebug(currentEntry, "    💰 Cena: " + price.toFixed(2) + " €, Celkom: " + totalPrice.toFixed(2) + " €");
+                    utils.addDebug(currentEntry, "    💰 Finálna cena: " + finalPrice.toFixed(2) + " €, Celkom: " + totalPrice.toFixed(2) + " €");
                 }
 
                 utils.addDebug(currentEntry, "  ✅ Práce suma: " + workSum.toFixed(2) + " €");
             } else {
                 utils.addDebug(currentEntry, "  ℹ️ Žiadne položky prác");
+            }
+
+            // ========== KONTROLA A UPDATE CIEN ==========
+            if (priceDifferences.length > 0) {
+                utils.addDebug(currentEntry, "\n⚠️ Zistené rozdiely v cenách: " + priceDifferences.length);
+
+                // Zobraz dialóg pre potvrdenie aktualizácie cien
+                showPriceDifferenceDialog();
+            } else {
+                utils.addDebug(currentEntry, "\n✅ Žiadne rozdiely v cenách");
             }
 
             // ========== ZÁPIS VÝSLEDKOV ==========
@@ -499,7 +1013,7 @@ var OrderDielyCalculate = (function() {
 
     return {
         partCalculate: partCalculate,
-        version: "1.0.0"
+        version: "2.0.0"
     };
 })();
 
