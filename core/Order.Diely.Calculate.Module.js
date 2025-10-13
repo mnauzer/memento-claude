@@ -67,16 +67,8 @@ var OrderDielyCalculate = (function() {
             // Referencie na centrálny config
             fields: centralConfig.fields.orderPart,
             attributes: {
-                materials: centralConfig.attributes.orderPartMaterials || {
-                    quantity: "množstvo",
-                    price: "cena",
-                    totalPrice: "cena celkom"
-                },
-                works: centralConfig.attributes.orderPartWorks || {
-                    quantity: "množstvo",
-                    price: "cena",
-                    totalPrice: "cena celkom"
-                }
+                materials: centralConfig.attributes.orderPartMaterials,
+                works: centralConfig.attributes.orderPartWorks
             },
             icons: centralConfig.icons,
 
@@ -108,7 +100,7 @@ var OrderDielyCalculate = (function() {
         // Vyčistiť debug, error a info logy pred začiatkom
         utils.clearLogs(currentEntry, true);  // true = vyčistí aj Error_Log
 
-        utils.addDebug(currentEntry, "🚀 START: Prepočet zákazky Diely (Module v2.0.0)");
+        utils.addDebug(currentEntry, "🚀 START: Prepočet zákazky Diely (Module v" + CONFIG.version + ")");
 
         // ==============================================
         // POMOCNÉ FUNKCIE
