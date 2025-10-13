@@ -656,9 +656,12 @@ var MementoConfig = (function() {
             },
             // Zákazky Diely - atribúty položiek (2025-10-12)
             orderPartMaterials: {
-                quantity: "množstvo cp", // real number - množstvo materiálu z cenovej ponuky
-                price: "cena cp", // currency - cena z cenovej ponuky (source: "cena" z quote)
-                totalPrice: "cena celkom cp" // currency - celková cena z cenovej ponuky
+                quoteQuantity: "množstvo cp", // real number - množstvo materiálu z cenovej ponuky
+                quotePrice: "cena cp", // currency - cena z cenovej ponuky (source: "cena" z quote)
+                quoteTotalPrice: "cena celkom cp", // currency - celková cena z cenovej ponuky
+                quantity: "množstvo", // real number - množstvo materiálu dodané
+                price: "cena", // currency - cena dodaného materiálu
+                totalPrice: "cena celkom" // currency - celková cena dodaného materiálu
             },
             orderPartWorks: {
                 quantity: "množstvo cp", // real number - množstvo hodín/jednotiek z cenovej ponuky
