@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY DIELY - Hlavný prepočet (MODULE)
-// Verzia: 4.1.0 | Dátum: 2025-10-12 | Autor: ASISTANTO
+// Verzia: 4.2.0 | Dátum: 2025-10-12 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky Diely (ID: nCAgQkfvK)
 // ==============================================
 // 📋 FUNKCIA:
@@ -8,7 +8,7 @@
 //    - Použitie: CPDielyCalculate.partCalculate(entry());
 //    - VŽDY získava ceny z databázy (ceny materiálu / ceny prác)
 //    - Porovnanie ručne zadaných cien s cenami z databázy
-//    - Dialóg pre update cien v databáze pri rozdieloch
+//    - Dialóg pre update cien v databáze pri rozdieloch (PRED výpočtami)
 //    - Automatické vytvorenie/aktualizácia cenových záznamov (max 1 na deň)
 //    - Aktualizácia čísla, názvu A DÁTUMU z nadriadenej cenovej ponuky
 //    - Aktualizácia poľa "Cena" v záznamy materiálu/práce pri vytvorení/aktualizácii ceny
@@ -19,6 +19,12 @@
 //    - Automatické vymazanie debug, error a info logov pri štarte
 //    - Vytvorenie prehľadného markdown reportu v info poli
 // ==============================================
+// 🔧 CHANGELOG v4.2.0 (2025-10-12):
+//    - REFACTOR: Oddelenie kontroly cien od výpočtov - dialóg sa zobrazuje PRED výpočtami
+//    - FIX: Pri kontrole cien sa používa DB cena pre výpočty ak používateľ nezruší dialóg
+//    - FIX: Automatické vytvorenie cenových záznamov pre autoCreate flag (bez dialógu)
+//    - ZLEPŠENIE: Synchrónny dialóg pomocou callback pattern pre správne poradie operácií
+//    - ZLEPŠENIE: Výpočty používajú vždy aktualizované ceny po vytvorení cenových záznamov
 // 🔧 CHANGELOG v4.1.0 (2025-10-12):
 //    - FIX: Prevencia duplicitných cenových záznamov - hľadanie existujúceho záznamu
 //    - FIX: Ak existuje záznam pre daný materiál/prácu a dátum, aktualizuje sa namiesto vytvorenia nového
@@ -92,7 +98,7 @@ var CPDielyCalculate = (function() {
         // Vyčistiť debug, error a info logy pred začiatkom
         utils.clearLogs(currentEntry, true);  // true = vyčistí aj Error_Log
 
-        utils.addDebug(currentEntry, "🚀 START: Prepočet cenovej ponuky Diely (Module v4.0.0)");
+        utils.addDebug(currentEntry, "🚀 START: Prepočet cenovej ponuky Diely (Module v4.2.0)");
 
         // ==============================================
         // POMOCNÉ FUNKCIE
@@ -496,17 +502,76 @@ var CPDielyCalculate = (function() {
         }
 
         /**
+         * Automaticky vytvorí cenové záznamy pre položky s autoCreate flag
+         * @param {Array} autoCreateItems - Položky na automatické vytvorenie
+         */
+        function processAutoCreatePrices(autoCreateItems) {
+            if (!autoCreateItems || autoCreateItems.length === 0) {
+                return;
+            }
+
+            utils.addDebug(currentEntry, "\n🤖 Automatické vytvorenie cenových záznamov");
+            utils.addDebug(currentEntry, "  Počet položiek: " + autoCreateItems.length);
+
+            var successCount = 0;
+            var failCount = 0;
+
+            for (var i = 0; i < autoCreateItems.length; i++) {
+                var diff = autoCreateItems[i];
+
+                utils.addDebug(currentEntry, "  Vytváram: " + diff.itemName + " (" + diff.type + "), cena: " + diff.manualPrice.toFixed(2) + " €");
+
+                var success = false;
+                if (diff.type === "Materiál") {
+                    success = createMaterialPriceRecord(diff.itemEntry, diff.manualPrice, currentDate);
+                } else if (diff.type === "Práce") {
+                    success = createWorkPriceRecord(diff.itemEntry, diff.manualPrice, currentDate);
+                }
+
+                if (success) {
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+            }
+
+            utils.addDebug(currentEntry, "  ✅ Úspešne vytvorených: " + successCount);
+            if (failCount > 0) {
+                utils.addDebug(currentEntry, "  ❌ Neúspešných: " + failCount);
+            }
+        }
+
+        /**
          * Zobrazí dialóg s rozdielmi v cenách a umožní používateľovi potvrdiť aktualizáciu
          */
         function showPriceDifferenceDialog() {
-            if (priceDifferences.length === 0) {
+            // Rozdeľ položky na autoCreate a manuálne
+            var autoCreateItems = [];
+            var manualUpdateItems = [];
+
+            for (var i = 0; i < priceDifferences.length; i++) {
+                var diff = priceDifferences[i];
+                if (diff.autoCreate === true) {
+                    autoCreateItems.push(diff);
+                } else {
+                    manualUpdateItems.push(diff);
+                }
+            }
+
+            // Automaticky vytvor záznamy pre autoCreate položky
+            if (autoCreateItems.length > 0) {
+                processAutoCreatePrices(autoCreateItems);
+            }
+
+            // Zobraz dialóg len pre manuálne update položky
+            if (manualUpdateItems.length === 0) {
                 return;
             }
 
             var dialogMessage = "Našli sa rozdiely medzi zadanými cenami a cenami v databáze:\n\n";
 
-            for (var i = 0; i < priceDifferences.length; i++) {
-                var diff = priceDifferences[i];
+            for (var i = 0; i < manualUpdateItems.length; i++) {
+                var diff = manualUpdateItems[i];
                 dialogMessage += (i + 1) + ". " + diff.itemName + " (" + diff.type + ")\n";
                 dialogMessage += "   • Zadaná cena: " + diff.manualPrice.toFixed(2) + " €\n";
                 dialogMessage += "   • Cena v DB:   " + (diff.dbPrice ? diff.dbPrice.toFixed(2) + " €" : "neexistuje") + "\n";
@@ -514,13 +579,13 @@ var CPDielyCalculate = (function() {
             }
 
             dialogMessage += "Chcete aktualizovať ceny v databáze?\n";
-            dialogMessage += "(Vytvorí sa nový cenový záznam s dátumom: " + moment(currentDate).format("DD.MM.YYYY") + ")";
+            dialogMessage += "(Vytvorí/aktualizuje cenový záznam s dátumom: " + moment(currentDate).format("DD.MM.YYYY") + ")";
 
             dialog()
                 .title("🔍 Zistené rozdiely v cenách")
                 .text(dialogMessage)
                 .positiveButton("Áno, aktualizovať", function() {
-                    processPriceUpdates();
+                    processPriceUpdates(manualUpdateItems);
                 })
                 .negativeButton("Nie, zrušiť", function() {
                     utils.addDebug(currentEntry, "  ℹ️ Používateľ zrušil aktualizáciu cien");
@@ -530,15 +595,16 @@ var CPDielyCalculate = (function() {
 
         /**
          * Spracuje update cien v databáze
+         * @param {Array} itemsToUpdate - Položky na aktualizáciu (z dialógu)
          */
-        function processPriceUpdates() {
-            utils.addDebug(currentEntry, "\n💾 Aktualizácia cien v databáze");
+        function processPriceUpdates(itemsToUpdate) {
+            utils.addDebug(currentEntry, "\n💾 Aktualizácia cien v databáze (manuálne potvrdené)");
 
             var successCount = 0;
             var failCount = 0;
 
-            for (var i = 0; i < priceDifferences.length; i++) {
-                var diff = priceDifferences[i];
+            for (var i = 0; i < itemsToUpdate.length; i++) {
+                var diff = itemsToUpdate[i];
 
                 utils.addDebug(currentEntry, "  Aktualizujem: " + diff.itemName + " (" + diff.type + ")");
 
@@ -622,14 +688,18 @@ var CPDielyCalculate = (function() {
                     if (dbPrice !== null && dbPrice !== undefined) {
                         utils.addDebug(currentEntry, "    ✅ Cena v DB: " + dbPrice.toFixed(2) + " €");
 
-                        // Ak je zadaná ručná cena, porovnaj
+                        // VŽDY používaj DB cenu pre výpočty
+                        finalPrice = dbPrice;
+
+                        // Ak je zadaná ručná cena, porovnaj a zaznamenaj rozdiel
                         if (manualPrice && manualPrice > 0) {
                             var difference = Math.abs(manualPrice - dbPrice);
 
                             if (difference > 0.01) { // Tolerancia 1 cent
                                 utils.addDebug(currentEntry, "    ⚠️ ROZDIEL: Ručná cena (" + manualPrice.toFixed(2) + " €) vs DB cena (" + dbPrice.toFixed(2) + " €)");
+                                utils.addDebug(currentEntry, "    → Pre výpočty použijem DB cenu: " + dbPrice.toFixed(2) + " €");
 
-                                // Zaznamenaj rozdiel
+                                // Zaznamenaj rozdiel pre dialóg a update DB
                                 priceDifferences.push({
                                     itemEntry: item,
                                     itemName: itemName,
@@ -638,17 +708,12 @@ var CPDielyCalculate = (function() {
                                     dbPrice: dbPrice,
                                     difference: difference
                                 });
-
-                                finalPrice = manualPrice; // Použij ručnú cenu
-                            } else {
-                                finalPrice = dbPrice; // Ceny sú rovnaké
                             }
                         } else {
-                            // Nie je zadaná ručná cena, použij DB cenu
-                            finalPrice = dbPrice;
+                            // Nie je zadaná ručná cena, doplň DB cenu do atribútu
                             try {
                                 item.setAttr(attrs.price, finalPrice);
-                                utils.addDebug(currentEntry, "    → Nastavená cena z DB: " + finalPrice.toFixed(2) + " €");
+                                utils.addDebug(currentEntry, "    → Doplnená cena z DB do atribútu: " + finalPrice.toFixed(2) + " €");
                             } catch (e) {
                                 utils.addError(currentEntry, "⚠️ Chyba pri zápise ceny do atribútu: " + e.toString(), "setPrice", e);
                             }
@@ -797,14 +862,18 @@ var CPDielyCalculate = (function() {
                     if (dbPrice !== null && dbPrice !== undefined) {
                         utils.addDebug(currentEntry, "    ✅ Cena v DB: " + dbPrice.toFixed(2) + " €");
 
-                        // Ak je zadaná ručná cena, porovnaj
+                        // VŽDY používaj DB cenu pre výpočty
+                        finalPrice = dbPrice;
+
+                        // Ak je zadaná ručná cena, porovnaj a zaznamenaj rozdiel
                         if (manualPrice && manualPrice > 0) {
                             var difference = Math.abs(manualPrice - dbPrice);
 
                             if (difference > 0.01) { // Tolerancia 1 cent
                                 utils.addDebug(currentEntry, "    ⚠️ ROZDIEL: Ručná cena (" + manualPrice.toFixed(2) + " €) vs DB cena (" + dbPrice.toFixed(2) + " €)");
+                                utils.addDebug(currentEntry, "    → Pre výpočty použijem DB cenu: " + dbPrice.toFixed(2) + " €");
 
-                                // Zaznamenaj rozdiel
+                                // Zaznamenaj rozdiel pre dialóg a update DB
                                 priceDifferences.push({
                                     itemEntry: item,
                                     itemName: itemName,
@@ -813,17 +882,12 @@ var CPDielyCalculate = (function() {
                                     dbPrice: dbPrice,
                                     difference: difference
                                 });
-
-                                finalPrice = manualPrice; // Použij ručnú cenu
-                            } else {
-                                finalPrice = dbPrice; // Ceny sú rovnaké
                             }
                         } else {
-                            // Nie je zadaná ručná cena, použij DB cenu
-                            finalPrice = dbPrice;
+                            // Nie je zadaná ručná cena, doplň DB cenu do atribútu
                             try {
                                 item.setAttr(attrs.price, finalPrice);
-                                utils.addDebug(currentEntry, "    → Nastavená cena z DB: " + finalPrice.toFixed(2) + " €");
+                                utils.addDebug(currentEntry, "    → Doplnená cena z DB do atribútu: " + finalPrice.toFixed(2) + " €");
                             } catch (e) {
                                 utils.addError(currentEntry, "⚠️ Chyba pri zápise ceny do atribútu: " + e.toString(), "setPrice", e);
                             }
@@ -976,7 +1040,7 @@ var CPDielyCalculate = (function() {
 
     return {
         partCalculate: partCalculate,
-        version: "4.1.0"
+        version: "4.2.0"
     };
 })();
 
