@@ -1,6 +1,6 @@
 // ==============================================
 // ZÁKAZKY DIELY - Hlavný prepočet (MODULE)
-// Verzia: 2.2.2 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// Verzia: 2.2.3 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // Knižnica: Zákazky Diely (ID: iEUC79O2T)
 // ==============================================
 // 📋 FUNKCIA:
@@ -25,6 +25,10 @@
 //    var orderPart = lib("Zákazky Diely").find("Číslo", 1)[0];
 //    OrderDielyCalculate.partCalculate(orderPart);
 // ==============================================
+// 🔧 CHANGELOG v2.2.3 (2025-10-14):
+//    - 🐛 FIX: Vylepšený safe wrapper pre clearLogs() s try-catch
+//      → Zabráni chybám pri lazy loadingu MementoCore
+//      → Logy sa vymazávajú na úrovni zákazky (Order.Calculate.Module.js)
 // 🔧 CHANGELOG v2.2.2 (2025-10-14):
 //    - 🐛 CRITICAL FIX: Opravené parametre findMaterialPrice() a findWorkPrice()
 //      Funkcie musia používať CONFIG KĽÚČE ("material", "date", "sellPrice")
@@ -88,7 +92,7 @@ var OrderDielyCalculate = (function() {
         var CONFIG = {
             // Script špecifické nastavenia
             scriptName: "Zákazky Diely - Prepočet (Module)",
-            version: "2.2.2",
+            version: "2.2.3",
 
             // Referencie na centrálny config
             fields: centralConfig.fields.orderPart,
@@ -142,8 +146,14 @@ var OrderDielyCalculate = (function() {
         };
 
         // Vyčistiť debug, error a info logy pred začiatkom
-        if (utils && typeof utils.clearLogs === 'function') {
-            utils.clearLogs(currentEntry, true);  // true = vyčistí aj Error_Log
+        // Safe wrapper s try-catch pre lazy loading
+        if (utils && utils.clearLogs) {
+            try {
+                utils.clearLogs(currentEntry, true);  // true = vyčistí aj Error_Log
+            } catch (e) {
+                // Ignoruj chybu ak MementoCore nie je ešte načítaný (lazy loading)
+                // Logy budú vymazané na úrovni zákazky (Order.Calculate.Module.js)
+            }
         }
 
         addDebug(currentEntry, "🚀 START: Prepočet zákazky Diely (Module v" + CONFIG.version + ")");
@@ -1190,7 +1200,7 @@ var OrderDielyCalculate = (function() {
 
     return {
         partCalculate: partCalculate,
-        version: "2.2.2"
+        version: "2.2.3"
     };
 })();
 
