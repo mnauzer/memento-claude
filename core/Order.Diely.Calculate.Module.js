@@ -1,6 +1,6 @@
 // ==============================================
 // ZÁKAZKY DIELY - Hlavný prepočet (MODULE)
-// Verzia: 2.2.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// Verzia: 2.2.1 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // Knižnica: Zákazky Diely (ID: iEUC79O2T)
 // ==============================================
 // 📋 FUNKCIA:
@@ -25,6 +25,12 @@
 //    var orderPart = lib("Zákazky Diely").find("Číslo", 1)[0];
 //    OrderDielyCalculate.partCalculate(orderPart);
 // ==============================================
+// 🔧 CHANGELOG v2.2.1 (2025-10-14):
+//    - 🐛 CRITICAL FIX: Opravené názvy polí v findMaterialPrice() a findWorkPrice()
+//      Funkcie používali interné identifikátory ("material", "date", "sellPrice")
+//      namiesto skutočných názvov polí ("Materiál", "Platnosť od", "pc")
+//      → Vyhľadávanie cien v databáze teraz funguje správne!
+//    - 🐛 FIX: Pridané chýbajúce dateField do findWorkPrice() options
 // 🔧 CHANGELOG v2.2.0 (2025-10-14):
 //    - 🐛 CRITICAL FIX: Opravená rekurzia v safe wrapperoch addDebug/addError
 //      (volali samy seba namiesto utils.addDebug/addError - stack overflow!)
@@ -80,7 +86,7 @@ var OrderDielyCalculate = (function() {
         var CONFIG = {
             // Script špecifické nastavenia
             scriptName: "Zákazky Diely - Prepočet (Module)",
-            version: "2.2.0",
+            version: "2.2.1",
 
             // Referencie na centrálny config
             fields: centralConfig.fields.orderPart,
@@ -278,12 +284,13 @@ var OrderDielyCalculate = (function() {
          * @returns {Number|null} - Platná cena alebo null
          */
         function findMaterialPrice(materialEntry, date) {
+            var priceFields = CONFIG.priceFields.materialPrices;
             var options = {
                 priceLibrary: "materialPrices",
-                linkField: "material",
-                dateField: "date",
-                priceField: "sellPrice",
-                fallbackPriceField: "price",
+                linkField: priceFields.material,        // "Materiál"
+                dateField: priceFields.date,            // "Platnosť od"
+                priceField: priceFields.sellPrice,      // "pc"
+                fallbackPriceField: CONFIG.itemFields.material.price, // "Cena"
                 currentEntry: currentEntry
             };
             return utils.findValidPrice(materialEntry, date, options);
@@ -296,10 +303,12 @@ var OrderDielyCalculate = (function() {
          * @returns {Number|null} - Platná cena alebo null
          */
         function findWorkPrice(workEntry, date) {
+            var priceFields = CONFIG.priceFields.workPrices;
             var options = {
                 priceLibrary: "workPrices",
-                linkField: "work",
-                priceField: "price",
+                linkField: priceFields.work,            // "Práca"
+                dateField: priceFields.validFrom,       // "Platnosť od"
+                priceField: priceFields.price,          // "Cena"
                 currentEntry: currentEntry
             };
             return utils.findValidPrice(workEntry, date, options);
@@ -1181,7 +1190,7 @@ var OrderDielyCalculate = (function() {
 
     return {
         partCalculate: partCalculate,
-        version: "2.2.0"
+        version: "2.2.1"
     };
 })();
 
