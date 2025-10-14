@@ -43,63 +43,32 @@ var MementoConfig = (function() {
         },
         
         // === NÁZVY A ID KNIŽNÍC ===
+        // OPTIMALIZOVANÉ PRE CALCULATION SCRIPTS - Ponuky a Zákazky
         libraries: {
-            // Evidencia - denné záznamy
-            dailyReport: "Denný report",
-            attendance: "Dochádzka",
-            workRecords: "Záznam prác",  // API ID: ArdaPo5TU
-            rideLog: "Kniha jázd",
-            cashBook: "Pokladňa",
-
-            // Evidencia pomocné
-            workReport: "Výkaz prác",
-            materialsReport: "Výkaz materiálu",
-            rideReport: "Výkaz dopravy",
-            machinesReport: "Výkaz strojov",  // API ID: uCRaUwsTo
-            
             // Cenníky a sklad
             priceList: "Cenník prác",
             inventory: "Materiál",
-            materialExpenses: "Výdajky materiálu",
-            materialIncomes: "Príjemky materiálu",
-            
-            // Historical data
+
+            // Historical data - potrebné pre calculation
             workPrices: "ceny prác",
             materialPrices: "ceny materiálu",
-            wages: "sadzby zamestnancov",
-            machinePrices: "ceny mechanizácie",
-            transportPrices: "ceny dopravy",
             vatRatesLib: "sadzby dph",
-            
+
             // Systémové knižnice
             defaults: "ASISTANTO Defaults",
-            apiKeys: "ASISTANTO API",
-            globalLogs: "ASISTANTO Logs",
-            
-            // Firemné knižnice
-            employees: "Zamestnanci", // Aktuálna: "Zamestnanci Semiramis" ID: qU4Br5hU6
+
+            // Firemné knižnice - potrebné pre calculation
             suppliers: "Dodávatelia",
             partners: "Partneri",
             clients: "Klienti",
-            vehicles: "Vozidlá",
-            machines: "Mechanizácia",
             places: "Miesta",
             addresses: "Adresy",
-            accounts: "Účty",
-            
+
             // Obchodné dokumenty
             quotes: "Cenové ponuky",
             quoteParts: "Cenové ponuky Diely",
             orders: "Zákazky",
-            orderSettlements: "Vyúčtovania",
-            issuedInvoices: "Vystavené faktúry", // pridané
-            receivedInvoices: "Prijaté faktúry", // pridané
-            receivables: "Pohľadávky",
-            obligations: "Záväzky",
-            
-            // Telegram knižnice
-            notifications: "Notifications",
-            telegramGroups: "Telegram Groups"
+            orderParts: "Zákazky Diely"
         },
 
         // === ID KNIŽNÍC (pre API prístup) ===
