@@ -1,6 +1,6 @@
 // ==============================================
 // ZÁKAZKY DIELY - Hlavný prepočet (MODULE)
-// Verzia: 2.1.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// Verzia: 2.1.1 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // Knižnica: Zákazky Diely (ID: iEUC79O2T)
 // ==============================================
 // 📋 FUNKCIA:
@@ -25,6 +25,11 @@
 //    var orderPart = lib("Zákazky Diely").find("Číslo", 1)[0];
 //    OrderDielyCalculate.partCalculate(orderPart);
 // ==============================================
+// 🔧 CHANGELOG v2.1.1 (2025-10-14):
+//    - 🔧 CRITICAL FIX: Pridané safe wrappery pre addDebug() a addError()
+//    - 🔧 FIX: Nahradených 117 priamych volaní utils.addDebug/addError
+//    - ✨ FEATURE: Zaokrúhľovanie hmotnosti materiálu na 3 desatinné miesta
+//    - 📊 IMPROVEMENT: Automatické mazanie debug/error logov pred výpočtom
 // 🔧 CHANGELOG v2.1.0 (2025-10-14):
 //    - NOVÁ FUNKCIA: Výpočet polí z cenovej ponuky (CP)
 //    - Pridané CP polia: Suma materiál CP, Suma práce CP, Celkom CP, Hmotnosť materiálu CP
@@ -69,7 +74,7 @@ var OrderDielyCalculate = (function() {
         var CONFIG = {
             // Script špecifické nastavenia
             scriptName: "Zákazky Diely - Prepočet (Module)",
-            version: "2.1.0",
+            version: "2.1.1",
 
             // Referencie na centrálny config
             fields: centralConfig.fields.orderPart,
@@ -108,10 +113,26 @@ var OrderDielyCalculate = (function() {
 
         var fields = CONFIG.fields;
 
-        // Vyčistiť debug, error a info logy pred začiatkom
-        utils.clearLogs(currentEntry, true);  // true = vyčistí aj Error_Log
+        // Safe debug logging - kontrola či je addDebug dostupný
+        var addDebug = function(entry, message) {
+            if (utils && typeof utils.addDebug === 'function') {
+                addDebug(entry, message);
+            }
+        };
 
-        utils.addDebug(currentEntry, "🚀 START: Prepočet zákazky Diely (Module v" + CONFIG.version + ")");
+        // Safe error logging - kontrola či je addError dostupný
+        var addError = function(entry, message, source, error) {
+            if (utils && typeof utils.addError === 'function') {
+                addError(entry, message, source, error);
+            }
+        };
+
+        // Vyčistiť debug, error a info logy pred začiatkom
+        if (utils && typeof utils.clearLogs === 'function') {
+            utils.clearLogs(currentEntry, true);  // true = vyčistí aj Error_Log
+        }
+
+        addDebug(currentEntry, "🚀 START: Prepočet zákazky Diely (Module v" + CONFIG.version + ")");
 
         // ==============================================
         // POMOCNÉ FUNKCIE
@@ -287,9 +308,9 @@ var OrderDielyCalculate = (function() {
             try {
                 var priceFieldName = CONFIG.itemFields.material.price;
                 materialEntry.set(priceFieldName, newPrice);
-                utils.addDebug(currentEntry, "    🔄 Aktualizované pole Cena v materiáli: " + newPrice.toFixed(2) + " €");
+                addDebug(currentEntry, "    🔄 Aktualizované pole Cena v materiáli: " + newPrice.toFixed(2) + " €");
             } catch (error) {
-                utils.addError(currentEntry, "⚠️ Chyba pri aktualizácii Cena v materiáli: " + error.toString(), "updateMaterialItemPrice", error);
+                addError(currentEntry, "⚠️ Chyba pri aktualizácii Cena v materiáli: " + error.toString(), "updateMaterialItemPrice", error);
             }
         }
 
@@ -302,9 +323,9 @@ var OrderDielyCalculate = (function() {
             try {
                 var priceFieldName = CONFIG.itemFields.work;
                 workEntry.set(priceFieldName, newPrice);
-                utils.addDebug(currentEntry, "    🔄 Aktualizované pole Cena v práci: " + newPrice.toFixed(2) + " €");
+                addDebug(currentEntry, "    🔄 Aktualizované pole Cena v práci: " + newPrice.toFixed(2) + " €");
             } catch (error) {
-                utils.addError(currentEntry, "⚠️ Chyba pri aktualizácii Cena v práci: " + error.toString(), "updateWorkItemPrice", error);
+                addError(currentEntry, "⚠️ Chyba pri aktualizácii Cena v práci: " + error.toString(), "updateWorkItemPrice", error);
             }
         }
 
@@ -323,7 +344,7 @@ var OrderDielyCalculate = (function() {
                 var dateOnly = new Date(validFrom);
                 dateOnly.setHours(0, 0, 0, 0);
 
-                utils.addDebug(currentEntry, "    🔍 Hľadám existujúci cenový záznam pre dátum: " + moment(dateOnly).format("DD.MM.YYYY"));
+                addDebug(currentEntry, "    🔍 Hľadám existujúci cenový záznam pre dátum: " + moment(dateOnly).format("DD.MM.YYYY"));
 
                 var existingPriceEntries = materialPricesLib.entries();
                 var existingEntry = null;
@@ -355,10 +376,10 @@ var OrderDielyCalculate = (function() {
                 }
 
                 if (existingEntry) {
-                    utils.addDebug(currentEntry, "    🔄 Aktualizujem existujúci cenový záznam, nová cena: " + newPrice.toFixed(2) + " €");
+                    addDebug(currentEntry, "    🔄 Aktualizujem existujúci cenový záznam, nová cena: " + newPrice.toFixed(2) + " €");
                     existingEntry.set(priceFields.sellPrice, newPrice);
                 } else {
-                    utils.addDebug(currentEntry, "    ✅ Vytváram nový cenový záznam, cena: " + newPrice.toFixed(2) + " €");
+                    addDebug(currentEntry, "    ✅ Vytváram nový cenový záznam, cena: " + newPrice.toFixed(2) + " €");
                     var newPriceEntry = materialPricesLib.create({});
                     newPriceEntry.set(priceFields.material, [materialEntry]);
                     newPriceEntry.set(priceFields.date, dateOnly);
@@ -369,7 +390,7 @@ var OrderDielyCalculate = (function() {
 
                 return true;
             } catch (error) {
-                utils.addError(currentEntry, "❌ Chyba pri vytváraní/aktualizácii cenového záznamu pre materiál: " + error.toString(), "createMaterialPriceRecord", error);
+                addError(currentEntry, "❌ Chyba pri vytváraní/aktualizácii cenového záznamu pre materiál: " + error.toString(), "createMaterialPriceRecord", error);
                 return false;
             }
         }
@@ -389,7 +410,7 @@ var OrderDielyCalculate = (function() {
                 var dateOnly = new Date(validFrom);
                 dateOnly.setHours(0, 0, 0, 0);
 
-                utils.addDebug(currentEntry, "    🔍 Hľadám existujúci cenový záznam pre dátum: " + moment(dateOnly).format("DD.MM.YYYY"));
+                addDebug(currentEntry, "    🔍 Hľadám existujúci cenový záznam pre dátum: " + moment(dateOnly).format("DD.MM.YYYY"));
 
                 var existingPriceEntries = workPricesLib.entries();
                 var existingEntry = null;
@@ -421,10 +442,10 @@ var OrderDielyCalculate = (function() {
                 }
 
                 if (existingEntry) {
-                    utils.addDebug(currentEntry, "    🔄 Aktualizujem existujúci cenový záznam, nová cena: " + newPrice.toFixed(2) + " €");
+                    addDebug(currentEntry, "    🔄 Aktualizujem existujúci cenový záznam, nová cena: " + newPrice.toFixed(2) + " €");
                     existingEntry.set(priceFields.price, newPrice);
                 } else {
-                    utils.addDebug(currentEntry, "    ✅ Vytváram nový cenový záznam, cena: " + newPrice.toFixed(2) + " €");
+                    addDebug(currentEntry, "    ✅ Vytváram nový cenový záznam, cena: " + newPrice.toFixed(2) + " €");
                     var newPriceEntry = workPricesLib.create({});
                     newPriceEntry.set(priceFields.work, [workEntry]);
                     newPriceEntry.set(priceFields.validFrom, dateOnly);
@@ -435,7 +456,7 @@ var OrderDielyCalculate = (function() {
 
                 return true;
             } catch (error) {
-                utils.addError(currentEntry, "❌ Chyba pri vytváraní/aktualizácii cenového záznamu pre prácu: " + error.toString(), "createWorkPriceRecord", error);
+                addError(currentEntry, "❌ Chyba pri vytváraní/aktualizácii cenového záznamu pre prácu: " + error.toString(), "createWorkPriceRecord", error);
                 return false;
             }
         }
@@ -447,15 +468,15 @@ var OrderDielyCalculate = (function() {
         function processAutoCreatePrices(autoCreateItems) {
             if (!autoCreateItems || autoCreateItems.length === 0) return;
 
-            utils.addDebug(currentEntry, "\n🤖 Automatické vytvorenie cenových záznamov");
-            utils.addDebug(currentEntry, "  Počet položiek: " + autoCreateItems.length);
+            addDebug(currentEntry, "\n🤖 Automatické vytvorenie cenových záznamov");
+            addDebug(currentEntry, "  Počet položiek: " + autoCreateItems.length);
 
             var successCount = 0;
             var failCount = 0;
 
             for (var i = 0; i < autoCreateItems.length; i++) {
                 var diff = autoCreateItems[i];
-                utils.addDebug(currentEntry, "  Vytváram: " + diff.itemName + " (" + diff.type + "), cena: " + diff.manualPrice.toFixed(2) + " €");
+                addDebug(currentEntry, "  Vytváram: " + diff.itemName + " (" + diff.type + "), cena: " + diff.manualPrice.toFixed(2) + " €");
 
                 var success = false;
                 if (diff.type === "Materiál") {
@@ -468,8 +489,8 @@ var OrderDielyCalculate = (function() {
                 else failCount++;
             }
 
-            utils.addDebug(currentEntry, "  ✅ Úspešne vytvorených: " + successCount);
-            if (failCount > 0) utils.addDebug(currentEntry, "  ❌ Neúspešných: " + failCount);
+            addDebug(currentEntry, "  ✅ Úspešne vytvorených: " + successCount);
+            if (failCount > 0) addDebug(currentEntry, "  ❌ Neúspešných: " + failCount);
         }
 
         /**
@@ -508,7 +529,7 @@ var OrderDielyCalculate = (function() {
                     processPriceUpdates(manualUpdateItems);
                 })
                 .negativeButton("Nie, zrušiť", function() {
-                    utils.addDebug(currentEntry, "  ℹ️ Používateľ zrušil aktualizáciu cien");
+                    addDebug(currentEntry, "  ℹ️ Používateľ zrušil aktualizáciu cien");
                 })
                 .show();
         }
@@ -518,14 +539,14 @@ var OrderDielyCalculate = (function() {
          * @param {Array} itemsToUpdate - Položky na aktualizáciu (z dialógu)
          */
         function processPriceUpdates(itemsToUpdate) {
-            utils.addDebug(currentEntry, "\n💾 Aktualizácia cien v databáze (manuálne potvrdené)");
+            addDebug(currentEntry, "\n💾 Aktualizácia cien v databáze (manuálne potvrdené)");
 
             var successCount = 0;
             var failCount = 0;
 
             for (var i = 0; i < itemsToUpdate.length; i++) {
                 var diff = itemsToUpdate[i];
-                utils.addDebug(currentEntry, "  Aktualizujem: " + diff.itemName + " (" + diff.type + ")");
+                addDebug(currentEntry, "  Aktualizujem: " + diff.itemName + " (" + diff.type + ")");
 
                 var success = false;
                 if (diff.type === "Materiál") {
@@ -538,8 +559,8 @@ var OrderDielyCalculate = (function() {
                 else failCount++;
             }
 
-            utils.addDebug(currentEntry, "  ✅ Úspešne aktualizovaných: " + successCount);
-            if (failCount > 0) utils.addDebug(currentEntry, "  ❌ Neúspešných: " + failCount);
+            addDebug(currentEntry, "  ✅ Úspešne aktualizovaných: " + successCount);
+            if (failCount > 0) addDebug(currentEntry, "  ❌ Neúspešných: " + failCount);
 
             message("Aktualizácia dokončená:\n✅ Úspešných: " + successCount + "\n" + (failCount > 0 ? "❌ Chýb: " + failCount : ""));
         }
@@ -554,15 +575,15 @@ var OrderDielyCalculate = (function() {
                 var orderLibraryName = centralConfig.libraries.orders; // "Zákazky"
                 var partsFieldName = centralConfig.fields.order.parts; // "Diely"
 
-                utils.addDebug(currentEntry, "\n🔗 Aktualizácia údajov zo zákazky");
-                utils.addDebug(currentEntry, "  Hľadám v knižnici: " + orderLibraryName);
-                utils.addDebug(currentEntry, "  Pole: " + partsFieldName);
+                addDebug(currentEntry, "\n🔗 Aktualizácia údajov zo zákazky");
+                addDebug(currentEntry, "  Hľadám v knižnici: " + orderLibraryName);
+                addDebug(currentEntry, "  Pole: " + partsFieldName);
 
                 // Získaj linksFrom z nadriadenej zákazky
                 var orderEntries = utils.safeGetLinksFrom(currentEntry, orderLibraryName, partsFieldName);
 
                 if (!orderEntries || orderEntries.length === 0) {
-                    utils.addDebug(currentEntry, "  ⚠️ Nenašiel som nadriadenú zákazku");
+                    addDebug(currentEntry, "  ⚠️ Nenašiel som nadriadenú zákazku");
                     return null;
                 }
 
@@ -574,10 +595,10 @@ var OrderDielyCalculate = (function() {
                 var orderName = utils.safeGet(orderEntry, centralConfig.fields.order.name);
                 var orderDate = utils.safeGet(orderEntry, centralConfig.fields.order.date);
 
-                utils.addDebug(currentEntry, "  ✅ Nájdená zákazka:");
-                utils.addDebug(currentEntry, "     Číslo: " + (orderNumber || "neznáme"));
-                utils.addDebug(currentEntry, "     Názov: " + (orderName || "neznámy"));
-                utils.addDebug(currentEntry, "     Dátum: " + (orderDate ? moment(orderDate).format("DD.MM.YYYY") : "neznámy"));
+                addDebug(currentEntry, "  ✅ Nájdená zákazka:");
+                addDebug(currentEntry, "     Číslo: " + (orderNumber || "neznáme"));
+                addDebug(currentEntry, "     Názov: " + (orderName || "neznámy"));
+                addDebug(currentEntry, "     Dátum: " + (orderDate ? moment(orderDate).format("DD.MM.YYYY") : "neznámy"));
 
                 // Zapíš do polí dielu
                 if (orderNumber) {
@@ -593,7 +614,7 @@ var OrderDielyCalculate = (function() {
                 return orderDate;
 
             } catch (error) {
-                utils.addError(currentEntry, "❌ Chyba pri aktualizácii údajov zo zákazky: " + error.toString(), "updateOrderInfo", error);
+                addError(currentEntry, "❌ Chyba pri aktualizácii údajov zo zákazky: " + error.toString(), "updateOrderInfo", error);
                 return null;
             }
         }
@@ -611,10 +632,10 @@ var OrderDielyCalculate = (function() {
 
             if (!currentDate) {
                 currentDate = new Date();
-                utils.addDebug(currentEntry, "⚠️ Dátum nie je zadaný ani v zákazke ani v Diely, použijem dnešný dátum");
+                addDebug(currentEntry, "⚠️ Dátum nie je zadaný ani v zákazke ani v Diely, použijem dnešný dátum");
             }
 
-            utils.addDebug(currentEntry, "📅 Dátum pre výpočty: " + moment(currentDate).format("DD.MM.YYYY"));
+            addDebug(currentEntry, "📅 Dátum pre výpočty: " + moment(currentDate).format("DD.MM.YYYY"));
 
             var materialSum = 0;
             var workSum = 0;
@@ -626,11 +647,11 @@ var OrderDielyCalculate = (function() {
             var materialWeightKgCp = 0;  // Celková hmotnosť materiálu CP v kg
 
             // ========== SPRACOVANIE MATERIÁLU ==========
-            utils.addDebug(currentEntry, "\n📦 MATERIÁL");
-            utils.addDebug(currentEntry, "Pole: " + fields.materials);
+            addDebug(currentEntry, "\n📦 MATERIÁL");
+            addDebug(currentEntry, "Pole: " + fields.materials);
 
             var materialItems = utils.safeGetLinks(currentEntry, fields.materials);
-            utils.addDebug(currentEntry, "Počet položiek: " + (materialItems ? materialItems.length : 0));
+            addDebug(currentEntry, "Počet položiek: " + (materialItems ? materialItems.length : 0));
 
             if (materialItems && materialItems.length > 0) {
                 var attrs = CONFIG.attributes.materials;
@@ -649,17 +670,17 @@ var OrderDielyCalculate = (function() {
                     var quantity = item.attr(attrs.quantity) || 0;
                     var manualPrice = item.attr(attrs.price); // Ručne zadaná cena
 
-                    utils.addDebug(currentEntry, "  • Položka #" + (i + 1) + ": " + itemName);
-                    utils.addDebug(currentEntry, "    Množstvo: " + quantity + ", Ručná cena: " + (manualPrice || "nie je zadaná"));
+                    addDebug(currentEntry, "  • Položka #" + (i + 1) + ": " + itemName);
+                    addDebug(currentEntry, "    Množstvo: " + quantity + ", Ručná cena: " + (manualPrice || "nie je zadaná"));
 
                     // VŽDY získaj cenu z databázy
-                    utils.addDebug(currentEntry, "    🔍 Získavam cenu z databázy...");
+                    addDebug(currentEntry, "    🔍 Získavam cenu z databázy...");
                     var dbPrice = findMaterialPrice(item, currentDate);
 
                     var finalPrice = 0;
 
                     if (dbPrice !== null && dbPrice !== undefined) {
-                        utils.addDebug(currentEntry, "    ✅ Cena v DB: " + dbPrice.toFixed(2) + " €");
+                        addDebug(currentEntry, "    ✅ Cena v DB: " + dbPrice.toFixed(2) + " €");
 
                         // VŽDY používaj DB cenu pre výpočty
                         finalPrice = dbPrice;
@@ -669,8 +690,8 @@ var OrderDielyCalculate = (function() {
                             var difference = Math.abs(manualPrice - dbPrice);
 
                             if (difference > 0.01) { // Tolerancia 1 cent
-                                utils.addDebug(currentEntry, "    ⚠️ ROZDIEL: Ručná cena (" + manualPrice.toFixed(2) + " €) vs DB cena (" + dbPrice.toFixed(2) + " €)");
-                                utils.addDebug(currentEntry, "    → Pre výpočty použijem DB cenu: " + dbPrice.toFixed(2) + " €");
+                                addDebug(currentEntry, "    ⚠️ ROZDIEL: Ručná cena (" + manualPrice.toFixed(2) + " €) vs DB cena (" + dbPrice.toFixed(2) + " €)");
+                                addDebug(currentEntry, "    → Pre výpočty použijem DB cenu: " + dbPrice.toFixed(2) + " €");
 
                                 // Zaznamenaj rozdiel pre dialóg a update DB
                                 priceDifferences.push({
@@ -686,15 +707,15 @@ var OrderDielyCalculate = (function() {
                             // Nie je zadaná ručná cena, doplň DB cenu do atribútu
                             try {
                                 item.setAttr(attrs.price, finalPrice);
-                                utils.addDebug(currentEntry, "    → Doplnená cena z DB do atribútu: " + finalPrice.toFixed(2) + " €");
+                                addDebug(currentEntry, "    → Doplnená cena z DB do atribútu: " + finalPrice.toFixed(2) + " €");
                             } catch (e) {
-                                utils.addError(currentEntry, "⚠️ Chyba pri zápise ceny do atribútu: " + e.toString(), "setPrice", e);
+                                addError(currentEntry, "⚠️ Chyba pri zápise ceny do atribútu: " + e.toString(), "setPrice", e);
                             }
                         }
                     } else {
                         // Cena nie je v databáze
                         if (manualPrice && manualPrice > 0) {
-                            utils.addDebug(currentEntry, "    ⚠️ Cena nie je v DB, použijem ručnú: " + manualPrice.toFixed(2) + " €");
+                            addDebug(currentEntry, "    ⚠️ Cena nie je v DB, použijem ručnú: " + manualPrice.toFixed(2) + " €");
 
                             // Zaznamenaj pre vytvorenie nového záznamu
                             priceDifferences.push({
@@ -709,12 +730,12 @@ var OrderDielyCalculate = (function() {
                             finalPrice = manualPrice;
                         } else {
                             // Ani v DB ani ručná cena nie je zadaná - skús získať z poľa "Cena" v zázname
-                            utils.addDebug(currentEntry, "    🔍 Pokúšam sa získať cenu z poľa Cena v zázname materiálu...");
+                            addDebug(currentEntry, "    🔍 Pokúšam sa získať cenu z poľa Cena v zázname materiálu...");
                             var itemPriceField = CONFIG.itemFields.material.price;
                             var itemPrice = utils.safeGet(item, itemPriceField);
 
                             if (itemPrice && itemPrice > 0) {
-                                utils.addDebug(currentEntry, "    ✅ Nájdená cena v zázname: " + itemPrice.toFixed(2) + " €");
+                                addDebug(currentEntry, "    ✅ Nájdená cena v zázname: " + itemPrice.toFixed(2) + " €");
 
                                 // Zaznamenaj pre automatické vytvorenie cenového záznamu
                                 priceDifferences.push({
@@ -731,12 +752,12 @@ var OrderDielyCalculate = (function() {
                                 // Doplň do atribútu
                                 try {
                                     item.setAttr(attrs.price, finalPrice);
-                                    utils.addDebug(currentEntry, "    → Doplnená cena do atribútu: " + finalPrice.toFixed(2) + " €");
+                                    addDebug(currentEntry, "    → Doplnená cena do atribútu: " + finalPrice.toFixed(2) + " €");
                                 } catch (e) {
-                                    utils.addError(currentEntry, "⚠️ Chyba pri doplnení ceny do atribútu: " + e.toString(), "setAttrPrice", e);
+                                    addError(currentEntry, "⚠️ Chyba pri doplnení ceny do atribútu: " + e.toString(), "setAttrPrice", e);
                                 }
                             } else {
-                                utils.addDebug(currentEntry, "    ❌ Žiadna cena - ani v DB ani ručná ani v zázname");
+                                addDebug(currentEntry, "    ❌ Žiadna cena - ani v DB ani ručná ani v zázname");
                                 finalPrice = 0;
                             }
                         }
@@ -752,7 +773,7 @@ var OrderDielyCalculate = (function() {
                     try {
                         item.setAttr(attrs.totalPrice, totalPrice);
                     } catch (e) {
-                        utils.addError(currentEntry, "⚠️ Chyba pri zápise totalPrice do atribútu materiálu: " + e.toString(), "materialTotalPrice", e);
+                        addError(currentEntry, "⚠️ Chyba pri zápise totalPrice do atribútu materiálu: " + e.toString(), "materialTotalPrice", e);
                     }
 
                     materialSum += totalPrice;
@@ -769,7 +790,7 @@ var OrderDielyCalculate = (function() {
                     if (itemWeight > 0) {
                         var itemTotalWeight = quantity * itemWeight;
                         materialWeightKg += itemTotalWeight;
-                        utils.addDebug(currentEntry, "    ⚖️ Hmotnosť: " + itemWeight.toFixed(2) + " kg × " + quantity + " = " + itemTotalWeight.toFixed(2) + " kg");
+                        addDebug(currentEntry, "    ⚖️ Hmotnosť: " + itemWeight.toFixed(2) + " kg × " + quantity + " = " + itemTotalWeight.toFixed(2) + " kg");
                     }
 
                     // Získaj mernú jednotku
@@ -789,17 +810,17 @@ var OrderDielyCalculate = (function() {
                         totalPrice: totalPrice
                     });
 
-                    utils.addDebug(currentEntry, "    💰 Finálna cena: " + finalPrice.toFixed(2) + " €, Celkom: " + totalPrice.toFixed(2) + " €");
+                    addDebug(currentEntry, "    💰 Finálna cena: " + finalPrice.toFixed(2) + " €, Celkom: " + totalPrice.toFixed(2) + " €");
                 }
 
-                utils.addDebug(currentEntry, "  ✅ Materiál suma: " + materialSum.toFixed(2) + " €");
+                addDebug(currentEntry, "  ✅ Materiál suma: " + materialSum.toFixed(2) + " €");
             } else {
-                utils.addDebug(currentEntry, "  ℹ️ Žiadne položky materiálu");
+                addDebug(currentEntry, "  ℹ️ Žiadne položky materiálu");
             }
 
             // ========== SPRACOVANIE MATERIÁLU CP (CENOVÁ PONUKA) ==========
-            utils.addDebug(currentEntry, "\n📦 MATERIÁL CP (Cenová Ponuka)");
-            utils.addDebug(currentEntry, "Pole: " + fields.materials);
+            addDebug(currentEntry, "\n📦 MATERIÁL CP (Cenová Ponuka)");
+            addDebug(currentEntry, "Pole: " + fields.materials);
 
             if (materialItems && materialItems.length > 0) {
                 var attrsCp = CONFIG.attributes.materialsCp;
@@ -818,8 +839,8 @@ var OrderDielyCalculate = (function() {
                     var quantityCp = item.attr(attrsCp.quantity) || 0;
                     var priceCp = item.attr(attrsCp.price) || 0;
 
-                    utils.addDebug(currentEntry, "  • Položka #" + (i + 1) + ": " + itemName);
-                    utils.addDebug(currentEntry, "    Množstvo CP: " + quantityCp + ", Cena CP: " + priceCp.toFixed(2) + " €");
+                    addDebug(currentEntry, "  • Položka #" + (i + 1) + ": " + itemName);
+                    addDebug(currentEntry, "    Množstvo CP: " + quantityCp + ", Cena CP: " + priceCp.toFixed(2) + " €");
 
                     // Vypočítaj cenu celkom CP a zaokrúhli na 2 desatinné miesta
                     var totalPriceCp = Math.round(quantityCp * priceCp * 100) / 100;
@@ -828,7 +849,7 @@ var OrderDielyCalculate = (function() {
                     try {
                         item.setAttr(attrsCp.totalPrice, totalPriceCp);
                     } catch (e) {
-                        utils.addError(currentEntry, "⚠️ Chyba pri zápise totalPrice CP do atribútu materiálu: " + e.toString(), "materialTotalPriceCp", e);
+                        addError(currentEntry, "⚠️ Chyba pri zápise totalPrice CP do atribútu materiálu: " + e.toString(), "materialTotalPriceCp", e);
                     }
 
                     materialSumCp += totalPriceCp;
@@ -845,23 +866,23 @@ var OrderDielyCalculate = (function() {
                     if (itemWeight > 0) {
                         var itemTotalWeightCp = quantityCp * itemWeight;
                         materialWeightKgCp += itemTotalWeightCp;
-                        utils.addDebug(currentEntry, "    ⚖️ Hmotnosť CP: " + itemWeight.toFixed(2) + " kg × " + quantityCp + " = " + itemTotalWeightCp.toFixed(2) + " kg");
+                        addDebug(currentEntry, "    ⚖️ Hmotnosť CP: " + itemWeight.toFixed(2) + " kg × " + quantityCp + " = " + itemTotalWeightCp.toFixed(2) + " kg");
                     }
 
-                    utils.addDebug(currentEntry, "    💰 Cena CP celkom: " + totalPriceCp.toFixed(2) + " €");
+                    addDebug(currentEntry, "    💰 Cena CP celkom: " + totalPriceCp.toFixed(2) + " €");
                 }
 
-                utils.addDebug(currentEntry, "  ✅ Materiál CP suma: " + materialSumCp.toFixed(2) + " €");
+                addDebug(currentEntry, "  ✅ Materiál CP suma: " + materialSumCp.toFixed(2) + " €");
             } else {
-                utils.addDebug(currentEntry, "  ℹ️ Žiadne položky materiálu CP");
+                addDebug(currentEntry, "  ℹ️ Žiadne položky materiálu CP");
             }
 
             // ========== SPRACOVANIE PRÁC ==========
-            utils.addDebug(currentEntry, "\n🔨 PRÁCE");
-            utils.addDebug(currentEntry, "Pole: " + fields.works);
+            addDebug(currentEntry, "\n🔨 PRÁCE");
+            addDebug(currentEntry, "Pole: " + fields.works);
 
             var workItems = utils.safeGetLinks(currentEntry, fields.works);
-            utils.addDebug(currentEntry, "Počet položiek: " + (workItems ? workItems.length : 0));
+            addDebug(currentEntry, "Počet položiek: " + (workItems ? workItems.length : 0));
 
             if (workItems && workItems.length > 0) {
                 var attrs = CONFIG.attributes.works;
@@ -880,17 +901,17 @@ var OrderDielyCalculate = (function() {
                     var quantity = item.attr(attrs.quantity) || 0;
                     var manualPrice = item.attr(attrs.price); // Ručne zadaná cena
 
-                    utils.addDebug(currentEntry, "  • Položka #" + (i + 1) + ": " + itemName);
-                    utils.addDebug(currentEntry, "    Množstvo: " + quantity + ", Ručná cena: " + (manualPrice || "nie je zadaná"));
+                    addDebug(currentEntry, "  • Položka #" + (i + 1) + ": " + itemName);
+                    addDebug(currentEntry, "    Množstvo: " + quantity + ", Ručná cena: " + (manualPrice || "nie je zadaná"));
 
                     // VŽDY získaj cenu z databázy
-                    utils.addDebug(currentEntry, "    🔍 Získavam cenu z databázy...");
+                    addDebug(currentEntry, "    🔍 Získavam cenu z databázy...");
                     var dbPrice = findWorkPrice(item, currentDate);
 
                     var finalPrice = 0;
 
                     if (dbPrice !== null && dbPrice !== undefined) {
-                        utils.addDebug(currentEntry, "    ✅ Cena v DB: " + dbPrice.toFixed(2) + " €");
+                        addDebug(currentEntry, "    ✅ Cena v DB: " + dbPrice.toFixed(2) + " €");
 
                         // VŽDY používaj DB cenu pre výpočty
                         finalPrice = dbPrice;
@@ -900,8 +921,8 @@ var OrderDielyCalculate = (function() {
                             var difference = Math.abs(manualPrice - dbPrice);
 
                             if (difference > 0.01) { // Tolerancia 1 cent
-                                utils.addDebug(currentEntry, "    ⚠️ ROZDIEL: Ručná cena (" + manualPrice.toFixed(2) + " €) vs DB cena (" + dbPrice.toFixed(2) + " €)");
-                                utils.addDebug(currentEntry, "    → Pre výpočty použijem DB cenu: " + dbPrice.toFixed(2) + " €");
+                                addDebug(currentEntry, "    ⚠️ ROZDIEL: Ručná cena (" + manualPrice.toFixed(2) + " €) vs DB cena (" + dbPrice.toFixed(2) + " €)");
+                                addDebug(currentEntry, "    → Pre výpočty použijem DB cenu: " + dbPrice.toFixed(2) + " €");
 
                                 // Zaznamenaj rozdiel pre dialóg a update DB
                                 priceDifferences.push({
@@ -917,15 +938,15 @@ var OrderDielyCalculate = (function() {
                             // Nie je zadaná ručná cena, doplň DB cenu do atribútu
                             try {
                                 item.setAttr(attrs.price, finalPrice);
-                                utils.addDebug(currentEntry, "    → Doplnená cena z DB do atribútu: " + finalPrice.toFixed(2) + " €");
+                                addDebug(currentEntry, "    → Doplnená cena z DB do atribútu: " + finalPrice.toFixed(2) + " €");
                             } catch (e) {
-                                utils.addError(currentEntry, "⚠️ Chyba pri zápise ceny do atribútu: " + e.toString(), "setPrice", e);
+                                addError(currentEntry, "⚠️ Chyba pri zápise ceny do atribútu: " + e.toString(), "setPrice", e);
                             }
                         }
                     } else {
                         // Cena nie je v databáze
                         if (manualPrice && manualPrice > 0) {
-                            utils.addDebug(currentEntry, "    ⚠️ Cena nie je v DB, použijem ručnú: " + manualPrice.toFixed(2) + " €");
+                            addDebug(currentEntry, "    ⚠️ Cena nie je v DB, použijem ručnú: " + manualPrice.toFixed(2) + " €");
 
                             // Zaznamenaj pre vytvorenie nového záznamu
                             priceDifferences.push({
@@ -940,12 +961,12 @@ var OrderDielyCalculate = (function() {
                             finalPrice = manualPrice;
                         } else {
                             // Ani v DB ani ručná cena nie je zadaná - skús získať z poľa "Cena" v zázname
-                            utils.addDebug(currentEntry, "    🔍 Pokúšam sa získať cenu z poľa Cena v zázname práce...");
+                            addDebug(currentEntry, "    🔍 Pokúšam sa získať cenu z poľa Cena v zázname práce...");
                             var itemPriceField = CONFIG.itemFields.work;
                             var itemPrice = utils.safeGet(item, itemPriceField);
 
                             if (itemPrice && itemPrice > 0) {
-                                utils.addDebug(currentEntry, "    ✅ Nájdená cena v zázname: " + itemPrice.toFixed(2) + " €");
+                                addDebug(currentEntry, "    ✅ Nájdená cena v zázname: " + itemPrice.toFixed(2) + " €");
 
                                 // Zaznamenaj pre automatické vytvorenie cenového záznamu
                                 priceDifferences.push({
@@ -962,12 +983,12 @@ var OrderDielyCalculate = (function() {
                                 // Doplň do atribútu
                                 try {
                                     item.setAttr(attrs.price, finalPrice);
-                                    utils.addDebug(currentEntry, "    → Doplnená cena do atribútu: " + finalPrice.toFixed(2) + " €");
+                                    addDebug(currentEntry, "    → Doplnená cena do atribútu: " + finalPrice.toFixed(2) + " €");
                                 } catch (e) {
-                                    utils.addError(currentEntry, "⚠️ Chyba pri doplnení ceny do atribútu: " + e.toString(), "setAttrPrice", e);
+                                    addError(currentEntry, "⚠️ Chyba pri doplnení ceny do atribútu: " + e.toString(), "setAttrPrice", e);
                                 }
                             } else {
-                                utils.addDebug(currentEntry, "    ❌ Žiadna cena - ani v DB ani ručná ani v zázname");
+                                addDebug(currentEntry, "    ❌ Žiadna cena - ani v DB ani ručná ani v zázname");
                                 finalPrice = 0;
                             }
                         }
@@ -983,7 +1004,7 @@ var OrderDielyCalculate = (function() {
                     try {
                         item.setAttr(attrs.totalPrice, totalPrice);
                     } catch (e) {
-                        utils.addError(currentEntry, "⚠️ Chyba pri zápise totalPrice do atribútu práce: " + e.toString(), "workTotalPrice", e);
+                        addError(currentEntry, "⚠️ Chyba pri zápise totalPrice do atribútu práce: " + e.toString(), "workTotalPrice", e);
                     }
 
                     workSum += totalPrice;
@@ -1005,17 +1026,17 @@ var OrderDielyCalculate = (function() {
                         totalPrice: totalPrice
                     });
 
-                    utils.addDebug(currentEntry, "    💰 Finálna cena: " + finalPrice.toFixed(2) + " €, Celkom: " + totalPrice.toFixed(2) + " €");
+                    addDebug(currentEntry, "    💰 Finálna cena: " + finalPrice.toFixed(2) + " €, Celkom: " + totalPrice.toFixed(2) + " €");
                 }
 
-                utils.addDebug(currentEntry, "  ✅ Práce suma: " + workSum.toFixed(2) + " €");
+                addDebug(currentEntry, "  ✅ Práce suma: " + workSum.toFixed(2) + " €");
             } else {
-                utils.addDebug(currentEntry, "  ℹ️ Žiadne položky prác");
+                addDebug(currentEntry, "  ℹ️ Žiadne položky prác");
             }
 
             // ========== SPRACOVANIE PRÁC CP (CENOVÁ PONUKA) ==========
-            utils.addDebug(currentEntry, "\n🔨 PRÁCE CP (Cenová Ponuka)");
-            utils.addDebug(currentEntry, "Pole: " + fields.works);
+            addDebug(currentEntry, "\n🔨 PRÁCE CP (Cenová Ponuka)");
+            addDebug(currentEntry, "Pole: " + fields.works);
 
             if (workItems && workItems.length > 0) {
                 var attrsCp = CONFIG.attributes.worksCp;
@@ -1034,8 +1055,8 @@ var OrderDielyCalculate = (function() {
                     var quantityCp = item.attr(attrsCp.quantity) || 0;
                     var priceCp = item.attr(attrsCp.price) || 0;
 
-                    utils.addDebug(currentEntry, "  • Položka #" + (i + 1) + ": " + itemName);
-                    utils.addDebug(currentEntry, "    Množstvo CP: " + quantityCp + ", Cena CP: " + priceCp.toFixed(2) + " €");
+                    addDebug(currentEntry, "  • Položka #" + (i + 1) + ": " + itemName);
+                    addDebug(currentEntry, "    Množstvo CP: " + quantityCp + ", Cena CP: " + priceCp.toFixed(2) + " €");
 
                     // Vypočítaj cenu celkom CP a zaokrúhli na 2 desatinné miesta
                     var totalPriceCp = Math.round(quantityCp * priceCp * 100) / 100;
@@ -1044,34 +1065,35 @@ var OrderDielyCalculate = (function() {
                     try {
                         item.setAttr(attrsCp.totalPrice, totalPriceCp);
                     } catch (e) {
-                        utils.addError(currentEntry, "⚠️ Chyba pri zápise totalPrice CP do atribútu práce: " + e.toString(), "workTotalPriceCp", e);
+                        addError(currentEntry, "⚠️ Chyba pri zápise totalPrice CP do atribútu práce: " + e.toString(), "workTotalPriceCp", e);
                     }
 
                     workSumCp += totalPriceCp;
 
-                    utils.addDebug(currentEntry, "    💰 Cena CP celkom: " + totalPriceCp.toFixed(2) + " €");
+                    addDebug(currentEntry, "    💰 Cena CP celkom: " + totalPriceCp.toFixed(2) + " €");
                 }
 
-                utils.addDebug(currentEntry, "  ✅ Práce CP suma: " + workSumCp.toFixed(2) + " €");
+                addDebug(currentEntry, "  ✅ Práce CP suma: " + workSumCp.toFixed(2) + " €");
             } else {
-                utils.addDebug(currentEntry, "  ℹ️ Žiadne položky prác CP");
+                addDebug(currentEntry, "  ℹ️ Žiadne položky prác CP");
             }
 
             // ========== KONTROLA A UPDATE CIEN ==========
             if (priceDifferences.length > 0) {
-                utils.addDebug(currentEntry, "\n⚠️ Zistené rozdiely v cenách: " + priceDifferences.length);
+                addDebug(currentEntry, "\n⚠️ Zistené rozdiely v cenách: " + priceDifferences.length);
 
                 // Zobraz dialóg pre potvrdenie aktualizácie cien
                 showPriceDifferenceDialog();
             } else {
-                utils.addDebug(currentEntry, "\n✅ Žiadne rozdiely v cenách");
+                addDebug(currentEntry, "\n✅ Žiadne rozdiely v cenách");
             }
 
             // ========== ZÁPIS VÝSLEDKOV ==========
             var totalSum = materialSum + workSum;
 
             // Konverzia hmotnosti z kg na tony (ak pole existuje)
-            var materialWeightTons = materialWeightKg / 1000;
+            // Zaokrúhli na 3 desatinné miesta
+            var materialWeightTons = Math.round((materialWeightKg / 1000) * 1000) / 1000;
 
             currentEntry.set(fields.materialSum, materialSum);
             currentEntry.set(fields.workSum, workSum);
@@ -1082,7 +1104,7 @@ var OrderDielyCalculate = (function() {
                 try {
                     currentEntry.set(fields.materialWeight, materialWeightTons);
                 } catch (e) {
-                    utils.addDebug(currentEntry, "  ℹ️ Pole 'Hmotnosť materiálu' neexistuje v knižnici");
+                    addDebug(currentEntry, "  ℹ️ Pole 'Hmotnosť materiálu' neexistuje v knižnici");
                 }
             }
 
@@ -1090,7 +1112,8 @@ var OrderDielyCalculate = (function() {
             var totalSumCp = materialSumCp + workSumCp;
 
             // Konverzia hmotnosti CP z kg na tony (ak pole existuje)
-            var materialWeightTonsCp = materialWeightKgCp / 1000;
+            // Zaokrúhli na 3 desatinné miesta
+            var materialWeightTonsCp = Math.round((materialWeightKgCp / 1000) * 1000) / 1000;
 
             currentEntry.set(fields.materialSumCp, materialSumCp);
             currentEntry.set(fields.workSumCp, workSumCp);
@@ -1101,31 +1124,31 @@ var OrderDielyCalculate = (function() {
                 try {
                     currentEntry.set(fields.materialWeightCp, materialWeightTonsCp);
                 } catch (e) {
-                    utils.addDebug(currentEntry, "  ℹ️ Pole 'Hmotnosť materiálu CP' neexistuje v knižnici");
+                    addDebug(currentEntry, "  ℹ️ Pole 'Hmotnosť materiálu CP' neexistuje v knižnici");
                 }
             }
 
             // Debug výstup
-            utils.addDebug(currentEntry, "\n" + "=".repeat(50));
-            utils.addDebug(currentEntry, "💰 SÚHRN ZÁKAZKY DIELY:");
-            utils.addDebug(currentEntry, "  SKUTOČNÉ HODNOTY:");
-            utils.addDebug(currentEntry, "    • Materiál:     " + materialSum.toFixed(2) + " €");
-            utils.addDebug(currentEntry, "    • Práce:        " + workSum.toFixed(2) + " €");
-            utils.addDebug(currentEntry, "    " + "-".repeat(46));
-            utils.addDebug(currentEntry, "    • CELKOM:       " + totalSum.toFixed(2) + " €");
+            addDebug(currentEntry, "\n" + "=".repeat(50));
+            addDebug(currentEntry, "💰 SÚHRN ZÁKAZKY DIELY:");
+            addDebug(currentEntry, "  SKUTOČNÉ HODNOTY:");
+            addDebug(currentEntry, "    • Materiál:     " + materialSum.toFixed(2) + " €");
+            addDebug(currentEntry, "    • Práce:        " + workSum.toFixed(2) + " €");
+            addDebug(currentEntry, "    " + "-".repeat(46));
+            addDebug(currentEntry, "    • CELKOM:       " + totalSum.toFixed(2) + " €");
             if (materialWeightKg > 0) {
-                utils.addDebug(currentEntry, "    • Hmotnosť mat: " + materialWeightKg.toFixed(2) + " kg (" + materialWeightTons.toFixed(3) + " t)");
+                addDebug(currentEntry, "    • Hmotnosť mat: " + materialWeightKg.toFixed(2) + " kg (" + materialWeightTons.toFixed(3) + " t)");
             }
-            utils.addDebug(currentEntry, "");
-            utils.addDebug(currentEntry, "  CENOVÁ PONUKA (CP):");
-            utils.addDebug(currentEntry, "    • Materiál CP:  " + materialSumCp.toFixed(2) + " €");
-            utils.addDebug(currentEntry, "    • Práce CP:     " + workSumCp.toFixed(2) + " €");
-            utils.addDebug(currentEntry, "    " + "-".repeat(46));
-            utils.addDebug(currentEntry, "    • CELKOM CP:    " + totalSumCp.toFixed(2) + " €");
+            addDebug(currentEntry, "");
+            addDebug(currentEntry, "  CENOVÁ PONUKA (CP):");
+            addDebug(currentEntry, "    • Materiál CP:  " + materialSumCp.toFixed(2) + " €");
+            addDebug(currentEntry, "    • Práce CP:     " + workSumCp.toFixed(2) + " €");
+            addDebug(currentEntry, "    " + "-".repeat(46));
+            addDebug(currentEntry, "    • CELKOM CP:    " + totalSumCp.toFixed(2) + " €");
             if (materialWeightKgCp > 0) {
-                utils.addDebug(currentEntry, "    • Hmotnosť CP:  " + materialWeightKgCp.toFixed(2) + " kg (" + materialWeightTonsCp.toFixed(3) + " t)");
+                addDebug(currentEntry, "    • Hmotnosť CP:  " + materialWeightKgCp.toFixed(2) + " kg (" + materialWeightTonsCp.toFixed(3) + " t)");
             }
-            utils.addDebug(currentEntry, "=".repeat(50));
+            addDebug(currentEntry, "=".repeat(50));
 
             // ========== VYTVORENIE INFO REPORTU ==========
             var infoReport = buildOrderPartInfoReport(materialSum, workSum, totalSum);
@@ -1137,22 +1160,22 @@ var OrderDielyCalculate = (function() {
             var infoFieldName = centralConfig.fields.common.info || "info";
             currentEntry.set(infoFieldName, infoReport);
 
-            utils.addDebug(currentEntry, "\n📄 INFO REPORT: Vytvorený prehľadný report s " +
+            addDebug(currentEntry, "\n📄 INFO REPORT: Vytvorený prehľadný report s " +
                 (materialItemsInfo.length + workItemsInfo.length) + " položkami");
 
-            utils.addDebug(currentEntry, "✅ FINISH: Prepočet zákazky Diely úspešne dokončený");
+            addDebug(currentEntry, "✅ FINISH: Prepočet zákazky Diely úspešne dokončený");
 
             return true;
 
         } catch (error) {
-            utils.addError(currentEntry, "❌ KRITICKÁ CHYBA: " + error.toString() + ", Line: " + error.lineNumber, "MAIN", error);
+            addError(currentEntry, "❌ KRITICKÁ CHYBA: " + error.toString() + ", Line: " + error.lineNumber, "MAIN", error);
             return false;
         }
     }
 
     return {
         partCalculate: partCalculate,
-        version: "2.1.0"
+        version: "2.1.1"
     };
 })();
 

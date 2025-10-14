@@ -13,7 +13,8 @@
 //    - 🧹 CLEANUP: Odstránená funkcia calculateAdditionalFields() (nepoužívaná pre zákazky)
 //    - 📉 OPTIMIZATION: Zjednodušený výpočtový tok - žiadne duplicitné počítanie atribútov
 //    - 💾 MEMORY: Ďalšia úspora pamäte vďaka eliminácii duplikátov
-//    - 🔧 FIX: Pridaný safe wrapper pre addError() - ochrana proti chýbajúcemu MementoCore
+//    - 🔧 FIX: Pridané safe wrappery pre addDebug() a addError()
+//    - 📊 IMPROVEMENT: Automatické mazanie debug/error logov pred výpočtom
 // 🔧 CHANGELOG v1.1.0 (2025-10-12):
 //    - 🔴 CRITICAL FIX: Opravená nekonečná rekurzia v addDebug (riadok 72) - hlavná príčina OutOfMemoryError
 //    - ♻️ REFACTOR: Vytvorená helper funkcia calculatePartsSum() - odstránených ~100 riadkov duplicitného kódu
@@ -95,6 +96,11 @@ var OrderCalculate = (function() {
                 utils.addError(entry, message, source, error);
             }
         };
+
+        // Vyčistiť debug, error a info logy pred začiatkom
+        if (utils && typeof utils.clearLogs === 'function') {
+            utils.clearLogs(currentEntry, true);  // true = vyčistí aj Error_Log
+        }
 
         addDebug(currentEntry, "🚀 ŠTART: " + CONFIG.scriptName + " v" + CONFIG.version);
         addDebug(currentEntry, "📅 Dátum: " + moment().format("DD.MM.YYYY HH:mm:ss"));
