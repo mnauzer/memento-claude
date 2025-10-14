@@ -482,7 +482,7 @@ var MementoConfig = (function() {
                 materialWeight: "Hmotnosť materiálu", // double (field 306) - celková hmotnosť materiálov v tonách
 
                 // ÚČTOVANIE SUBDODÁVOK (fields 305, 318, 325)
-                subcontractsCalculation: "Účtovanie subdodávok", // choice (field 305) - Neúčtovať, Zarátať do ceny, Vytvoriť dodatok
+                subcontractsCalculation: "Metóda subdodávok", // choice (field 305) - Neúčtovať, Zarátať do ceny, Vytvoriť dodatok
                 subcontracts: "Subdodávky", // entries (field 318) - linkToEntry Zákazky Diely (samostatné pole pre subdodávky)
                 subcontractsTotal: "Celkom Subdodávky", // currency (field 325) - celková suma subdodávok
 
