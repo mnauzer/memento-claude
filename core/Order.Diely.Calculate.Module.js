@@ -1,6 +1,6 @@
 // ==============================================
 // ZÁKAZKY DIELY - Hlavný prepočet (MODULE)
-// Verzia: 2.1.1 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// Verzia: 2.2.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // Knižnica: Zákazky Diely (ID: iEUC79O2T)
 // ==============================================
 // 📋 FUNKCIA:
@@ -25,6 +25,11 @@
 //    var orderPart = lib("Zákazky Diely").find("Číslo", 1)[0];
 //    OrderDielyCalculate.partCalculate(orderPart);
 // ==============================================
+// 🔧 CHANGELOG v2.2.0 (2025-10-14):
+//    - 🐛 CRITICAL FIX: Opravená rekurzia v safe wrapperoch addDebug/addError
+//      (volali samy seba namiesto utils.addDebug/addError - stack overflow!)
+//    - ⚡ OPTIMIZATION: Prepnutie na MementoConfigProjects.js (úspora ~56KB pamäte)
+//    - 📝 UPDATE: Pridané CP polia do MementoConfigProjects.js pre podporu modulu
 // 🔧 CHANGELOG v2.1.1 (2025-10-14):
 //    - 🔧 CRITICAL FIX: Pridané safe wrappery pre addDebug() a addError()
 //    - 🔧 FIX: Nahradených 117 priamych volaní utils.addDebug/addError
@@ -68,13 +73,14 @@ var OrderDielyCalculate = (function() {
         // ==============================================
 
         var utils = MementoUtils;
-        var centralConfig = utils.config;
+        // OPTIMALIZÁCIA: Používa MementoConfig (očakáva MementoConfigProjects.js pre nižšiu pamäť)
+        var centralConfig = typeof MementoConfig !== 'undefined' ? MementoConfig.getConfig() : utils.config;
         var currentEntry = partEntry;
 
         var CONFIG = {
             // Script špecifické nastavenia
             scriptName: "Zákazky Diely - Prepočet (Module)",
-            version: "2.1.1",
+            version: "2.2.0",
 
             // Referencie na centrálny config
             fields: centralConfig.fields.orderPart,
@@ -116,14 +122,14 @@ var OrderDielyCalculate = (function() {
         // Safe debug logging - kontrola či je addDebug dostupný
         var addDebug = function(entry, message) {
             if (utils && typeof utils.addDebug === 'function') {
-                addDebug(entry, message);
+                utils.addDebug(entry, message);
             }
         };
 
         // Safe error logging - kontrola či je addError dostupný
         var addError = function(entry, message, source, error) {
             if (utils && typeof utils.addError === 'function') {
-                addError(entry, message, source, error);
+                utils.addError(entry, message, source, error);
             }
         };
 
@@ -1175,7 +1181,7 @@ var OrderDielyCalculate = (function() {
 
     return {
         partCalculate: partCalculate,
-        version: "2.1.1"
+        version: "2.2.0"
     };
 })();
 
