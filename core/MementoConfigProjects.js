@@ -1,7 +1,12 @@
 // ==============================================
 // MEMENTO CONFIG PROJECTS - Optimalizovaná konfigurácia
-// Verzia: 1.2.1 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// Verzia: 1.2.2 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v1.2.2 (2025-10-14):
+//    - 🐛 CRITICAL FIX: Opravené field ID pre order.partsHzs
+//      → Bolo: field 260 (rovnaké ako parts - chyba!)
+//      → Správne: field 330 (overené cez Memento API)
+//      → Toto spôsobovalo chybu pri linkovaní dielov v CP.Action.CreateOrder.Module.js
 // 🔧 CHANGELOG v1.2.1 (2025-10-14):
 //    - 🐛 FIX: Opravené preklepy v orderPartWorks atribútoch
 //      → qoteQuantity → quoteQuantity
@@ -41,7 +46,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "1.2.1",  // MementoConfigProjects - optimalizovaná verzia pre calculation scripts
+        version: "1.2.2",  // MementoConfigProjects - optimalizovaná verzia pre calculation scripts
 
 
         // Defaultné hodnoty pre globálne nastavenia
@@ -500,7 +505,7 @@ var MementoConfig = (function() {
 
                 // DIELY ZÁKAZKY
                 parts: "Diely", // entries (field 260) - linkToEntry Zákazky Diely
-                partsHzs: "Diely HZS", // entries (field 260) - linkToEntry Zákazky Diely
+                partsHzs: "Diely HZS", // entries (field 330) - linkToEntry Zákazky Diely
 
                 // CELKOVÉ SUMY (fields 331, 332)
                 total: "Celkom", // currency (field 331) - celková suma bez DPH
