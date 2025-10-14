@@ -1,7 +1,13 @@
 // ==============================================
 // MEMENTO CONFIG PROJECTS - Optimalizovaná konfigurácia
-// Verzia: 1.1.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// Verzia: 1.2.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v1.2.0 (2025-10-14):
+//    - 🗑️ CLEANUP: Odstránené polia infoTelegram z common, telegramGroup z order
+//    - 🆕 NOVÉ POLIA: order.spentSubcontracts, order.remainingSubcontracts
+//      → Umožňuje sledovať spotrebu a zostatok subdodávok oddelene
+//    - 📝 IMPROVEMENT: Doplnené komentáre pre budget polia s vysvetlením výpočtu
+//
 // 🔧 CHANGELOG v1.1.0 (2025-10-14):
 //    - 🆕 NOVÉ POLE: orderPart.subcontract = "Subdodávka" (checkbox)
 //      → Umožňuje označiť diel ako subdodávku namiesto použitia partType
@@ -31,7 +37,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "1.1.1",  // MementoConfigProjects - optimalizovaná verzia pre calculation scripts
+        version: "1.2.0",  // MementoConfigProjects - optimalizovaná verzia pre calculation scripts
 
 
         // Defaultné hodnoty pre globálne nastavenia
@@ -111,7 +117,6 @@ var MementoConfig = (function() {
                 modifiedDate: "dátum úpravy", // date - dátum poslednej úpravy
                 rowColor: "farba záznamu", // color - farba riadku v zozname
                 backgroundColor: "farba pozadia", // color - farba pozadia karty
-                infoTelegram: "info_telegram", // richtext - Telegram správy
                 notifications: "Notifikácie", // linkToEntry - prepojené notifikácie
                 recordIcons: "ikony záznamu" // text - textové ikony pre záznam
             },
@@ -289,7 +294,8 @@ var MementoConfig = (function() {
                 errorLog: "Error_Log", // text/memo
                 isOrder: "Zákazka" // checkbox
             },
-            // Adresy polia            // === OBCHODNÉ DOKUMENTY ===
+
+            // === OBCHODNÉ DOKUMENTY ===
             // Cenové ponuky polia (Library ID: 90RmdjWuk)
             quote: {
                 // Základné identifikačné polia
@@ -412,10 +418,12 @@ var MementoConfig = (function() {
                 date: "Dátum",
                 startDate: "Dátum začatia",
                 endDate: "Dátum ukončenia",
-                budget: "Rozpočet", // real number
-                budgetSubcontracts: "Rozpočet subdodávky", // real number - rozpočet subdodávok pri "Vytvoriť dodatok"
-                spent: "Spotrebované", // real number
-                remaining: "Zostatok", // real number, budget - spent
+                budget: "Rozpočet", // real number - rozpočet z CP dielov (Diely + Diely HZS)
+                budgetSubcontracts: "Rozpočet subdodávky", // real number - rozpočet subdodávok z CP (Subdodávky)
+                spent: "Spotrebované", // real number - spotrebované z dielov (Diely + Diely HZS)
+                spentSubcontracts: "Spotrebované subdodávky", // real number - spotrebované zo subdodávok (Subdodávky)
+                remaining: "Zostatok", // real number - zostatok (Rozpočet - Spotrebované)
+                remainingSubcontracts: "Zostatok subdodávky", // real number - zostatok subdodávok (Rozpočet subdodávky - Spotrebované subdodávky)
                 daysCount: "Počet dní", // integer, endDate - startDate
                 hoursCount: "Odpracovaných hodín", // real number, súčet odpracovaných hodín z dennej dochádzky
                 wageCosts: "Mzdy", // real number, súčet mzdových nákladov z dennej dochádzky
@@ -496,10 +504,7 @@ var MementoConfig = (function() {
 
                 // DPH
                 vat: "DPH", // currency (field 324)
-                vatRate: "Sadzba DPH", // double (field 317)
-
-                // OSTATNÉ
-                telegramGroup: "Telegram skupina" // linkToEntry Telegram Groups
+                vatRate: "Sadzba DPH" // double (field 317)
             },
             // Zákazky Diely polia (Library ID: iEUC79O2T)
             orderPart: {
