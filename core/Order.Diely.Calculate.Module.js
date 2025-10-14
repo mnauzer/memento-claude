@@ -1,6 +1,6 @@
 // ==============================================
 // ZÁKAZKY DIELY - Hlavný prepočet (MODULE)
-// Verzia: 2.0.0 | Dátum: 2025-10-12 | Autor: ASISTANTO
+// Verzia: 2.1.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // Knižnica: Zákazky Diely (ID: iEUC79O2T)
 // ==============================================
 // 📋 FUNKCIA:
@@ -15,6 +15,7 @@
 //    - Automatické vyčistenie debug, error a info logov pri štarte
 //    - Vytvorenie prehľadného textového reportu v info poli
 //    - Výpočet celkovej hmotnosti materiálu v tonách (ak pole existuje)
+//    - Výpočet hodnôt z cenovej ponuky (CP) - paralelné polia a atribúty
 // ==============================================
 // 🔧 POUŽITIE:
 //    // Z triggeru alebo action:
@@ -24,6 +25,12 @@
 //    var orderPart = lib("Zákazky Diely").find("Číslo", 1)[0];
 //    OrderDielyCalculate.partCalculate(orderPart);
 // ==============================================
+// 🔧 CHANGELOG v2.1.0 (2025-10-14):
+//    - NOVÁ FUNKCIA: Výpočet polí z cenovej ponuky (CP)
+//    - Pridané CP polia: Suma materiál CP, Suma práce CP, Celkom CP, Hmotnosť materiálu CP
+//    - Pridané CP atribúty: množstvo cp, cena cp, cena celkom cp pre Materiál a Práce
+//    - Paralelný výpočet skutočných hodnôt a hodnôt z cenovej ponuky
+//    - Aktualizovaný debug output s oddelenými sekciami pre skutočné hodnoty a CP
 // 🔧 CHANGELOG v2.0.0 (2025-10-12):
 //    - REFACTOR: Pridaný cenový systém z CP.Diely.Calculate.Module.js v4.2.0
 //    - NOVÁ FUNKCIA: Vždy kontroluje ceny v databáze a umožňuje ich aktualizáciu
@@ -62,13 +69,17 @@ var OrderDielyCalculate = (function() {
         var CONFIG = {
             // Script špecifické nastavenia
             scriptName: "Zákazky Diely - Prepočet (Module)",
-            version: "2.0.0",
+            version: "2.1.0",
 
             // Referencie na centrálny config
             fields: centralConfig.fields.orderPart,
             attributes: {
+                // Skutočné atribúty
                 materials: centralConfig.attributes.orderPartMaterials,
-                works: centralConfig.attributes.orderPartWorks
+                works: centralConfig.attributes.orderPartWorks,
+                // CP atribúty (z cenovej ponuky)
+                materialsCp: centralConfig.attributes.orderPartMaterialsCp,
+                worksCp: centralConfig.attributes.orderPartWorksCp
             },
             icons: centralConfig.icons,
 
@@ -609,6 +620,11 @@ var OrderDielyCalculate = (function() {
             var workSum = 0;
             var materialWeightKg = 0;  // Celková hmotnosť materiálu v kg
 
+            // CP (Cenová Ponuka) sumy
+            var materialSumCp = 0;
+            var workSumCp = 0;
+            var materialWeightKgCp = 0;  // Celková hmotnosť materiálu CP v kg
+
             // ========== SPRACOVANIE MATERIÁLU ==========
             utils.addDebug(currentEntry, "\n📦 MATERIÁL");
             utils.addDebug(currentEntry, "Pole: " + fields.materials);
@@ -781,6 +797,65 @@ var OrderDielyCalculate = (function() {
                 utils.addDebug(currentEntry, "  ℹ️ Žiadne položky materiálu");
             }
 
+            // ========== SPRACOVANIE MATERIÁLU CP (CENOVÁ PONUKA) ==========
+            utils.addDebug(currentEntry, "\n📦 MATERIÁL CP (Cenová Ponuka)");
+            utils.addDebug(currentEntry, "Pole: " + fields.materials);
+
+            if (materialItems && materialItems.length > 0) {
+                var attrsCp = CONFIG.attributes.materialsCp;
+
+                for (var i = 0; i < materialItems.length; i++) {
+                    var item = materialItems[i];
+
+                    // Získaj názov materiálu
+                    var itemName = "Neznámy materiál";
+                    try {
+                        itemName = item.field("Názov") || item.field("Name") || "Neznámy materiál";
+                    } catch (e) {
+                        itemName = "Materiál #" + (i + 1);
+                    }
+
+                    var quantityCp = item.attr(attrsCp.quantity) || 0;
+                    var priceCp = item.attr(attrsCp.price) || 0;
+
+                    utils.addDebug(currentEntry, "  • Položka #" + (i + 1) + ": " + itemName);
+                    utils.addDebug(currentEntry, "    Množstvo CP: " + quantityCp + ", Cena CP: " + priceCp.toFixed(2) + " €");
+
+                    // Vypočítaj cenu celkom CP a zaokrúhli na 2 desatinné miesta
+                    var totalPriceCp = Math.round(quantityCp * priceCp * 100) / 100;
+
+                    // Bezpečné zapisovanie atribútu
+                    try {
+                        item.setAttr(attrsCp.totalPrice, totalPriceCp);
+                    } catch (e) {
+                        utils.addError(currentEntry, "⚠️ Chyba pri zápise totalPrice CP do atribútu materiálu: " + e.toString(), "materialTotalPriceCp", e);
+                    }
+
+                    materialSumCp += totalPriceCp;
+
+                    // Získaj hmotnosť položky (v kg) - ak pole existuje
+                    var itemWeight = 0;
+                    try {
+                        itemWeight = utils.safeGet(item, CONFIG.itemFields.material.weight) || 0;
+                    } catch (e) {
+                        itemWeight = 0;
+                    }
+
+                    // Vypočítaj celkovú hmotnosť tejto položky CP
+                    if (itemWeight > 0) {
+                        var itemTotalWeightCp = quantityCp * itemWeight;
+                        materialWeightKgCp += itemTotalWeightCp;
+                        utils.addDebug(currentEntry, "    ⚖️ Hmotnosť CP: " + itemWeight.toFixed(2) + " kg × " + quantityCp + " = " + itemTotalWeightCp.toFixed(2) + " kg");
+                    }
+
+                    utils.addDebug(currentEntry, "    💰 Cena CP celkom: " + totalPriceCp.toFixed(2) + " €");
+                }
+
+                utils.addDebug(currentEntry, "  ✅ Materiál CP suma: " + materialSumCp.toFixed(2) + " €");
+            } else {
+                utils.addDebug(currentEntry, "  ℹ️ Žiadne položky materiálu CP");
+            }
+
             // ========== SPRACOVANIE PRÁC ==========
             utils.addDebug(currentEntry, "\n🔨 PRÁCE");
             utils.addDebug(currentEntry, "Pole: " + fields.works);
@@ -938,6 +1013,50 @@ var OrderDielyCalculate = (function() {
                 utils.addDebug(currentEntry, "  ℹ️ Žiadne položky prác");
             }
 
+            // ========== SPRACOVANIE PRÁC CP (CENOVÁ PONUKA) ==========
+            utils.addDebug(currentEntry, "\n🔨 PRÁCE CP (Cenová Ponuka)");
+            utils.addDebug(currentEntry, "Pole: " + fields.works);
+
+            if (workItems && workItems.length > 0) {
+                var attrsCp = CONFIG.attributes.worksCp;
+
+                for (var i = 0; i < workItems.length; i++) {
+                    var item = workItems[i];
+
+                    // Získaj názov práce
+                    var itemName = "Neznáma práca";
+                    try {
+                        itemName = item.field("Názov") || item.field("Name") || "Neznáma práca";
+                    } catch (e) {
+                        itemName = "Práca #" + (i + 1);
+                    }
+
+                    var quantityCp = item.attr(attrsCp.quantity) || 0;
+                    var priceCp = item.attr(attrsCp.price) || 0;
+
+                    utils.addDebug(currentEntry, "  • Položka #" + (i + 1) + ": " + itemName);
+                    utils.addDebug(currentEntry, "    Množstvo CP: " + quantityCp + ", Cena CP: " + priceCp.toFixed(2) + " €");
+
+                    // Vypočítaj cenu celkom CP a zaokrúhli na 2 desatinné miesta
+                    var totalPriceCp = Math.round(quantityCp * priceCp * 100) / 100;
+
+                    // Bezpečné zapisovanie atribútu
+                    try {
+                        item.setAttr(attrsCp.totalPrice, totalPriceCp);
+                    } catch (e) {
+                        utils.addError(currentEntry, "⚠️ Chyba pri zápise totalPrice CP do atribútu práce: " + e.toString(), "workTotalPriceCp", e);
+                    }
+
+                    workSumCp += totalPriceCp;
+
+                    utils.addDebug(currentEntry, "    💰 Cena CP celkom: " + totalPriceCp.toFixed(2) + " €");
+                }
+
+                utils.addDebug(currentEntry, "  ✅ Práce CP suma: " + workSumCp.toFixed(2) + " €");
+            } else {
+                utils.addDebug(currentEntry, "  ℹ️ Žiadne položky prác CP");
+            }
+
             // ========== KONTROLA A UPDATE CIEN ==========
             if (priceDifferences.length > 0) {
                 utils.addDebug(currentEntry, "\n⚠️ Zistené rozdiely v cenách: " + priceDifferences.length);
@@ -967,16 +1086,44 @@ var OrderDielyCalculate = (function() {
                 }
             }
 
+            // ========== ZÁPIS VÝSLEDKOV CP (CENOVÁ PONUKA) ==========
+            var totalSumCp = materialSumCp + workSumCp;
+
+            // Konverzia hmotnosti CP z kg na tony (ak pole existuje)
+            var materialWeightTonsCp = materialWeightKgCp / 1000;
+
+            currentEntry.set(fields.materialSumCp, materialSumCp);
+            currentEntry.set(fields.workSumCp, workSumCp);
+            currentEntry.set(fields.totalSumCp, totalSumCp);
+
+            // Hmotnosť materiálu CP - len ak pole existuje
+            if (fields.materialWeightCp) {
+                try {
+                    currentEntry.set(fields.materialWeightCp, materialWeightTonsCp);
+                } catch (e) {
+                    utils.addDebug(currentEntry, "  ℹ️ Pole 'Hmotnosť materiálu CP' neexistuje v knižnici");
+                }
+            }
+
             // Debug výstup
             utils.addDebug(currentEntry, "\n" + "=".repeat(50));
             utils.addDebug(currentEntry, "💰 SÚHRN ZÁKAZKY DIELY:");
-            utils.addDebug(currentEntry, "  • Materiál:     " + materialSum.toFixed(2) + " €");
-            utils.addDebug(currentEntry, "  • Práce:        " + workSum.toFixed(2) + " €");
-            utils.addDebug(currentEntry, "  " + "-".repeat(48));
-            utils.addDebug(currentEntry, "  • CELKOM:       " + totalSum.toFixed(2) + " €");
+            utils.addDebug(currentEntry, "  SKUTOČNÉ HODNOTY:");
+            utils.addDebug(currentEntry, "    • Materiál:     " + materialSum.toFixed(2) + " €");
+            utils.addDebug(currentEntry, "    • Práce:        " + workSum.toFixed(2) + " €");
+            utils.addDebug(currentEntry, "    " + "-".repeat(46));
+            utils.addDebug(currentEntry, "    • CELKOM:       " + totalSum.toFixed(2) + " €");
             if (materialWeightKg > 0) {
-                utils.addDebug(currentEntry, "  " + "-".repeat(48));
-                utils.addDebug(currentEntry, "  • Hmotnosť mat: " + materialWeightKg.toFixed(2) + " kg (" + materialWeightTons.toFixed(3) + " t)");
+                utils.addDebug(currentEntry, "    • Hmotnosť mat: " + materialWeightKg.toFixed(2) + " kg (" + materialWeightTons.toFixed(3) + " t)");
+            }
+            utils.addDebug(currentEntry, "");
+            utils.addDebug(currentEntry, "  CENOVÁ PONUKA (CP):");
+            utils.addDebug(currentEntry, "    • Materiál CP:  " + materialSumCp.toFixed(2) + " €");
+            utils.addDebug(currentEntry, "    • Práce CP:     " + workSumCp.toFixed(2) + " €");
+            utils.addDebug(currentEntry, "    " + "-".repeat(46));
+            utils.addDebug(currentEntry, "    • CELKOM CP:    " + totalSumCp.toFixed(2) + " €");
+            if (materialWeightKgCp > 0) {
+                utils.addDebug(currentEntry, "    • Hmotnosť CP:  " + materialWeightKgCp.toFixed(2) + " kg (" + materialWeightTonsCp.toFixed(3) + " t)");
             }
             utils.addDebug(currentEntry, "=".repeat(50));
 
@@ -1005,7 +1152,7 @@ var OrderDielyCalculate = (function() {
 
     return {
         partCalculate: partCalculate,
-        version: "2.0.0"
+        version: "2.1.0"
     };
 })();
 
