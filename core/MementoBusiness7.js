@@ -758,6 +758,7 @@ var MementoBusiness = (function() {
             priceLibrary: "materialPrices",
             linkField: "material",
             priceField: "sellPrice",
+            buyPriceField: "buyPrice",
             fallbackPriceField: "price"
         });
     }
@@ -2836,7 +2837,7 @@ var MementoBusiness = (function() {
             return "# 📊 VÝKAZ " + reportType.toUpperCase() + "\n\n❌ Chyba pri generovaní info záznamu: " + error.toString();
         }
     }
-
+ 
     // ==============================================
     // NUMBER GENERATION
     // ==============================================
