@@ -1,9 +1,19 @@
 // ==============================================
 // ZÁKAZKY - Prepočet (MODULE VERSION)
-// Verzia: 2.3.2 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// Verzia: 2.3.3 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // Knižnica: Zákazky
 // Použitie: OrderCalculate.orderCalculate(entry());
 // ==============================================
+// 🔧 CHANGELOG v2.3.3 (2025-10-14):
+//    - ✨ NOVÁ FUNKCIA: calculateTransportPrice(spent) - výpočet Cena dopravy
+//      → Podporuje metódy: Neúčtovať, % zo zákazky (zo Spotrebované!), Pevná cena
+//    - ✨ NOVÁ FUNKCIA: calculateMassTransferPrice(spent) - výpočet Cena presunu hmôt
+//      → Podporuje metódy: Neúčtovať, % zo zákazky (zo Spotrebované!), Pevná cena
+//    - 🔧 CRITICAL FIX: Percentá dopravy a presunu hmôt sa počítajú zo SPOTREBOVANÉ
+//      → Predtým neboli implementované vôbec
+//      → Teraz počítajú zo skutočne dodaného množstva (Spotrebované), nie z Rozpočet
+//    - ✨ NOVÝ VÝPOČET: Celkom = Spotrebované + Cena dopravy + Cena presunu hmôt
+//    - 📝 IMPROVEMENT: Rozšírený debug output s cenami dopravy, presunu hmôt a celkom
 // 🔧 CHANGELOG v2.3.2 (2025-10-14):
 //    - 🐛 CRITICAL FIX: calculateBudget() odstránená logika createAddendum
 //      → Rozpočet = vždy len z Diely alebo Diely HZS (podľa typu zákazky)
@@ -68,7 +78,6 @@
 // 🔧 CHANGELOG v1.0.1 (2025-10-12):
 //    - FIX: Safe debug logging - kontrola dostupnosti utils.addDebug
 //    - FIX: Použitie utils.safeSet() namiesto priameho .set()
-//    - FIX: Odstránené polia transportPrice a massTransferPrice (neexistujú v Zákazky)
 //    - IMPROVEMENT: Lepšie error handling s názvami polí
 // ==============================================
 // 📋 FUNKCIA:
@@ -83,6 +92,9 @@
 //    - Počíta Spotrebované subdodávky = suma "Celkom" z poľa Subdodávky (vždy)
 //    - Počíta Zostatok = Rozpočet - Spotrebované
 //    - Počíta Zostatok subdodávky = Rozpočet subdodávky - Spotrebované subdodávky
+//    - Počíta Cena dopravy = % zo Spotrebované (skutočné dodané množstvo)
+//    - Počíta Cena presunu hmôt = % zo Spotrebované (skutočné dodané množstvo)
+//    - Počíta Celkom = Spotrebované + Cena dopravy + Cena presunu hmôt
 //    - Jednoduché počítanie: len spočíta záznamy v príslušnom poli (bez kontroly checkbox)
 //    - Plná podpora debug a error logov
 // ==============================================
@@ -127,7 +139,7 @@ var OrderCalculate = (function() {
 
         var CONFIG = {
             scriptName: "Zákazky - Prepočet (Module)",
-            version: "2.3.2",
+            version: "2.3.3",
             fields: centralConfig.fields.order,
             orderPartFields: centralConfig.fields.orderPart,
             icons: centralConfig.icons
@@ -602,6 +614,136 @@ var OrderCalculate = (function() {
             }
         }
 
+        /**
+         * Spočíta cenu dopravy podľa metódy účtovania
+         * Pri metóde "% zo zákazky" počíta zo Spotrebované (skutočné dodané množstvo)
+         * @param {Number} spent - Spotrebovaná suma (základ pre percentuálny výpočet)
+         * @returns {Number} - Cena dopravy
+         */
+        function calculateTransportPrice(spent) {
+            try {
+                addDebug(currentEntry, "  🚗 Výpočet ceny dopravy");
+
+                var rideCalc = utils.safeGet(currentEntry, fields.rideCalculation) || "Neúčtovať";
+                addDebug(currentEntry, "    ⚙️ Typ účtovania: " + rideCalc);
+
+                var transportPrice = 0;
+
+                // ========== NEÚČTOVAŤ ==========
+                if (rideCalc === "Neúčtovať" || !rideCalc) {
+                    addDebug(currentEntry, "    ✅ Cena dopravy: 0.00 € (Neúčtovať)");
+                    return 0;
+                }
+
+                // ========== PERCENTO ZO ZÁKAZKY ==========
+                else if (rideCalc === "% zo zákazky") {
+                    var transportPercentage = utils.safeGet(currentEntry, fields.transportPercentage) || 0;
+
+                    if (transportPercentage <= 0) {
+                        addDebug(currentEntry, "    ⚠️ Doprava %: 0%");
+                        return 0;
+                    }
+
+                    transportPrice = spent * (transportPercentage / 100);
+                    addDebug(currentEntry, "    📊 Výpočet: " + spent.toFixed(2) + " € (Spotrebované) × " + transportPercentage + "%");
+                    addDebug(currentEntry, "    ✅ Cena dopravy: " + transportPrice.toFixed(2) + " €");
+                }
+
+                // ========== PEVNÁ CENA ==========
+                else if (rideCalc === "Pevná cena") {
+                    transportPrice = utils.safeGet(currentEntry, fields.fixedTransportPrice) || 0;
+
+                    if (transportPrice <= 0) {
+                        addDebug(currentEntry, "    ⚠️ Pole 'Doprava pevná cena' nie je vyplnené");
+                        return 0;
+                    }
+
+                    addDebug(currentEntry, "    ✅ Cena dopravy: " + transportPrice.toFixed(2) + " € (Pevná cena)");
+                }
+
+                // ========== INÉ METÓDY (Paušál, Km) ==========
+                else {
+                    addDebug(currentEntry, "    ⚠️ Metóda '" + rideCalc + "' nie je podporovaná v Order.Calculate");
+                    addDebug(currentEntry, "    ℹ️ Zadajte cenu manuálne do poľa 'Doprava pevná cena'");
+                    return 0;
+                }
+
+                return transportPrice;
+
+            } catch (error) {
+                var errorMsg = "Chyba pri výpočte ceny dopravy: " + error.toString();
+                if (error.lineNumber) errorMsg += ", Line: " + error.lineNumber;
+                if (error.stack) errorMsg += "\nStack: " + error.stack;
+                addError(currentEntry, errorMsg, "calculateTransportPrice", error);
+                throw error;
+            }
+        }
+
+        /**
+         * Spočíta cenu presunu hmôt podľa metódy účtovania
+         * Pri metóde "% zo zákazky" počíta zo Spotrebované (skutočné dodané množstvo)
+         * @param {Number} spent - Spotrebovaná suma (základ pre percentuálny výpočet)
+         * @returns {Number} - Cena presunu hmôt
+         */
+        function calculateMassTransferPrice(spent) {
+            try {
+                addDebug(currentEntry, "  📦 Výpočet ceny presunu hmôt");
+
+                var massTransferCalc = utils.safeGet(currentEntry, fields.massTransferCalculation) || "Neúčtovať";
+                addDebug(currentEntry, "    ⚙️ Typ účtovania: " + massTransferCalc);
+
+                var massTransferPrice = 0;
+
+                // ========== NEÚČTOVAŤ ==========
+                if (massTransferCalc === "Neúčtovať" || !massTransferCalc) {
+                    addDebug(currentEntry, "    ✅ Cena presunu hmôt: 0.00 € (Neúčtovať)");
+                    return 0;
+                }
+
+                // ========== PERCENTO ZO ZÁKAZKY ==========
+                else if (massTransferCalc === "% zo zákazky") {
+                    var massTransferPercentage = utils.safeGet(currentEntry, fields.massTransferPercentage) || 0;
+
+                    if (massTransferPercentage <= 0) {
+                        addDebug(currentEntry, "    ⚠️ Presun hmôt %: 0%");
+                        return 0;
+                    }
+
+                    massTransferPrice = spent * (massTransferPercentage / 100);
+                    addDebug(currentEntry, "    📊 Výpočet: " + spent.toFixed(2) + " € (Spotrebované) × " + massTransferPercentage + "%");
+                    addDebug(currentEntry, "    ✅ Cena presunu hmôt: " + massTransferPrice.toFixed(2) + " €");
+                }
+
+                // ========== PEVNÁ CENA ==========
+                else if (massTransferCalc === "Pevná cena") {
+                    massTransferPrice = utils.safeGet(currentEntry, fields.fixedMassTransferPrice) || 0;
+
+                    if (massTransferPrice <= 0) {
+                        addDebug(currentEntry, "    ⚠️ Pole 'Pevná cena presunu hmôt' nie je vyplnené");
+                        return 0;
+                    }
+
+                    addDebug(currentEntry, "    ✅ Cena presunu hmôt: " + massTransferPrice.toFixed(2) + " € (Pevná cena)");
+                }
+
+                // ========== INÉ METÓDY (Paušál, Podľa hmotnosti) ==========
+                else {
+                    addDebug(currentEntry, "    ⚠️ Metóda '" + massTransferCalc + "' nie je podporovaná v Order.Calculate");
+                    addDebug(currentEntry, "    ℹ️ Zadajte cenu manuálne do poľa 'Pevná cena presunu hmôt'");
+                    return 0;
+                }
+
+                return massTransferPrice;
+
+            } catch (error) {
+                var errorMsg = "Chyba pri výpočte ceny presunu hmôt: " + error.toString();
+                if (error.lineNumber) errorMsg += ", Line: " + error.lineNumber;
+                if (error.stack) errorMsg += "\nStack: " + error.stack;
+                addError(currentEntry, errorMsg, "calculateMassTransferPrice", error);
+                throw error;
+            }
+        }
+
 
         // ==============================================
         // HLAVNÝ VÝPOČET
@@ -643,6 +785,26 @@ var OrderCalculate = (function() {
             addDebug(currentEntry, "📋 KROK 4: Výpočet zostatkov");
             var remaining = budgetResult.budget - spent;
             var remainingSubcontracts = budgetResult.budgetSubcontracts - spentSubcontracts;
+            addDebug(currentEntry, "");
+
+            // Krok 5: Výpočet ceny dopravy (% zo Spotrebované)
+            addDebug(currentEntry, "📋 KROK 5: Výpočet ceny dopravy");
+            var transportPrice = calculateTransportPrice(spent);
+            addDebug(currentEntry, "");
+
+            // Krok 6: Výpočet ceny presunu hmôt (% zo Spotrebované)
+            addDebug(currentEntry, "📋 KROK 6: Výpočet ceny presunu hmôt");
+            var massTransferPrice = calculateMassTransferPrice(spent);
+            addDebug(currentEntry, "");
+
+            // Krok 7: Výpočet celkovej sumy
+            addDebug(currentEntry, "📋 KROK 7: Výpočet celkovej sumy");
+            var total = spent + transportPrice + massTransferPrice;
+            addDebug(currentEntry, "    📊 Výpočet: " + spent.toFixed(2) + " € (Spotrebované) + " +
+                                                    transportPrice.toFixed(2) + " € (Doprava) + " +
+                                                    massTransferPrice.toFixed(2) + " € (Presun hmôt)");
+            addDebug(currentEntry, "    ✅ Celkom: " + total.toFixed(2) + " €");
+            addDebug(currentEntry, "");
 
             // Zapíš výsledky pomocou safeSet (vracia true/false)
             if (!utils.safeSet(currentEntry, fields.budget, budgetResult.budget)) {
@@ -669,15 +831,30 @@ var OrderCalculate = (function() {
                 addDebug(currentEntry, "  ❌ Nepodarilo sa nastaviť pole 'remainingSubcontracts' (" + fields.remainingSubcontracts + ")");
             }
 
+            if (!utils.safeSet(currentEntry, fields.transportPrice, transportPrice)) {
+                addDebug(currentEntry, "  ❌ Nepodarilo sa nastaviť pole 'transportPrice' (" + fields.transportPrice + ")");
+            }
+
+            if (!utils.safeSet(currentEntry, fields.massTransferPrice, massTransferPrice)) {
+                addDebug(currentEntry, "  ❌ Nepodarilo sa nastaviť pole 'massTransferPrice' (" + fields.massTransferPrice + ")");
+            }
+
+            if (!utils.safeSet(currentEntry, fields.total, total)) {
+                addDebug(currentEntry, "  ❌ Nepodarilo sa nastaviť pole 'total' (" + fields.total + ")");
+            }
+
             addDebug(currentEntry, "");
             addDebug(currentEntry, "=".repeat(50));
             addDebug(currentEntry, "💰 SÚHRN ZÁKAZKY:");
             addDebug(currentEntry, "  • Rozpočet (z CP):  " + budgetResult.budget.toFixed(2) + " €");
             addDebug(currentEntry, "  • Spotrebované:     " + spent.toFixed(2) + " €");
+            addDebug(currentEntry, "  • Cena dopravy:     " + transportPrice.toFixed(2) + " €");
+            addDebug(currentEntry, "  • Cena presunu hmôt:" + massTransferPrice.toFixed(2) + " €");
             addDebug(currentEntry, "  " + "-".repeat(48));
+            addDebug(currentEntry, "  • CELKOM:           " + total.toFixed(2) + " €");
             addDebug(currentEntry, "  • ZOSTATOK:         " + remaining.toFixed(2) + " €");
             addDebug(currentEntry, "");
-            if (budgetResult.budgetSubcontracts > 0) {
+            if (budgetResult.budgetSubcontracts > 0 || spentSubcontracts > 0) {
                 addDebug(currentEntry, "💰 SUBDODÁVKY:");
                 addDebug(currentEntry, "  • Rozpočet subdodávky: " + budgetResult.budgetSubcontracts.toFixed(2) + " €");
                 addDebug(currentEntry, "  • Spotrebované subdodávky: " + spentSubcontracts.toFixed(2) + " €");
