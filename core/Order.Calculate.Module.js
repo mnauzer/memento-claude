@@ -1,9 +1,16 @@
 // ==============================================
 // ZÁKAZKY - Prepočet (MODULE VERSION)
-// Verzia: 2.1.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// Verzia: 2.2.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // Knižnica: Zákazky
 // Použitie: OrderCalculate.orderCalculate(entry());
 // ==============================================
+// 🔧 CHANGELOG v2.2.0 (2025-10-14):
+//    - 🔧 BREAKING CHANGE: Zmenená logika detekcie subdodávok
+//      → Namiesto kontroly partType === "Subdodávky"
+//      → Teraz kontrola checkbox poľa "Subdodávka" (orderPartFields.subcontract)
+//    - ✅ FIX: Subdodávky sa rozpoznávajú podľa checkbox, nie podľa typu
+//    - 🆕 NOVÉ POLE: "Subdodávka" (checkbox) v MementoConfigProjects.js
+//    - 🔧 FIX: Všetky miesta v manageSubcontracts() aktualizované na checkbox kontrolu
 // 🔧 CHANGELOG v2.1.0 (2025-10-14):
 //    - 🚀 KRITICKÝ FIX: Pridaná funkcia manageSubcontracts() - rieši duplicity subdodávok
 //    - 🔧 FIX: Subdodávky sa už neobjavujú v Dieloch aj Subdodávkach súčasne
@@ -86,7 +93,7 @@ var OrderCalculate = (function() {
 
         var CONFIG = {
             scriptName: "Zákazky - Prepočet (Module)",
-            version: "2.1.0",
+            version: "2.2.0",
             fields: centralConfig.fields.order,
             orderPartFields: centralConfig.fields.orderPart,
             icons: centralConfig.icons
@@ -110,8 +117,13 @@ var OrderCalculate = (function() {
         };
 
         // Vyčistiť debug, error a info logy pred začiatkom
-        if (utils && typeof utils.clearLogs === 'function') {
-            utils.clearLogs(currentEntry, true);  // true = vyčistí aj Error_Log
+        // Safe wrapper s try-catch pre lazy loading
+        if (utils && utils.clearLogs) {
+            try {
+                utils.clearLogs(currentEntry, true);  // true = vyčistí aj Error_Log
+            } catch (e) {
+                // Ignoruj chybu ak MementoCore nie je ešte načítaný (lazy loading)
+            }
         }
 
         addDebug(currentEntry, "🚀 ŠTART: " + CONFIG.scriptName + " v" + CONFIG.version);
@@ -292,8 +304,8 @@ var OrderCalculate = (function() {
                 var partsEntries = utils.safeGetLinks(currentEntry, fields.parts) || [];
                 for (var i = 0; i < partsEntries.length; i++) {
                     var part = partsEntries[i];
-                    var partType = utils.safeGet(part, orderPartFields.partType);
-                    if (partType === "Subdodávky") {
+                    var isSubcontract = utils.safeGet(part, orderPartFields.subcontract);
+                    if (isSubcontract === true) {
                         subcontractEntry = part;
                         currentLocation = "parts";
                         addDebug(currentEntry, "    ✅ Nájdená subdodávka v poli 'Diely'");
@@ -306,8 +318,8 @@ var OrderCalculate = (function() {
                     var partsHzsEntries = utils.safeGetLinks(currentEntry, fields.partsHzs) || [];
                     for (var i = 0; i < partsHzsEntries.length; i++) {
                         var part = partsHzsEntries[i];
-                        var partType = utils.safeGet(part, orderPartFields.partType);
-                        if (partType === "Subdodávky") {
+                        var isSubcontract = utils.safeGet(part, orderPartFields.subcontract);
+                        if (isSubcontract === true) {
                             subcontractEntry = part;
                             currentLocation = "partsHzs";
                             addDebug(currentEntry, "    ✅ Nájdená subdodávka v poli 'Diely HZS'");
@@ -321,8 +333,8 @@ var OrderCalculate = (function() {
                     var subcontractsEntries = utils.safeGetLinks(currentEntry, fields.subcontracts) || [];
                     for (var i = 0; i < subcontractsEntries.length; i++) {
                         var part = subcontractsEntries[i];
-                        var partType = utils.safeGet(part, orderPartFields.partType);
-                        if (partType === "Subdodávky") {
+                        var isSubcontract = utils.safeGet(part, orderPartFields.subcontract);
+                        if (isSubcontract === true) {
                             subcontractEntry = part;
                             currentLocation = "subcontracts";
                             addDebug(currentEntry, "    ✅ Nájdená subdodávka v poli 'Subdodávky'");
@@ -364,8 +376,8 @@ var OrderCalculate = (function() {
                     var cleanedParts = [];
                     partsEntries = utils.safeGetLinks(currentEntry, fields.parts) || [];
                     for (var i = 0; i < partsEntries.length; i++) {
-                        var partType = utils.safeGet(partsEntries[i], orderPartFields.partType);
-                        if (partType !== "Subdodávky") {
+                        var isSubcontract = utils.safeGet(partsEntries[i], orderPartFields.subcontract);
+                        if (isSubcontract !== true) {
                             cleanedParts.push(partsEntries[i]);
                         }
                     }
@@ -374,8 +386,8 @@ var OrderCalculate = (function() {
                     var cleanedPartsHzs = [];
                     partsHzsEntries = utils.safeGetLinks(currentEntry, fields.partsHzs) || [];
                     for (var i = 0; i < partsHzsEntries.length; i++) {
-                        var partType = utils.safeGet(partsHzsEntries[i], orderPartFields.partType);
-                        if (partType !== "Subdodávky") {
+                        var isSubcontract = utils.safeGet(partsHzsEntries[i], orderPartFields.subcontract);
+                        if (isSubcontract !== true) {
                             cleanedPartsHzs.push(partsHzsEntries[i]);
                         }
                     }
@@ -384,8 +396,8 @@ var OrderCalculate = (function() {
                     var cleanedSubcontracts = [];
                     subcontractsEntries = utils.safeGetLinks(currentEntry, fields.subcontracts) || [];
                     for (var i = 0; i < subcontractsEntries.length; i++) {
-                        var partType = utils.safeGet(subcontractsEntries[i], orderPartFields.partType);
-                        if (partType !== "Subdodávky") {
+                        var isSubcontract = utils.safeGet(subcontractsEntries[i], orderPartFields.subcontract);
+                        if (isSubcontract !== true) {
                             cleanedSubcontracts.push(subcontractsEntries[i]);
                         }
                     }
@@ -415,8 +427,8 @@ var OrderCalculate = (function() {
                         var partsCheck = utils.safeGetLinks(currentEntry, fields.parts) || [];
                         var removedFromParts = 0;
                         for (var i = 0; i < partsCheck.length; i++) {
-                            var partType = utils.safeGet(partsCheck[i], orderPartFields.partType);
-                            if (partType !== "Subdodávky") {
+                            var isSubcontract = utils.safeGet(partsCheck[i], orderPartFields.subcontract);
+                            if (isSubcontract !== true) {
                                 cleanedParts.push(partsCheck[i]);
                             } else {
                                 removedFromParts++;
@@ -434,8 +446,8 @@ var OrderCalculate = (function() {
                         var partsHzsCheck = utils.safeGetLinks(currentEntry, fields.partsHzs) || [];
                         var removedFromPartsHzs = 0;
                         for (var i = 0; i < partsHzsCheck.length; i++) {
-                            var partType = utils.safeGet(partsHzsCheck[i], orderPartFields.partType);
-                            if (partType !== "Subdodávky") {
+                            var isSubcontract = utils.safeGet(partsHzsCheck[i], orderPartFields.subcontract);
+                            if (isSubcontract !== true) {
                                 cleanedPartsHzs.push(partsHzsCheck[i]);
                             } else {
                                 removedFromPartsHzs++;
@@ -453,8 +465,8 @@ var OrderCalculate = (function() {
                         var subcontractsCheck = utils.safeGetLinks(currentEntry, fields.subcontracts) || [];
                         var removedFromSubcontracts = 0;
                         for (var i = 0; i < subcontractsCheck.length; i++) {
-                            var partType = utils.safeGet(subcontractsCheck[i], orderPartFields.partType);
-                            if (partType !== "Subdodávky") {
+                            var isSubcontract = utils.safeGet(subcontractsCheck[i], orderPartFields.subcontract);
+                            if (isSubcontract !== true) {
                                 cleanedSubcontracts.push(subcontractsCheck[i]);
                             } else {
                                 removedFromSubcontracts++;
@@ -609,7 +621,7 @@ var OrderCalculate = (function() {
     // Public API
     return {
         orderCalculate: orderCalculate,
-        version: "2.1.0"
+        version: "2.2.0"
     };
 
 })();

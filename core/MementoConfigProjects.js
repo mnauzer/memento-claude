@@ -1,6 +1,11 @@
 // ==============================================
 // MEMENTO CONFIG PROJECTS - Optimalizovaná konfigurácia
-// Verzia: 1.0.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// Verzia: 1.1.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// ==============================================
+// 🔧 CHANGELOG v1.1.0 (2025-10-14):
+//    - 🆕 NOVÉ POLE: orderPart.subcontract = "Subdodávka" (checkbox)
+//      → Umožňuje označiť diel ako subdodávku namiesto použitia partType
+//      → Používa sa v Order.Calculate.Module.js v2.2.0+
 // ==============================================
 // 📋 ÚČEL:
 //    - Optimalizovaný CONFIG pre calculation scripts
@@ -26,7 +31,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "1.0.0",  // MementoConfigProjects - optimalizovaná verzia pre calculation scripts
+        version: "1.1.0",  // MementoConfigProjects - optimalizovaná verzia pre calculation scripts
 
 
         // Defaultné hodnoty pre globálne nastavenia
@@ -505,6 +510,7 @@ var MementoConfig = (function() {
 
                 // Klasifikácia dielu
                 partType: "Diel zákazky", // choice (field 257) - role: name, druh dielu zákazky
+                subcontract: "Subdodávka", // checkbox - NOVÉ! označuje či je diel subdodávkou
 
                 // Cenové polia - súčty za kategórie (skutočné hodnoty)
                 materialSum: "Suma materiál", // currency (field 271), suma za materiály
