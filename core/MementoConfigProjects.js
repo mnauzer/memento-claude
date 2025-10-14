@@ -1,19 +1,24 @@
 // ==============================================
-// MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.52 | Dátum: 2025-10-12 | Autor: ASISTANTO
-// ==============================================
-// 📋 CHANGELOG: /home/rasto/memento-claude/docs/CHANGELOG-MementoConfig.md
+// MEMENTO CONFIG PROJECTS - Optimalizovaná konfigurácia
+// Verzia: 1.0.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
-//    - Centrálny CONFIG pre všetky scripty
-//    - Všetky názvy knižníc, polí a atribútov
-//    - Globálne nastavenia a konštanty
-//    - Jednoduchý prístup cez API
+//    - Optimalizovaný CONFIG pre calculation scripts
+//    - Obsahuje len konfigurácie pre:
+//      * Cenové ponuky a Zákazky (Quotes & Orders)
+//      * Cenník prác a Materiál (PriceList & Inventory)
+//      * Historické ceny (workPrices, materialPrices, vatRates)
+//      * Základné firemné knižnice (Clients, Places, Suppliers)
+//    - Eliminuje attendance, workRecords, reports, telegram details
+//    - Znížená pamäťová záťaž pre calculation scripts
 // ==============================================
 //
-// 🔧 POUŽITIE V INÝCH MODULOCH:
+// 🔧 POUŽITIE V CALCULATION MODULOCH:
 // Základné použitie:
 //    var config = MementoConfig.getConfig();  // Celý CONFIG objekt
+//
+// DÔLEŽITÉ: Tento súbor je optimalizovaná verzia MementoConfig7.js
+// Pre plnú konfiguráciu použite MementoConfig7.js
 
 
 var MementoConfig = (function() {
@@ -21,7 +26,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "1.0.0",  // CHANGELOG moved to /docs/CHANGELOG-MementoConfig.md - saved ~9KB
+        version: "1.0.0",  // MementoConfigProjects - optimalizovaná verzia pre calculation scripts
 
 
         // Defaultné hodnoty pre globálne nastavenia
@@ -73,15 +78,6 @@ var MementoConfig = (function() {
 
         // === ID KNIŽNÍC (pre API prístup) ===
         libraryIds: {
-            // Denné záznamy
-            dailyReport: "Tt4pxN4xQ", // Denný report
-
-            // Výkazy a reporty
-            workReport: null, // Výkaz prác - ID sa získa runtime
-            rideReport: null, // Výkaz dopravy - ID sa získa runtime
-            machinesReport: "uCRaUwsTo", // Výkaz strojov
-            materialsReport: "z3sxkUHgT", // Výkaz materiálu
-
             // Obchodné dokumenty - Cenové ponuky
             quotes: "90RmdjWuk", // Cenové ponuky
             quoteParts: "nCAgQkfvK", // Cenové ponuky Diely
@@ -90,13 +86,8 @@ var MementoConfig = (function() {
             orders: "CfRHN7QTG", // Zákazky
             orderParts: "iEUC79O2T", // Zákazky Diely
 
-            // Aktuálne používané knižnice podľa API analýzy
-            employeeRates: "CqXNnosKP", // sadzby zamestnancov
-
-            // Poznámka: Hlavná knižnica "Zamestnanci" (ID: nWb00Nogf) má obmedzený prístup
-         
             // Systémové knižnice
-            defaults: "KTZ6dsnY9", // ASISTANTO Defaults
+            defaults: "KTZ6dsnY9" // ASISTANTO Defaults
         },
 
         // === NÁZVY POLÍ ===
@@ -120,6 +111,7 @@ var MementoConfig = (function() {
                 recordIcons: "ikony záznamu" // text - textové ikony pre záznam
             },
             // ASISTANTO Defaults polia (ID: KTZ6dsnY9)
+            // OPTIMALIZOVANÉ - iba polia potrebné pre calculation scripts
             defaults: {
                 // Základné firemné údaje
                 accountingYear: "Účtovný rok", // int (id: 24)
@@ -132,65 +124,8 @@ var MementoConfig = (function() {
                 dic: "DIČ", // text (id: 23)
                 icDph: "IČ DPH", // text (id: 22)
 
-                // Telegram základné nastavenia
-                telegramEnabled: "Povoliť Telegram správy", // boolean (id: 38)
-                telegramDefaultGroup: "Predvolená Telegram skupina", // entries (id: 39)
-                temaNazov: "Téma Názov", // text (id: 67)
-                telegramBotApiKey: "Telegram Bot API Key", // password (id: 16)
-                telegramBot: "Telegram Bot", // text (id: 44)
-                telegramBotToken: "Telegram Bot Token", // password (id: 66)
-
-                // Pracovný čas
-                workTimeFrom: "Pracovný čas od", // time (id: 40)
-                workTimeTo: "Pracovný čas do", // time (id: 41)
-
-                // Notifikačné nastavenia
-                weekendMessages: "Víkendové správy", // boolean (id: 42)
-                debugMode: "Debug mód", // boolean (id: 43)
-                notificationDelay: "Oneskorenie notifikácie (min)", // int (id: 54)
-                summaryDelay: "Oneskorenie súhrnu (min)", // int (id: 55)
-                includeStats: "Zahrnúť štatistiky", // boolean (id: 56)
-                includeFinancials: "Zahrnúť finančné údaje", // boolean (id: 57)
-
-                // N8N integrácia
-                n8nAuthType: "N8N Auth Type", // choice (id: 49)
-                n8nWebhookUrl: "N8N Webhook URL", // text (id: 48)
-                n8nApiKey: "N8N API Key", // text (id: 50)
-                n8nUsername: "N8N Username", // text (id: 58)
-                n8nPassword: "N8N Password", // text (id: 59)
-                n8nHeaderName: "N8N Header Name", // text (id: 60)
-
-                // Dochádzka
-                prichod: "Príchod", // time (id: 0)
-                odchod: "Odchod", // time (id: 1)
-                dochadzka: "dochádzka", // boolean (id: 51)
-                telegramAttendanceId: "Telegram Dochádzka ID", // text (id: 26)
-                telegramGroupAttendance: "Telegram skupina dochádzky", // entries (id: 31)
-                attendanceIndividualNotifications: "Dochádzka individuálne notifikácie", // boolean (id: 52)
-                attendanceGroupNotifications: "Dochádzka skupinové notifikácie", // boolean (id: 65)
-                sendGroupAttendanceNotifications: "Posielať group notifikácie dochádzky", // boolean (id: 53)
-
-                // Kniha jázd
-                defaultStartAddress: "Východzia štart adresa", // entries (id: 5)
-                defaultTargetAddress: "Východzia cieľová adresa", // entries (id: 10)
-                defaultZdrzanie: "default zdržanie", // duration (id: 11)
-                telegramGroupRideLog: "Telegram skupina knihy jázd", // entries (id: 32)
-
-                // Záznam prác
-                defaultHzs: "Default HZS", // entries (id: 6)
-                sendWorkRecordNotifications: "Posielať notifikácie záznamu prác zamestnancom", // boolean (id: 36)
-                sendGroupWorkRecordNotifications: "Posielať group notifikácie záznamu prác", // boolean (id: 37)
-                telegramGroupWorkRecords: "Telegram skupina záznamu prác", // entries (id: 33)
-
-                // Pokladňa
-                telegramGroupCashbook: "Telegram skupina pokladne", // entries (id: 34)
-                accounts: "Účty", // entries (id: 12)
-
-                // Cenové ponuky - NUMBER PLACEHOLDERS
+                // Cenové ponuky - NUMBER PLACEHOLDERS a DEFAULT VALUES
                 cpPlaceholder: "CP Placeholder", // text (id: 7) - Cenové ponuky
-                telegramGroupQuotes: "Telegram skupina cenových ponúk", // entries (id: 64)
-
-                // Cenové ponuky - DEFAULT VALUES
                 cpDefaultRidePercentage: "CP Default % dopravy", // double - default % dopravy
                 cpDefaultKmPrice: "CP Default cena za km", // entries - linkToEntry Cenník prác
                 cpDefaultRideFlatRate: "CP Default paušál dopravy", // entries - linkToEntry Cenník prác
@@ -199,9 +134,6 @@ var MementoConfig = (function() {
 
                 // Zákazky - NUMBER PLACEHOLDERS
                 zPlaceholder: "Z Placeholder", // text (id: 8) - Zákazky
-                telegramGroupOrders: "Telegram skupina zákaziek", // entries (id: 63)
-                telegramGroupOrder: "Telegram skupina zákazky", // entries (id: 68)
-                ordersGroupNotifications: "Zákazky skupinové notifikácie", // boolean (id: 69)
 
                 // Vyúčtovania - NUMBER PLACEHOLDERS
                 vPlaceholder: "V Placeholder" // text (id: 9) - Vyúčtovania
@@ -593,26 +525,8 @@ var MementoConfig = (function() {
 
         },        
         // === ATRIBÚTY ===
+        // OPTIMALIZOVANÉ - iba atribúty pre calculation scripts
         attributes: {
-            employees: {
-                workedHours: "odpracované",
-                hourlyRate: "hodinovka",
-                costs: "náklady",
-                bonus: "+príplatok (€/h)",
-                premium: "+prémia (€)",
-                penalty: "-pokuta (€)",
-                dailyWage: "denná mzda",
-                note: "poznámka"
-            },
-            workRecordEmployees: {
-                workedHours: "odpracované",
-                hourlyRate: "hodinovka", 
-                wageCosts: "mzdové náklady"
-            },
-            workRecordHzs: {
-                price: "cena",
-            },
-
             quotePartMaterials: {
                 quantity: "množstvo", // real number - množstvo materiálu
                 price: "cena", // currency - cena za jednotku
@@ -639,8 +553,7 @@ var MementoConfig = (function() {
                 quantity: "množstvo", // real number - množstvo hodín/jednotiek dodané
                 price: "cena", // currency - cena dodané (source: "cena" z quote)
                 totalPrice: "cena celkom" // currency - celková cena dodané
-            },
-
+            }
         },
 
         // === KONŠTANTY ===
@@ -663,125 +576,41 @@ var MementoConfig = (function() {
                 sent: "Odoslané",
                 failed: "Zlyhalo"
             },
-            
+
             // View typy
             viewTypes: {
                 print: "Tlač",
                 edit: "Editácia",
                 debug: "Debug"
-            },
-            
-            // Typ pohybu v pokladni
-            cashMovementTypes: {
-                income: "Príjem",
-                expense: "Výdavok",
-                transfer: "PP"
-            },
-            
-            // Typ adresáta
-            recipientTypes: {
-                employee: "Zamestnanec",
-                client: "Klient",
-                partner: "Partner",
-                group: "Skupina",
-                customer: "Zákazka"
-            },
-            
-
+            }
         },
         
         // === EMOJI A IKONY ===
+        // OPTIMALIZOVANÉ - iba essential ikony pre calculation scripts
         icons: {
-            // ═══════════════════════════════════════════════════════════════
-            // VŠEOBECNÉ STATUSY A AKCIE  
-            // ═══════════════════════════════════════════════════════════════
-            
-            order: "📦",              // Objednávka/zákazka
-            jobs: "🛠️",              // Práca/úloha
-            driver: "🚚",             // Šofér/vozidlo
-            start: "🚀",              // Spustenie procesu
-            success: "✅",            // Všeobecný úspech
-            error: "❌",              // Všeobecná chyba
-            warning: "⚠️",            // Všeobecné varovanie
+            // Základné statusy
+            success: "✅",            // Úspech
+            error: "❌",              // Chyba
+            warning: "⚠️",            // Varovanie
             info: "ℹ️",               // Informácia
             debug: "🐛",              // Debug
-            
-            // Akcie
-            create: "➕",             // Vytvorenie
-            update: "🔄",            // Aktualizácia  
-            delete: "🗑️",            // Vymazanie
-            search: "🔍",            // Vyhľadávanie
-            save: "💾",              // Uloženie
-            
-            // Stavy
-            checkmark: "☑️",          // Označené
-            cross: "❎",              // Neoznačené  
-            questionMark: "❓",       // Otázka
-            exclamation: "❗",        // Výkričník
-            round: "🔄",             // Rotácia/cyklus (rovnaké ako update - OK!)
-            
-            // ═══════════════════════════════════════════════════════════════
-            // OBJEKTY A ENTITY
-            // ═══════════════════════════════════════════════════════════════
-            person: "👤",             // Osoba
-            group: "👥",              // Skupina  
-            money: "💰",              // Peniaze
-            rate: "💶",               // Kurz
-            time: "⏰",               // Čas (všeobecný)
-            calendar: "📅",           // Kalendár
+
+            // Obchodné entity
+            order: "📦",              // Zákazka
+            money: "💰",              // Peniaze/finančné sumy
             document: "📄",           // Dokument
 
-            // ═══════════════════════════════════════════════════════════════
-            // DOCHÁDZKA (rovnaké emoji, iný kontext!)
-            // ═══════════════════════════════════════════════════════════════
-            attendance: "📋",         // Dochádzka
-            present: "✅",            // Prítomný (rovnaké ako success - OK!)
-            absent: "❌",             // Neprítomný (rovnaké ako error - OK!)
-            late: "⏰",               // Oneskorenie (rovnaké ako time - OK!)
-            overtime: "🕐",           // Nadčas
-            vacation: "🏖️",          // Dovolenka
-            sick: "🤒",               // Choroba
+            // Akcie
+            start: "🚀",              // Spustenie procesu
+            update: "🔄",            // Aktualizácia
+            checkmark: "☑️",          // Označené
 
-            // ═══════════════════════════════════════════════════════════════  
-            // PRÁCA A PROJEKTY
-            // ═══════════════════════════════════════════════════════════════
+            // Projekty
             work: "🔨",               // Práca
-            project: "📊",            // Projekt
-            task: "✔️",               // Úloha
+            material: "🧰",           // Materiál
             completed: "🏁",          // Dokončené
-            inProgress: "⚙️",         // Prebieha
             pending: "⏳",            // Čakajúce
-            priority: "🔴",           // Priorita
-
-            // ═══════════════════════════════════════════════════════════════
-            // DOPRAVA (rovnaké emoji pre príbuzné funkcie)
-            // ═══════════════════════════════════════════════════════════════
-            transport: "🚚",          // Doprava
-            // Palivo a servis
-            fuel: "⛽",               // Palivo
-            maintenance: "🔧",        // Údržba
-            service: "🛠️",           // Servis
-            parking: "🅿️",           // Parkovanie
-            breakdown: "⚠️",          // Porucha (rovnaké ako warning - OK!)
-
-            heavy_machine: "🚜",       // Ťažký stroj)
-            accessory: "🔩",           // Príslušenstvo
-            machine_use: "⚙️",        // Použitie stroja (rovnaké ako inProgress - OK!)
-            material: "🧰",            // Materiál
-            daily_report: "📋",        // Denný report (linknutý na záznam)
-
-
-            // ═══════════════════════════════════════════════════════════════
-            // SYSTÉMOVÉ A APLIKAČNÉ
-            // ═══════════════════════════════════════════════════════════════
-            database: "🗄️",         // Databáza
-            sync: "🔄",             // Synchronizácia (rovnaké ako update - OK!)
-            backup: "💾",           // Záloha (rovnaké ako save - OK!)
-            settings: "⚙️",         // Nastavenia
-            security: "🔒",         // Bezpečnosť
-            key: "🔑",              // Kľúč
-            
-
+            inProgress: "⚙️"         // Prebieha
         }
     }
 
@@ -898,34 +727,6 @@ var MementoConfig = (function() {
 
         hasField: function(category, field) {
             return CONFIG.fields[category] && CONFIG.fields[category].hasOwnProperty(field);
-        },
-
-        // === NOVÉ API PRE VÝKAZY ===
-
-        /**
-         * Získa konfiguráciu pre konkrétny typ výkazu
-         * @param {string} reportType - Typ výkazu (work, ride, machines, materials)
-         * @returns {Object} Konfigurácia výkazu alebo null
-         */
-        getReportConfig: function(reportType) {
-            return CONFIG.reportConfigs[reportType] || null;
-        },
-
-        /**
-         * Získa všetky dostupné typy výkazov
-         * @returns {Array} Zoznam typov výkazov
-         */
-        getAllReportTypes: function() {
-            return Object.keys(CONFIG.reportConfigs);
-        },
-
-        /**
-         * Kontrola existencie konfigurácie výkazu
-         * @param {string} reportType - Typ výkazu
-         * @returns {boolean} True ak existuje konfigurácia
-         */
-        hasReportConfig: function(reportType) {
-            return CONFIG.reportConfigs.hasOwnProperty(reportType);
         }
     };
 })();
