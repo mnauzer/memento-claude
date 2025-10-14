@@ -1,6 +1,6 @@
 // ==============================================
 // ZÁKAZKY DIELY - Hlavný prepočet (MODULE)
-// Verzia: 2.2.3 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// Verzia: 2.2.4 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // Knižnica: Zákazky Diely (ID: iEUC79O2T)
 // ==============================================
 // 📋 FUNKCIA:
@@ -25,6 +25,12 @@
 //    var orderPart = lib("Zákazky Diely").find("Číslo", 1)[0];
 //    OrderDielyCalculate.partCalculate(orderPart);
 // ==============================================
+// 🔧 CHANGELOG v2.2.4 (2025-10-14):
+//    - 🆕 FEATURE: Pridaný parameter skipPriceDialog do partCalculate()
+//      → Umožňuje vypnúť dialóg pre ceny pri hromadnom prepočte
+//      → Automaticky vytvorí len autoCreate položky bez dialógu
+//    - 🔧 FIX: Vylepšené safe wrappery pre addDebug/addError s try-catch
+//      → Zabráni chybám "MementoCore.addDebug nie je dostupná"
 // 🔧 CHANGELOG v2.2.3 (2025-10-14):
 //    - 🐛 FIX: Vylepšený safe wrapper pre clearLogs() s try-catch
 //      → Zabráni chybám pri lazy loadingu MementoCore
@@ -73,12 +79,17 @@ var OrderDielyCalculate = (function() {
     /**
      * Hlavná exportovaná funkcia pre prepočet Zákazky Diely
      * @param {Entry} partEntry - Záznam z knižnice "Zákazky Diely"
+     * @param {Object} options - Voliteľné nastavenia { skipPriceDialog: Boolean }
      * @returns {Boolean} - true ak prebehlo úspešne
      */
-    function partCalculate(partEntry) {
+    function partCalculate(partEntry, options) {
         if (!partEntry) {
             throw new Error("OrderDielyCalculate.partCalculate(): Parameter 'partEntry' is required!");
         }
+
+        // Nastavenia
+        options = options || {};
+        var skipPriceDialog = options.skipPriceDialog || false;
 
         // ==============================================
         // INICIALIZÁCIA MODULOV
@@ -92,7 +103,7 @@ var OrderDielyCalculate = (function() {
         var CONFIG = {
             // Script špecifické nastavenia
             scriptName: "Zákazky Diely - Prepočet (Module)",
-            version: "2.2.3",
+            version: "2.2.4",
 
             // Referencie na centrálny config
             fields: centralConfig.fields.orderPart,
@@ -133,15 +144,23 @@ var OrderDielyCalculate = (function() {
 
         // Safe debug logging - kontrola či je addDebug dostupný
         var addDebug = function(entry, message) {
-            if (utils && typeof utils.addDebug === 'function') {
-                utils.addDebug(entry, message);
+            try {
+                if (utils && utils.addDebug) {
+                    utils.addDebug(entry, message);
+                }
+            } catch (e) {
+                // Ignoruj chybu pri lazy loadingu
             }
         };
 
         // Safe error logging - kontrola či je addError dostupný
         var addError = function(entry, message, source, error) {
-            if (utils && typeof utils.addError === 'function') {
-                utils.addError(entry, message, source, error);
+            try {
+                if (utils && utils.addError) {
+                    utils.addError(entry, message, source, error);
+                }
+            } catch (e) {
+                // Ignoruj chybu pri lazy loadingu
             }
         };
 
@@ -1107,8 +1126,23 @@ var OrderDielyCalculate = (function() {
             if (priceDifferences.length > 0) {
                 addDebug(currentEntry, "\n⚠️ Zistené rozdiely v cenách: " + priceDifferences.length);
 
-                // Zobraz dialóg pre potvrdenie aktualizácie cien
-                showPriceDifferenceDialog();
+                // Zobraz dialóg len ak nie je skipPriceDialog
+                if (!skipPriceDialog) {
+                    showPriceDifferenceDialog();
+                } else {
+                    addDebug(currentEntry, "  ℹ️ Dialóg pre ceny preskočený (volané z Order.Calculate.Module.js)");
+                    // Automaticky vytvor len autoCreate položky (bez dialógu)
+                    var autoCreateItems = [];
+                    for (var i = 0; i < priceDifferences.length; i++) {
+                        var diff = priceDifferences[i];
+                        if (diff.autoCreate === true) {
+                            autoCreateItems.push(diff);
+                        }
+                    }
+                    if (autoCreateItems.length > 0) {
+                        processAutoCreatePrices(autoCreateItems);
+                    }
+                }
             } else {
                 addDebug(currentEntry, "\n✅ Žiadne rozdiely v cenách");
             }
@@ -1200,7 +1234,7 @@ var OrderDielyCalculate = (function() {
 
     return {
         partCalculate: partCalculate,
-        version: "2.2.3"
+        version: "2.2.4"
     };
 })();
 
