@@ -1,9 +1,15 @@
 // ==============================================
 // ZÁKAZKY - Prepočet (MODULE VERSION)
-// Verzia: 2.2.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// Verzia: 2.2.3 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // Knižnica: Zákazky
 // Použitie: OrderCalculate.orderCalculate(entry());
 // ==============================================
+// 🔧 CHANGELOG v2.2.3 (2025-10-14):
+//    - 🐛 FIX: Opravený názov poľa subcontractsCalculation (chýbalo 's')
+//    - 🔧 FIX: Pridaný skipPriceDialog parameter do OrderDielyCalculate.partCalculate()
+//      → Vypína dialóg pre ceny pri hromadnom prepočte dielov
+//      → Automatické vytvorenie len autoCreate položiek
+//    - ✅ FIX: Vylepšené safe wrappery s try-catch pre addDebug/addError
 // 🔧 CHANGELOG v2.2.0 (2025-10-14):
 //    - 🔧 BREAKING CHANGE: Zmenená logika detekcie subdodávok
 //      → Namiesto kontroly partType === "Subdodávky"
@@ -172,7 +178,7 @@ var OrderCalculate = (function() {
 
                         try {
                             addDebug(currentEntry, "      🔄 Prepočítavam diel: " + partNumber);
-                            OrderDielyCalculate.partCalculate(part);
+                            OrderDielyCalculate.partCalculate(part, { skipPriceDialog: true });
                             totalRecalculated++;
                         } catch (partError) {
                             addError(currentEntry, "⚠️ Chyba pri prepočte dielu " + partNumber + ": " + partError.toString(), "recalculateAllParts", partError);
@@ -234,7 +240,7 @@ var OrderCalculate = (function() {
             try {
                 addDebug(currentEntry, "  💰 Výpočet rozpočtu (z poľa Celkom CP dielov)");
 
-                var subcontractCalculation = utils.safeGet(currentEntry, fields.subcontractCalculation) || "Nezapočítavať";
+                var subcontractCalculation = utils.safeGet(currentEntry, fields.subcontractsCalculation) || "Nezapočítavať";
                 var createAddendum = (subcontractCalculation === "Vytvoriť dodatok");
 
                 // Diely a Diely HZS - číta sa totalSumCp z každého dielu
@@ -285,7 +291,7 @@ var OrderCalculate = (function() {
             try {
                 addDebug(currentEntry, "  🔧 Správa subdodávok");
 
-                var subcontractsCalc = utils.safeGet(currentEntry, fields.subcontractCalculation);
+                var subcontractsCalc = utils.safeGet(currentEntry, fields.subcontractsCalculation) || "Nezapočítavať";
                 addDebug(currentEntry, "    Účtovanie subdodávok: " + subcontractsCalc);
 
                 // Určenie cieľového poľa pre subdodávky
@@ -621,7 +627,7 @@ var OrderCalculate = (function() {
     // Public API
     return {
         orderCalculate: orderCalculate,
-        version: "2.2.0"
+        version: "2.2.3"
     };
 
 })();
