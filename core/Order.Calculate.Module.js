@@ -119,7 +119,7 @@ var OrderCalculate = (function() {
 
         var CONFIG = {
             scriptName: "Zákazky - Prepočet (Module)",
-            version: "2.3.1",
+            version: "2.3.2",
             fields: centralConfig.fields.order,
             orderPartFields: centralConfig.fields.orderPart,
             icons: centralConfig.icons
