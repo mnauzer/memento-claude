@@ -488,6 +488,7 @@ var MementoConfig = (function() {
 
                 // DIELY ZÁKAZKY
                 parts: "Diely", // entries (field 260) - linkToEntry Zákazky Diely
+                partsHZS: "Diely HZS", // entries (field 260) - linkToEntry Zákazky Diely
 
                 // CELKOVÉ SUMY (fields 331, 332)
                 total: "Celkom", // currency (field 331) - celková suma bez DPH
