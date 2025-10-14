@@ -13,11 +13,16 @@
  * - Automatické generovanie čísla zákazky pomocou MementoAutoNumber
  * - Zbieranie dielov zo všetkých troch polí (Diely, Diely HZS, Subdodávky)
  *
- * Verzia: 2.1.1
- * Dátum: 2025-10-12
+ * Verzia: 2.2.0
+ * Dátum: 2025-10-14
  * Autor: ASISTANTO
  *
  * CHANGELOG:
+ * v2.2.0 (2025-10-14):
+ *   - 🔧 CRITICAL FIX: Používa CP atribúty (množstvo cp, cena cp, cena celkom cp)
+ *     → quoteQuantity, quotePrice, quoteTotalPrice namiesto quantity, price, totalPrice
+ *     → Umožňuje odlíšiť cenovú ponuku od skutočne dodaného množstva
+ *   - 📝 IMPROVEMENT: Debug výpisy s označením "CP atribúty"
  * v2.1.1 (2025-10-12):
  *   - FIX: Duplikácia materials/works v UPDATE móde - vyčistenie existujúcich linkov pred pridaním nových
  * v2.1.0 (2025-10-12):
@@ -61,7 +66,7 @@ var CPCreateOrder = (function() {
 
             var CONFIG = {
                 scriptName: "Cenové ponuky - Vytvorenie/Aktualizácia zákazky (Module)",
-                version: "2.1.0"
+                version: "2.2.0"
             };
 
             utils.clearLogs(quoteEntry);
@@ -458,7 +463,7 @@ var CPCreateOrder = (function() {
 
                         // Linkni materiály a nastav atribúty (IHNEĎ po linknutí)
                         if (materialsData.length > 0) {
-                            utils.addDebug(quoteEntry, "    🔧 Linkujem materiály a nastavujem atribúty...");
+                            utils.addDebug(quoteEntry, "    🔧 Linkujem materiály a nastavujem CP atribúty...");
                             var orderMatAttrs = centralConfig.attributes.orderPartMaterials;
 
                             // V UPDATE móde vyčisti existujúce linky aby sa predišlo duplikácii
@@ -474,16 +479,17 @@ var CPCreateOrder = (function() {
                                 var justLinkedMat = currentMaterials[currentMaterials.length - 1];
 
                                 if (justLinkedMat) {
-                                    justLinkedMat.setAttr(orderMatAttrs.quantity, matData.qty);
-                                    justLinkedMat.setAttr(orderMatAttrs.price, matData.price);
-                                    justLinkedMat.setAttr(orderMatAttrs.totalPrice, matData.total);
+                                    // Použiť CP atribúty (množstvo cp, cena cp, cena celkom cp)
+                                    justLinkedMat.setAttr(orderMatAttrs.quoteQuantity, matData.qty);
+                                    justLinkedMat.setAttr(orderMatAttrs.quotePrice, matData.price);
+                                    justLinkedMat.setAttr(orderMatAttrs.quoteTotalPrice, matData.total);
                                 }
                             }
                         }
 
                         // Linkni práce a nastav atribúty (IHNEĎ po linknutí)
                         if (worksData.length > 0) {
-                            utils.addDebug(quoteEntry, "    🔧 Linkujem práce a nastavujem atribúty...");
+                            utils.addDebug(quoteEntry, "    🔧 Linkujem práce a nastavujem CP atribúty...");
                             var orderWrkAttrs = centralConfig.attributes.orderPartWorks;
 
                             // V UPDATE móde vyčisti existujúce linky aby sa predišlo duplikácii
@@ -499,9 +505,10 @@ var CPCreateOrder = (function() {
                                 var justLinkedWrk = currentWorks[currentWorks.length - 1];
 
                                 if (justLinkedWrk) {
-                                    justLinkedWrk.setAttr(orderWrkAttrs.quantity, wrkData.qty);
-                                    justLinkedWrk.setAttr(orderWrkAttrs.price, wrkData.price);
-                                    justLinkedWrk.setAttr(orderWrkAttrs.totalPrice, wrkData.total);
+                                    // Použiť CP atribúty (množstvo cp, cena cp, cena celkom cp)
+                                    justLinkedWrk.setAttr(orderWrkAttrs.quoteQuantity, wrkData.qty);
+                                    justLinkedWrk.setAttr(orderWrkAttrs.quotePrice, wrkData.price);
+                                    justLinkedWrk.setAttr(orderWrkAttrs.quoteTotalPrice, wrkData.total);
                                 }
                             }
                         }

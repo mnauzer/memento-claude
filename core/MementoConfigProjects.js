@@ -1,7 +1,11 @@
 // ==============================================
 // MEMENTO CONFIG PROJECTS - Optimalizovaná konfigurácia
-// Verzia: 1.2.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// Verzia: 1.2.1 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // ==============================================
+// 🔧 CHANGELOG v1.2.1 (2025-10-14):
+//    - 🐛 FIX: Opravené preklepy v orderPartWorks atribútoch
+//      → qoteQuantity → quoteQuantity
+//      → qutePrice → quotePrice
 // 🔧 CHANGELOG v1.2.0 (2025-10-14):
 //    - 🗑️ CLEANUP: Odstránené polia infoTelegram z common, telegramGroup z order
 //    - 🆕 NOVÉ POLIA: order.spentSubcontracts, order.remainingSubcontracts
@@ -37,7 +41,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "1.2.0",  // MementoConfigProjects - optimalizovaná verzia pre calculation scripts
+        version: "1.2.1",  // MementoConfigProjects - optimalizovaná verzia pre calculation scripts
 
 
         // Defaultné hodnoty pre globálne nastavenia
@@ -565,8 +569,8 @@ var MementoConfig = (function() {
                 totalPrice: "cena celkom" // currency - celková cena dodaného materiálu
             },
             orderPartWorks: {
-                qoteQuantity: "množstvo cp", // real number - množstvo hodín/jednotiek z cenovej ponuky
-                qutePrice: "cena cp", // currency - cena z cenovej ponuky (source: "cena" z quote)
+                quoteQuantity: "množstvo cp", // real number - množstvo hodín/jednotiek z cenovej ponuky
+                quotePrice: "cena cp", // currency - cena z cenovej ponuky (source: "cena" z quote)
                 quoteTotalPrice: "cena celkom cp", // currency - celková cena z cenovej ponuky
                 quantity: "množstvo", // real number - množstvo hodín/jednotiek dodané
                 price: "cena", // currency - cena dodané (source: "cena" z quote)
