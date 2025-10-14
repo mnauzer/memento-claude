@@ -1,9 +1,17 @@
 // ==============================================
 // ZÁKAZKY - Prepočet (MODULE VERSION)
-// Verzia: 2.3.1 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// Verzia: 2.3.2 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // Knižnica: Zákazky
 // Použitie: OrderCalculate.orderCalculate(entry());
 // ==============================================
+// 🔧 CHANGELOG v2.3.2 (2025-10-14):
+//    - 🐛 CRITICAL FIX: calculateBudget() odstránená logika createAddendum
+//      → Rozpočet = vždy len z Diely alebo Diely HZS (podľa typu zákazky)
+//      → Rozpočet subdodávky = vždy z poľa Subdodávky (bez podmienok)
+//      → Subdodávky sa NIKDY nepripočítavajú k Rozpočtu
+//    - ✅ FIX: Rozpočet subdodávky už nie je nulový
+//    - 📝 SIMPLIFICATION: Jednoduché počítanie bez kontroly checkbox "Subdodávka"
+//      → Len spočíta záznamy v príslušnom poli (Diely/Diely HZS/Subdodávky)
 // 🔧 CHANGELOG v2.3.1 (2025-10-14):
 //    - 🐛 CRITICAL FIX: calculateBudget() a calculateSpent() rozhodujú podľa "Typ zákazky"
 //      → Ak "Hodinovka" → číta len z "Diely HZS"
@@ -69,13 +77,13 @@
 //    - Podporuje polia: Diely, Diely HZS, Subdodávky
 //    - Počíta Rozpočet = suma "Celkom CP" z ALEBO Diely ALEBO Diely HZS
 //      (závisí od "Typ zákazky": Hodinovka → Diely HZS, Položky → Diely)
-//    - Počíta Rozpočet subdodávky = suma "Celkom CP" z Subdodávky
+//    - Počíta Rozpočet subdodávky = suma "Celkom CP" z poľa Subdodávky (vždy)
 //    - Počíta Spotrebované = suma "Celkom" z ALEBO Diely ALEBO Diely HZS
 //      (závisí od "Typ zákazky": Hodinovka → Diely HZS, Položky → Diely)
-//    - Počíta Spotrebované subdodávky = suma "Celkom" z Subdodávky
+//    - Počíta Spotrebované subdodávky = suma "Celkom" z poľa Subdodávky (vždy)
 //    - Počíta Zostatok = Rozpočet - Spotrebované
 //    - Počíta Zostatok subdodávky = Rozpočet subdodávky - Spotrebované subdodávky
-//    - Špeciálne počítanie subdodávok ak je nastavené "Vytvoriť dodatok"
+//    - Jednoduché počítanie: len spočíta záznamy v príslušnom poli (bez kontroly checkbox)
 //    - Plná podpora debug a error logov
 // ==============================================
 // 🔧 POUŽITIE:
@@ -254,15 +262,13 @@ var OrderCalculate = (function() {
 
         /**
          * Spočíta rozpočet z polí "Celkom CP" dielov zákazky
-         * Podľa typu zákazky číta ALEBO z Diely ALEBO z Diely HZS
+         * Rozpočet = ALEBO Diely ALEBO Diely HZS (podľa typu zákazky)
+         * Rozpočet subdodávky = vždy z poľa Subdodávky
          * @returns {Object} - { budget: Number, budgetSubcontracts: Number }
          */
         function calculateBudget() {
             try {
                 addDebug(currentEntry, "  💰 Výpočet rozpočtu (z poľa Celkom CP dielov)");
-
-                var subcontractCalculation = utils.safeGet(currentEntry, fields.subcontractsCalculation) || "Nezapočítavať";
-                var createAddendum = (subcontractCalculation === "Vytvoriť dodatok");
 
                 // Zisti typ zákazky: Hodinovka alebo Položky
                 var orderType = utils.safeGet(currentEntry, fields.orderCalculationType) || "Položky";
@@ -272,30 +278,22 @@ var OrderCalculate = (function() {
                 var regularFields;
                 if (orderType === "Hodinovka") {
                     regularFields = [{ name: "Diely HZS", fieldName: fields.partsHzs }];
+                    addDebug(currentEntry, "    📋 Počítam rozpočet z poľa: Diely HZS");
                 } else {
                     // Položky, Externá, Reklamácia alebo iné
                     regularFields = [{ name: "Diely", fieldName: fields.parts }];
+                    addDebug(currentEntry, "    📋 Počítam rozpočet z poľa: Diely");
                 }
 
+                // Rozpočet = len z Diely alebo Diely HZS (podľa typu)
                 var budget = sumPartsField(regularFields, orderPartFields.totalSumCp, true);
 
-                // Subdodávky
+                // Rozpočet subdodávky = vždy z poľa Subdodávky (bez ohľadu na nastavenia)
                 var subcontractFields = [{ name: "Subdodávky", fieldName: fields.subcontracts }];
-                var subcontractSum = sumPartsField(subcontractFields, orderPartFields.totalSumCp, true);
-
-                var budgetSubcontracts = 0;
-                if (createAddendum) {
-                    budgetSubcontracts = subcontractSum;
-                    addDebug(currentEntry, "    ⚙️ Subdodávky budú v dodatku (nepripo číta jú sa k rozpočtu)");
-                } else {
-                    budget += subcontractSum;
-                    addDebug(currentEntry, "    ⚙️ Subdodávky sú započítané do rozpočtu");
-                }
+                var budgetSubcontracts = sumPartsField(subcontractFields, orderPartFields.totalSumCp, true);
 
                 addDebug(currentEntry, "    ✅ Rozpočet: " + budget.toFixed(2) + " €");
-                if (createAddendum) {
-                    addDebug(currentEntry, "    ✅ Rozpočet subdodávky: " + budgetSubcontracts.toFixed(2) + " €");
-                }
+                addDebug(currentEntry, "    ✅ Rozpočet subdodávky: " + budgetSubcontracts.toFixed(2) + " €");
 
                 return {
                     budget: budget,
