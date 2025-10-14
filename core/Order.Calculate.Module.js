@@ -13,6 +13,7 @@
 //    - 🧹 CLEANUP: Odstránená funkcia calculateAdditionalFields() (nepoužívaná pre zákazky)
 //    - 📉 OPTIMIZATION: Zjednodušený výpočtový tok - žiadne duplicitné počítanie atribútov
 //    - 💾 MEMORY: Ďalšia úspora pamäte vďaka eliminácii duplikátov
+//    - 🔧 FIX: Pridaný safe wrapper pre addError() - ochrana proti chýbajúcemu MementoCore
 // 🔧 CHANGELOG v1.1.0 (2025-10-12):
 //    - 🔴 CRITICAL FIX: Opravená nekonečná rekurzia v addDebug (riadok 72) - hlavná príčina OutOfMemoryError
 //    - ♻️ REFACTOR: Vytvorená helper funkcia calculatePartsSum() - odstránených ~100 riadkov duplicitného kódu
@@ -88,6 +89,13 @@ var OrderCalculate = (function() {
             }
         };
 
+        // Safe error logging - kontrola či je addError dostupný
+        var addError = function(entry, message, source, error) {
+            if (utils && typeof utils.addError === 'function') {
+                utils.addError(entry, message, source, error);
+            }
+        };
+
         addDebug(currentEntry, "🚀 ŠTART: " + CONFIG.scriptName + " v" + CONFIG.version);
         addDebug(currentEntry, "📅 Dátum: " + moment().format("DD.MM.YYYY HH:mm:ss"));
         addDebug(currentEntry, "");
@@ -137,7 +145,7 @@ var OrderCalculate = (function() {
                             OrderDielyCalculate.partCalculate(part);
                             totalRecalculated++;
                         } catch (partError) {
-                            utils.addError(currentEntry, "⚠️ Chyba pri prepočte dielu " + partNumber + ": " + partError.toString(), "recalculateAllParts", partError);
+                            addError(currentEntry, "⚠️ Chyba pri prepočte dielu " + partNumber + ": " + partError.toString(), "recalculateAllParts", partError);
                         }
                     }
                 }
@@ -148,7 +156,7 @@ var OrderCalculate = (function() {
                 var errorMsg = "Chyba pri prepočte všetkých dielov: " + error.toString();
                 if (error.lineNumber) errorMsg += ", Line: " + error.lineNumber;
                 if (error.stack) errorMsg += "\nStack: " + error.stack;
-                utils.addError(currentEntry, errorMsg, "recalculateAllParts", error);
+                addError(currentEntry, errorMsg, "recalculateAllParts", error);
             }
         }
 
@@ -233,7 +241,7 @@ var OrderCalculate = (function() {
                 var errorMsg = "Chyba pri výpočte rozpočtu: " + error.toString();
                 if (error.lineNumber) errorMsg += ", Line: " + error.lineNumber;
                 if (error.stack) errorMsg += "\nStack: " + error.stack;
-                utils.addError(currentEntry, errorMsg, "calculateBudget", error);
+                addError(currentEntry, errorMsg, "calculateBudget", error);
                 throw error;
             }
         }
@@ -262,7 +270,7 @@ var OrderCalculate = (function() {
                 var errorMsg = "Chyba pri výpočte spotrebovanej sumy: " + error.toString();
                 if (error.lineNumber) errorMsg += ", Line: " + error.lineNumber;
                 if (error.stack) errorMsg += "\nStack: " + error.stack;
-                utils.addError(currentEntry, errorMsg, "calculateSpent", error);
+                addError(currentEntry, errorMsg, "calculateSpent", error);
                 throw error;
             }
         }
@@ -330,7 +338,7 @@ var OrderCalculate = (function() {
             if (error.lineNumber) errorMsg += ", Line: " + error.lineNumber;
             if (error.stack) errorMsg += "\nStack: " + error.stack;
 
-            utils.addError(currentEntry, errorMsg, "OrderCalculate.orderCalculate", error);
+            addError(currentEntry, errorMsg, "OrderCalculate.orderCalculate", error);
             addDebug(currentEntry, "");
             addDebug(currentEntry, "❌ CHYBA PRI PREPOČTE ZÁKAZKY");
             addDebug(currentEntry, "");
