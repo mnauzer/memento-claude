@@ -1,9 +1,17 @@
 // ==============================================
 // ZÁKAZKY - Prepočet (MODULE VERSION)
-// Verzia: 2.0.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// Verzia: 2.1.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // Knižnica: Zákazky
 // Použitie: OrderCalculate.orderCalculate(entry());
 // ==============================================
+// 🔧 CHANGELOG v2.1.0 (2025-10-14):
+//    - 🚀 KRITICKÝ FIX: Pridaná funkcia manageSubcontracts() - rieši duplicity subdodávok
+//    - 🔧 FIX: Subdodávky sa už neobjavujú v Dieloch aj Subdodávkach súčasne
+//    - ✨ NOVÁ FUNKCIA: manageSubcontracts() presúva subdodávky do správneho poľa
+//    - 🗑️ CLEANUP: Automatické čistenie duplicít subdodávok vo všetkých poliach
+//    - 💾 MEMORY: Prepnutie na MementoConfigProjects.js (~56KB úspora)
+//    - 🔄 IMPROVEMENT: Prepočet dielov po presune subdodávky pre správne súčty
+//    - 📊 IMPROVEMENT: Subdodávky sa správne započítavajú podľa nastavenia "Účtovanie subdodávok"
 // 🔧 CHANGELOG v2.0.0 (2025-10-14):
 //    - 🚀 MAJOR REFACTOR: Prepísaná logika výpočtov podľa vzoru CP.Calculate.Module.js
 //    - ✨ NOVÁ FUNKCIA: Podpora CP polí z dielov (Celkom CP → Rozpočet)
@@ -69,12 +77,16 @@ var OrderCalculate = (function() {
         }
 
         var utils = MementoUtils;
-        var centralConfig = utils.config;
+
+        // Použiť optimalizovaný config pre úsporu pamäte
+        var centralConfig = typeof MementoConfig !== 'undefined' ?
+            MementoConfig.getConfig() : utils.config;
+
         var currentEntry = orderEntry;
 
         var CONFIG = {
             scriptName: "Zákazky - Prepočet (Module)",
-            version: "2.0.0",
+            version: "2.1.0",
             fields: centralConfig.fields.order,
             orderPartFields: centralConfig.fields.orderPart,
             icons: centralConfig.icons
@@ -253,6 +265,235 @@ var OrderCalculate = (function() {
         }
 
         /**
+         * Správa subdodávok - presúva subdodávky do správneho poľa podľa nastavení
+         * Prevencia duplicít - odstraňuje subdodávky zo všetkých polí a pridá len do cieľového
+         * @returns {Object} - {subcontractEntry, location, totalSubcontracts}
+         */
+        function manageSubcontracts() {
+            try {
+                addDebug(currentEntry, "  🔧 Správa subdodávok");
+
+                var subcontractsCalc = utils.safeGet(currentEntry, fields.subcontractCalculation) || "Nezapočítavať";
+                addDebug(currentEntry, "    Účtovanie subdodávok: " + subcontractsCalc);
+
+                // Určenie cieľového poľa pre subdodávky
+                var targetField = null;
+                if (subcontractsCalc === "Zarátať do ceny") {
+                    targetField = "parts";  // Diely
+                } else if (subcontractsCalc === "Vytvoriť dodatok") {
+                    targetField = "subcontracts";  // Subdodávky
+                }
+
+                // Hľadanie subdodávky vo všetkých troch poliach
+                var subcontractEntry = null;
+                var currentLocation = null;
+
+                // 1. Hľadaj v poli "Diely"
+                var partsEntries = utils.safeGetLinks(currentEntry, fields.parts) || [];
+                for (var i = 0; i < partsEntries.length; i++) {
+                    var part = partsEntries[i];
+                    var partType = utils.safeGet(part, orderPartFields.partType);
+                    if (partType === "Subdodávky") {
+                        subcontractEntry = part;
+                        currentLocation = "parts";
+                        addDebug(currentEntry, "    ✅ Nájdená subdodávka v poli 'Diely'");
+                        break;
+                    }
+                }
+
+                // 2. Ak nie je v Dieloch, hľadaj v poli "Diely HZS"
+                if (!subcontractEntry) {
+                    var partsHzsEntries = utils.safeGetLinks(currentEntry, fields.partsHzs) || [];
+                    for (var i = 0; i < partsHzsEntries.length; i++) {
+                        var part = partsHzsEntries[i];
+                        var partType = utils.safeGet(part, orderPartFields.partType);
+                        if (partType === "Subdodávky") {
+                            subcontractEntry = part;
+                            currentLocation = "partsHzs";
+                            addDebug(currentEntry, "    ✅ Nájdená subdodávka v poli 'Diely HZS'");
+                            break;
+                        }
+                    }
+                }
+
+                // 3. Ak nie je v žiadnom z dielových polí, hľadaj v poli "Subdodávky"
+                if (!subcontractEntry) {
+                    var subcontractsEntries = utils.safeGetLinks(currentEntry, fields.subcontracts) || [];
+                    for (var i = 0; i < subcontractsEntries.length; i++) {
+                        var part = subcontractsEntries[i];
+                        var partType = utils.safeGet(part, orderPartFields.partType);
+                        if (partType === "Subdodávky") {
+                            subcontractEntry = part;
+                            currentLocation = "subcontracts";
+                            addDebug(currentEntry, "    ✅ Nájdená subdodávka v poli 'Subdodávky'");
+                            break;
+                        }
+                    }
+                }
+
+                // 4. Ak subdodávka neexistuje
+                if (!subcontractEntry) {
+                    if (subcontractsCalc === "Nezapočítavať") {
+                        addDebug(currentEntry, "    ✅ Subdodávka neexistuje, účtovanie je nastavené na 'Nezapočítavať' - OK");
+                        return { subcontractEntry: null, location: null, totalSubcontracts: 0 };
+                    }
+
+                    addDebug(currentEntry, "    ℹ️ Subdodávka nenájdená v žiadnom poli");
+                    addDebug(currentEntry, "    ⚠️ Účtovanie je nastavené na '" + subcontractsCalc + "', ale subdodávka neexistuje");
+                    return { subcontractEntry: null, location: null, totalSubcontracts: 0 };
+                }
+
+                // 5. Ak je nastavené "Nezapočítavať" a subdodávka existuje
+                if (subcontractsCalc === "Nezapočítavať") {
+                    var locationLabel = (currentLocation === "parts" ? "Diely" : (currentLocation === "partsHzs" ? "Diely HZS" : "Subdodávky"));
+                    addDebug(currentEntry, "    ⚠️ Subdodávka existuje, ale účtovanie je nastavené na 'Nezapočítavať'");
+                    addDebug(currentEntry, "    Subdodávka je v poli: " + locationLabel);
+                    return { subcontractEntry: subcontractEntry, location: currentLocation, totalSubcontracts: 0 };
+                }
+
+                // 6. Kontrola, či je subdodávka na správnom mieste
+                if (currentLocation !== targetField) {
+                    var fromLabel = (currentLocation === "parts" ? "Diely" : (currentLocation === "partsHzs" ? "Diely HZS" : "Subdodávky"));
+                    var toLabel = (targetField === "parts" ? "Diely" : "Subdodávky");
+
+                    addDebug(currentEntry, "    🔄 Subdodávka je v nesprávnom poli, presúvam...");
+                    addDebug(currentEntry, "      Z: " + fromLabel);
+                    addDebug(currentEntry, "      Do: " + toLabel);
+
+                    // KRITICKÉ: Odstráň subdodávku zo VŠETKÝCH polí (zabráni duplicitám)
+                    var cleanedParts = [];
+                    partsEntries = utils.safeGetLinks(currentEntry, fields.parts) || [];
+                    for (var i = 0; i < partsEntries.length; i++) {
+                        var partType = utils.safeGet(partsEntries[i], orderPartFields.partType);
+                        if (partType !== "Subdodávky") {
+                            cleanedParts.push(partsEntries[i]);
+                        }
+                    }
+                    currentEntry.set(fields.parts, cleanedParts);
+
+                    var cleanedPartsHzs = [];
+                    partsHzsEntries = utils.safeGetLinks(currentEntry, fields.partsHzs) || [];
+                    for (var i = 0; i < partsHzsEntries.length; i++) {
+                        var partType = utils.safeGet(partsHzsEntries[i], orderPartFields.partType);
+                        if (partType !== "Subdodávky") {
+                            cleanedPartsHzs.push(partsHzsEntries[i]);
+                        }
+                    }
+                    currentEntry.set(fields.partsHzs, cleanedPartsHzs);
+
+                    var cleanedSubcontracts = [];
+                    subcontractsEntries = utils.safeGetLinks(currentEntry, fields.subcontracts) || [];
+                    for (var i = 0; i < subcontractsEntries.length; i++) {
+                        var partType = utils.safeGet(subcontractsEntries[i], orderPartFields.partType);
+                        if (partType !== "Subdodávky") {
+                            cleanedSubcontracts.push(subcontractsEntries[i]);
+                        }
+                    }
+                    currentEntry.set(fields.subcontracts, cleanedSubcontracts);
+
+                    // Pridaj subdodávku LEN do cieľového poľa
+                    if (targetField === "parts") {
+                        cleanedParts.push(subcontractEntry);
+                        currentEntry.set(fields.parts, cleanedParts);
+                    } else {
+                        cleanedSubcontracts.push(subcontractEntry);
+                        currentEntry.set(fields.subcontracts, cleanedSubcontracts);
+                    }
+
+                    currentLocation = targetField;
+                    addDebug(currentEntry, "    ✅ Subdodávka presunutá (duplicity odstránené)");
+                } else {
+                    // Aj keď je na správnom mieste, vyčisti duplicity zo VŠETKÝCH polí
+                    addDebug(currentEntry, "    ✅ Subdodávka je už na správnom mieste");
+                    addDebug(currentEntry, "    🔍 Kontrola duplicít vo všetkých poliach...");
+
+                    var duplicatesRemoved = false;
+
+                    // Odstráň subdodávky z NESPRÁVNYCH polí
+                    if (currentLocation !== "parts") {
+                        var cleanedParts = [];
+                        var partsCheck = utils.safeGetLinks(currentEntry, fields.parts) || [];
+                        var removedFromParts = 0;
+                        for (var i = 0; i < partsCheck.length; i++) {
+                            var partType = utils.safeGet(partsCheck[i], orderPartFields.partType);
+                            if (partType !== "Subdodávky") {
+                                cleanedParts.push(partsCheck[i]);
+                            } else {
+                                removedFromParts++;
+                            }
+                        }
+                        if (removedFromParts > 0) {
+                            currentEntry.set(fields.parts, cleanedParts);
+                            addDebug(currentEntry, "    🗑️ Odstránených " + removedFromParts + " subdodávok z poľa Diely");
+                            duplicatesRemoved = true;
+                        }
+                    }
+
+                    if (currentLocation !== "partsHzs") {
+                        var cleanedPartsHzs = [];
+                        var partsHzsCheck = utils.safeGetLinks(currentEntry, fields.partsHzs) || [];
+                        var removedFromPartsHzs = 0;
+                        for (var i = 0; i < partsHzsCheck.length; i++) {
+                            var partType = utils.safeGet(partsHzsCheck[i], orderPartFields.partType);
+                            if (partType !== "Subdodávky") {
+                                cleanedPartsHzs.push(partsHzsCheck[i]);
+                            } else {
+                                removedFromPartsHzs++;
+                            }
+                        }
+                        if (removedFromPartsHzs > 0) {
+                            currentEntry.set(fields.partsHzs, cleanedPartsHzs);
+                            addDebug(currentEntry, "    🗑️ Odstránených " + removedFromPartsHzs + " subdodávok z poľa Diely HZS");
+                            duplicatesRemoved = true;
+                        }
+                    }
+
+                    if (currentLocation !== "subcontracts") {
+                        var cleanedSubcontracts = [];
+                        var subcontractsCheck = utils.safeGetLinks(currentEntry, fields.subcontracts) || [];
+                        var removedFromSubcontracts = 0;
+                        for (var i = 0; i < subcontractsCheck.length; i++) {
+                            var partType = utils.safeGet(subcontractsCheck[i], orderPartFields.partType);
+                            if (partType !== "Subdodávky") {
+                                cleanedSubcontracts.push(subcontractsCheck[i]);
+                            } else {
+                                removedFromSubcontracts++;
+                            }
+                        }
+                        if (removedFromSubcontracts > 0) {
+                            currentEntry.set(fields.subcontracts, cleanedSubcontracts);
+                            addDebug(currentEntry, "    🗑️ Odstránených " + removedFromSubcontracts + " subdodávok z poľa Subdodávky");
+                            duplicatesRemoved = true;
+                        }
+                    }
+
+                    if (duplicatesRemoved) {
+                        addDebug(currentEntry, "    ✅ Duplicity odstránené");
+                    } else {
+                        addDebug(currentEntry, "    ✅ Žiadne duplicity nenájdené");
+                    }
+                }
+
+                // 7. Získaj hodnotu "Celkom" zo subdodávky
+                var subcontractTotal = utils.safeGet(subcontractEntry, orderPartFields.totalSum) || 0;
+                addDebug(currentEntry, "    💰 Celkom subdodávky: " + subcontractTotal.toFixed(2) + " €");
+
+                return {
+                    subcontractEntry: subcontractEntry,
+                    location: currentLocation,
+                    totalSubcontracts: currentLocation === "subcontracts" ? subcontractTotal : 0
+                };
+
+            } catch (error) {
+                var errorMsg = "Chyba pri správe subdodávok: " + error.toString();
+                if (error.lineNumber) errorMsg += ", Line: " + error.lineNumber;
+                if (error.stack) errorMsg += "\nStack: " + error.stack;
+                addError(currentEntry, errorMsg, "manageSubcontracts", error);
+                throw error;
+            }
+        }
+
+        /**
          * Spočíta spotrebované z polí "Celkom" dielov zákazky
          * @returns {Number} - Spotrebovaná suma
          */
@@ -290,6 +531,17 @@ var OrderCalculate = (function() {
             // Krok 1: Prepočítaj všetky diely
             addDebug(currentEntry, "📋 KROK 1: Prepočet dielov zákazky");
             recalculateAllParts();
+            addDebug(currentEntry, "");
+
+            // Krok 1a: Správa subdodávok (presunie subdodávky do správneho poľa)
+            addDebug(currentEntry, "📋 KROK 1a: Správa subdodávok");
+            var subcontractInfo = manageSubcontracts();
+
+            // Ak boli subdodávky presunuté, prepočítaj všetky diely znova
+            if (subcontractInfo.subcontractEntry && subcontractInfo.location) {
+                addDebug(currentEntry, "  🔄 Subdodávka bola presunutá, prepočítavam diely znova...");
+                recalculateAllParts();
+            }
             addDebug(currentEntry, "");
 
             // Krok 2: Vypočítaj rozpočet
@@ -357,7 +609,7 @@ var OrderCalculate = (function() {
     // Public API
     return {
         orderCalculate: orderCalculate,
-        version: "2.0.0"
+        version: "2.1.0"
     };
 
 })();
