@@ -506,13 +506,19 @@ var MementoConfig = (function() {
                 // Klasifikácia dielu
                 partType: "Diel zákazky", // choice (field 257) - role: name, druh dielu zákazky
 
-                // Cenové polia - súčty za kategórie
+                // Cenové polia - súčty za kategórie (skutočné hodnoty)
                 materialSum: "Suma materiál", // currency (field 271), suma za materiály
                 workSum: "Suma práce", // currency (field 272), suma za práce
                 totalSum: "Celkom", // currency (field 275) - role: status, celková suma dielu
 
-                // Hmotnosť (optional - zatiaľ nie je v knižnici)
-                materialWeight: "Hmotnosť materiálu", // double, celková hmotnosť materiálov v tonách (optional)
+                // Cenové polia - súčty z cenovej ponuky (CP)
+                materialSumCp: "Suma materiál CP", // currency, suma za materiály z cenovej ponuky
+                workSumCp: "Suma práce CP", // currency, suma za práce z cenovej ponuky
+                totalSumCp: "Celkom CP", // currency, celková suma dielu z cenovej ponuky
+
+                // Hmotnosť
+                materialWeight: "Hmotnosť materiálu", // double, celková hmotnosť materiálov v tonách (skutočná)
+                materialWeightCp: "Hmotnosť materiálu CP", // double, celková hmotnosť materiálov z cenovej ponuky
 
                 // Položky po kategóriách - linkToEntry polia
                 materials: "Materiál", // entries (field 264), linkToEntry do materiálov
@@ -553,6 +559,17 @@ var MementoConfig = (function() {
                 quantity: "množstvo", // real number - množstvo hodín/jednotiek dodané
                 price: "cena", // currency - cena dodané (source: "cena" z quote)
                 totalPrice: "cena celkom" // currency - celková cena dodané
+            },
+            // Zákazky Diely - CP (Cenová Ponuka) atribúty položiek
+            orderPartMaterialsCp: {
+                quantity: "množstvo cp", // real number - množstvo materiálu z cenovej ponuky
+                price: "cena cp", // currency - cena z cenovej ponuky
+                totalPrice: "cena celkom cp" // currency - celková cena z cenovej ponuky
+            },
+            orderPartWorksCp: {
+                quantity: "množstvo cp", // real number - množstvo hodín/jednotiek z cenovej ponuky
+                price: "cena cp", // currency - cena z cenovej ponuky
+                totalPrice: "cena celkom cp" // currency - celková cena z cenovej ponuky
             }
         },
 
