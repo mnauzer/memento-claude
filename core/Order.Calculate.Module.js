@@ -1,16 +1,23 @@
 // ==============================================
 // ZÁKAZKY - Prepočet (MODULE VERSION)
-// Verzia: 2.3.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// Verzia: 2.3.1 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // Knižnica: Zákazky
 // Použitie: OrderCalculate.orderCalculate(entry());
 // ==============================================
+// 🔧 CHANGELOG v2.3.1 (2025-10-14):
+//    - 🐛 CRITICAL FIX: calculateBudget() a calculateSpent() rozhodujú podľa "Typ zákazky"
+//      → Ak "Hodinovka" → číta len z "Diely HZS"
+//      → Ak "Položky" → číta len z "Diely"
+//      → Predtým chybne počítalo oboje súčasne
+//    - ✅ FORMULA FIX: Rozpočet = ALEBO Diely ALEBO Diely HZS (nie oboje!)
+//    - ✅ FORMULA FIX: Spotrebované = ALEBO Diely ALEBO Diely HZS (nie oboje!)
+//    - 📝 IMPROVEMENT: Pridané debug výpisy s typom zákazky a použitým poľom
 // 🔧 CHANGELOG v2.3.0 (2025-10-14):
 //    - 🆕 NOVÉ POLIA: spentSubcontracts, remainingSubcontracts v MementoConfigProjects v1.2.0
-//    - 🔧 FIX: calculateSpent() teraz počíta len Diely + Diely HZS (BEZ Subdodávok)
+//    - 🔧 FIX: calculateSpent() teraz počíta len regulárne diely (BEZ Subdodávok)
 //    - ✨ NOVÁ FUNKCIA: calculateSpentSubcontracts() - počíta spotrebu subdodávok oddelene
 //    - 📊 IMPROVEMENT: Oddelené sledovanie rozpočtu/spotrebovaného/zostatku pre subdodávky
 //    - 📝 IMPROVEMENT: Vylepšený debug output s oddelenými sekciami pre zákazku a subdodávky
-//    - ✅ FORMULA FIX: Spotrebované = Diely + Diely HZS (nie všetky polia)
 //    - ✅ FORMULA FIX: Zostatok subdodávky = Rozpočet subdodávky - Spotrebované subdodávky
 // 🔧 CHANGELOG v2.2.3 (2025-10-14):
 //    - 🐛 FIX: Opravený názov poľa subcontractsCalculation (chýbalo 's')
@@ -60,9 +67,11 @@
 //    - Exportovaná funkcia orderCalculate(orderEntry) pre použitie z iných scriptov
 //    - Automatický prepočet všetkých dielov pomocou OrderDielyCalculate.partCalculate()
 //    - Podporuje polia: Diely, Diely HZS, Subdodávky
-//    - Počíta Rozpočet = suma "Celkom CP" z Diely + Diely HZS
+//    - Počíta Rozpočet = suma "Celkom CP" z ALEBO Diely ALEBO Diely HZS
+//      (závisí od "Typ zákazky": Hodinovka → Diely HZS, Položky → Diely)
 //    - Počíta Rozpočet subdodávky = suma "Celkom CP" z Subdodávky
-//    - Počíta Spotrebované = suma "Celkom" z Diely + Diely HZS
+//    - Počíta Spotrebované = suma "Celkom" z ALEBO Diely ALEBO Diely HZS
+//      (závisí od "Typ zákazky": Hodinovka → Diely HZS, Položky → Diely)
 //    - Počíta Spotrebované subdodávky = suma "Celkom" z Subdodávky
 //    - Počíta Zostatok = Rozpočet - Spotrebované
 //    - Počíta Zostatok subdodávky = Rozpočet subdodávky - Spotrebované subdodávky
@@ -110,7 +119,7 @@ var OrderCalculate = (function() {
 
         var CONFIG = {
             scriptName: "Zákazky - Prepočet (Module)",
-            version: "2.2.3",
+            version: "2.3.1",
             fields: centralConfig.fields.order,
             orderPartFields: centralConfig.fields.orderPart,
             icons: centralConfig.icons
@@ -245,6 +254,7 @@ var OrderCalculate = (function() {
 
         /**
          * Spočíta rozpočet z polí "Celkom CP" dielov zákazky
+         * Podľa typu zákazky číta ALEBO z Diely ALEBO z Diely HZS
          * @returns {Object} - { budget: Number, budgetSubcontracts: Number }
          */
         function calculateBudget() {
@@ -254,11 +264,19 @@ var OrderCalculate = (function() {
                 var subcontractCalculation = utils.safeGet(currentEntry, fields.subcontractsCalculation) || "Nezapočítavať";
                 var createAddendum = (subcontractCalculation === "Vytvoriť dodatok");
 
-                // Diely a Diely HZS - číta sa totalSumCp z každého dielu
-                var regularFields = [
-                    { name: "Diely", fieldName: fields.parts },
-                    { name: "Diely HZS", fieldName: fields.partsHzs }
-                ];
+                // Zisti typ zákazky: Hodinovka alebo Položky
+                var orderType = utils.safeGet(currentEntry, fields.orderCalculationType) || "Položky";
+                addDebug(currentEntry, "    ⚙️ Typ zákazky: " + orderType);
+
+                // Podľa typu zákazky vyber správne pole (ALEBO Diely ALEBO Diely HZS)
+                var regularFields;
+                if (orderType === "Hodinovka") {
+                    regularFields = [{ name: "Diely HZS", fieldName: fields.partsHzs }];
+                } else {
+                    // Položky, Externá, Reklamácia alebo iné
+                    regularFields = [{ name: "Diely", fieldName: fields.parts }];
+                }
+
                 var budget = sumPartsField(regularFields, orderPartFields.totalSumCp, true);
 
                 // Subdodávky
@@ -524,17 +542,26 @@ var OrderCalculate = (function() {
 
         /**
          * Spočíta spotrebované z polí "Celkom" dielov zákazky (bez subdodávok)
-         * @returns {Number} - Spotrebovaná suma (len Diely + Diely HZS)
+         * Podľa typu zákazky číta ALEBO z Diely ALEBO z Diely HZS
+         * @returns {Number} - Spotrebovaná suma
          */
         function calculateSpent() {
             try {
                 addDebug(currentEntry, "  💸 Výpočet spotrebovanej sumy (z poľa Celkom dielov)");
 
-                // Len regulárne diely - číta sa totalSum z každého dielu (BEZ Subdodávok!)
-                var regularFields = [
-                    { name: "Diely", fieldName: fields.parts },
-                    { name: "Diely HZS", fieldName: fields.partsHzs }
-                ];
+                // Zisti typ zákazky: Hodinovka alebo Položky
+                var orderType = utils.safeGet(currentEntry, fields.orderCalculationType) || "Položky";
+
+                // Podľa typu zákazky vyber správne pole (ALEBO Diely ALEBO Diely HZS)
+                var regularFields;
+                if (orderType === "Hodinovka") {
+                    regularFields = [{ name: "Diely HZS", fieldName: fields.partsHzs }];
+                    addDebug(currentEntry, "    ⚙️ Čítam z poľa: Diely HZS (typ: Hodinovka)");
+                } else {
+                    // Položky, Externá, Reklamácia alebo iné
+                    regularFields = [{ name: "Diely", fieldName: fields.parts }];
+                    addDebug(currentEntry, "    ⚙️ Čítam z poľa: Diely (typ: " + orderType + ")");
+                }
 
                 var spent = sumPartsField(regularFields, orderPartFields.totalSum, true);
 
