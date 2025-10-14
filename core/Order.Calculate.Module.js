@@ -1,9 +1,17 @@
 // ==============================================
 // ZÁKAZKY - Prepočet (MODULE VERSION)
-// Verzia: 2.2.3 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// Verzia: 2.3.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // Knižnica: Zákazky
 // Použitie: OrderCalculate.orderCalculate(entry());
 // ==============================================
+// 🔧 CHANGELOG v2.3.0 (2025-10-14):
+//    - 🆕 NOVÉ POLIA: spentSubcontracts, remainingSubcontracts v MementoConfigProjects v1.2.0
+//    - 🔧 FIX: calculateSpent() teraz počíta len Diely + Diely HZS (BEZ Subdodávok)
+//    - ✨ NOVÁ FUNKCIA: calculateSpentSubcontracts() - počíta spotrebu subdodávok oddelene
+//    - 📊 IMPROVEMENT: Oddelené sledovanie rozpočtu/spotrebovaného/zostatku pre subdodávky
+//    - 📝 IMPROVEMENT: Vylepšený debug output s oddelenými sekciami pre zákazku a subdodávky
+//    - ✅ FORMULA FIX: Spotrebované = Diely + Diely HZS (nie všetky polia)
+//    - ✅ FORMULA FIX: Zostatok subdodávky = Rozpočet subdodávky - Spotrebované subdodávky
 // 🔧 CHANGELOG v2.2.3 (2025-10-14):
 //    - 🐛 FIX: Opravený názov poľa subcontractsCalculation (chýbalo 's')
 //    - 🔧 FIX: Pridaný skipPriceDialog parameter do OrderDielyCalculate.partCalculate()
@@ -52,9 +60,12 @@
 //    - Exportovaná funkcia orderCalculate(orderEntry) pre použitie z iných scriptov
 //    - Automatický prepočet všetkých dielov pomocou OrderDielyCalculate.partCalculate()
 //    - Podporuje polia: Diely, Diely HZS, Subdodávky
-//    - Počíta Rozpočet z polí "Celkom CP" dielov (OrderDielyCalculate v2.1.0)
-//    - Počíta Spotrebované z polí "Celkom" dielov
-//    - Počíta Zostatok (Rozpočet - Spotrebované)
+//    - Počíta Rozpočet = suma "Celkom CP" z Diely + Diely HZS
+//    - Počíta Rozpočet subdodávky = suma "Celkom CP" z Subdodávky
+//    - Počíta Spotrebované = suma "Celkom" z Diely + Diely HZS
+//    - Počíta Spotrebované subdodávky = suma "Celkom" z Subdodávky
+//    - Počíta Zostatok = Rozpočet - Spotrebované
+//    - Počíta Zostatok subdodávky = Rozpočet subdodávky - Spotrebované subdodávky
 //    - Špeciálne počítanie subdodávok ak je nastavené "Vytvoriť dodatok"
 //    - Plná podpora debug a error logov
 // ==============================================
@@ -512,23 +523,22 @@ var OrderCalculate = (function() {
         }
 
         /**
-         * Spočíta spotrebované z polí "Celkom" dielov zákazky
-         * @returns {Number} - Spotrebovaná suma
+         * Spočíta spotrebované z polí "Celkom" dielov zákazky (bez subdodávok)
+         * @returns {Number} - Spotrebovaná suma (len Diely + Diely HZS)
          */
         function calculateSpent() {
             try {
                 addDebug(currentEntry, "  💸 Výpočet spotrebovanej sumy (z poľa Celkom dielov)");
 
-                // Všetky polia dielov - číta sa totalSum z každého dielu
-                var allFields = [
+                // Len regulárne diely - číta sa totalSum z každého dielu (BEZ Subdodávok!)
+                var regularFields = [
                     { name: "Diely", fieldName: fields.parts },
-                    { name: "Diely HZS", fieldName: fields.partsHzs },
-                    { name: "Subdodávky", fieldName: fields.subcontracts }
+                    { name: "Diely HZS", fieldName: fields.partsHzs }
                 ];
 
-                var spent = sumPartsField(allFields, orderPartFields.totalSum, true);
+                var spent = sumPartsField(regularFields, orderPartFields.totalSum, true);
 
-                addDebug(currentEntry, "    ✅ Spotrebované: " + spent.toFixed(2) + " €");
+                addDebug(currentEntry, "    ✅ Spotrebované (bez subdodávok): " + spent.toFixed(2) + " €");
                 return spent;
 
             } catch (error) {
@@ -536,6 +546,33 @@ var OrderCalculate = (function() {
                 if (error.lineNumber) errorMsg += ", Line: " + error.lineNumber;
                 if (error.stack) errorMsg += "\nStack: " + error.stack;
                 addError(currentEntry, errorMsg, "calculateSpent", error);
+                throw error;
+            }
+        }
+
+        /**
+         * Spočíta spotrebované subdodávky z poľa "Celkom" subdodávok
+         * @returns {Number} - Spotrebovaná suma subdodávok
+         */
+        function calculateSpentSubcontracts() {
+            try {
+                addDebug(currentEntry, "  💸 Výpočet spotrebovanej sumy subdodávok (z poľa Celkom)");
+
+                // Len subdodávky - číta sa totalSum z každého dielu v Subdodávkach
+                var subcontractFields = [
+                    { name: "Subdodávky", fieldName: fields.subcontracts }
+                ];
+
+                var spentSubcontracts = sumPartsField(subcontractFields, orderPartFields.totalSum, true);
+
+                addDebug(currentEntry, "    ✅ Spotrebované subdodávky: " + spentSubcontracts.toFixed(2) + " €");
+                return spentSubcontracts;
+
+            } catch (error) {
+                var errorMsg = "Chyba pri výpočte spotrebovanej sumy subdodávok: " + error.toString();
+                if (error.lineNumber) errorMsg += ", Line: " + error.lineNumber;
+                if (error.stack) errorMsg += "\nStack: " + error.stack;
+                addError(currentEntry, errorMsg, "calculateSpentSubcontracts", error);
                 throw error;
             }
         }
@@ -567,14 +604,20 @@ var OrderCalculate = (function() {
             var budgetResult = calculateBudget();
             addDebug(currentEntry, "");
 
-            // Krok 3: Vypočítaj spotrebované
+            // Krok 3: Vypočítaj spotrebované (len Diely + Diely HZS)
             addDebug(currentEntry, "📋 KROK 3: Výpočet spotrebovanej sumy");
             var spent = calculateSpent();
             addDebug(currentEntry, "");
 
-            // Krok 4: Výpočet zostatku
-            addDebug(currentEntry, "📋 KROK 4: Výpočet zostatku");
+            // Krok 3a: Vypočítaj spotrebované subdodávky
+            addDebug(currentEntry, "📋 KROK 3a: Výpočet spotrebovanej sumy subdodávok");
+            var spentSubcontracts = calculateSpentSubcontracts();
+            addDebug(currentEntry, "");
+
+            // Krok 4: Výpočet zostatkov
+            addDebug(currentEntry, "📋 KROK 4: Výpočet zostatkov");
             var remaining = budgetResult.budget - spent;
+            var remainingSubcontracts = budgetResult.budgetSubcontracts - spentSubcontracts;
 
             // Zapíš výsledky pomocou safeSet (vracia true/false)
             if (!utils.safeSet(currentEntry, fields.budget, budgetResult.budget)) {
@@ -593,16 +636,29 @@ var OrderCalculate = (function() {
                 addDebug(currentEntry, "  ❌ Nepodarilo sa nastaviť pole 'remaining' (" + fields.remaining + ")");
             }
 
+            if (!utils.safeSet(currentEntry, fields.spentSubcontracts, spentSubcontracts)) {
+                addDebug(currentEntry, "  ❌ Nepodarilo sa nastaviť pole 'spentSubcontracts' (" + fields.spentSubcontracts + ")");
+            }
+
+            if (!utils.safeSet(currentEntry, fields.remainingSubcontracts, remainingSubcontracts)) {
+                addDebug(currentEntry, "  ❌ Nepodarilo sa nastaviť pole 'remainingSubcontracts' (" + fields.remainingSubcontracts + ")");
+            }
+
             addDebug(currentEntry, "");
             addDebug(currentEntry, "=".repeat(50));
             addDebug(currentEntry, "💰 SÚHRN ZÁKAZKY:");
             addDebug(currentEntry, "  • Rozpočet (z CP):  " + budgetResult.budget.toFixed(2) + " €");
-            if (budgetResult.budgetSubcontracts > 0) {
-                addDebug(currentEntry, "  • Rozpočet subdodávky: " + budgetResult.budgetSubcontracts.toFixed(2) + " €");
-            }
             addDebug(currentEntry, "  • Spotrebované:     " + spent.toFixed(2) + " €");
             addDebug(currentEntry, "  " + "-".repeat(48));
             addDebug(currentEntry, "  • ZOSTATOK:         " + remaining.toFixed(2) + " €");
+            addDebug(currentEntry, "");
+            if (budgetResult.budgetSubcontracts > 0) {
+                addDebug(currentEntry, "💰 SUBDODÁVKY:");
+                addDebug(currentEntry, "  • Rozpočet subdodávky: " + budgetResult.budgetSubcontracts.toFixed(2) + " €");
+                addDebug(currentEntry, "  • Spotrebované subdodávky: " + spentSubcontracts.toFixed(2) + " €");
+                addDebug(currentEntry, "  " + "-".repeat(48));
+                addDebug(currentEntry, "  • ZOSTATOK subdodávky: " + remainingSubcontracts.toFixed(2) + " €");
+            }
             addDebug(currentEntry, "=".repeat(50));
             addDebug(currentEntry, "");
 
