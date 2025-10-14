@@ -31,7 +31,7 @@ var MementoConfig = (function() {
     
     // Interná konfigurácia
     var CONFIG = {
-        version: "1.1.0",  // MementoConfigProjects - optimalizovaná verzia pre calculation scripts
+        version: "1.1.1",  // MementoConfigProjects - optimalizovaná verzia pre calculation scripts
 
 
         // Defaultné hodnoty pre globálne nastavenia
