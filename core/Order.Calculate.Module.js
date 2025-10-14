@@ -93,7 +93,7 @@ var OrderCalculate = (function() {
 
         var CONFIG = {
             scriptName: "Zákazky - Prepočet (Module)",
-            version: "2.2.0",
+            version: "2.2.1",
             fields: centralConfig.fields.order,
             orderPartFields: centralConfig.fields.orderPart,
             icons: centralConfig.icons
@@ -285,7 +285,7 @@ var OrderCalculate = (function() {
             try {
                 addDebug(currentEntry, "  🔧 Správa subdodávok");
 
-                var subcontractsCalc = utils.safeGet(currentEntry, fields.subcontractCalculation) || "Nezapočítavať";
+                var subcontractsCalc = utils.safeGet(currentEntry, fields.subcontractCalculation);
                 addDebug(currentEntry, "    Účtovanie subdodávok: " + subcontractsCalc);
 
                 // Určenie cieľového poľa pre subdodávky
