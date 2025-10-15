@@ -1,9 +1,19 @@
 // ==============================================
 // ZÁKAZKY - Prepočet (MODULE VERSION)
-// Verzia: 2.3.3 | Dátum: 2025-10-14 | Autor: ASISTANTO
+// Verzia: 2.4.0 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // Knižnica: Zákazky
 // Použitie: OrderCalculate.orderCalculate(entry());
 // ==============================================
+// 🔧 CHANGELOG v2.4.0 (2025-10-14):
+//    - ✨ NOVÝ VÝPOČET: DPH = Celkom × (Sadzba DPH / 100)
+//      → Číta sadzbu DPH z poľa "Sadzba DPH" (fields.vatRate)
+//      → Ak je sadzba 0% alebo Celkom = 0, DPH = 0
+//    - ✨ NOVÝ VÝPOČET: Celkom s DPH = Celkom + DPH
+//      → Ukladá sa do poľa "Celkom s DPH" (fields.totalWithVat)
+//    - 📋 NOVÝ KROK 8: Výpočet DPH
+//    - 📋 NOVÝ KROK 9: Výpočet Celkom s DPH
+//    - 💾 SAVE: Ukladajú sa nové polia vat a totalWithVat
+//    - 📝 IMPROVEMENT: SÚHRN ZÁKAZKY obsahuje DPH a Celkom s DPH
 // 🔧 CHANGELOG v2.3.3 (2025-10-14):
 //    - ✨ NOVÁ FUNKCIA: calculateTransportPrice(spent) - výpočet Cena dopravy
 //      → Podporuje metódy: Neúčtovať, % zo zákazky (zo Spotrebované!), Pevná cena
@@ -95,6 +105,8 @@
 //    - Počíta Cena dopravy = % zo Spotrebované (skutočné dodané množstvo)
 //    - Počíta Cena presunu hmôt = % zo Spotrebované (skutočné dodané množstvo)
 //    - Počíta Celkom = Spotrebované + Cena dopravy + Cena presunu hmôt
+//    - Počíta DPH = Celkom × (Sadzba DPH / 100)
+//    - Počíta Celkom s DPH = Celkom + DPH
 //    - Jednoduché počítanie: len spočíta záznamy v príslušnom poli (bez kontroly checkbox)
 //    - Plná podpora debug a error logov
 // ==============================================
@@ -139,7 +151,7 @@ var OrderCalculate = (function() {
 
         var CONFIG = {
             scriptName: "Zákazky - Prepočet (Module)",
-            version: "2.3.3",
+            version: "2.4.0",
             fields: centralConfig.fields.order,
             orderPartFields: centralConfig.fields.orderPart,
             icons: centralConfig.icons
@@ -806,6 +818,29 @@ var OrderCalculate = (function() {
             addDebug(currentEntry, "    ✅ Celkom: " + total.toFixed(2) + " €");
             addDebug(currentEntry, "");
 
+            // Krok 8: Výpočet DPH
+            addDebug(currentEntry, "📋 KROK 8: Výpočet DPH");
+            var vatRate = utils.safeGet(currentEntry, fields.vatRate) || 0;
+            addDebug(currentEntry, "    ⚙️ Sadzba DPH: " + vatRate + "%");
+
+            var vat = 0;
+            if (vatRate > 0 && total > 0) {
+                vat = total * (vatRate / 100);
+                addDebug(currentEntry, "    📊 Výpočet: " + total.toFixed(2) + " € (Celkom) × " + vatRate + "%");
+                addDebug(currentEntry, "    ✅ DPH: " + vat.toFixed(2) + " €");
+            } else {
+                addDebug(currentEntry, "    ℹ️ DPH sa nepočíta (sadzba DPH = 0% alebo Celkom = 0 €)");
+                addDebug(currentEntry, "    ✅ DPH: 0.00 €");
+            }
+            addDebug(currentEntry, "");
+
+            // Krok 9: Výpočet Celkom s DPH
+            addDebug(currentEntry, "📋 KROK 9: Výpočet Celkom s DPH");
+            var totalWithVat = total + vat;
+            addDebug(currentEntry, "    📊 Výpočet: " + total.toFixed(2) + " € (Celkom) + " + vat.toFixed(2) + " € (DPH)");
+            addDebug(currentEntry, "    ✅ Celkom s DPH: " + totalWithVat.toFixed(2) + " €");
+            addDebug(currentEntry, "");
+
             // Zapíš výsledky pomocou safeSet (vracia true/false)
             if (!utils.safeSet(currentEntry, fields.budget, budgetResult.budget)) {
                 addDebug(currentEntry, "  ❌ Nepodarilo sa nastaviť pole 'budget' (" + fields.budget + ")");
@@ -843,6 +878,14 @@ var OrderCalculate = (function() {
                 addDebug(currentEntry, "  ❌ Nepodarilo sa nastaviť pole 'total' (" + fields.total + ")");
             }
 
+            if (!utils.safeSet(currentEntry, fields.vat, vat)) {
+                addDebug(currentEntry, "  ❌ Nepodarilo sa nastaviť pole 'vat' (" + fields.vat + ")");
+            }
+
+            if (!utils.safeSet(currentEntry, fields.totalWithVat, totalWithVat)) {
+                addDebug(currentEntry, "  ❌ Nepodarilo sa nastaviť pole 'totalWithVat' (" + fields.totalWithVat + ")");
+            }
+
             addDebug(currentEntry, "");
             addDebug(currentEntry, "=".repeat(50));
             addDebug(currentEntry, "💰 SÚHRN ZÁKAZKY:");
@@ -852,6 +895,9 @@ var OrderCalculate = (function() {
             addDebug(currentEntry, "  • Cena presunu hmôt:" + massTransferPrice.toFixed(2) + " €");
             addDebug(currentEntry, "  " + "-".repeat(48));
             addDebug(currentEntry, "  • CELKOM:           " + total.toFixed(2) + " €");
+            addDebug(currentEntry, "  • DPH (" + vatRate.toFixed(0) + "%):        " + vat.toFixed(2) + " €");
+            addDebug(currentEntry, "  • CELKOM s DPH:     " + totalWithVat.toFixed(2) + " €");
+            addDebug(currentEntry, "  " + "-".repeat(48));
             addDebug(currentEntry, "  • ZOSTATOK:         " + remaining.toFixed(2) + " €");
             addDebug(currentEntry, "");
             if (budgetResult.budgetSubcontracts > 0 || spentSubcontracts > 0) {
