@@ -219,7 +219,6 @@ var MementoConfig = (function() {
 
             },
             // ceny prác polia
-            // ceny prác polia
             workPrices: {
                 work: "Práca",  // Pole ktoré odkazuje späť na HZS
                 validFrom: "Platnosť od",
@@ -233,7 +232,6 @@ var MementoConfig = (function() {
             },
             // Klienti polia - získané z API (Klienti: rh7YHaVRM)
             client: {
-                view: "view", // singleChoice: Editácia, Tlač, Debug
                 type: "Firma/Osoba", // singleChoice: Osoba, Firma
                 active: "Aktívny", // checkbox
                 firstName: "Meno", // text
@@ -271,7 +269,6 @@ var MementoConfig = (function() {
             },
             // Partneri polia - získané z API (Partneri: NffZSLRKU)
             partner: {
-                view: "view", // singleChoice
                 type: "Firma/Osoba", // singleChoice: Osoba, Firma
                 active: "Aktívny", // checkbox
                 nick: "Nick", // text

@@ -1,6 +1,6 @@
 // ==============================================
 // CENOVÉ PONUKY DIELY - Hlavný prepočet (MODULE)
-// Verzia: 4.2.0 | Dátum: 2025-10-12 | Autor: ASISTANTO
+// Verzia: 4.2.1 | Dátum: 2025-10-14 | Autor: ASISTANTO
 // Knižnica: Cenové ponuky Diely (ID: nCAgQkfvK)
 // ==============================================
 // 📋 FUNKCIA:
@@ -19,6 +19,12 @@
 //    - Automatické vymazanie debug, error a info logov pri štarte
 //    - Vytvorenie prehľadného markdown reportu v info poli
 // ==============================================
+// 🔧 CHANGELOG v4.2.1 (2025-10-14):
+//    - 🐛 CRITICAL FIX: updateQuoteInfo() teraz hľadá cenovú ponuku vo všetkých troch poliach
+//      → Predtým hľadalo len v poli "Diely"
+//      → Teraz hľadá v poliach: Diely, Diely HZS, Subdodávky
+//      → Opravuje problém keď diel bol v inom poli ako Diely
+//    - 📝 IMPROVEMENT: Debug výpis ukazuje v ktorom poli bola cenová ponuka nájdená
 // 🔧 CHANGELOG v4.2.0 (2025-10-12):
 //    - REFACTOR: Oddelenie kontroly cien od výpočtov - dialóg sa zobrazuje PRED výpočtami
 //    - FIX: Pri kontrole cien sa používa DB cena pre výpočty ak používateľ nezruší dialóg
@@ -63,7 +69,7 @@ var CPDielyCalculate = (function() {
         var CONFIG = {
             // Script špecifické nastavenia
             scriptName: "Cenové ponuky Diely - Prepočet (Module)",
-            version: "4.1.0",
+            version: "4.2.1",
 
             // Referencie na centrálny config
             fields: centralConfig.fields.quotePart,
@@ -98,7 +104,7 @@ var CPDielyCalculate = (function() {
         // Vyčistiť debug, error a info logy pred začiatkom
         utils.clearLogs(currentEntry, true);  // true = vyčistí aj Error_Log
 
-        utils.addDebug(currentEntry, "🚀 START: Prepočet cenovej ponuky Diely (Module v4.2.0)");
+        utils.addDebug(currentEntry, "🚀 START: Prepočet cenovej ponuky Diely (Module v4.2.1)");
 
         // ==============================================
         // POMOCNÉ FUNKCIE
@@ -234,22 +240,43 @@ var CPDielyCalculate = (function() {
         /**
          * Aktualizuje číslo, názov a dátum cenovej ponuky z nadriadeného záznamu
          * Hľadá linksFrom z knižnice "Cenové ponuky" a kopíruje Číslo, Názov a Dátum
+         * Hľadá vo všetkých troch poliach: Diely, Diely HZS, Subdodávky
          * @returns {Date|null} - Dátum z cenovej ponuky alebo null
          */
         function updateQuoteInfo() {
             try {
                 var quoteLibraryName = centralConfig.libraries.quotes; // "Cenové ponuky"
-                var partsFieldName = centralConfig.fields.quote.parts; // "Diely"
 
                 utils.addDebug(currentEntry, "\n🔗 Aktualizácia údajov z cenovej ponuky");
                 utils.addDebug(currentEntry, "  Hľadám v knižnici: " + quoteLibraryName);
-                utils.addDebug(currentEntry, "  Pole: " + partsFieldName);
 
-                // Získaj linksFrom z nadriadenej cenovej ponuky
-                var quoteEntries = utils.safeGetLinksFrom(currentEntry, quoteLibraryName, partsFieldName);
+                // Polia v ktorých môže byť diel linknutý
+                var possibleFields = [
+                    { name: "Diely", fieldName: centralConfig.fields.quote.parts },
+                    { name: "Diely HZS", fieldName: centralConfig.fields.quote.partsHzs },
+                    { name: "Subdodávky", fieldName: centralConfig.fields.quote.subcontracts }
+                ];
+
+                var quoteEntries = null;
+                var foundInField = null;
+
+                // Hľadaj vo všetkých možných poliach
+                for (var i = 0; i < possibleFields.length; i++) {
+                    var field = possibleFields[i];
+                    utils.addDebug(currentEntry, "  Skúšam pole: " + field.name);
+
+                    var entries = utils.safeGetLinksFrom(currentEntry, quoteLibraryName, field.fieldName);
+
+                    if (entries && entries.length > 0) {
+                        quoteEntries = entries;
+                        foundInField = field.name;
+                        utils.addDebug(currentEntry, "  ✅ Nájdené v poli: " + field.name);
+                        break;
+                    }
+                }
 
                 if (!quoteEntries || quoteEntries.length === 0) {
-                    utils.addDebug(currentEntry, "  ⚠️ Nenašiel som nadriadenú cenovú ponuku");
+                    utils.addDebug(currentEntry, "  ⚠️ Nenašiel som nadriadenú cenovú ponuku v žiadnom poli");
                     return null;
                 }
 
@@ -1040,7 +1067,7 @@ var CPDielyCalculate = (function() {
 
     return {
         partCalculate: partCalculate,
-        version: "4.2.0"
+        version: "4.2.1"
     };
 })();
 
