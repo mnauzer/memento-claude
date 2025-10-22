@@ -29,7 +29,7 @@ var DochadzkaCalcModule = (function() {
     var CONFIG = {
         // Script špecifické nastavenia
         scriptName: "Dochádzka Prepočet (Modul)",
-        version: "9.0.0",  // Modulová verzia s výpočtom dňa v týždni
+        version: "9.0.3",  // Opravené scope problémy
 
         // Referencie na centrálny config
         fields: {
@@ -54,7 +54,7 @@ var DochadzkaCalcModule = (function() {
             pocetPracovnikov: centralConfig.fields.attendance.employeeCount,
             info: centralConfig.fields.common.info,
             // NOVÉ: Pole pre deň v týždni
-            dayOfWeek: centralConfig.fields.attendance.dayOfWeek  // Pondelok, Utorok, Streda, ...
+            dayOfWeek: centralConfig.fields.attendance.dayOfWeek
         },
         attributes: centralConfig.fields.attendance.employeeAttributes,
         libraries: centralConfig.libraries,
@@ -63,13 +63,13 @@ var DochadzkaCalcModule = (function() {
         // Lokálne nastavenia pre tento script
         settings: {
             roundToQuarterHour: true,
-            roundDirection: "nearest", // "up", "down", "nearest"
+            roundDirection: "nearest",
             includeBreaks: true,
-            breakThreshold: 6, // hodín
-            breakDuration: 30  // minút
+            breakThreshold: 6,
+            breakDuration: 30
         },
 
-        // Konštanty pre záväzky - s fallback hodnotami
+        // Konštanty pre záväzky
         obligationTypes: {
             wages: centralConfig.constants.obligationTypes.wages,
         },
@@ -85,7 +85,6 @@ var DochadzkaCalcModule = (function() {
                            : "Čiastočne zaplatené"
         },
 
-        // Správne mapovanie pre sadzby
         sadzbyFields: centralConfig.fields.wages
     };
 
@@ -95,18 +94,13 @@ var DochadzkaCalcModule = (function() {
 
     /**
      * Výpočet a nastavenie dňa v týždni
-     * @param {Entry} currentEntry - Aktuálny záznam
-     * @param {Date} date - Dátum
-     * @returns {Object} - { success: boolean, dayName: string }
      */
     function calculateAndSetDayOfWeek(currentEntry, date) {
         try {
             var dayIndex = moment(date).day();
             var dayName = utils.getDayNameSK(dayIndex);
 
-            // Ulož deň v týždni do poľa
             utils.safeSet(currentEntry, CONFIG.fields.dayOfWeek, dayName);
-
             utils.addDebug(currentEntry, "  • Deň v týždni: " + dayName);
 
             return {
@@ -144,7 +138,6 @@ var DochadzkaCalcModule = (function() {
                 return result;
             }
 
-            // Pridaj doplňujúce debug informácie
             utils.addDebug(currentEntry, "  • Dátum: " + moment(result.data.date).format("DD.MM.YYYY") + " (" + utils.getDayNameSK(moment(result.data.date).day()).toUpperCase() + ")");
             utils.addDebug(currentEntry, "  • Čas: " + moment(result.data.arrival).format("HH:mm") + " - " + moment(result.data.departure).format("HH:mm"));
             utils.addDebug(currentEntry, "  • Počet zamestnancov: " + result.data.employees.length);
@@ -174,7 +167,6 @@ var DochadzkaCalcModule = (function() {
 
             var result = utils.calculateWorkTime(arrival, departure, options);
 
-            // Pre spätnu kompatibilitu mapuj názvy výstupných polí
             if (result.success) {
                 result.arrivalRounded = result.startTimeRounded;
                 result.departureRounded = result.endTimeRounded;
@@ -190,84 +182,60 @@ var DochadzkaCalcModule = (function() {
     }
 
     /**
-     * Spracovanie zamestnancov
+     * Vytvorenie info záznamu
      */
-    function processEmployees(currentEntry, zamestnanci, pracovnaDobaHodiny, datum) {
-        var options = {
-            entry: currentEntry,
-            config: CONFIG,
-            employeeFieldName: CONFIG.fields.attendance.employees,
-            attributes: CONFIG.attributes,
-            includeExtras: true,
-            processObligations: true,
-            processObligation: function(date, empData, obligations) {
-                return processObligation(currentEntry, date, empData, obligations);
-            },
-            findLinkedObligations: utils.findLinkedObligations,
-            libraryType: 'attendance'
-        };
-
-        return utils.processEmployees(zamestnanci, pracovnaDobaHodiny, datum, options);
-    }
-
-    /**
-     * Spracovanie záväzku
-     */
-    function processObligation(currentEntry, date, empData, obligations) {
-        var employee = empData.entry;
-        var result = {
-            created: 0,
-            updated: 0,
-            errors: 0,
-            total: 0,
-            totalAmount: 0,
-            success: false
-        };
-
+    function createInfoRecord(currentEntry, workTimeResult, employeeResult) {
         try {
-            utils.addDebug(currentEntry, utils.getIcon("search") +
-            " Hľadám záväzok " + utils.formatEmployeeName(employee));
+            var date = currentEntry.field(CONFIG.fields.attendance.date);
+            var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
+            var dayName = utils.getDayNameSK(moment(date).day()).toUpperCase();
 
-            // Nájdi existujúci záväzok pre tohto zamestnanca
-            var existingObligation = null;
-            for (var j = 0; j < obligations.length; j++) {
-                var obligation = obligations[j];
-                var linkedEmployee = utils.safeGetLinks(obligation, CONFIG.fields.obligations.employee);
+            var infoMessage = "# 📋 DOCHÁDZKA - AUTOMATICKÝ PREPOČET\n\n";
 
-                if (linkedEmployee && linkedEmployee.length > 0 &&
-                    linkedEmployee[0].field("ID") === employee.field("ID")) {
-                    utils.addDebug(currentEntry, utils.getIcon("exclamation") + "nájdený záväzok");
-                    existingObligation = obligation;
-                    break;
+            infoMessage += "## 📅 Základné údaje \n";
+            infoMessage += "- **Dátum:** " + dateFormatted + " (" + dayName + ")\n";
+            infoMessage += "- **Pracovný čas:** " + moment(workTimeResult.arrivalRounded).format("HH:mm") +
+                           " - " + moment(workTimeResult.departureRounded).format("HH:mm") + "\n";
+            infoMessage += "- **Pracovná doba:** " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
+
+            infoMessage += "## 👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + " " + utils.selectOsobaForm(employeeResult.pocetPracovnikov) + ")\n\n";
+
+            // OPRAVA: Kontrola či existuje detaily
+            if (employeeResult.detaily && employeeResult.detaily.length > 0) {
+                for (var i = 0; i < employeeResult.detaily.length; i++) {
+                    var detail = employeeResult.detaily[i];
+                    infoMessage += "### 👤 " + utils.formatEmployeeName(detail.zamestnanec) + "\n";
+                    infoMessage += "- **Hodinovka:** " + detail.hodinovka + " €/h\n";
+                    if (detail.priplatok > 0) infoMessage += "- **Príplatok:** +" + detail.priplatok + " €/h\n";
+                    if (detail.premia > 0) infoMessage += "- **Prémia:** +" + detail.premia + " €\n";
+                    if (detail.pokuta > 0) infoMessage += "- **Pokuta:** -" + detail.pokuta + " €\n";
+                    infoMessage += "- **Denná mzda:** " + detail.dennaMzda + " €\n\n";
                 }
             }
 
-            if (existingObligation) {
-                // Aktualizuj existujúci
-                if (utils.updateObligation(date, existingObligation, empData.dailyWage)) {
-                    result.updated++;
-                    result.totalAmount += empData.dailyWage;
-                } else {
-                    result.errors++;
-                }
-            } else {
-                // Vytvor nový
-                if (utils.createObligation(date, empData, "attendance")) {
-                    result.created++;
-                    result.totalAmount += empData.dailyWage;
-                } else {
-                    result.errors++;
-                }
+            infoMessage += "## 💰 SÚHRN\n";
+            infoMessage += "- **Odpracované celkom:** " + employeeResult.odpracovaneTotal + " hodín\n";
+            infoMessage += "- **Mzdové náklady:** " + utils.formatMoney(employeeResult.celkoveMzdy) + "\n\n";
+
+            infoMessage += "## 🔧 TECHNICKÉ INFORMÁCIE\n";
+            infoMessage += "- **Script:** " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
+            infoMessage += "- **Čas spracovania:** " + moment().format("HH:mm:ss") + "\n";
+            infoMessage += "- **MementoUtils:** v" + (utils.version || "N/A") + "\n";
+
+            if (typeof MementoConfig !== 'undefined') {
+                infoMessage += "- **MementoConfig:** v" + MementoConfig.version + "\n";
             }
 
-            result.total++;
-            result.success = result.errors === 0 && result.total > 0;
+            infoMessage += "\n---\n**✅ PREPOČET DOKONČENÝ ÚSPEŠNE**";
 
-            return result;
+            currentEntry.set(CONFIG.fields.info, infoMessage);
+            utils.addDebug(currentEntry, "✅ Info záznam vytvorený s Markdown formátovaním");
+
+            return true;
 
         } catch (error) {
-            utils.addError(currentEntry, "Kritická chyba pri spracovaní: " + error.toString(), "processObligations", error);
-            return result;
+            utils.addError(currentEntry, error.toString(), "createInfoRecord", error);
+            return false;
         }
     }
 
@@ -295,62 +263,6 @@ var DochadzkaCalcModule = (function() {
     }
 
     /**
-     * Vytvorenie info záznamu
-     */
-    function createInfoRecord(currentEntry, workTimeResult, employeeResult) {
-        try {
-            var date = currentEntry.field(CONFIG.fields.attendance.date);
-            var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
-            var dayName = utils.getDayNameSK(moment(date).day()).toUpperCase();
-
-            var infoMessage = "# 📋 DOCHÁDZKA - AUTOMATICKÝ PREPOČET\n\n";
-
-            infoMessage += "## 📅 Základné údaje \n";
-            infoMessage += "- **Dátum:** " + dateFormatted + " (" + dayName + ")\n";
-            infoMessage += "- **Pracovný čas:** " + moment(workTimeResult.arrivalRounded).format("HH:mm") +
-                           " - " + moment(workTimeResult.departureRounded).format("HH:mm") + "\n";
-            infoMessage += "- **Pracovná doba:** " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
-
-            infoMessage += "## 👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + " " + utils.selectOsobaForm(employeeResult.pocetPracovnikov) + ")\n\n";
-
-            for (var i = 0; i < employeeResult.detaily.length; i++) {
-                var detail = employeeResult.detaily[i];
-                infoMessage += "### 👤 " + utils.formatEmployeeName(employeeResult.detaily[i].zamestnanec) + "\n";
-                infoMessage += "- **Hodinovka:** " + detail.hodinovka + " €/h\n";
-                if (detail.priplatok > 0) infoMessage += "- **Príplatok:** +" + detail.priplatok + " €/h\n";
-                if (detail.premia > 0) infoMessage += "- **Prémia:** +" + detail.premia + " €\n";
-                if (detail.pokuta > 0) infoMessage += "- **Pokuta:** -" + detail.pokuta + " €\n";
-                infoMessage += "- **Denná mzda:** " + detail.dennaMzda + " €\n\n";
-            }
-
-            infoMessage += "## 💰 SÚHRN\n";
-            infoMessage += "- **Odpracované celkom:** " + employeeResult.odpracovaneTotal + " hodín\n";
-            infoMessage += "- **Mzdové náklady:** " + utils.formatMoney(employeeResult.celkoveMzdy) + "\n\n";
-
-            infoMessage += "## 🔧 TECHNICKÉ INFORMÁCIE\n";
-            infoMessage += "- **Script:** " + CONFIG.scriptName + " v" + CONFIG.version + "\n";
-            infoMessage += "- **Čas spracovania:** " + moment().format("HH:mm:ss") + "\n";
-            infoMessage += "- **MementoUtils:** v" + (utils.version || "N/A") + "\n";
-
-            if (typeof MementoConfig !== 'undefined') {
-                infoMessage += "- **MementoConfig:** v" + MementoConfig.version + "\n";
-            }
-
-            infoMessage += "\n---\n**✅ PREPOČET DOKONČENÝ ÚSPEŠNE**";
-
-            currentEntry.set(CONFIG.fields.info, infoMessage);
-
-            utils.addDebug(currentEntry, "✅ Info záznam vytvorený s Markdown formátovaním");
-
-            return true;
-
-        } catch (error) {
-            utils.addError(currentEntry, error.toString(), "createInfoRecord", error);
-            return false;
-        }
-    }
-
-    /**
      * Finálny súhrn
      */
     function logFinalSummary(currentEntry, steps) {
@@ -369,7 +281,6 @@ var DochadzkaCalcModule = (function() {
             if (allSuccess) {
                 utils.addDebug(currentEntry, "\n✅ Všetky kroky dokončené úspešne!");
 
-                // Zobraz súhrn používateľovi
                 var date = utils.safeGet(currentEntry, CONFIG.fields.attendance.date);
                 var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
                 var dayName = utils.safeGet(currentEntry, CONFIG.fields.dayOfWeek, "");
@@ -406,9 +317,6 @@ var DochadzkaCalcModule = (function() {
 
     /**
      * Hlavná funkcia pre výpočet dochádzky
-     * @param {Entry} currentEntry - Aktuálny záznam
-     * @param {Object} options - Voliteľné nastavenia
-     * @returns {Object} - Výsledok výpočtu
      */
     function calculate(currentEntry, options) {
         options = options || {};
@@ -422,6 +330,81 @@ var DochadzkaCalcModule = (function() {
                     success: false,
                     error: "Chýbajú potrebné moduly: " + depCheck.missing.join(", ")
                 };
+            }
+
+            // VNÚTORNÁ FUNKCIA: Spracovanie záväzku
+            // OPRAVA: currentEntry je teraz v closure scope
+            function processObligation(date, empData, obligations) {
+                var employee = empData.entry;
+                var result = {
+                    created: 0,
+                    updated: 0,
+                    errors: 0,
+                    total: 0,
+                    totalAmount: 0,
+                    success: false
+                };
+
+                try {
+                    utils.addDebug(currentEntry, utils.getIcon("search") +
+                        " Hľadám záväzok " + utils.formatEmployeeName(employee));
+
+                    var existingObligation = null;
+                    for (var j = 0; j < obligations.length; j++) {
+                        var obligation = obligations[j];
+                        var linkedEmployee = utils.safeGetLinks(obligation, CONFIG.fields.obligations.employee);
+
+                        if (linkedEmployee && linkedEmployee.length > 0 &&
+                            linkedEmployee[0].field("ID") === employee.field("ID")) {
+                            utils.addDebug(currentEntry, utils.getIcon("exclamation") + "nájdený záväzok");
+                            existingObligation = obligation;
+                            break;
+                        }
+                    }
+
+                    if (existingObligation) {
+                        if (utils.updateObligation(date, existingObligation, empData.dailyWage)) {
+                            result.updated++;
+                            result.totalAmount += empData.dailyWage;
+                        } else {
+                            result.errors++;
+                        }
+                    } else {
+                        if (utils.createObligation(date, empData, "attendance")) {
+                            result.created++;
+                            result.totalAmount += empData.dailyWage;
+                        } else {
+                            result.errors++;
+                        }
+                    }
+
+                    result.total++;
+                    result.success = result.errors === 0 && result.total > 0;
+
+                    return result;
+
+                } catch (error) {
+                    utils.addError(currentEntry, "Kritická chyba pri spracovaní: " + error.toString(), "processObligations", error);
+                    return result;
+                }
+            }
+
+            // VNÚTORNÁ FUNKCIA: Spracovanie zamestnancov
+            // OPRAVA: currentEntry je v closure scope
+            function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
+                var opts = {
+                    entry: currentEntry,
+                    config: CONFIG,
+                    employeeFieldName: CONFIG.fields.attendance.employees,
+                    attributes: CONFIG.attributes,
+                    includeExtras: true,
+                    processObligations: true,
+                    processObligation: processObligation,
+                    findLinkedObligations: utils.findLinkedObligations,
+                    libraryType: 'attendance'
+                };
+
+                return utils.processEmployees(zamestnanci, pracovnaDobaHodiny, datum, opts);
             }
 
             // Inicializácia
@@ -499,7 +482,7 @@ var DochadzkaCalcModule = (function() {
 
             // KROK 3: Spracovanie zamestnancov
             utils.addDebug(currentEntry, " KROK 3: Spracovanie zamestnancov", "group");
-            var employeeResult = processEmployees(currentEntry, validationResult.data.employees, workTimeResult.pracovnaDobaHodiny, validationResult.data.date);
+            var employeeResult = processEmployees(validationResult.data.employees, workTimeResult.pracovnaDobaHodiny, validationResult.data.date);
             if (employeeResult.success) {
                 if (entryStatus.indexOf("Záväzky") === -1) {
                     entryStatus.push("Záväzky");
@@ -583,23 +566,17 @@ var DochadzkaCalcModule = (function() {
     // ==============================================
 
     return {
-        // Hlavná funkcia
         calculate: calculate,
-
-        // Pomocné funkcie (exportované pre testovanie a debug)
         validateInputData: validateInputData,
         calculateWorkTime: calculateWorkTime,
         calculateAndSetDayOfWeek: calculateAndSetDayOfWeek,
-        processEmployees: processEmployees,
-
-        // Konštanty
         CONFIG: CONFIG,
         version: CONFIG.version
     };
 
 })();
 
-// Export modulu pre použitie v iných scriptoch
+// Export modulu
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = DochadzkaCalcModule;
 }
