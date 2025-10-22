@@ -1234,6 +1234,7 @@ var MementoBusiness = (function() {
     function updateObligation(date, obligation, amount) {
         var core = getCore();
         var config = getConfig();
+        var currentEntry = entry();
         try {
             core.addDebug(currentEntry, "  🔄 Aktualizácia existujúceho záväzku...");
             
