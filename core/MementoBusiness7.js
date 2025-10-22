@@ -1235,9 +1235,9 @@ var MementoBusiness = (function() {
         var core = getCore();
         var config = getConfig();
         try {
-            utils.addDebug(currentEntry, "  🔄 Aktualizácia existujúceho záväzku...");
+            core.addDebug(currentEntry, "  🔄 Aktualizácia existujúceho záväzku...");
             
-            var paidAmount = utils.safeGet(obligation, config.fields.obligations.paid || 0);
+            var paidAmount = core.safeGet(obligation, config.fields.obligations.paid || 0);
             var newBalance = amount - paidAmount;
             var newStatus = newBalance <= 0 ? config.constants.obligationStates.paid : 
                         paidAmount > 0 ? config.constants.obligationStates.partiallyPaid : 
@@ -1247,9 +1247,9 @@ var MementoBusiness = (function() {
             obligation.set(config.fields.obligations.balance, newBalance);
             obligation.set(config.fields.obligations.state, newStatus);
             
-            utils.addDebug(currentEntry, "  ☑️ Záväzok aktualizovaný");
-            utils.addDebug(currentEntry, "    Suma: " + utils.formatMoney(amount) + 
-                                        " | Zostatok: " + utils.formatMoney(newBalance));
+            core.addDebug(currentEntry, "  ☑️ Záväzok aktualizovaný");
+            core.addDebug(currentEntry, "    Suma: " + core.formatMoney(amount) + 
+                                        " | Zostatok: " + core.formatMoney(newBalance));
             
             return true;
             
