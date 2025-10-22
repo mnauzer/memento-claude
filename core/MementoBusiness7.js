@@ -1254,7 +1254,7 @@ var MementoBusiness = (function() {
             return true;
             
         } catch (error) {
-            utils.addError(currentEntry, "Chyba pri aktualizácii: " + error.toString(), "updateObligation", error);
+            core.addError(currentEntry, "Chyba pri aktualizácii: " + error.toString(), "updateObligation", error);
             return false;
         }
     }
