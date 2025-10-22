@@ -29,7 +29,7 @@ var DochadzkaCalcModule = (function() {
     var CONFIG = {
         // Script špecifické nastavenia
         scriptName: "Dochádzka Prepočet (Modul)",
-        version: "9.0.4",  // Opravené scope problémy
+        version: "9.0.4",  // Opravený findLinkedObligations + scope problémy
 
         // Referencie na centrálny config
         fields: {
@@ -389,6 +389,18 @@ var DochadzkaCalcModule = (function() {
                 }
             }
 
+            // VNÚTORNÁ FUNKCIA: Wrapper pre findLinkedObligations
+            // OPRAVA: Musí mať prístup k currentEntry cez closure
+            function findLinkedObligationsWrapper(creditor) {
+                try {
+                    var creditorField = CONFIG.fields.obligations[creditor];
+                    return utils.safeGetLinksFrom(currentEntry, CONFIG.libraries.obligations, creditorField);
+                } catch (error) {
+                    utils.addError(currentEntry, "Chyba pri hľadaní záväzkov: " + error.toString(), "findLinkedObligations");
+                    return [];
+                }
+            }
+
             // VNÚTORNÁ FUNKCIA: Spracovanie zamestnancov
             // OPRAVA: currentEntry je v closure scope
             function processEmployees(zamestnanci, pracovnaDobaHodiny, datum) {
@@ -400,7 +412,7 @@ var DochadzkaCalcModule = (function() {
                     includeExtras: true,
                     processObligations: true,
                     processObligation: processObligation,
-                    findLinkedObligations: utils.findLinkedObligations,
+                    findLinkedObligations: findLinkedObligationsWrapper,  // OPRAVA: Použiť wrapper
                     libraryType: 'attendance'
                 };
 
