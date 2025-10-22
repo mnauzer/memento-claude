@@ -29,7 +29,7 @@ var DochadzkaCalcModule = (function() {
     var CONFIG = {
         // Script špecifické nastavenia
         scriptName: "Dochádzka Prepočet (Modul)",
-        version: "9.0.2",  // Opravené scope problémy
+        version: "9.0.3",  // Opravené scope problémy
 
         // Referencie na centrálny config
         fields: {
