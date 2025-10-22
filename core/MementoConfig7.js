@@ -306,6 +306,7 @@ var MementoConfig = (function() {
             // Dochádzka polia
             attendance: {
                 date: "Dátum",
+                dayOfWeek: "Deň", // NOVÉ v9.0.0 - deň v týždni (Pondelok, Utorok, ...)
                 arrival: "Príchod",
                 departure: "Odchod",
                 employees: "Zamestnanci",
