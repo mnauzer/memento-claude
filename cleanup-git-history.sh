@@ -74,7 +74,16 @@ else
 fi
 
 echo ""
-echo "📋 Step 4: Cleaning git history..."
+echo "📋 Step 4: Ensuring clean working tree..."
+
+# Stash any changes to ensure clean state
+git stash push -m "Temporary stash for git history cleanup" 2>/dev/null || true
+git reset --hard HEAD 2>/dev/null || true
+
+echo -e "${GREEN}✅ Working tree clean${NC}"
+
+echo ""
+echo "📋 Step 5: Cleaning git history..."
 
 if [ "$USE_BFG" = true ]; then
     # Method 1: BFG Repo Cleaner (faster)
@@ -95,7 +104,7 @@ fi
 echo -e "${GREEN}✅ Git history cleaned${NC}"
 
 echo ""
-echo "📋 Step 5: Cleaning up references..."
+echo "📋 Step 6: Cleaning up references..."
 
 # Remove backup refs created by filter-branch
 git for-each-ref --format="%(refname)" refs/original/ | xargs -r git update-ref -d
