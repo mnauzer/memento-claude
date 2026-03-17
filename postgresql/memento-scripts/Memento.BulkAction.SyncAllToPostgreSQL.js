@@ -37,7 +37,7 @@
     var CONFIG = {
         // PostgreSQL Sync API
         apiUrl: 'http://192.168.5.241:8889',
-        apiKey: '7d8f9e3a-2b4c-4e1f-9a8b-3c5d6e7f8a9b',  // Z /opt/memento-sync/sync-api/.env
+        apiKey: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6',  // Z /opt/memento-sync/sync-api/.env
 
         // Nastavenia
         batchDelay: 100,        // ms medzi záznamami (throttling)
