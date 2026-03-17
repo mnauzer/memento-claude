@@ -1,0 +1,41 @@
+[Unit]
+Description=Memento PostgreSQL Sync API
+Documentation=https://github.com/yourusername/memento-claude/postgresql
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=smarthome
+Group=smarthome
+WorkingDirectory=/opt/memento-sync/sync-api
+Environment="PATH=/opt/memento-sync/venv/bin"
+Environment="PYTHONUNBUFFERED=1"
+
+# Main process
+ExecStart=/opt/memento-sync/venv/bin/uvicorn main:app \
+    --host 0.0.0.0 \
+    --port 8888 \
+    --workers 2 \
+    --log-level info \
+    --access-log
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitInterval=5min
+StartLimitBurst=4
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/memento-sync/logs
+
+# Resource limits
+LimitNOFILE=65536
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

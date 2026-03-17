@@ -1,0 +1,42 @@
+[Unit]
+Description=Memento PostgreSQL Listener - Bidirectional Sync Daemon
+Documentation=https://github.com/yourusername/memento-claude/postgresql
+After=network.target postgresql.service memento-sync-api.service
+Wants=postgresql.service
+Requires=memento-sync-api.service
+
+[Service]
+Type=simple
+User=smarthome
+Group=smarthome
+WorkingDirectory=/opt/memento-sync/sync-api
+Environment="PATH=/opt/memento-sync/venv/bin"
+Environment="PYTHONUNBUFFERED=1"
+
+# Main process
+ExecStart=/opt/memento-sync/venv/bin/python pg_listener.py
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitInterval=5min
+StartLimitBurst=4
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/memento-sync/logs
+
+# Resource limits
+LimitNOFILE=65536
+TimeoutStopSec=30
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=memento-pg-listener
+
+[Install]
+WantedBy=multi-user.target
