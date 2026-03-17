@@ -1,0 +1,16 @@
+# Git attributes for memento-claude
+
+# Shell scripts should always use LF
+*.sh text eol=lf
+
+# Git hooks should use LF
+.git-hooks/* text eol=lf
+
+# Source files
+*.js text
+*.md text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.pdf binary
