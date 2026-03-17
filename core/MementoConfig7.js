@@ -2,7 +2,7 @@
 // MEMENTO CONFIG - Centralizovaná konfigurácia
 // Verzia: 7.0.53 | Dátum: 2025-10-12 | Autor: ASISTANTO
 // ==============================================
-// 📋 CHANGELOG: /home/rasto/memento-claude/docs/CHANGELOG-MementoConfig.md
+// 📋 CHANGELOG: {project_root}/docs/CHANGELOG-MementoConfig.md
 // ==============================================
 // 📋 ÚČEL:
 //    - Centrálny CONFIG pre všetky scripty

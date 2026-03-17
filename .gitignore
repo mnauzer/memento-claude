@@ -107,6 +107,11 @@ playground.js
 # ========================================
 # Tieto súbory sa budú synchronizovať do GitHub repo
 
+# Bezpečnostné a dokumentačné súbory (SYNCHRONIZOVANÉ)
+!SECURITY.md
+!.env.example
+!CLAUDE.md
+
 # Memento Core moduly (SYNCHRONIZOVANÉ)
 !Memento*.js
 

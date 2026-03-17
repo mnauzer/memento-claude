@@ -31,11 +31,13 @@ curl -u "YOUR_API_KEY:" ...
 
 ### Aktuálny API Key
 
-**Funkčný API kľúč:** `your_api_key_here`
+**API kľúč:** Uložený v `.env` súboroch (nie je súčasťou git repository)
 
 **Umiestnenie:**
-- `{project_root}/memento-claude/.env`
-- `{project_root}/memento-claude/config/.env`
+- `{project_root}/.env`
+- `{project_root}/config/.env`
+
+**Poznámka:** API key NIKDY necommituj do git! Používaj environment variables.
 
 ### API Dokumentácia
 
@@ -173,7 +175,7 @@ else:
     load_dotenv()  # fallback
 
 # Alebo explicitná cesta
-load_dotenv('{project_root}/memento-claude/config/.env')
+load_dotenv('{project_root}/config/.env')
 ```
 
 **Alternatíva - export v shell:**
@@ -254,7 +256,7 @@ requests.exceptions.HTTPError: 401 Client Error: Unauthorized
 # Overenie aktuálneho kľúča
 echo $MEMENTO_API_KEY
 
-# Nastavenie správneho kľúča
+# Nastavenie správneho kľúča (nahraď your_api_key_here skutočným kľúčom z .env)
 export MEMENTO_API_KEY=your_api_key_here
 
 # Test cez curl
@@ -272,7 +274,7 @@ export MEMENTO_API_KEY=your_api_key_here
 python3 script.py
 
 # 2. Explicitná cesta v kóde
-load_dotenv('{project_root}/memento-claude/config/.env')
+load_dotenv('{project_root}/config/.env')
 
 # 3. Skontroluj ktorý .env sa načítava
 python3 -c "from dotenv import load_dotenv, find_dotenv; print(find_dotenv())"
