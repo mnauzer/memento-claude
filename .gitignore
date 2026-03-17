@@ -109,8 +109,14 @@ playground.js
 
 # Bezpečnostné a dokumentačné súbory (SYNCHRONIZOVANÉ)
 !SECURITY.md
+!SECURITY_CHECKLIST.md
 !.env.example
 !CLAUDE.md
+
+# Bezpečnostné scripty (SYNCHRONIZOVANÉ)
+!cleanup-git-history.sh
+!install-hooks.sh
+!.git-hooks/
 
 # Memento Core moduly (SYNCHRONIZOVANÉ)
 !Memento*.js
