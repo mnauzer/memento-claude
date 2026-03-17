@@ -110,6 +110,7 @@ playground.js
 # Bezpečnostné a dokumentačné súbory (SYNCHRONIZOVANÉ)
 !SECURITY.md
 !SECURITY_CHECKLIST.md
+!SECURITY_AUDIT_REPORT.md
 !.env.example
 !CLAUDE.md
 

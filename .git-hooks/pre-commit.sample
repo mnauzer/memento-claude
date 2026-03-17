@@ -9,7 +9,7 @@
 echo "🔒 Running security checks..."
 
 # Files that are allowed to contain security-related strings (documentation, cleanup scripts)
-EXEMPT_PATTERN="(SECURITY_CHECKLIST\.md|SECURITY\.md|cleanup-git-history\.sh|\.git-hooks/|install-hooks\.sh)"
+EXEMPT_PATTERN="(SECURITY.*\.md|cleanup-git-history\.sh|\.git-hooks/|install-hooks\.sh)"
 
 # Check for potential API keys, tokens, passwords
 FORBIDDEN_PATTERNS=(
