@@ -142,29 +142,30 @@
                     for (var j = 0; j < fieldValue.length; j++) {
                         var item = fieldValue[j];
 
-                        // Try to get ID from entry object
+                        // Extract ID from Entry object
+                        // According to Memento API: entry.id is a PROPERTY (not a method)
                         var itemId = null;
                         try {
-                            // JSEntry objects from Memento - try .id property
-                            if (item && item.id !== undefined) {
-                                itemId = (typeof item.id === 'function') ? item.id() : item.id;
-                            }
-                            // Try direct value
-                            else if (typeof item === 'string') {
-                                itemId = item;
+                            if (item && item.id) {
+                                itemId = item.id;  // Simple property access
+                            } else if (typeof item === 'string') {
+                                itemId = item;  // Already an ID string
                             }
 
-                            // Debug for Zamestnanci
+                            // Debug for Zamestnanci (first item only)
                             if (fieldName === 'Zamestnanci' && j === 0) {
+                                addLog('DEBUG First employee raw item: ' + item);
                                 addLog('DEBUG First employee item.id: ' + itemId);
-                                addLog('DEBUG First employee typeof item.id: ' + typeof item.id);
+                                addLog('DEBUG First employee item.id type: ' + typeof item.id);
                             }
                         } catch (err) {
-                            addLog('ERROR extracting ID from item: ' + err.toString());
+                            addLog('ERROR extracting ID from item ' + j + ': ' + err.toString());
                         }
 
                         if (itemId) {
                             arrayData.push({id: itemId});
+                        } else {
+                            addLog('WARNING: No ID found for item ' + j + ' in field ' + fieldName);
                         }
                     }
                     entryData.fields[fieldName] = arrayData;
