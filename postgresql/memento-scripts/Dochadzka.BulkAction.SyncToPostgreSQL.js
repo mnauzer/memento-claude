@@ -123,7 +123,8 @@
 
                 if (fieldValue === null || fieldValue === undefined) {
                     entryData.fields[fieldName] = null;
-                } else if (Array.isArray(fieldValue)) {
+                } else if (Array.isArray(fieldValue) || (fieldValue && typeof fieldValue === 'object' && fieldValue.length !== undefined && fieldValue.length > 0)) {
+                    // Handle both JavaScript arrays AND Memento array-like objects (entry collections)
                     // Handle array values (e.g., linkToEntry with multiple values)
                     var arrayData = [];
 
@@ -144,20 +145,22 @@
                         // Try to get ID from entry object
                         var itemId = null;
                         try {
-                            // Try .id property first
-                            if (item && item.id) {
-                                itemId = item.id;
-                            }
-                            // Try .id() method (some Memento versions)
-                            else if (item && typeof item.id === 'function') {
-                                itemId = item.id();
+                            // JSEntry objects from Memento - try .id property
+                            if (item && item.id !== undefined) {
+                                itemId = (typeof item.id === 'function') ? item.id() : item.id;
                             }
                             // Try direct value
                             else if (typeof item === 'string') {
                                 itemId = item;
                             }
+
+                            // Debug for Zamestnanci
+                            if (fieldName === 'Zamestnanci' && j === 0) {
+                                addLog('DEBUG First employee item.id: ' + itemId);
+                                addLog('DEBUG First employee typeof item.id: ' + typeof item.id);
+                            }
                         } catch (err) {
-                            // Skip invalid items
+                            addLog('ERROR extracting ID from item: ' + err.toString());
                         }
 
                         if (itemId) {
