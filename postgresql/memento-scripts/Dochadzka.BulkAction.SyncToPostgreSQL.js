@@ -5,6 +5,8 @@
  * Verzia:      3.1
  *
  * CHANGELOG:
+ * v3.3 - Fixed SQLiteBlobTooBigException by limiting Debug_Log size (50KB max, replace not append)
+ * v3.2 - Fixed TIME field timezone conversion (Memento sends UTC, convert to local)
  * v3.1 - Added version tracking and logging
  *      - Fixed Memento array-like entry collections handling
  *      - Proper ID extraction from Entry objects (entry.id property)
@@ -18,7 +20,7 @@
     // ======================================
     // KONFIGURÁCIA
     // ======================================
-    var SCRIPT_VERSION = '3.1';
+    var SCRIPT_VERSION = '3.3';
 
     var CONFIG = {
         apiUrl: 'http://192.168.5.241:8889',
@@ -116,6 +118,20 @@
                 }
 
                 var fieldValue = safeGetField(e, fieldName);
+
+                // FIX: TIME fields are automatically converted to UTC by Memento
+                // We need to convert them back to local time
+                if (fieldValue && typeof fieldValue === 'string' && fieldValue.match(/1970-01-01T\d{2}:\d{2}:\d{2}\.\d{3}Z/)) {
+                    // This is a TIME field (Memento uses 1970-01-01 as date for time-only values)
+                    // getTimezoneOffset() returns minutes BEHIND UTC (negative for CET/CEST)
+                    // To convert UTC to local: subtract the offset
+                    var utcTime = new Date(fieldValue);
+                    var offsetMs = utcTime.getTimezoneOffset() * 60000;
+                    var localTime = new Date(utcTime.getTime() - offsetMs);
+                    // Format back to ISO string
+                    fieldValue = localTime.toISOString();
+                    addLog('TIME field ' + fieldName + ': UTC ' + utcTime.toISOString() + ' -> Local ' + fieldValue + ' (offset: ' + (offsetMs/60000) + ' min)');
+                }
 
                 // Debug: Check what we're getting for Zamestnanci
                 if (fieldName === 'Zamestnanci') {
@@ -345,12 +361,19 @@
     // Join all log entries
     var completeLog = LOG_BUFFER.join('\n');
 
-    // Write to Debug_Log field (all at once)
+    // Write to Debug_Log field (REPLACE old log, don't append - prevents SQLiteBlobTooBigException)
     try {
         var firstEntry = selectedEntries[0];
-        var existingLog = safeGetField(firstEntry, 'Debug_Log') || '';
-        firstEntry.set('Debug_Log', completeLog + '\n\n' + existingLog);
-        addLog('✅ Log written to Debug_Log field');
+        // CRITICAL: Don't append to existing log - it grows too large and crashes Android
+        // Just replace with new log (max ~50KB to be safe)
+        var maxLogLength = 50000; // 50KB limit
+        var finalLog = completeLog;
+        if (finalLog.length > maxLogLength) {
+            // Truncate from the beginning, keep the end (most recent)
+            finalLog = '...(truncated)\n' + finalLog.substring(finalLog.length - maxLogLength);
+        }
+        firstEntry.set('Debug_Log', finalLog);
+        addLog('✅ Log written to Debug_Log field (' + finalLog.length + ' chars)');
     } catch (err) {
         log('❌ Could not write Debug_Log: ' + err.toString());
     }
