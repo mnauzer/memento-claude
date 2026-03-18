@@ -66,7 +66,7 @@
 var MementoSync = (function() {
     'use strict';
 
-    var VERSION = '1.7';
+    var VERSION = '1.8';
 
     // ======================================
     // DEFAULT CONFIGURATION
