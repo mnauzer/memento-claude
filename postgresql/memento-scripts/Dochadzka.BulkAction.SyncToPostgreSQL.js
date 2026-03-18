@@ -5,6 +5,7 @@
  * Verzia:      3.1
  *
  * CHANGELOG:
+ * v3.4 - Added TIME field debug logging, version in first message, progress every 50 records
  * v3.3 - Fixed SQLiteBlobTooBigException by limiting Debug_Log size (50KB max, replace not append)
  * v3.2 - Fixed TIME field timezone conversion (Memento sends UTC, convert to local)
  * v3.1 - Added version tracking and logging
@@ -20,7 +21,7 @@
     // ======================================
     // KONFIGURÁCIA
     // ======================================
-    var SCRIPT_VERSION = '3.3';
+    var SCRIPT_VERSION = '3.4';
 
     var CONFIG = {
         apiUrl: 'http://192.168.5.241:8889',
@@ -118,6 +119,11 @@
                 }
 
                 var fieldValue = safeGetField(e, fieldName);
+
+                // Debug TIME fields
+                if (fieldName === 'Príchod' || fieldName === 'Odchod') {
+                    addLog('DEBUG TIME field ' + fieldName + ': value=' + fieldValue + ', type=' + typeof fieldValue);
+                }
 
                 // FIX: TIME fields are automatically converted to UTC by Memento
                 // We need to convert them back to local time
@@ -280,7 +286,7 @@
     }
 
     addLog('Syncing ' + totalEntries + ' entries...');
-    message('🚀 Syncujem ' + totalEntries + ' záznamov...');
+    message('🚀 Syncujem ' + totalEntries + ' záznamov (v' + SCRIPT_VERSION + ')...');
 
     var stats = {
         total: totalEntries,
@@ -294,8 +300,11 @@
     for (var i = 0; i < totalEntries; i++) {
         var e = selectedEntries[i];
 
-        if (i % 5 === 0 || i === totalEntries - 1) {
-            message('🔄 ' + (i + 1) + '/' + totalEntries + ' - ✅ ' + stats.success + ' ❌ ' + stats.failed);
+        // Show progress every 50 records (only if total > 50)
+        if (totalEntries >= 50) {
+            if (i % 50 === 0 || i === totalEntries - 1) {
+                message('🔄 ' + (i + 1) + '/' + totalEntries + ' - ✅ ' + stats.success + ' ❌ ' + stats.failed);
+            }
         }
 
         var result = syncEntry(e);
