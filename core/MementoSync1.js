@@ -1,7 +1,7 @@
 /**
  * Knižnica:    MementoSync
  * Názov:       MementoSync1.js
- * Verzia:      1.1
+ * Verzia:      1.2
  * Autor:       Claude Code
  * Dátum:       2026-03-18
  *
@@ -23,6 +23,10 @@
  *   });
  *
  * CHANGELOG:
+ * v1.2 (2026-03-18) - Enhanced error debugging
+ *   - Add detailed error messages for URL issues
+ *   - Show apiUrl value in error if malformed
+ *   - Better config validation
  * v1.1 (2026-03-18) - Improved error reporting
  *   - Use lib().title instead of lib().name
  *   - Use dialog() instead of message() for results
@@ -37,7 +41,7 @@
 var MementoSync = (function() {
     'use strict';
 
-    var VERSION = '1.1';
+    var VERSION = '1.2';
 
     // ======================================
     // DEFAULT CONFIGURATION
@@ -239,6 +243,12 @@ var MementoSync = (function() {
             var entryData = extractEntryData(entry, status);
 
             var httpClient = http();
+
+            // Build URL - CRITICAL: apiUrl must include http:// or https://
+            if (!config.apiUrl) {
+                throw new Error('API URL is not configured in config');
+            }
+
             var url = config.apiUrl + '/api/memento/from-memento/' + libInfo.id +
                       '?library_name=' + encodeURIComponent(libInfo.name) +
                       '&table_name=' + libInfo.table;
@@ -264,10 +274,21 @@ var MementoSync = (function() {
                 };
             }
         } catch (err) {
+            // Enhanced error with config info
+            var errorMsg = err.toString();
+            if (!config.apiUrl || config.apiUrl === '') {
+                errorMsg += ' (apiUrl is empty or undefined)';
+            } else if (config.apiUrl.indexOf('http') === -1) {
+                errorMsg += ' (apiUrl missing http:// - got: "' + config.apiUrl + '")';
+            }
             return {
                 success: false,
                 entryId: entry.id,
-                error: err.toString()
+                error: errorMsg,
+                debug: {
+                    apiUrl: config.apiUrl,
+                    hasApiKey: !!config.apiKey
+                }
             };
         }
     }
