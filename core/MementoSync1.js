@@ -100,7 +100,7 @@ var MementoSync = (function() {
     function getLibraryInfo(entry) {
         var currentLib = lib();
         var libraryId = currentLib.id;
-        var libraryName = currentLib.name;
+        var libraryName = currentLib.title;  // Use title, not name
         var tableName = TABLE_MAPPING[libraryName];
 
         if (!tableName) {
