@@ -192,7 +192,7 @@ class MementoToPostgreSQLSync:
         # Map custom fields to PostgreSQL columns
         for field_name, field_value in fields.items():
             # Convert Slovak field name to English column name
-            column_name = get_column_name(field_name, library_name, library_id)
+            column_name = get_column_name(library_id, field_name, library_name)
 
             logger.info(f"Mapping field '{field_name}' -> column '{column_name}'")
 
@@ -228,6 +228,9 @@ class MementoToPostgreSQLSync:
             else:
                 # Regular value
                 pg_data[column_name] = field_value
+                # DEBUG: Log email fields
+                if 'email' in column_name.lower():
+                    logger.info(f"  → Assigned to pg_data['{column_name}'] = {repr(field_value)} (type: {type(field_value).__name__})")
 
         return pg_data
 

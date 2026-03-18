@@ -107,48 +107,40 @@ DAILY_REPORT_FIELDS = {
 # Zamestnanci (Employees) field mappings
 EMPLOYEES_FIELDS = {
     "ID": "record_number",  # Custom numeric ID field (not primary key!)
-    "Meno": "name",
-    "Priezvisko": "surname",
-    "Nick": "nickname",
+    "Meno": "first_name",  # Fixed: was "name"
+    "Priezvisko": "last_name",  # Fixed: was "surname"
+    "Nick": "nick",  # Fixed: was "nickname"
     "Pozícia": "position",
     "obdobie total": "period_total",
     "výber obdobia": "period_selection",
-    "Na zákazkách": "hours_on_orders",
-    "Jazdy": "hours_driving",
-    "Odpracované": "hours_worked",
+    "Na zákazkách": "worked_on_orders",  # Fixed: was "hours_on_orders"
+    "Jazdy": "worked_driving",  # Fixed: was "hours_driving"
+    "Odpracované": "worked_hours",  # Fixed: was "hours_worked"
     "Zarobené": "earned",
     "Prémie": "bonuses",
     "Vyplatené": "paid_out",
-    "Na zákazkách total": "hours_on_orders_total",
-    "Jazdy total": "hours_driving_total",
-    "Odpracované total": "hours_worked_total",
+    "Na zákazkách total": "worked_on_orders_total",  # Fixed
+    "Jazdy total": "worked_driving_total",  # Fixed
+    "Odpracované total": "worked_hours_total",  # Fixed
     "Zarobené total": "earned_total",
     "Prémie total": "bonuses_total",
     "Vyplatené total": "paid_out_total",
-    "Hrubá mzda": "gross_wage",
+    "Hrubá mzda": "gross_salary",  # Fixed: was "gross_wage"
     "Preplatok/Nedoplatok": "overpayment_underpayment",
     "Aktuálna hodinovka": "current_hourly_rate",
     "Záväzky": "obligations",
     "Pohľadávky": "receivables",
     "Saldo": "balance",
-    "info": "entry_info",
-    "sms": "send_sms",
+    "sms": "sms_enabled",  # Fixed: was "send_sms"
     "Mobil": "mobile",
-    "email": "send_email",
-    "Email": "email_address",
-    "Telegram notifikácie": "telegram_notifications",
+    "email": "email_enabled",  # Fixed: was "send_email" - this is checkbox!
+    "Email": "email",  # Fixed: was "email_address" - this is actual email!
+    "Telegram notifikácie": "telegram_enabled",  # Fixed: was "telegram_notifications"
     "Telegram ID": "telegram_id",
-    "Debug_Log": "debug_log",
-    "Error_Log": "error_log",
     "Aktívny": "is_active",
     "Šofér": "is_driver",
-    "Dochádzka": "attendance_rating",
-    "Zákazky": "orders_rating",
-    "Celkom": "total_rating",
-    "Poznámka": "note",
-    "view": "view_mode",
-    "farba záznamu": "record_color",
-    "farba pozadia": "background_color"
+    "Poznámka": "notes",  # Fixed: was "note"
+    "view": "view_mode"
 }
 
 # Miesta (Places) field mappings
@@ -217,20 +209,19 @@ CLIENTS_FIELDS = {
 # Dodávatelia (Suppliers) field mappings
 SUPPLIERS_FIELDS = {
     "ID": "record_number",  # Custom numeric ID field (not primary key!)
-    "Názov": "name",
-    "Popis": "description",
-    "info": "entry_info",
+    "Názov": "company_name",  # Firma - company name
+    "Popis": "notes",  # Poznámka - notes/description
+    "Kontakt": "contact",  # Contact info
     "Ulica": "street",
     "PSČ": "postal_code",
     "Mesto": "city",
-    "www": "website",
     "Email": "email",
-    "Debug_Log": "debug_log",
-    "Error_Log": "error_log",
-    "dátum zápisu": "created_date",
-    "zapísal": "created_by",
-    "dátum úpravy": "modified_date",
-    "upravil": "modified_by"
+    "Mobil": "mobile",
+    "IČO": "ico",
+    "Platca DPH": "is_vat_payer",
+    "IČ DPH": "vat_id",
+    "Aktívny": "is_active",
+    "Nick": "nick"
 }
 
 # Partneri (Partners) field mappings

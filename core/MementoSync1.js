@@ -1,7 +1,7 @@
 /**
  * Knižnica:    MementoSync
  * Názov:       MementoSync1.js
- * Verzia:      1.7
+ * Verzia:      1.8
  * Autor:       Claude Code
  * Dátum:       2026-03-18
  *
@@ -23,6 +23,11 @@
  *   });
  *
  * CHANGELOG:
+ * v1.8 (2026-03-18) - CRITICAL FIX: Email field extraction
+ *   - Fixed Email field (capital E) being extracted as boolean instead of string
+ *   - Added direct entry.field('Email') call to bypass lib().fields() confusion
+ *   - Added debug logging for all email-related fields
+ *   - Now correctly syncs email addresses (e.g., "rasto.skubal@gmail.com") as strings
  * v1.7 (2026-03-18) - Fix URL display in dialog and logs
  *   - Dialog showed libInfo.id in URL (wrong)
  *   - Now shows libInfo.name in both dialog and logs (correct)
@@ -187,6 +192,9 @@ var MementoSync = (function() {
         var currentLib = lib();
         var fieldNames = currentLib.fields();
 
+        // DEBUG: Log field types for Email-related fields
+        var debugLog = [];
+
         for (var i = 0; i < fieldNames.length; i++) {
             var fieldName = fieldNames[i];
 
@@ -196,7 +204,26 @@ var MementoSync = (function() {
                 continue;
             }
 
-            var fieldValue = safeGetField(entry, fieldName);
+            // CRITICAL FIX: For "Email" field (capital E), call entry.field() directly
+            // because lib().fields() might return wrong field name/order
+            var fieldValue;
+            if (fieldName === 'Email') {
+                // Direct call with exact field name to avoid confusion with "email" checkbox
+                try {
+                    fieldValue = entry.field('Email');  // Capital E - email address field
+                    log('Email field DIRECT access: ' + JSON.stringify(fieldValue) + ' (type: ' + typeof fieldValue + ')');
+                } catch(e) {
+                    fieldValue = null;
+                    log('Email field DIRECT access ERROR: ' + e);
+                }
+            } else {
+                fieldValue = safeGetField(entry, fieldName);
+            }
+
+            // DEBUG: Log Email-related fields
+            if (fieldName.toLowerCase().indexOf('email') !== -1) {
+                log('Field: ' + fieldName + ' | value: ' + JSON.stringify(fieldValue) + ' (' + typeof fieldValue + ')');
+            }
 
             // TIME FIELD FIX: Memento returns Date object with year 1970
             if (fieldValue && typeof fieldValue === 'object' &&
@@ -250,6 +277,11 @@ var MementoSync = (function() {
             else {
                 entryData.fields[fieldName] = fieldValue;
             }
+        }
+
+        // Add debug log to entry data if we logged any email fields
+        if (debugLog.length > 0) {
+            entryData._debug_email = debugLog.join('; ');
         }
 
         return entryData;
