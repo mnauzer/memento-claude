@@ -2,9 +2,12 @@
  * Bulk Action: Sync All Dochádzka Entries to PostgreSQL
  *
  * Knižnica:    Dochádzka (Attendance)
- * Verzia:      3.1
+ * Verzia:      3.6
  *
  * CHANGELOG:
+ * v3.6 - CRITICAL FIX: Corrected library ID from qU4Br5hU6 (Zamestnanci Semiramis) to zNoMvrv8U (Dochádzka)!
+ *      - Previous script was syncing the WRONG library!
+ *      - Updated field mappings to match actual Dochádzka structure
  * v3.5 - FIXED TIME conversion: Memento returns Date OBJECT not string! Extract local time components.
  * v3.4 - Added TIME field debug logging, version in first message, progress every 50 records
  * v3.3 - Fixed SQLiteBlobTooBigException by limiting Debug_Log size (50KB max, replace not append)
@@ -22,15 +25,15 @@
     // ======================================
     // KONFIGURÁCIA
     // ======================================
-    var SCRIPT_VERSION = '3.5';
+    var SCRIPT_VERSION = '3.6';
 
     var CONFIG = {
         apiUrl: 'http://192.168.5.241:8889',
         apiKey: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6',
 
-        // DÔLEŽITÉ: lib().id vracia internal ID (napr. "EIL-cPe57cbZ;d:DK4vC")
-        // ale sync API potrebuje public API ID z Memento REST API
-        libraryId: 'qU4Br5hU6',  // Dochádzka - Public API ID
+        // CRITICAL: Corrected library ID! Previously was syncing wrong library (Zamestnanci Semiramis)
+        // This is the PUBLIC API ID from Memento REST API
+        libraryId: 'zNoMvrv8U',  // Dochádzka (Main) - CORRECT ID! 40M+ entries
         libraryName: 'Dochádzka',
 
         batchDelay: 100,
