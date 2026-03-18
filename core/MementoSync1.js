@@ -1,7 +1,7 @@
 /**
  * Knižnica:    MementoSync
  * Názov:       MementoSync1.js
- * Verzia:      1.3
+ * Verzia:      1.4
  * Autor:       Claude Code
  * Dátum:       2026-03-18
  *
@@ -23,6 +23,10 @@
  *   });
  *
  * CHANGELOG:
+ * v1.4 (2026-03-18) - FIX: Remove query params from API URL
+ *   - Server looks up library_name/table_name by library_id
+ *   - URL: /api/memento/from-memento/{library_id} (no query params)
+ *   - Fixes HTTP 404 error
  * v1.3 (2026-03-18) - FIX: Correct Memento HTTP client API usage
  *   - Use httpClient.headers() before POST (not options object)
  *   - Use httpClient.post(url, body) syntax
@@ -45,7 +49,7 @@
 var MementoSync = (function() {
     'use strict';
 
-    var VERSION = '1.3';
+    var VERSION = '1.4';
 
     // ======================================
     // DEFAULT CONFIGURATION
@@ -246,14 +250,12 @@ var MementoSync = (function() {
         try {
             var entryData = extractEntryData(entry, status);
 
-            // Build URL - CRITICAL: apiUrl must include http:// or https://
+            // Build URL - server looks up library_name and table_name by library_id
             if (!config.apiUrl) {
                 throw new Error('API URL is not configured in config');
             }
 
-            var url = config.apiUrl + '/api/memento/from-memento/' + libInfo.id +
-                      '?library_name=' + encodeURIComponent(libInfo.name) +
-                      '&table_name=' + libInfo.table;
+            var url = config.apiUrl + '/api/memento/from-memento/' + libInfo.id;
 
             // Memento API: set headers first, then call post(url, body)
             var httpClient = http();
@@ -301,9 +303,7 @@ var MementoSync = (function() {
         try {
             var httpClient = http();
             var url = config.apiUrl + '/api/memento/from-memento/' +
-                      libInfo.id + '/' + entry.id +
-                      '?library_name=' + encodeURIComponent(libInfo.name) +
-                      '&table_name=' + libInfo.table;
+                      libInfo.id + '/' + entry.id;
 
             var result = httpClient.delete({
                 url: url,
