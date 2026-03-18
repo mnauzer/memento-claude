@@ -1,7 +1,7 @@
 /**
  * Knižnica:    MementoSync
  * Názov:       MementoSync1.js
- * Verzia:      1.0
+ * Verzia:      1.1
  * Autor:       Claude Code
  * Dátum:       2026-03-18
  *
@@ -23,6 +23,11 @@
  *   });
  *
  * CHANGELOG:
+ * v1.1 (2026-03-18) - Improved error reporting
+ *   - Use lib().title instead of lib().name
+ *   - Use dialog() instead of message() for results
+ *   - Add detailed logging to Debug_Log field
+ *   - Show first 5 errors in dialog
  * v1.0 (2026-03-18) - Initial release
  *   - syncToPostgreSQL() - sync aktívnych záznamov
  *   - syncTrashToPostgreSQL() - sync koša
@@ -32,7 +37,7 @@
 var MementoSync = (function() {
     'use strict';
 
-    var VERSION = '1.0';
+    var VERSION = '1.1';
 
     // ======================================
     // DEFAULT CONFIGURATION
@@ -333,14 +338,28 @@ var MementoSync = (function() {
     function syncToPostgreSQL(entriesOrEntry, options) {
         var entries = normalizeEntries(entriesOrEntry);
         var config = mergeOptions(options);
+        var LOG_BUFFER = [];
+
+        function addLog(msg) {
+            LOG_BUFFER.push('[' + new Date().toISOString() + '] ' + msg);
+        }
 
         if (entries.length === 0) {
-            message('⚠️ Žiadne záznamy na sync');
+            dialog()
+                .title('Sync Info')
+                .text('⚠️ Žiadne záznamy na sync')
+                .positiveButton('OK', function() {})
+                .show();
             return { success: 0, failed: 0, total: 0 };
         }
 
         var libInfo = getLibraryInfo(entries[0]);
         var totalEntries = entries.length;
+
+        addLog('=== MEMENTO SYNC START ===');
+        addLog('Library: ' + libInfo.name + ' (ID: ' + libInfo.id + ')');
+        addLog('Table: ' + libInfo.table);
+        addLog('Entries: ' + totalEntries);
 
         var stats = {
             total: totalEntries,
@@ -349,40 +368,70 @@ var MementoSync = (function() {
             errors: []
         };
 
-        if (config.showProgress) {
-            message('🚀 Syncujem ' + totalEntries + ' záznamov...');
-        }
-
         var startTime = new Date();
 
         for (var i = 0; i < totalEntries; i++) {
             var entry = entries[i];
-
-            // Progress
-            if (config.showProgress && totalEntries > config.progressInterval) {
-                if (i % config.progressInterval === 0 || i === totalEntries - 1) {
-                    message('🔄 ' + (i + 1) + '/' + totalEntries + ' - ✅ ' + stats.success + ' ❌ ' + stats.failed);
-                }
-            }
+            addLog('Processing entry ' + (i + 1) + '/' + totalEntries + ': ' + entry.id);
 
             var result = syncSingleEntry(entry, libInfo, config, 'active');
 
             if (result.success) {
                 stats.success++;
+                addLog('  ✅ SUCCESS');
             } else {
                 stats.failed++;
                 stats.errors.push(result);
+                addLog('  ❌ FAILED: ' + result.error);
+                if (result.details) {
+                    addLog('  Details: ' + result.details);
+                }
             }
         }
 
         var endTime = new Date();
         var duration = ((endTime - startTime) / 1000).toFixed(1);
 
+        addLog('=== SYNC COMPLETE ===');
+        addLog('Success: ' + stats.success + '/' + stats.total);
+        addLog('Failed: ' + stats.failed);
+        addLog('Duration: ' + duration + 's');
+
+        // Write log to Debug_Log field of first entry
+        try {
+            var firstEntry = entries[0];
+            var completeLog = LOG_BUFFER.join('\n');
+            firstEntry.set('Debug_Log', completeLog);
+            addLog('Log written to Debug_Log field');
+        } catch (err) {
+            addLog('⚠️ Could not write to Debug_Log: ' + err.toString());
+        }
+
+        // Show dialog with results
         if (config.showProgress) {
-            message('✅ Hotovo!\n' +
-                    '   Syncnutých: ' + stats.success + '/' + stats.total + '\n' +
-                    '   Zlyhalo: ' + stats.failed + '\n' +
-                    '   Čas: ' + duration + 's');
+            var dialogText = '📊 SYNC RESULTS\n\n';
+            dialogText += '✅ Success: ' + stats.success + '/' + stats.total + '\n';
+            dialogText += '❌ Failed: ' + stats.failed + '\n';
+            dialogText += '⏱️ Time: ' + duration + 's\n';
+
+            if (stats.failed > 0) {
+                dialogText += '\n🔍 ERRORS (first 5):\n';
+                for (var i = 0; i < Math.min(5, stats.errors.length); i++) {
+                    var err = stats.errors[i];
+                    dialogText += '\n• Entry: ' + err.entryId.substring(0, 8) + '...\n';
+                    dialogText += '  Error: ' + err.error + '\n';
+                }
+                if (stats.errors.length > 5) {
+                    dialogText += '\n... and ' + (stats.errors.length - 5) + ' more errors\n';
+                }
+                dialogText += '\n📋 Full log in Debug_Log field';
+            }
+
+            dialog()
+                .title(stats.failed > 0 ? '⚠️ Sync Complete (with errors)' : '✅ Sync Complete')
+                .text(dialogText)
+                .positiveButton('OK', function() {})
+                .show();
         }
 
         return stats;
