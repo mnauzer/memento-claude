@@ -1,7 +1,7 @@
 /**
  * Knižnica:    MementoSync
  * Názov:       MementoSync1.js
- * Verzia:      1.6
+ * Verzia:      1.7
  * Autor:       Claude Code
  * Dátum:       2026-03-18
  *
@@ -23,6 +23,10 @@
  *   });
  *
  * CHANGELOG:
+ * v1.7 (2026-03-18) - Fix URL display in dialog and logs
+ *   - Dialog showed libInfo.id in URL (wrong)
+ *   - Now shows libInfo.name in both dialog and logs (correct)
+ *   - Actual HTTP request already used name (v1.6)
  * v1.6 (2026-03-18) - Use library NAME instead of ID in URL
  *   - Server doesn't have ID to name mapping function
  *   - URL: /api/memento/from-memento/Zamestnanci (name, not ID)
@@ -57,7 +61,7 @@
 var MementoSync = (function() {
     'use strict';
 
-    var VERSION = '1.6';
+    var VERSION = '1.7';
 
     // ======================================
     // DEFAULT CONFIGURATION
@@ -392,7 +396,7 @@ var MementoSync = (function() {
         addLog('Library: ' + libInfo.name + ' (ID: ' + libInfo.id + ')');
         addLog('Table: ' + libInfo.table);
         addLog('Entries: ' + totalEntries);
-        addLog('Request URL: ' + config.apiUrl + '/api/memento/from-memento/' + libInfo.id);
+        addLog('Request URL: ' + config.apiUrl + '/api/memento/from-memento/' + encodeURIComponent(libInfo.name));
 
         var stats = {
             total: totalEntries,
@@ -446,7 +450,7 @@ var MementoSync = (function() {
             dialogText += '✅ Success: ' + stats.success + '/' + stats.total + '\n';
             dialogText += '❌ Failed: ' + stats.failed + '\n';
             dialogText += '⏱️ Time: ' + duration + 's\n';
-            dialogText += '🌐 URL: ' + config.apiUrl + '/api/memento/from-memento/' + libInfo.id + '\n';
+            dialogText += '🌐 URL: ' + config.apiUrl + '/api/memento/from-memento/' + encodeURIComponent(libInfo.name) + '\n';
 
             if (stats.failed > 0) {
                 dialogText += '\n🔍 ERRORS (first 5):\n';
