@@ -1,7 +1,7 @@
 /**
  * Knižnica:    MementoSync
  * Názov:       MementoSync1.js
- * Verzia:      1.5
+ * Verzia:      1.6
  * Autor:       Claude Code
  * Dátum:       2026-03-18
  *
@@ -23,6 +23,10 @@
  *   });
  *
  * CHANGELOG:
+ * v1.6 (2026-03-18) - Use library NAME instead of ID in URL
+ *   - Server doesn't have ID to name mapping function
+ *   - URL: /api/memento/from-memento/Zamestnanci (name, not ID)
+ *   - Server needs update to accept library name parameter
  * v1.5 (2026-03-18) - Add version and URL to dialog/logs
  *   - Show version number in dialog title
  *   - Show full request URL in dialog and logs
@@ -53,7 +57,7 @@
 var MementoSync = (function() {
     'use strict';
 
-    var VERSION = '1.5';
+    var VERSION = '1.6';
 
     // ======================================
     // DEFAULT CONFIGURATION
@@ -254,12 +258,12 @@ var MementoSync = (function() {
         try {
             var entryData = extractEntryData(entry, status);
 
-            // Build URL - server looks up library_name and table_name by library_id
+            // Build URL - use library NAME instead of ID (server doesn't have ID mapping)
             if (!config.apiUrl) {
                 throw new Error('API URL is not configured in config');
             }
 
-            var url = config.apiUrl + '/api/memento/from-memento/' + libInfo.id;
+            var url = config.apiUrl + '/api/memento/from-memento/' + encodeURIComponent(libInfo.name);
 
             // Memento API: set headers first, then call post(url, body)
             var httpClient = http();
