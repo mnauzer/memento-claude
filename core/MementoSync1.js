@@ -1,7 +1,7 @@
 /**
  * Knižnica:    MementoSync
  * Názov:       MementoSync1.js
- * Verzia:      1.2
+ * Verzia:      1.3
  * Autor:       Claude Code
  * Dátum:       2026-03-18
  *
@@ -23,6 +23,10 @@
  *   });
  *
  * CHANGELOG:
+ * v1.3 (2026-03-18) - FIX: Correct Memento HTTP client API usage
+ *   - Use httpClient.headers() before POST (not options object)
+ *   - Use httpClient.post(url, body) syntax
+ *   - Fixes "Expected URL scheme" error
  * v1.2 (2026-03-18) - Enhanced error debugging
  *   - Add detailed error messages for URL issues
  *   - Show apiUrl value in error if malformed
@@ -41,7 +45,7 @@
 var MementoSync = (function() {
     'use strict';
 
-    var VERSION = '1.2';
+    var VERSION = '1.3';
 
     // ======================================
     // DEFAULT CONFIGURATION
@@ -242,8 +246,6 @@ var MementoSync = (function() {
         try {
             var entryData = extractEntryData(entry, status);
 
-            var httpClient = http();
-
             // Build URL - CRITICAL: apiUrl must include http:// or https://
             if (!config.apiUrl) {
                 throw new Error('API URL is not configured in config');
@@ -253,15 +255,14 @@ var MementoSync = (function() {
                       '?library_name=' + encodeURIComponent(libInfo.name) +
                       '&table_name=' + libInfo.table;
 
-            var result = httpClient.post({
-                url: url,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-Key': config.apiKey
-                },
-                body: JSON.stringify(entryData),
-                timeout: config.timeout
+            // Memento API: set headers first, then call post(url, body)
+            var httpClient = http();
+            httpClient.headers({
+                'Content-Type': 'application/json',
+                'X-API-Key': config.apiKey
             });
+
+            var result = httpClient.post(url, JSON.stringify(entryData));
 
             if (result && (result.code === 200 || result.code === 201)) {
                 return { success: true, entryId: entry.id };
