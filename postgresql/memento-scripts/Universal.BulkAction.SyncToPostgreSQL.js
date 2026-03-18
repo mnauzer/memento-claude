@@ -115,9 +115,14 @@
 
     function extractEntryData(e) {
         try {
+            // Determine entry status
+            // Memento doesn't have direct status property, we check if entry is in trash
+            // For now, default to 'active' - trash entries are handled separately
+            var entryStatus = 'active';
+
             var entryData = {
                 id: e.id,
-                status: 'active',
+                status: entryStatus,
                 createdTime: e.creationTime,
                 modifiedTime: e.lastModifiedTime,
                 createdBy: e.author,
@@ -255,20 +260,32 @@
     }
 
     // ======================================
-    // MAIN - SYNC ALL ENTRIES (not just selected!)
+    // MAIN - SYNC ALL ACTIVE ENTRIES
     // ======================================
 
-    // POZOR: Syncuje VŠETKY záznamy v knižnici, nie len vybraté!
-    var allEntries = currentLibrary.entries();
+    // lib().entries() returns ONLY ACTIVE entries (excludes trash/deleted)
+    // To sync trash entries, use lib().entries('trash')
+    var allEntries = currentLibrary.entries();  // Active only
     var totalEntries = allEntries.length;
 
+    // Count trash entries for info
+    var trashEntries = currentLibrary.entries('trash');
+    var trashCount = trashEntries ? trashEntries.length : 0;
+
     if (totalEntries === 0) {
-        message('⚠️ Žiadne záznamy v knižnici');
+        message('⚠️ Žiadne aktívne záznamy v knižnici');
         exit();
     }
 
-    addLog('Syncing ALL ' + totalEntries + ' entries from library...');
-    message('🚀 Syncujem ' + totalEntries + ' záznamov (v' + SCRIPT_VERSION + ') - ' + CONFIG.libraryName);
+    addLog('='.repeat(50));
+    addLog('SYNC STATISTICS:');
+    addLog('  Active entries: ' + totalEntries);
+    addLog('  Trash entries: ' + trashCount + ' (NOT synced)');
+    addLog('='.repeat(50));
+
+    addLog('Syncing ' + totalEntries + ' ACTIVE entries from library...');
+    message('🚀 Syncujem ' + totalEntries + ' aktívnych záznamov (v' + SCRIPT_VERSION + ')\n' +
+            '   ⚠️ ' + trashCount + ' záznamov v koši sa NEsyncuje');
 
     var stats = {
         total: totalEntries,
