@@ -5,6 +5,7 @@
  * Verzia:      3.1
  *
  * CHANGELOG:
+ * v3.5 - FIXED TIME conversion: Memento returns Date OBJECT not string! Extract local time components.
  * v3.4 - Added TIME field debug logging, version in first message, progress every 50 records
  * v3.3 - Fixed SQLiteBlobTooBigException by limiting Debug_Log size (50KB max, replace not append)
  * v3.2 - Fixed TIME field timezone conversion (Memento sends UTC, convert to local)
@@ -21,7 +22,7 @@
     // ======================================
     // KONFIGURÁCIA
     // ======================================
-    var SCRIPT_VERSION = '3.4';
+    var SCRIPT_VERSION = '3.5';
 
     var CONFIG = {
         apiUrl: 'http://192.168.5.241:8889',
@@ -120,23 +121,23 @@
 
                 var fieldValue = safeGetField(e, fieldName);
 
-                // Debug TIME fields
-                if (fieldName === 'Príchod' || fieldName === 'Odchod') {
-                    addLog('DEBUG TIME field ' + fieldName + ': value=' + fieldValue + ', type=' + typeof fieldValue);
-                }
+                // FIX: TIME fields - Memento returns Date object, not string!
+                // Check if this is a TIME field (Date object with year 1970)
+                if (fieldValue && typeof fieldValue === 'object' && fieldValue.getFullYear && fieldValue.getFullYear() === 1970) {
+                    // This is a TIME field - extract LOCAL time components and format as ISO
+                    // WARNING: toISOString() converts to UTC, so we must extract local time manually!
+                    var hours = fieldValue.getHours();
+                    var minutes = fieldValue.getMinutes();
+                    var seconds = fieldValue.getSeconds();
+                    var ms = fieldValue.getMilliseconds();
 
-                // FIX: TIME fields are automatically converted to UTC by Memento
-                // We need to convert them back to local time
-                if (fieldValue && typeof fieldValue === 'string' && fieldValue.match(/1970-01-01T\d{2}:\d{2}:\d{2}\.\d{3}Z/)) {
-                    // This is a TIME field (Memento uses 1970-01-01 as date for time-only values)
-                    // getTimezoneOffset() returns minutes BEHIND UTC (negative for CET/CEST)
-                    // To convert UTC to local: subtract the offset
-                    var utcTime = new Date(fieldValue);
-                    var offsetMs = utcTime.getTimezoneOffset() * 60000;
-                    var localTime = new Date(utcTime.getTime() - offsetMs);
-                    // Format back to ISO string
-                    fieldValue = localTime.toISOString();
-                    addLog('TIME field ' + fieldName + ': UTC ' + utcTime.toISOString() + ' -> Local ' + fieldValue + ' (offset: ' + (offsetMs/60000) + ' min)');
+                    // Format as ISO string: "1970-01-01THH:MM:SS.sssZ"
+                    var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+                    var pad3 = function(n) { return n < 10 ? '00' + n : (n < 100 ? '0' + n : '' + n); };
+                    var timeStr = '1970-01-01T' + pad(hours) + ':' + pad(minutes) + ':' + pad(seconds) + '.' + pad3(ms) + 'Z';
+
+                    addLog('TIME field ' + fieldName + ': Local time ' + hours + ':' + minutes + ':' + seconds + ' -> ISO: ' + timeStr);
+                    fieldValue = timeStr;
                 }
 
                 // Debug: Check what we're getting for Zamestnanci
