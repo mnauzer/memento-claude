@@ -26,7 +26,7 @@ Generated: 2026-03-18
 **Problem:** The sync script (`Dochadzka.BulkAction.SyncToPostgreSQL.js`) was using ID `qU4Br5hU6`, which is actually **"Zamestnanci Semiramis"**, NOT "Dochádzka"!
 
 **Correct Library IDs:**
-- ✅ **Dochádzka (Main)** - ID: `zNoMvrv8U` - 40,926,540 entries
+- ✅ **Dochádzka (Main)** - ID: `zNoMvrv8U` - 573 entries
   - Fields: Dátum, Príchod, Odchod, Zamestnanci, Počet pracovníkov, Pracovná doba, Odpracované, Mzdové náklady, etc.
 - ❌ **Zamestnanci Semiramis** - ID: `qU4Br5hU6` - 2,806 entries
   - Fields: Meno, Priezvisko, Nick, Pozícia, Hodinovka, etc. (NO Príchod/Odchod!)

@@ -8,7 +8,7 @@
 
 The Dochádzka (Attendance) sync script was using **WRONG library ID**:
 - ❌ **Script used:** `qU4Br5hU6` → "Zamestnanci Semiramis" (2,806 entries)
-- ✅ **Should use:** `zNoMvrv8U` → "Dochádzka" (40,926,540 entries)
+- ✅ **Should use:** `zNoMvrv8U` → "Dochádzka" (573 entries)
 
 ## Impact
 

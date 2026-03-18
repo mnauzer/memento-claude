@@ -19,8 +19,11 @@
  * - Debug logging s limitom (50KB)
  *
  * CHANGELOG:
+ * v4.2 - SPRÁVNA OPRAVA!
+ *      - lib().title a lib().id sú PROPERTIES (BEZ zátvoriek!)
+ *      - Opravená detekcia library názvu a ID
  * v4.0 - UNIVERZÁLNY script!
- *      - Automaticky zistí lib().name() a lib().id
+ *      - Automaticky zistí lib().name() a lib().id()
  *      - Server route používa názov knižnice namiesto ID
  *      - Funguje pre všetky knižnice bez úpravy kódu
  * v3.6 - Opravené library ID pre Dochádzku
@@ -34,12 +37,12 @@
     // ======================================
     // KONFIGURÁCIA (AUTOMATICKÁ!)
     // ======================================
-    var SCRIPT_VERSION = '4.0';
+    var SCRIPT_VERSION = '4.2';
 
     // AUTOMATICKY ZISTI KNIŽNICU
     var currentLibrary = lib();
-    var libraryName = currentLibrary.name;
-    var libraryId = currentLibrary.id;  // Internal ID
+    var libraryName = currentLibrary.title;  // ✅ Property (BEZ zátvoriek!)
+    var libraryId = currentLibrary.id || 'auto-' + libraryName;  // Property, fallback ak undefined
 
     var CONFIG = {
         apiUrl: 'http://192.168.5.241:8889',
