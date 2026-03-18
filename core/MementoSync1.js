@@ -1,7 +1,7 @@
 /**
  * Knižnica:    MementoSync
  * Názov:       MementoSync1.js
- * Verzia:      1.4
+ * Verzia:      1.5
  * Autor:       Claude Code
  * Dátum:       2026-03-18
  *
@@ -23,6 +23,10 @@
  *   });
  *
  * CHANGELOG:
+ * v1.5 (2026-03-18) - Add version and URL to dialog/logs
+ *   - Show version number in dialog title
+ *   - Show full request URL in dialog and logs
+ *   - Helps verify correct script version is running
  * v1.4 (2026-03-18) - FIX: Remove query params from API URL
  *   - Server looks up library_name/table_name by library_id
  *   - URL: /api/memento/from-memento/{library_id} (no query params)
@@ -49,7 +53,7 @@
 var MementoSync = (function() {
     'use strict';
 
-    var VERSION = '1.4';
+    var VERSION = '1.5';
 
     // ======================================
     // DEFAULT CONFIGURATION
@@ -379,9 +383,12 @@ var MementoSync = (function() {
         var totalEntries = entries.length;
 
         addLog('=== MEMENTO SYNC START ===');
+        addLog('Version: ' + VERSION);
+        addLog('API URL: ' + config.apiUrl);
         addLog('Library: ' + libInfo.name + ' (ID: ' + libInfo.id + ')');
         addLog('Table: ' + libInfo.table);
         addLog('Entries: ' + totalEntries);
+        addLog('Request URL: ' + config.apiUrl + '/api/memento/from-memento/' + libInfo.id);
 
         var stats = {
             total: totalEntries,
@@ -431,10 +438,11 @@ var MementoSync = (function() {
 
         // Show dialog with results
         if (config.showProgress) {
-            var dialogText = '📊 SYNC RESULTS\n\n';
+            var dialogText = '📊 SYNC RESULTS (v' + VERSION + ')\n\n';
             dialogText += '✅ Success: ' + stats.success + '/' + stats.total + '\n';
             dialogText += '❌ Failed: ' + stats.failed + '\n';
             dialogText += '⏱️ Time: ' + duration + 's\n';
+            dialogText += '🌐 URL: ' + config.apiUrl + '/api/memento/from-memento/' + libInfo.id + '\n';
 
             if (stats.failed > 0) {
                 dialogText += '\n🔍 ERRORS (first 5):\n';
