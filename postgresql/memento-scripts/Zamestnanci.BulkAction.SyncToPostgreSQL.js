@@ -1,15 +1,13 @@
 /**
- * Bulk Action: Sync All Dochádzka Entries to PostgreSQL
+ * Bulk Action: Sync All Zamestnanci Entries to PostgreSQL
  *
- * Knižnica:    Dochádzka (Attendance)
- * Verzia:      3.1
+ * Knižnica:    Zamestnanci (Employees)
+ * Verzia:      3.0
  *
  * CHANGELOG:
- * v3.1 - Added version tracking and logging
- *      - Fixed Memento array-like entry collections handling
- *      - Proper ID extraction from Entry objects (entry.id property)
- * v2.3 - Fixed library ID (public API ID vs internal ID)
- * v2.2 - Removed Status field requirement
+ * v3.0 - Created for Zamestnanci library
+ *      - Added version tracking
+ *      - Simplified for master data (no complex relationships)
  */
 
 (function() {
@@ -18,7 +16,7 @@
     // ======================================
     // KONFIGURÁCIA
     // ======================================
-    var SCRIPT_VERSION = '3.1';
+    var SCRIPT_VERSION = '3.0';
 
     var CONFIG = {
         apiUrl: 'http://192.168.5.241:8889',
@@ -26,8 +24,8 @@
 
         // DÔLEŽITÉ: lib().id vracia internal ID (napr. "EIL-cPe57cbZ;d:DK4vC")
         // ale sync API potrebuje public API ID z Memento REST API
-        libraryId: 'qU4Br5hU6',  // Dochádzka - Public API ID
-        libraryName: 'Dochádzka',
+        libraryId: 'nWb00Nogf',  // Zamestnanci - Public API ID
+        libraryName: 'Zamestnanci',
 
         batchDelay: 100,
         showProgress: true,
@@ -47,7 +45,6 @@
     addLog('Library: ' + CONFIG.libraryName);
     addLog('Library ID (Public API): ' + CONFIG.libraryId);
     addLog('Timestamp: ' + new Date().toISOString());
-    addLog('🔍 DEBUG MODE ACTIVE - Checking linkToEntry fields');
 
     // ======================================
     // SAFE FIELD ACCESS
