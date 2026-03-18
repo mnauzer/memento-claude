@@ -41,6 +41,7 @@
     addLog('=== BULK SYNC START ===');
     addLog('Library: ' + CONFIG.libraryName);
     addLog('Library ID (Public API): ' + CONFIG.libraryId);
+    addLog('🔍 DEBUG MODE ACTIVE - Looking for Zamestnanci field data');
 
     // ======================================
     // SAFE FIELD ACCESS
@@ -110,21 +111,78 @@
 
                 var fieldValue = safeGetField(e, fieldName);
 
+                // Debug: Check what we're getting for Zamestnanci
+                if (fieldName === 'Zamestnanci') {
+                    addLog('DEBUG Zamestnanci raw value: ' + fieldValue);
+                    addLog('DEBUG Zamestnanci type: ' + typeof fieldValue);
+                    addLog('DEBUG Zamestnanci is array: ' + Array.isArray(fieldValue));
+                    if (fieldValue) {
+                        addLog('DEBUG Zamestnanci length: ' + (fieldValue.length || 'N/A'));
+                    }
+                }
+
                 if (fieldValue === null || fieldValue === undefined) {
                     entryData.fields[fieldName] = null;
                 } else if (Array.isArray(fieldValue)) {
+                    // Handle array values (e.g., linkToEntry with multiple values)
                     var arrayData = [];
+
+                    // Debug: Log what we're getting for Zamestnanci field
+                    if (fieldName === 'Zamestnanci' && fieldValue.length > 0) {
+                        addLog('DEBUG Zamestnanci: length=' + fieldValue.length);
+                        addLog('DEBUG First item: ' + JSON.stringify(fieldValue[0]));
+                        addLog('DEBUG First item type: ' + typeof fieldValue[0]);
+                        if (fieldValue[0]) {
+                            addLog('DEBUG First item.id: ' + fieldValue[0].id);
+                            addLog('DEBUG First item keys: ' + Object.keys(fieldValue[0]).join(', '));
+                        }
+                    }
+
                     for (var j = 0; j < fieldValue.length; j++) {
                         var item = fieldValue[j];
-                        if (item && item.id) {
-                            arrayData.push(item.id);
-                        } else {
-                            arrayData.push(item);
+
+                        // Try to get ID from entry object
+                        var itemId = null;
+                        try {
+                            // Try .id property first
+                            if (item && item.id) {
+                                itemId = item.id;
+                            }
+                            // Try .id() method (some Memento versions)
+                            else if (item && typeof item.id === 'function') {
+                                itemId = item.id();
+                            }
+                            // Try direct value
+                            else if (typeof item === 'string') {
+                                itemId = item;
+                            }
+                        } catch (err) {
+                            // Skip invalid items
+                        }
+
+                        if (itemId) {
+                            arrayData.push({id: itemId});
                         }
                     }
                     entryData.fields[fieldName] = arrayData;
-                } else if (fieldValue && typeof fieldValue === 'object' && fieldValue.id) {
-                    entryData.fields[fieldName] = [fieldValue.id];
+                } else if (fieldValue && typeof fieldValue === 'object') {
+                    // Single linkToEntry
+                    var singleId = null;
+                    try {
+                        if (fieldValue.id) {
+                            singleId = fieldValue.id;
+                        } else if (typeof fieldValue.id === 'function') {
+                            singleId = fieldValue.id();
+                        }
+                    } catch (err) {
+                        // Skip
+                    }
+
+                    if (singleId) {
+                        entryData.fields[fieldName] = [{id: singleId}];
+                    } else {
+                        entryData.fields[fieldName] = fieldValue;
+                    }
                 } else {
                     entryData.fields[fieldName] = fieldValue;
                 }
