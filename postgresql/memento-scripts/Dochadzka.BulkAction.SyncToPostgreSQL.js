@@ -30,9 +30,17 @@
         continueOnError: true
     };
 
-    log('=== BULK SYNC START ===');
-    log('Library: ' + CONFIG.libraryName);
-    log('Library ID (Public API): ' + CONFIG.libraryId);
+    // Logging buffer - collect all logs
+    var LOG_BUFFER = [];
+
+    function addLog(msg) {
+        LOG_BUFFER.push('[' + new Date().toISOString() + '] ' + msg);
+        log(msg);  // Still write to Script Log
+    }
+
+    addLog('=== BULK SYNC START ===');
+    addLog('Library: ' + CONFIG.libraryName);
+    addLog('Library ID (Public API): ' + CONFIG.libraryId);
 
     // ======================================
     // SAFE FIELD ACCESS
@@ -51,19 +59,19 @@
     // ======================================
 
     function testConnection() {
-        log('Testing API connection...');
+        addLog('Testing API connection...');
         try {
             var httpClient = http();
             var result = httpClient.get(CONFIG.apiUrl + '/api/memento/health');
 
             if (result.code === 200) {
-                log('✅ API reachable');
+                addLog('✅ API reachable');
                 return true;
             }
-            log('❌ API returned: ' + result.code);
+            addLog('❌ API returned: ' + result.code);
             return false;
         } catch (err) {
-            log('❌ Connection test failed: ' + err.toString());
+            addLog('❌ Connection test failed: ' + err.toString());
             return false;
         }
     }
@@ -124,7 +132,7 @@
 
             return entryData;
         } catch (err) {
-            log('❌ Extract error: ' + err.toString());
+            addLog('❌ Extract error: ' + err.toString());
             throw err;
         }
     }
@@ -151,7 +159,7 @@
             if (result && (result.code === 200 || result.code === 201)) {
                 return { success: true, entryId: e.id };
             } else {
-                log('❌ Sync failed: ' + result.code + ' - ' + result.body);
+                addLog('❌ Sync failed: ' + result.code + ' - ' + result.body);
                 return {
                     success: false,
                     entryId: e.id,
@@ -160,7 +168,7 @@
                 };
             }
         } catch (err) {
-            log('❌ Sync exception: ' + err.toString());
+            addLog('❌ Sync exception: ' + err.toString());
             return {
                 success: false,
                 entryId: e.id,
@@ -187,7 +195,7 @@
         exit();
     }
 
-    log('Syncing ' + totalEntries + ' entries...');
+    addLog('Syncing ' + totalEntries + ' entries...');
     message('🚀 Syncujem ' + totalEntries + ' záznamov...');
 
     var stats = {
@@ -210,11 +218,11 @@
 
         if (result.success) {
             stats.success++;
-            log('✅ ' + e.id);
+            addLog('✅ ' + e.id);
         } else {
             stats.failed++;
             stats.errors.push(result);
-            log('❌ ' + e.id + ': ' + result.error);
+            addLog('❌ ' + e.id + ': ' + result.error);
 
             if (!CONFIG.continueOnError) {
                 break;
@@ -252,7 +260,7 @@
 
     summary += '═══════════════';
 
-    log(summary);
+    addLog(summary);
 
     var msg = '✅ ' + stats.success + '/' + stats.total;
     if (stats.failed > 0) {
@@ -260,17 +268,46 @@
     }
     message(msg);
 
-    // Write to Debug_Log
+    addLog('=== SYNC END ===');
+
+    // ======================================
+    // WRITE COMPLETE LOG
+    // ======================================
+
+    // Join all log entries
+    var completeLog = LOG_BUFFER.join('\n');
+
+    // Write to Debug_Log field (all at once)
     try {
         var firstEntry = selectedEntries[0];
-        var timestamp = new Date().toISOString();
-        var logEntry = '[' + timestamp + '] ' + summary;
         var existingLog = safeGetField(firstEntry, 'Debug_Log') || '';
-        firstEntry.set('Debug_Log', logEntry + '\n\n' + existingLog);
+        firstEntry.set('Debug_Log', completeLog + '\n\n' + existingLog);
+        addLog('✅ Log written to Debug_Log field');
     } catch (err) {
-        log('Could not write Debug_Log: ' + err.toString());
+        log('❌ Could not write Debug_Log: ' + err.toString());
     }
 
-    log('=== SYNC END ===');
+    // Send log to API for server-side storage
+    try {
+        var httpClient = http();
+        httpClient.headers({
+            'Content-Type': 'application/json',
+            'X-API-Key': CONFIG.apiKey
+        });
+
+        var logData = {
+            library_id: CONFIG.libraryId,
+            library_name: CONFIG.libraryName,
+            timestamp: new Date().toISOString(),
+            stats: stats,
+            log: completeLog
+        };
+
+        var logUrl = CONFIG.apiUrl + '/api/memento/bulk-sync-log';
+        httpClient.post(logUrl, JSON.stringify(logData));
+        // Don't wait for response, fire and forget
+    } catch (err) {
+        // Ignore errors in log upload
+    }
 
 })();
