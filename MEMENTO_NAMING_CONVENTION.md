@@ -20,15 +20,60 @@
 
 ## Skratky knižníc
 
+### Evidencia - Denné záznamy
+
 | Knižnica | Skratka | Príklad |
 |----------|---------|---------|
 | Dochádzka | `Doch` | Doch.Calc.Main |
-| Kniha jázd | `Knij` | Knij.Calc.Main |
-| Materiál | `Mat` | Mat.Action.SetPrice |
-| Pokladňa | `Pokl` | Pokl.Calc.VAT |
-| Zamestnanec | `Zam` | Zam.Calc.Main |
-| Zákazky | `Zak` | Zak.Calc.Main |
 | Záznam prác | `Zazp` | Zazp.Calc.Main |
+| Kniha jázd | `Knij` | Knij.Calc.Main |
+| Pokladňa | `Pokl` | Pokl.Calc.VAT |
+| Denný report | `DenRep` | DenRep.Calc.Main |
+
+### Evidencia pomocné - Výkazy
+
+| Knižnica | Skratka | Príklad |
+|----------|---------|---------|
+| Výkaz prác | `VykPr` | VykPr.UpdateInfo |
+| Výkaz dopravy | `VykDop` | VykDop.Calc.Main |
+| Výkaz strojov | `VykStr` | VykStr.Calc.Main |
+| Výkaz materiálu | `VykMat` | VykMat.Calc.Main |
+
+### Cenníky a sklad
+
+| Knižnica | Skratka | Príklad |
+|----------|---------|---------|
+| Materiál | `Mat` | Mat.Action.SetPrice |
+| Cenník prác | `CenPr` | CenPr.Calc.Main |
+
+### Obchodné dokumenty
+
+| Knižnica | Skratka | Príklad |
+|----------|---------|---------|
+| Cenové ponuky | `CenPon` | CenPon.Calculate |
+| Zákazky | `Zak` | Zak.Calc.Main |
+| Vyúčtovania | `Vyuct` | Vyuct.Calc.Main |
+| Pohľadávky | `Pohl` | Pohl.Calc.Main |
+| Záväzky | `Zav` | Zav.Calc.Main |
+
+### Firemné knižnice - Master data
+
+| Knižnica | Skratka | Príklad |
+|----------|---------|---------|
+| Zamestnanec | `Zam` | Zam.Calc.Main |
+| Miesta | `Mies` | Mies.Calc.Main |
+| Adresy | `Adr` | Adr.Calc.Main |
+| Partneri | `Part` | Part.Calc.Main |
+| Klienti | `Klient` | Klient.Calc.Main |
+| Dodávatelia | `Dod` | Dod.Calc.Main |
+| Vozidlá | `Voz` | Voz.Calc.Main |
+| Mechanizácia | `Mech` | Mech.Calc.Main |
+| Účty | `Uct` | Uct.Calc.Main |
+
+### Utilities
+
+| Knižnica | Skratka | Príklad |
+|----------|---------|---------|
 | Notifications | `Notif` | Notif.Trigger.Delete |
 | Utils | `Utils` | Utils.Action.Renumber |
 

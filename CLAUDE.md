@@ -228,8 +228,83 @@ See `MEMENTO_API_ACCESS.md` for complete Python API documentation.
 - `entry()` - Current database record
 - `lib()` - Current library metadata
 - `moment()` - Date/time manipulation
-- `message()` - Show messages to user
+- `message()` - Show brief messages to user (see User Communication below)
+- `dialog()` - Show detailed dialogs with buttons (see User Communication below)
 - HTTP requests via Memento's API
+
+### User Communication Best Practices
+
+**CRITICAL:** Choose the right function for user communication:
+
+#### message() - Pre krátke správy
+
+**Použitie:**
+- Krátke notifikácie (1-2 riadky)
+- Rýchle potvrdenia ("Uložené", "Hotovo")
+- Jednoduché chybové hlásenia
+
+**Vlastnosti:**
+- Zobrazuje sa len **2 riadky textu**
+- Automaticky zmizne po **~2 sekundách**
+- Žiadne tlačidlá
+- Nemožnosť interakcie
+
+**Príklad:**
+```javascript
+message("✅ Záznam uložený");
+message("⚠️ Chyba: Chýba dátum");
+```
+
+**Kedy NEPOUŽÍVAŤ:**
+- ❌ Dlhé správy (viac ako 2 riadky)
+- ❌ Detailné výsledky výpočtov
+- ❌ Zoznamy položiek
+- ❌ Viacnásobné informácie
+- ❌ Keď užívateľ potrebuje čas na prečítanie
+
+#### dialog() - Pre podrobné správy
+
+**Použitie:**
+- Detailné výsledky výpočtov
+- Zoznam zmien/položiek
+- Potvrdzovacie dialógy s tlačidlami
+- Dôležité informácie vyžadujúce potvrdenie
+- Viacstupňové správy
+
+**Vlastnosti:**
+- Zobrazuje **ľubovoľné množstvo textu**
+- Zostáva na obrazovke až **kým užívateľ nezatvorí**
+- Môže obsahovať **tlačidlá** (OK, Cancel, custom)
+- Formátovanie textu (zalomenie riadkov)
+- Užívateľ má čas prečítať
+
+**Príklad:**
+```javascript
+// Jednoduchý dialog
+dialog("Prepočet dokončený", "Celková suma: 1250 €\nDPH: 250 €\nBez DPH: 1000 €", "OK");
+
+// Dialog s potvrdením
+var result = dialog("Potvrdenie", "Naozaj chcete zmazať tento záznam?", "Áno", "Nie");
+if (result === 0) {
+    // Užívateľ klikol "Áno"
+}
+
+// Podrobný výsledok
+var details = "=== VÝSLEDKY PREPOČTU ===\n\n";
+details += "Odpracované hodiny: 8.5h\n";
+details += "Hodinová sadzba: 12 €/h\n";
+details += "Mzda: 102 €\n";
+details += "Prémie: 20 €\n";
+details += "Celkom: 122 €\n";
+dialog("Výsledok prepočtu", details, "OK");
+```
+
+**Kedy POUŽÍVAŤ:**
+- ✅ Výsledky výpočtov s viacerými hodnotami
+- ✅ Sumáre operácií
+- ✅ Chybové hlásenia s detailmi
+- ✅ Potvrdzovacie dialógy
+- ✅ Akékoľvek správy dlhšie ako 2 riadky
 
 ### Code Style
 
@@ -246,6 +321,7 @@ See `MEMENTO_API_ACCESS.md` for complete Python API documentation.
 4. **Missing validation** - Always validate dependencies and required fields
 5. **Poor error handling** - Wrap operations in try/catch, log to Error_Log
 6. **Direct field access** - Use safe accessors from MementoUtils
+7. **Using message() for long text** - Use dialog() for detailed info (message() shows only 2 lines for ~2 seconds)
 
 ## When Modifying Files
 
@@ -272,14 +348,275 @@ See `MEMENTO_API_ACCESS.md` for complete Python API documentation.
 ```
 memento-claude/
 ├── core/                   # Core modules (all in root, no subdirs)
-├── libraries/              # Business domain scripts
+├── libraries/              # Business domain scripts (27 directories)
 │   ├── dochadzka/         # Attendance
 │   ├── kniha-jazd/        # Vehicle logbook
 │   ├── material/          # Materials
-│   └── ...
+│   ├── cenove-ponuky/     # Price quotes
+│   ├── zakazky/           # Orders
+│   └── ...                # See PROJECT_MAP.md for complete list
 ├── utils/                  # Cross-library utilities
-├── Template-Script.js      # Script template
+├── templates/              # Script templates
+│   └── Template-Script.js # Script template
+├── docs/                   # Documentation
+├── .obsolete/             # Archived old files
 └── *.md                    # Documentation
 ```
 
 **Note:** Core modules are flat in `core/` for easy access from Memento Database. Do not create subdirectories.
+
+---
+
+
+## Project Navigation Guide
+
+### Kde nájsť čo - Quick Reference
+
+> **TIP:** Pre kompletný zoznam všetkých súborov s detailmi pozri `PROJECT_MAP.md`
+
+#### Core Modules (Základné knižnice)
+**Umiestnenie:** `core/`
+
+| Modul | Súbor | Účel |
+|-------|-------|------|
+| Config | `MementoConfig7.js` | Centrálna konfigurácia všetkých knižníc, polí, ikon |
+| Core | `MementoCore7.js` | Logging, formátovanie, validácia, safe field access |
+| Utils | `MementoUtils7.js` | Agregátor všetkých modulov (lazy loading) |
+| Business | `MementoBusiness7.js` | Business logika: mzdy, pracovný čas, výkazy |
+| AI | `MementoAI7.js` | OpenAI, Claude API integrácia |
+| Telegram | `MementoTelegram8.js` | Telegram Bot API, notifikácie |
+| GPS | `MementoGPS.js` | GPS routing, OSRM API |
+| RecordTracking | `MementoRecordTracking.js` | Sledovanie vytvorenia/úpravy záznamov |
+| IDConflictResolver | `MementoIDConflictResolver.js` | Riešenie ID konfliktov (team verzia) |
+| AutoNumber | `MementoAutoNumber.js` | Automatické generovanie čísel |
+| Sync | `MementoSync1.js` | PostgreSQL synchronizácia |
+
+**Reusable Moduly pre knižnice:**
+- `CP.Calculate.Module.js` - Prepočet cenovej ponuky
+- `CP.Diely.Calculate.Module.js` - Prepočet položiek CP
+- `CP.Action.CreateOrder.Module.js` - Vytvorenie zákazky z CP
+- `Order.Calculate.Module.js` - Prepočet zákazky
+- `Order.Diely.Calculate.Module.js` - Prepočet položiek zákazky
+- `Doch.Calc.Module.js` - Prepočet dochádzky (modul)
+
+---
+
+#### Library Scripts (Obchodná logika)
+**Umiestnenie:** `libraries/{kniznica}/`
+
+**EVIDENCIA - DENNÉ ZÁZNAMY:**
+
+| Knižnica | Adresár | Skratka | Príklady súborov |
+|----------|---------|---------|------------------|
+| Dochádzka | `dochadzka/` | `Doch` | Doch.Calc.Main.js, Doch.Notif.Individual.js |
+| Záznam prác | `zaznam-prac/` | `Zazp` | Zazp.Calc.Main.js, Zazp.Update.DailyReport.js |
+| Kniha jázd | `kniha-jazd/` | `Knij` | Knij.Calc.Main.js, Knij.Action.SetStartEnd.js |
+| Pokladňa | `pokladna/` | `Pokl` | Pokl.Calc.VAT.js, Pokl.Action.PayObligations.js |
+| Denný report | `denny-report/` | `DenRep` | DenRep.Calc.Main.js |
+
+**EVIDENCIA POMOCNÉ - VÝKAZY:**
+
+| Knižnica | Adresár | Skratka | Status |
+|----------|---------|---------|--------|
+| Výkaz prác | `vykaz-prac/` | `VykPr` | ✅ Existuje |
+| Výkaz dopravy | `vykaz-dopravy/` | `VykDop` | 📁 Pripravený adresár |
+| Výkaz strojov | `vykaz-strojov/` | `VykStr` | 📁 Pripravený adresár |
+| Výkaz materiálu | `vykaz-materialu/` | `VykMat` | 📁 Pripravený adresár |
+
+**CENNÍKY A SKLAD:**
+
+| Knižnica | Adresár | Skratka | Príklady súborov |
+|----------|---------|---------|------------------|
+| Materiál | `material/` | `Mat` | Mat.Calc.Receipts.js, Mat.BulkAction.UpdatePrices.js |
+| Cenník prác | `cennik-prac/` | `CenPr` | 📁 Pripravený adresár |
+
+**OBCHODNÉ DOKUMENTY:**
+
+| Knižnica | Adresár | Skratka | Príklady súborov |
+|----------|---------|---------|------------------|
+| Cenové ponuky | `cenove-ponuky/` | `CenPon` | CenPon.Calculate.js, CenPon.Diely.Calculate.js |
+| Zákazky | `zakazky/` | `Zak` | Zak.Calc.Main.js, Zak.Trigger.AutoNumber.js |
+| Vyúčtovania | `vyuctovani/` | `Vyuct` | 📁 Pripravený adresár |
+| Pohľadávky | `pohladavky/` | `Pohl` | 📁 Pripravený adresár |
+| Záväzky | `zavazky/` | `Zav` | 📁 Pripravený adresár |
+
+**FIREMNÉ KNIŽNICE - MASTER DATA:**
+
+| Knižnica | Adresár | Skratka | Status |
+|----------|---------|---------|--------|
+| Zamestnanec | `zamestnanec/` | `Zam` | ✅ Existuje |
+| Miesta | `miesta/` | `Mies` | ✅ Existuje |
+| Adresy | `adresy/` | `Adr` | 📁 Pripravený adresár |
+| Partneri | `partneri/` | `Part` | 📁 Pripravený adresár |
+| Klienti | `klienti/` | `Klient` | 📁 Pripravený adresár |
+| Dodávatelia | `doddavatelia/` | `Dod` | 📁 Pripravený adresár |
+| Vozidlá | `vozidla/` | `Voz` | 📁 Pripravený adresár |
+| Mechanizácia | `mechanizacia/` | `Mech` | 📁 Pripravený adresár |
+| Účty | `ucty/` | `Uct` | 📁 Pripravený adresár |
+
+---
+
+#### Utilities a Templates
+**Umiestnenie:** `utils/`, `templates/`
+
+| Typ | Adresár | Súbory |
+|-----|---------|--------|
+| Cross-library utils | `utils/` | Utils.Action.Renumber.js, Notif.Trigger.OnDelete.js |
+| Script templates | `templates/` | Template-Script.js |
+
+---
+
+#### Dokumentácia
+**Umiestnenie:** `docs/`, root
+
+| Dokument | Umiestnenie | Účel |
+|----------|-------------|------|
+| Project Map | `PROJECT_MAP.md` | **ŽIVÁ MAPA** - kompletný zoznam súborov |
+| Navigation Index | `docs/INDEX.md` | Hlavný index dokumentácie |
+| Core Modules Doc | `docs/CORE_MODULES_DOCUMENTATION.md` | Komplexná dokumentácia core modulov |
+| Quick Reference | `docs/CORE_MODULES_QUICK_REFERENCE.md` | Rýchly referenčný sprievodca |
+| Project Structure | `MEMENTO_PROJECT_STRUCTURE.md` | Organizácia projektu |
+| Naming Convention | `MEMENTO_NAMING_CONVENTION.md` | Konvencie pomenovania |
+| API Access | `MEMENTO_API_ACCESS.md` | Python API utilities |
+| This file | `CLAUDE.md` | Claude Code inštrukcie |
+
+---
+
+#### Zastarané Súbory
+**Umiestnenie:** `.obsolete/`
+
+Všetky staré verzie, testovacie a backup súbory sa nachádzajú v `.obsolete/` adresári, organizované podľa knižníc:
+- `.obsolete/core/` - Staré verzie core modulov
+- `.obsolete/dochadzka/` - Staré verzie dochádzky
+- `.obsolete/material/` - Staré verzie materiálu
+- atď.
+
+---
+
+### Ako Nájsť Script Pre Konkrétnu Knižnicu
+
+**Postup:**
+1. Identifikuj knižnicu (napr. "Dochádzka")
+2. Pozri sa do tabuľky vyššie pre adresár (napr. `dochadzka/`)
+3. Pozri sa do tabuľky pre skratku (napr. `Doch`)
+4. Všetky skripty pre túto knižnicu začínajú prefixom skratky: `Doch.*`
+5. Celá cesta: `libraries/dochadzka/Doch.Calc.Main.js`
+
+**Príklady:**
+- Hľadám prepočet dochádzky → `libraries/dochadzka/Doch.Calc.Main.js`
+- Hľadám telegram notifikácie pre dochádzku → `libraries/dochadzka/Doch.Notif.Individual.js`
+- Hľadám prepočet cenovej ponuky → `libraries/cenove-ponuky/CenPon.Calculate.js`
+- Hľadám vytvorenie zákazky z CP → `core/CP.Action.CreateOrder.Module.js` (reusable modul)
+- Hľadám prepočet položiek materiálu → `libraries/material/Mat.Calc.Receipts.js`
+
+---
+
+### Ako Nájsť Core Funkciu
+
+**Postup:**
+1. Všetky core moduly sú v `core/` adresári
+2. Všetky core moduly začínajú `Memento*` (napr. MementoCore7.js)
+3. Detailnú dokumentáciu nájdeš v `docs/CORE_MODULES_DOCUMENTATION.md`
+4. Quick reference v `docs/CORE_MODULES_QUICK_REFERENCE.md`
+
+**Príklady:**
+- Hľadám funkciu na zaokrúhľovanie času → `core/MementoCore7.js` → `roundToQuarterHour()`
+- Hľadám centrálnu konfiguráciu → `core/MementoConfig7.js`
+- Hľadám Telegram API → `core/MementoTelegram8.js`
+- Hľadám GPS routing → `core/MementoGPS.js`
+
+---
+
+## Documentation Maintenance
+
+### Keeping Project Documentation Up-to-Date
+
+**CRITICAL:** Vždy keď vykonáš zmeny v projekte, aktualizuj príslušnú dokumentáciu.
+
+#### Ktoré Dokumenty Aktualizovať
+
+| Zmena | Aktualizuj Dokument | Čo Zmeniť |
+|-------|---------------------|-----------|
+| Nový/premenovaný súbor | `PROJECT_MAP.md` | Pridaj/aktualizuj záznam v príslušnej sekcii |
+| Nový adresár | `PROJECT_MAP.md`, `MEMENTO_PROJECT_STRUCTURE.md` | Pridaj do stromovej štruktúry |
+| Nová skratka knižnice | `MEMENTO_NAMING_CONVENTION.md` | Pridaj do tabuľky skratiek |
+| Nová core funkcia | `docs/CORE_MODULES_DOCUMENTATION.md` | Pridaj API dokumentáciu |
+| Zmena závislostí | `PROJECT_MAP.md`, `CLAUDE.md` | Aktualizuj dependency chain |
+| Nový typ scriptu | `MEMENTO_NAMING_CONVENTION.md` | Pridaj do sekcie "Typy scriptov" |
+
+#### Automatická Aktualizácia PROJECT_MAP.md
+
+**Kedy:** Po KAŽDEJ zmene súborov (pridanie, premenovanie, presun, zmena verzie)
+
+**Kroky:**
+1. Otvor `PROJECT_MAP.md`
+2. Nájdi príslušnú sekciu (Core/Library/Utils/Docs)
+3. Aktualizuj relevantné informácie:
+   - Názov súboru
+   - Verzia (ak sa zmenila)
+   - Umiestnenie (ak presun)
+   - Závislosti (ak nové)
+4. Aktualizuj timestamp v hlavičke: `**Posledná aktualizácia:** YYYY-MM-DD HH:MM`
+5. Aktualizuj celkový počet súborov (ak pridanie/odstránenie)
+6. Ulož súbor
+
+**Príklad aktualizácie:**
+
+```diff
+# PROJECT_MAP.md
+
+- **Posledná aktualizácia:** 2026-03-17 10:00
++ **Posledná aktualizácia:** 2026-03-18 22:52
+- **Celkový počet súborov:** 69
++ **Celkový počet súborov:** 70
+
+### Library Scripts - Cenové ponuky
+
+| Súbor | Verzia | Účel |
+|-------|--------|------|
+- | CP.Calculate.js | 2.1.0 | Prepočet cenovej ponuky |
++ | CenPon.Calculate.js | 2.1.0 | Prepočet cenovej ponuky |
+```
+
+#### Documentation Checklist Pre Nový Script
+
+Keď vytváraš nový script, aktualizuj:
+
+- [ ] `PROJECT_MAP.md` - Pridaj nový súbor do príslušnej sekcie
+- [ ] `MEMENTO_NAMING_CONVENTION.md` - Ak používaš novú skratku, pridaj do tabuľky
+- [ ] `MEMENTO_PROJECT_STRUCTURE.md` - Ak nový adresár, pridaj do stromovej štruktúry
+- [ ] `CLAUDE.md` - Navigation Guide - Aktualizuj tabuľku knižníc ak nová knižnica
+
+#### Documentation Checklist Pre Core Module Update
+
+Keď aktualizuješ core modul:
+
+- [ ] `PROJECT_MAP.md` - Aktualizuj verziu a počet riadkov
+- [ ] `docs/CORE_MODULES_DOCUMENTATION.md` - Aktualizuj API dokumentáciu
+- [ ] `docs/CORE_MODULES_QUICK_REFERENCE.md` - Aktualizuj quick reference ak nové funkcie
+- [ ] Hlavička modulu - Aktualizuj CHANGELOG sekciu
+
+---
+
+### Live Documentation Principle
+
+**Dokumentácia musí byť vždy synchronizovaná s kódom.**
+
+Claude Code má inštrukcie automaticky aktualizovať dokumentáciu po každej zmene.
+Ak vidíš neaktuálnu dokumentáciu, OKAMŽITE ju aktualizuj.
+
+**Pravidlo:** Commit kódu = Commit aktualizovanej dokumentácie
+
+---
+
+## Summary
+
+Tento projekt používa:
+- **Core moduly** v `core/` - základné utility (19 súborov)
+- **Library skripty** v `libraries/` - obchodná logika (27 adresárov)
+- **Utilities** v `utils/` - cross-library nástroje
+- **Templates** v `templates/` - šablóny skriptov
+- **Documentation** v `docs/` a root - kompletná dokumentácia
+- **.obsolete** - archivované staré súbory
+
+Pre kompletný prehľad všetkých súborov pozri **`PROJECT_MAP.md`**.

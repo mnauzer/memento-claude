@@ -9,6 +9,24 @@
 //    - Komplexná práca s Memento Framework
 //    - Best practices a error handling
 // ==============================================
+// 💡 USER COMMUNICATION BEST PRACTICES:
+//
+// message() - PRE KRÁTKE SPRÁVY:
+//    - Len 2 riadky textu
+//    - Zmizne po ~2 sekundách
+//    - Použitie: Rýchle notifikácie ("Uložené", "Hotovo")
+//    - Príklad: message("✅ Záznam uložený");
+//
+// dialog() - PRE PODROBNÉ SPRÁVY:
+//    - Ľubovoľné množstvo textu
+//    - Zostáva až kým užívateľ nezatvorí
+//    - Môže obsahovať tlačidlá (OK, Cancel, custom)
+//    - Použitie: Výsledky výpočtov, detailné chyby, potvrdenia
+//    - Príklad: dialog("Výsledok", "Suma: 120€\nDPH: 20€", "OK");
+//
+// PRAVIDLO: Ak správa má viac ako 2 riadky alebo potrebuje čas na prečítanie,
+//           vždy používaj dialog() namiesto message()!
+// ==============================================
 
 // ==============================================
 // INICIALIZÁCIA MODULOV A KONFIGURÁCIE
