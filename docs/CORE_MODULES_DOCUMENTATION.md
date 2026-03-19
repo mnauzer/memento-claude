@@ -11,15 +11,15 @@
 
 1. [Úvod](#úvod)
 2. [Architektúra a Závislosti](#architektúra-a-závislosti)
-3. [MementoConfig7.js](#mementoconfig7js)
-4. [MementoCore7.js](#mementocore7js)
+3. [MementoConfig.js](#mementoconfig7js)
+4. [MementoCore.js](#mementocore7js)
 5. [MementoTime.js](#mementotimejs) - **🆕 NEW in Phase 3**
 6. [MementoDate.js](#mementodatejs) - **🆕 NEW in Phase 3**
 7. [MementoValidation.js](#mementovalidationjs) - **🆕 NEW in Phase 3**
 8. [MementoFormatting.js](#mementoformattingjs) - **🆕 NEW in Phase 3**
 9. [MementoCalculations.js](#mementocalculationsjs) - **🆕 NEW in Phase 3**
 10. [MementoBusiness.js](#mementobusinessjs) - **♻️ REFACTORED in Phase 3**
-11. [MementoUtils7.js](#mementoutils7js)
+11. [MementoUtils.js](#mementoutils7js)
 12. [MementoAI7.js](#mementoai7js)
 13. [MementoTelegram8.js](#mementotelegram8js)
 14. [MementoGPS.js](#mementogpsjs)
@@ -146,7 +146,7 @@ SEPARATE CHAINS (no circular dependencies):
 
 ---
 
-## MementoConfig7.js
+## MementoConfig.js
 
 **Verzia:** 7.0.53
 **Závislosť:** Žiadne
@@ -406,10 +406,10 @@ var workedHours = config.fields.attendance.employeeAttributes.workedHours;
 
 ---
 
-## MementoCore7.js
+## MementoCore.js
 
 **Verzia:** 7.0.2
-**Závislosť:** MementoConfig7
+**Závislosť:** MementoConfig
 **Účel:** Základné utility - logging, formátovanie, validácia, safe field access
 
 ### Logging Funkcie
@@ -1429,7 +1429,7 @@ utils.safeSet(entry, "info",
 
 ---
 
-## MementoUtils7.js
+## MementoUtils.js
 
 **Verzia:** 7.4.0
 **Závislosť:** Všetky moduly (lazy loading)

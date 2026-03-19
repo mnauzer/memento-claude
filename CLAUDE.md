@@ -16,10 +16,10 @@ All scripts follow a strict dependency hierarchy:
 
 ```
 LEVEL 0: Configuration
-MementoConfig (v7.1+) - No dependencies
+MementoConfig (v8.0+) - No dependencies
 
 LEVEL 1: Foundation
-MementoCore (v7.6+) - Depends on Config
+MementoCore (v8.0+) - Depends on Config
 
 LEVEL 2: Focused Utilities
 MementoTime (v1.1+) - Time operations
@@ -49,13 +49,13 @@ Library Scripts - Depend on relevant core modules
 
 Located in `core/` directory for easy access from Memento Database.
 
-**NOTE:** Version numbers in filenames are being phased out (legacy modules still have them).
+**NOTE:** Core module filenames do NOT include version numbers (changed in v8.0 refactoring). Version tracking is in MODULE_INFO metadata only. This allows version updates without file renames.
 
 #### Foundation (ALWAYS REQUIRED)
 
-- **MementoConfig (v7.1+)** - Single source of truth for all library names, field names, library IDs, icons, constants, module metadata. Never hardcode field names; always use `config.fields.{library}.{field}`.
+- **MementoConfig (v8.0+)** - Single source of truth for all library names, field names, library IDs, icons, constants, module metadata. Never hardcode field names; always use `config.fields.{library}.{field}`.
 
-- **MementoCore (v7.6+)** - Foundation utilities: logging (`addDebug`, `addError`, `addInfo`), safe field access, validation, icon management. Zero external dependencies. Access via `utils.core` or direct functions on `utils`.
+- **MementoCore (v8.0+)** - Foundation utilities: logging (`addDebug`, `addError`, `addInfo`), safe field access, validation, icon management. Zero external dependencies. Access via `utils.core` or direct functions on `utils`.
 
 #### Focused Utilities (NEW in v8.0 - Phase 3)
 
@@ -79,7 +79,7 @@ Located in `core/` directory for easy access from Memento Database.
 
 #### Specialized Modules
 
-- **MementoAI (v7.1+)** - AI service integration: OpenAI GPT-4, Claude API, HTTP wrappers, image analysis. Access via `utils.ai`.
+- **MementoAI (v8.0+)** - AI service integration: OpenAI GPT-4, Claude API, HTTP wrappers, image analysis. Access via `utils.ai`.
 
 - **MementoTelegram (v8.2+)** - Telegram Bot API: message sending/editing/deleting, group chat support, thread support, notification aggregation. **⚠️ NOT aggregated in MementoUtils** (circular dependency). Must import directly: `var telegram = typeof MementoTelegram !== 'undefined' ? MementoTelegram : null;`
 

@@ -1,8 +1,8 @@
 # Memento-Claude Project Map
 
-**Posledná aktualizácia:** 2026-03-19 22:52
+**Posledná aktualizácia:** 2026-03-19
 **Celkový počet súborov:** 77 JavaScript files (Phase 3/4 complete: +5 focused modules)
-**Verzia projektu:** 8.1.0
+**Verzia projektu:** 8.0.0
 
 ---
 
@@ -31,8 +31,8 @@
 
 | Súbor | Verzia | Lines | Účel | Závislosti |
 |-------|--------|-------|------|-------------|
-| MementoConfig7.js | **7.1.0** | ~600 | Centrálna konfigurácia - názvy knižníc, polí, ikon, konštánt, module metadata | - |
-| MementoCore7.js | **7.6.0** | ~1,200 | Foundation utilities - logging, validácia, safe field access, MODULE_INFO | MementoConfig |
+| MementoConfig.js | **8.0.0** | ~600 | Centrálna konfigurácia - názvy knižníc, polí, ikon, konštánt, module metadata | - |
+| MementoCore.js | **8.0.0** | ~1,200 | Foundation utilities - logging, validácia, safe field access, MODULE_INFO | MementoConfig |
 
 ### Focused Utilities Layer (LEVEL 2 - NEW in Phase 3)
 
@@ -56,16 +56,16 @@
 
 | Súbor | Verzia | Lines | Účel | Závislosti |
 |-------|--------|-------|------|-------------|
-| MementoUtils7.js | **8.1.0** | ~1,800 | Lazy-loading agregátor všetkých modulov, dependency checking, backward compatibility facade | All above |
+| MementoUtils.js | **8.1.0** | ~1,800 | Lazy-loading agregátor všetkých modulov, dependency checking, backward compatibility facade | All above |
 
 ### Integration Layer
 
 | Súbor | Verzia | Lines | Účel | Závislosti |
 |-------|--------|-------|------|-------------|
-| MementoAI7.js | **7.1.0** | ~800 | AI integrácia - OpenAI GPT-4, Claude API, image analysis | MementoCore, Config |
-| MementoTelegram8.js | **8.2.0** | ~1,200 | Telegram Bot API - messaging, groups, threads (**NOT in Utils - circular dependency fix**) | **MementoCore** (NOT Utils) |
+| MementoAI.js | **8.0.0** | ~800 | AI integrácia - OpenAI GPT-4, Claude API, image analysis | MementoCore, Config |
+| MementoTelegram.js | **8.2.0** | ~1,200 | Telegram Bot API - messaging, groups, threads (**NOT in Utils - circular dependency fix**) | **MementoCore** (NOT Utils) |
 | MementoGPS.js | **1.1.0** | ~400 | GPS utilities - coordinates, distance calculations, OSRM routing | MementoCore, Config |
-| MementoSync1.js | **1.1.0** | ~600 | PostgreSQL synchronizácia | MementoCore, Config |
+| MementoSync.js | **1.1.0** | ~600 | PostgreSQL synchronizácia | MementoCore, Config |
 
 ### Infrastructure Layer
 
@@ -497,7 +497,7 @@ find libraries/ -type f -name "*.js" | sort
 
 ```bash
 # V hlavičke súboru - prvých 10 riadkov
-head -10 core/MementoCore7.js | grep -i "verzia"
+head -10 core/MementoCore.js | grep -i "verzia"
 ```
 
 ### Vyhľadať závislosti
@@ -516,7 +516,7 @@ grep -r "var utils = MementoUtils" libraries/ --include="*.js"
 
 ### Konvencie pomenovania súborov
 
-- **Core moduly:** `Memento*.js` (napr. MementoCore7.js)
+- **Core moduly:** `Memento*.js` (napr. MementoCore.js, MementoUtils.js)
 - **Reusable moduly:** `{Prefix}.*.Module.js` (napr. CP.Calculate.Module.js)
 - **Library skripty:** `{Skratka}.{Typ}.{Názov}.js` (napr. Doch.Calc.Main.js)
 - **Utils:** `Utils.{Typ}.{Názov}.js` (napr. Utils.Action.Renumber.js)

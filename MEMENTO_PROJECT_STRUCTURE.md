@@ -5,8 +5,8 @@
 ```
 memento-claude/
 ├── core/                           # Základné moduly systému (17 modules - Phase 3/4 complete)
-│   ├── MementoConfig7.js          # v7.1.0 - Centralized configuration + MODULE_INFO
-│   ├── MementoCore7.js            # v7.6.0 - Foundation utilities (logging, validation, field access)
+│   ├── MementoConfig.js          # v8.0.0 - Centralized configuration + MODULE_INFO
+│   ├── MementoCore.js            # v8.0.0 - Foundation utilities (logging, validation, field access)
 │   │
 │   ├── MementoTime.js             # v1.1.0 🆕 Phase 3 - Time operations, 15min rounding
 │   ├── MementoDate.js             # v1.0.0 🆕 Phase 3 - Slovak calendar, holidays, weekends
@@ -15,15 +15,15 @@ memento-claude/
 │   ├── MementoCalculations.js     # v1.0.0 🆕 Phase 3 - Wages, overtime, VAT calculations
 │   │
 │   ├── MementoBusiness.js         # v8.0.0 ♻️ REFACTORED - High-level workflows (1,050 lines, was 3,942)
-│   ├── MementoUtils7.js           # v8.1.0 - Lazy-loading aggregator for all modules
+│   ├── MementoUtils.js           # v8.1.0 - Lazy-loading aggregator for all modules
 │   │
-│   ├── MementoAI7.js              # v7.1.0 - AI services (OpenAI, Claude)
-│   ├── MementoTelegram8.js        # v8.2.0 - Telegram Bot API (depends on Core only)
+│   ├── MementoAI.js              # v8.0.0 - AI services (OpenAI, Claude)
+│   ├── MementoTelegram.js        # v8.2.0 - Telegram Bot API (depends on Core only)
 │   ├── MementoGPS.js              # v1.1.0 - GPS utilities and routing
 │   ├── MementoRecordTracking.js   # v1.1.0 - Record lifecycle tracking
 │   ├── MementoIDConflictResolver.js # v1.1.0 - ID conflict resolution
 │   ├── MementoAutoNumber.js       # v1.1.0 ⚠️ DEPRECATED - Use utils.business.generateNextNumber()
-│   └── MementoSync1.js            # v1.1.0 - PostgreSQL synchronization
+│   └── MementoSync.js            # v1.1.0 - PostgreSQL synchronization
 │
 ├── libraries/                      # Knižnice Memento Database
 │   ├── dochadzka/                 # Dochádzka (Attendance)
@@ -227,14 +227,14 @@ Všetky core moduly sú umiestnené priamo v `core/` adresári pre jednoduchú p
 
 ### Foundation Layer
 
-#### core/MementoConfig7.js (v7.1.0)
+#### core/MementoConfig.js (v7.1.0)
 - Centrálna konfigurácia - single source of truth
 - Field name mappings pre všetky knižnice
 - Library IDs a metadata
 - MODULE_INFO registry pre všetky moduly
 - Nastavenia pre všetky scripty
 
-#### core/MementoCore7.js (v7.6.0)
+#### core/MementoCore.js (v7.6.0)
 - Foundation utilities - základ všetkých skriptov
 - Safe field access (safeGet, safeSet, safeGetLinks)
 - Logging system (addDebug, addError, addInfo)
@@ -297,7 +297,7 @@ Všetky core moduly sú umiestnené priamo v `core/` adresári pre jednoduchú p
 
 ### Aggregator Layer
 
-#### core/MementoUtils7.js (v8.1.0)
+#### core/MementoUtils.js (v8.1.0)
 - Lazy-loading aggregator pre všetky moduly
 - Single import point: `var utils = MementoUtils;`
 - Comprehensive dependency checking (`checkAllDependencies`)
@@ -306,14 +306,14 @@ Všetky core moduly sú umiestnené priamo v `core/` adresári pre jednoduchú p
 
 ### Integration Layer
 
-#### core/MementoAI7.js (v7.1.0)
+#### core/MementoAI.js (v7.1.0)
 - OpenAI GPT-4 integration
 - Claude API integration
 - HTTP wrapper pre AI services
 - Image analysis
 - Access via: `utils.ai`
 
-#### core/MementoTelegram8.js (v8.2.0)
+#### core/MementoTelegram.js (v8.2.0)
 - Telegram Bot API integration
 - Message sending/editing/deletion
 - Group and thread support
@@ -343,7 +343,7 @@ Všetky core moduly sú umiestnené priamo v `core/` adresári pre jednoduchú p
 - ⚠️ DEPRECATED - Use `utils.business.generateNextNumber()` instead
 - Auto-numbering for records
 
-#### core/MementoSync1.js (v1.1.0)
+#### core/MementoSync.js (v1.1.0)
 - PostgreSQL synchronization
 - Bulk data sync
 - Specialized module (import on demand)
@@ -422,8 +422,8 @@ Pre úplnú konvenciu pomenovania pozri: **MEMENTO_NAMING_CONVENTION.md**
 ## Použitie v Claude Code
 
 Pri práci so scriptami referencovať:
-- `core/MementoCore7.js:123` - core utilities
-- `core/MementoConfig7.js:45` - configuration
+- `core/MementoCore.js:123` - core utilities
+- `core/MementoConfig.js:45` - configuration
 - `libraries/dochadzka/Doch.Calc.Main.js:456` - attendance calculation
 - `libraries/material/Mat.Action.SetFields.js:78` - material fields setup
 
