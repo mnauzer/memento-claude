@@ -19,12 +19,12 @@ Created all 17 library-specific module files with IIFE pattern:
 - ✅ Pokladna.js (Cash Book)
 
 **Medium Priority (7):**
-- ✅ Zakazky.js (Orders)
-- ✅ ZaznamPrac.js (Work Records)
-- ✅ KnihaJazd.js (Ride Log)
-- ✅ Zamestnanci.js (Employees)
-- ✅ Miesta.js (Places)
-- ✅ Vyuctovani.js (Settlements)
+- ✅ Zakazky.js (Orders) - Skeleton
+- ✅ ZaznamPrac.js (Work Records) - Skeleton
+- ✅ KnihaJazd.js (Ride Log) - **IMPLEMENTED v1.0.0**
+- ✅ Zamestnanci.js (Employees) - Skeleton
+- ✅ Miesta.js (Places) - Skeleton
+- ✅ Vyuctovani.js (Settlements) - Skeleton
 - ✅ DailyReport.js (created in Phase 3)
 
 **Low Priority (7 skeleton libraries):**
@@ -135,7 +135,22 @@ Create condensed documentation for 17 remaining libraries:
    - Day off handling (Voľno/Dažď/Dovolenka)
    - Date: 2026-03-19
 
-4. **Material.calculateReceipt()** - Extract from Mat.Calc.Receipts.js
+4. **✅ KnihaJazd.calculateRideLog()** - COMPLETE (v1.0.0)
+   - Extracted from Knij.Calc.Main.js (2,643 lines → 1,047 lines module)
+   - Complete 10-step ride log calculation process
+   - GPS route calculation via OSRM API (with air distance fallback)
+   - Driver and crew processing
+   - Vehicle cost calculation (km × rate)
+   - Wage cost calculation for crew
+   - Vehicle location synchronization (parking)
+   - Vehicle odometer update
+   - Auto-linking orders from stops
+   - Markdown info record with detailed summary
+   - Ride report synchronization (optional)
+   - Daily report integration (optional)
+   - Date: 2026-03-19
+
+5. **Material.calculateReceipt()** - Extract from Mat.Calc.Receipts.js
    - Stock level updates
    - VAT calculations
    - Average cost tracking
@@ -182,11 +197,15 @@ Create condensed documentation for 17 remaining libraries:
 | ~~Phase 4.4: Pokladna.payObligations()~~ | ~~4-6h~~ | HIGH | ✅ COMPLETE |
 | ~~Phase 4.4: CenovePonuky.calculateQuote()~~ | ~~3-4h~~ | HIGH | ✅ COMPLETE |
 | ~~Phase 4.4: Dochadzka.calculateAttendance()~~ | ~~2-3h~~ | HIGH | ✅ COMPLETE |
+| ~~Phase 4.4: KnihaJazd.calculateRideLog()~~ | ~~2-3h~~ | MEDIUM | ✅ COMPLETE |
 | Phase 4.4: Material functions | 2-3h | MEDIUM | Important |
 | Phase 5: GitHub integration | 2-3h | MEDIUM | Infrastructure |
 
-**Total Remaining (High Priority Only):** ~0 hours (all 3 high-priority functions complete!)
-**Completed:** 3/3 high-priority functions (Pokladna, CenovePonuky, Dochadzka)
+**Total Remaining (All Priority Functions):** ~4-6 hours (Material only)
+**Completed:** 4/5 planned functions
+- ✅ 3/3 high-priority (Pokladna, CenovePonuky, Dochadzka)
+- ✅ 1/2 medium-priority (KnihaJazd)
+- ⏳ 1/2 medium-priority remaining (Material)
 
 ---
 
