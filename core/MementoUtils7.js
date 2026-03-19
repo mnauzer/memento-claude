@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTOUTILS - Hlavný agregátor modulov
-// Verzia: 7.4.0 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 7.7.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - Jednotný prístupový bod pre všetky moduly
@@ -8,6 +8,10 @@
 //    - Pridáva CONFIG z MementoConfig
 //    - Lazy loading pre asynchrónne načítanie
 // ==============================================
+// 🔧 CHANGELOG v7.7.0:
+//    - PRIDANÉ: MODULE_INFO pre verziovanie a dependency tracking
+//    - Pripravené pre Phase 1 core refactoring
+//    - Updated validateInputData delegation to support new array-based pattern
 // 🔧 CHANGELOG v7.4.0:
 //    - Pridaný MementoIDConflictResolver modul pre riešenie ID konfliktov
 //    - Exportované funkcie: checkAndResolveIDConflict, findMaxID, idExists
@@ -29,7 +33,27 @@
 var MementoUtils = (function() {
     'use strict';
 
-    var version = "7.4.0";
+    // ==============================================
+    // MODULE INFO
+    // ==============================================
+
+    var MODULE_INFO = {
+        name: "MementoUtils",
+        version: "7.7.0",
+        author: "ASISTANTO",
+        description: "Universal aggregator for all core modules with lazy loading",
+        dependencies: ["MementoCore", "MementoConfig"],
+        optionalDependencies: ["MementoBusiness", "MementoAI", "MementoTelegram", "MementoGPS", "MementoRecordTracking", "MementoIDConflictResolver"],
+        provides: [
+            "All functions from aggregated modules",
+            "Lazy loading pattern",
+            "Single import point for scripts"
+        ],
+        aggregates: ["config", "core", "ai", "telegram", "business", "gps", "recordTracking", "idConflictResolver"],
+        status: "stable"
+    };
+
+    var version = MODULE_INFO.version;
     
     // ==============================================
     // LAZY LOADING MODULOV
@@ -145,8 +169,10 @@ var MementoUtils = (function() {
     // ==============================================
     
     var api = {
+        // Module metadata
+        info: MODULE_INFO,
         version: version,
-        
+
         // === CONFIG (priamy prístup) ===
         get config() {
             loadModule('config');

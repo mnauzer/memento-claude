@@ -1,10 +1,14 @@
 // ==============================================
 // MEMENTO GPS - GPS integrácia
-// Verzia: 1.1 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 1.1.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
+//    - GPS routing via OSRM API
+//    - Distance and duration calculations
+//    - Air distance fallback
 // ==============================================
-// 🔧 CHANGELOG v1.1:
+// 🔧 CHANGELOG v1.1.0:
+//    - PRIDANÉ: MODULE_INFO pre verziovanie
 //    - ODSTRÁNENÝ fallback na vzdušnú vzdialenosť v calculateSegment
 //    - Ak OSRM zlyhá, funkcia vráti success: false namiesto približnej vzdialenosti
 //    - calculateAirDistance ponechaná len pre špeciálne prípady (nie pre routing)
@@ -15,7 +19,21 @@
 var MementoGPS = (function() {
     'use strict';
 
-    var version = "1.1.0";
+    // ==============================================
+    // MODULE INFO
+    // ==============================================
+
+    var MODULE_INFO = {
+        name: "MementoGPS",
+        version: "1.1.0",
+        author: "ASISTANTO",
+        description: "GPS routing and distance calculations via OSRM API",
+        dependencies: ["MementoUtils"],
+        provides: ["calculateOSRMRoute", "calculateSegment", "calculateAirDistance"],
+        status: "stable"
+    };
+
+    var version = MODULE_INFO.version;
     
     // Lazy loading pre závislosti
     var _config = null;
@@ -307,10 +325,12 @@ var MementoGPS = (function() {
     // ==============================================
     // PUBLIC API
     // ==============================================
-     
+
     return {
+        // Module metadata
+        info: MODULE_INFO,
         version: version,
-        
+
         // Základné GPS funkcie
         calculateOSRMRoute: calculateOSRMRoute,
         calculateSegment: calculateSegment,
