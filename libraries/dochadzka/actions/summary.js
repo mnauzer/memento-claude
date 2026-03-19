@@ -1,5 +1,17 @@
-// Dochádzka - Rýchly súhrn (Action)
-// Pridaj JS knižnice: (žiadne potrebné)
+// ==============================================
+// DOCHÁDZKA - Rýchly súhrn
+// ==============================================
+// Typ: Action
+// Event: Manual (Button)
+// Verzia: 1.0.0
+// Dátum: 2026-03-19
+// ==============================================
+// 📋 FUNKCIA:
+//    - Zobrazí rýchly súhrn záznamu
+//    - Dátum, čas, hodiny, mzdy, pracovníci
+// ==============================================
+// 🔧 JS KNIŽNICE: (žiadne potrebné)
+// ==============================================
 
 var e = entry();
 var date = e.field("Dátum");
@@ -16,4 +28,4 @@ msg += "⏱️ " + (hours || 0) + " h\n";
 msg += "💰 " + (wages || 0) + " €\n";
 msg += "👥 " + (count || 0) + " pracovníkov";
 
-dialog("Súhrn", msg, "OK");
+dialog("Súhrn dochádzky", msg, "OK");
