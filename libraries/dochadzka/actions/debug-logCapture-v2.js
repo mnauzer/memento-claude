@@ -13,7 +13,7 @@ var messages = [];
 
 function logMsg(msg) {
     messages.push(msg);
-    message(msg);
+    // Don't show message() - only collect for final dialog
 }
 
 logMsg("🔍 START: Ultra-verbose debug v2");
