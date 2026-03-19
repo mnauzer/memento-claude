@@ -287,6 +287,8 @@ function processEmployee(employee, index, context) {
 // ==============================================
 // TELEGRAM NOTIFIKÁCIE
 // ==============================================
+// ⚠️ DÔLEŽITÉ: MementoTelegram NIE JE v MementoUtils (circular dependency)
+// Musí byť importovaný priamo!
 
 /**
  * Vytvorenie a odoslanie Telegram notifikácie
@@ -295,8 +297,16 @@ function processEmployee(employee, index, context) {
  */
 function createTelegramNotification(processResult) {
     try {
+        // KROK 1: Import MementoTelegram priamo (NIE cez utils!)
+        var telegram = typeof MementoTelegram !== 'undefined' ? MementoTelegram : null;
+
+        if (!telegram) {
+            utils.addDebug(currentEntry, "⚠️ MementoTelegram nie je dostupný", "warning");
+            return { success: false, message: "Telegram modul nie je načítaný" };
+        }
+
         utils.addDebug(currentEntry, "📱 Vytváram Telegram notifikáciu", "telegram");
-        
+
         // Kontrola povolení pre notifikácie
         var libraryName = lib().title;
         var libraryConfig = CONFIG.libraryMapping?.[libraryName];
@@ -311,27 +321,27 @@ function createTelegramNotification(processResult) {
             return { success: true, message: "Notifikácie sú vypnuté" };
         }
         
-        // Vytvorenie Telegram správy
+        // KROK 2: Vytvorenie Telegram správy
         var telegramMessage = createTelegramMessage(processResult);
-        
+
         // Uloženie do info_telegram poľa
         utils.safeSet(currentEntry, CONFIG.fields.common.infoTelegram, telegramMessage);
-        
-        // Vytvorenie notifikácie
-        var notificationResult = utils.createTelegramMessage(currentEntry);
-        
+
+        // KROK 3: Vytvorenie notifikácie (použiť telegram, NIE utils!)
+        var notificationResult = telegram.createTelegramMessage(currentEntry);
+
         if (notificationResult.success) {
             utils.addDebug(currentEntry, "✅ Notifikácia vytvorená", "success");
-            
-            // Vytvorenie inline keyboard
-            var keyboard = utils.createInlineKeyboard([
+
+            // KROK 4: Vytvorenie inline keyboard (použiť telegram, NIE utils!)
+            var keyboard = telegram.createInlineKeyboard([
                 { text: "✅ OK", callback_data: "ok_" + currentEntry.field("ID") },
                 { text: "❓ Info", callback_data: "info_" + currentEntry.field("ID") }
             ], 2);
-            
-            // Odoslanie na Telegram
-            var sendResult = utils.sendNotificationEntry(notificationResult.notification, keyboard);
-            
+
+            // KROK 5: Odoslanie na Telegram (použiť telegram, NIE utils!)
+            var sendResult = telegram.sendNotificationEntry(notificationResult.notification, keyboard);
+
             if (sendResult.success) {
                 utils.addDebug(currentEntry, "✅ Notifikácia odoslaná na Telegram", "success");
                 return { success: true, message: "Notifikácia úspešne odoslaná" };

@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO TELEGRAM - Telegram integrácia
-// Verzia: 8.0 | Dátum: December 2024 | Autor: ASISTANTO
+// Verzia: 8.2.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - Telegram Bot API integrácia
@@ -10,6 +10,14 @@
 //    - Group summary funkcie
 //    - Message formatting a šablóny
 // ==============================================
+// ⚠️ DÔLEŽITÉ:
+//    - Tento modul NEMOŽNO agregovať v MementoUtils (circular dependency)
+//    - Import priamo: var telegram = typeof MementoTelegram !== 'undefined' ? MementoTelegram : null;
+// ==============================================
+// 🔧 CHANGELOG v8.2.0:
+//    - ODSTRÁNENÉ: Závislosť na MementoUtils (circular dependency fix)
+//    - Teraz závisí len na MementoCore a MementoConfig
+//    - Phase 2: Break Circular Dependencies COMPLETE
 // 🔧 CHANGELOG v8.0:
 //    - Pridané Group Summary funkcie
 //    - Message formatting šablóny
@@ -27,12 +35,13 @@ var MementoTelegram = (function() {
 
     var MODULE_INFO = {
         name: "MementoTelegram",
-        version: "8.1.0",
+        version: "8.2.0",
         author: "ASISTANTO",
         description: "Telegram Bot API integration with group chat and thread support",
-        dependencies: ["MementoUtils", "MementoConfig"],
+        dependencies: ["MementoCore", "MementoConfig"],  // Changed from MementoUtils to avoid circular dependency
         provides: ["sendMessage", "editMessage", "deleteMessage", "sendGroupSummary", "formatMarkdown"],
-        status: "stable"
+        status: "stable",
+        note: "Phase 2: No longer depends on MementoUtils (circular dependency fixed)"
     };
 
     var version = MODULE_INFO.version;
@@ -41,22 +50,15 @@ var MementoTelegram = (function() {
     var _config = null;
     var _core = null;
     var _ai = null;
-    var _utils = null;
-
-    function getUtils() {
-        if (!_utils && typeof MementoUtils !== 'undefined') {
-            _utils = MementoUtils;
-        }
-        return _utils;
-    }
+    // _utils removed - no longer depends on MementoUtils (circular dependency)
 
     function getConfig() {
-        if (!_config && typeof MementoConfig !== 'undefined') {  // Oprav na MementoConfig
+        if (!_config && typeof MementoConfig !== 'undefined') {
             _config = MementoConfig.getConfig();
         }
         return _config;
     }
-    
+
     function getCore() {
         if (!_core && typeof MementoCore !== 'undefined') {
             _core = MementoCore;

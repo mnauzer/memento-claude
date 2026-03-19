@@ -1,13 +1,19 @@
 // ==============================================
 // MEMENTOUTILS - Hlavný agregátor modulov
-// Verzia: 7.7.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// Verzia: 7.8.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - Jednotný prístupový bod pre všetky moduly
-//    - Agreguje funkcie z Core, AI, Telegram, Business, GPS, RecordTracking, IDConflictResolver
+//    - Agreguje funkcie z Core, AI, Business, GPS, RecordTracking, IDConflictResolver
 //    - Pridáva CONFIG z MementoConfig
 //    - Lazy loading pre asynchrónne načítanie
+//    - ⚠️ NEOBSAHUJE Telegram (circular dependency - import priamo)
 // ==============================================
+// 🔧 CHANGELOG v7.8.0:
+//    - ODSTRÁNENÉ: MementoTelegram z aggregation (circular dependency fix)
+//    - Telegram musí byť importovaný priamo v scriptoch
+//    - Updated MODULE_INFO to reflect changes
+//    - Phase 2: Break Circular Dependencies COMPLETE
 // 🔧 CHANGELOG v7.7.0:
 //    - PRIDANÉ: MODULE_INFO pre verziovanie a dependency tracking
 //    - Pripravené pre Phase 1 core refactoring
@@ -39,17 +45,18 @@ var MementoUtils = (function() {
 
     var MODULE_INFO = {
         name: "MementoUtils",
-        version: "7.7.0",
+        version: "7.8.0",
         author: "ASISTANTO",
         description: "Universal aggregator for all core modules with lazy loading",
         dependencies: ["MementoCore", "MementoConfig"],
-        optionalDependencies: ["MementoBusiness", "MementoAI", "MementoTelegram", "MementoGPS", "MementoRecordTracking", "MementoIDConflictResolver"],
+        optionalDependencies: ["MementoBusiness", "MementoAI", "MementoGPS", "MementoRecordTracking", "MementoIDConflictResolver"],
         provides: [
             "All functions from aggregated modules",
             "Lazy loading pattern",
             "Single import point for scripts"
         ],
-        aggregates: ["config", "core", "ai", "telegram", "business", "gps", "recordTracking", "idConflictResolver"],
+        aggregates: ["config", "core", "ai", "business", "gps", "recordTracking", "idConflictResolver"],
+        notAggregated: ["MementoTelegram - must be imported directly to avoid circular dependency"],
         status: "stable"
     };
 
@@ -63,7 +70,7 @@ var MementoUtils = (function() {
         config: null,
         core: null,
         ai: null,
-        telegram: null,
+        // telegram: REMOVED - causes circular dependency (Telegram depends on Utils)
         business: null,
         gps: null,
         recordTracking: null,
@@ -93,13 +100,10 @@ var MementoUtils = (function() {
                     modules.ai = MementoAI;
                 }
                 break;
-                
-            case 'telegram':
-                if (!modules.telegram && typeof MementoTelegram !== 'undefined') {
-                    modules.telegram = MementoTelegram;
-                }
-                break;
-                
+
+            // case 'telegram': REMOVED - causes circular dependency
+            // MementoTelegram must be imported directly, not aggregated
+
             case 'business':
                 if (!modules.business && typeof MementoBusiness !== 'undefined') {
                     modules.business = MementoBusiness;
@@ -128,12 +132,13 @@ var MementoUtils = (function() {
     
     /**
      * Načíta všetky dostupné moduly
+     * NOTE: Telegram is NOT loaded here (circular dependency)
      */
     function loadAllModules() {
         loadModule('config');
         loadModule('core');
         loadModule('ai');
-        loadModule('telegram');
+        // loadModule('telegram'); // REMOVED - circular dependency
         loadModule('business');
         loadModule('gps');
         loadModule('recordTracking');
@@ -383,13 +388,16 @@ var MementoUtils = (function() {
          */
         getLoadedModules: function() {
             loadAllModules(); // Pokús sa načítať všetky
-            
+
             return {
                 config: modules.config ? modules.config.version : "N/A",
                 core: modules.core ? modules.core.version : "N/A",
                 ai: modules.ai ? modules.ai.version : "N/A",
-                telegram: modules.telegram ? modules.telegram.version : "N/A",
-                business: modules.business ? modules.business.version : "N/A"
+                // telegram: NOT AGGREGATED (circular dependency - import directly)
+                business: modules.business ? modules.business.version : "N/A",
+                gps: modules.gps ? modules.gps.version : "N/A",
+                recordTracking: modules.recordTracking ? modules.recordTracking.version : "N/A",
+                idConflictResolver: modules.idConflictResolver ? modules.idConflictResolver.version : "N/A"
             };
         },
         
