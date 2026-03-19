@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO LOG CAPTURE - AUTOMATIC LOG SHARING
-// Verzia: 1.0.2 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// Verzia: 1.0.3 | Dátum: 2026-03-19 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - Automatické zachytávanie logov do ASISTANTO Logs library
@@ -8,6 +8,8 @@
 //    - Eliminuje manuálne kopírovanie Debug_Log a Error_Log
 //    - Reusable pattern pre všetky knižnice
 // ==============================================
+// 🔧 CHANGELOG v1.0.3:
+//    - FIX: Changed "status" field to "line" - correct field name in ASISTANTO Logs
 // 🔧 CHANGELOG v1.0.2:
 //    - FIX: Changed library() to libByName() - correct Memento API function
 // 🔧 CHANGELOG v1.0.1:
@@ -64,7 +66,7 @@ var MementoLogCapture = (function() {
 
     var MODULE_INFO = {
         name: "MementoLogCapture",
-        version: "1.0.2",
+        version: "1.0.3",
         author: "ASISTANTO",
         description: "Automatic log capture to ASISTANTO Logs library for Claude MCP integration",
         dependencies: ["MementoConfig"],
@@ -77,7 +79,7 @@ var MementoLogCapture = (function() {
             "appendToField"
         ],
         status: "stable",
-        changelog: "v1.0.2 - Fixed: Use libByName() instead of library()"
+        changelog: "v1.0.3 - Fixed: Use 'line' field instead of 'status' (correct field name)"
     };
 
     // ==============================================
@@ -187,8 +189,8 @@ var MementoLogCapture = (function() {
             logEntry.set("Error_Log", "");
             logEntry.set("info", "");
 
-            // Set initial status
-            logEntry.set("status", "🔄 Running");
+            // Set initial status (field name is "line", not "status")
+            logEntry.set("line", "🔄 Running");
 
             // Set user (current user)
             // Note: Memento doesn't have built-in user() function
@@ -332,13 +334,13 @@ var MementoLogCapture = (function() {
         if (!logEntry) return;
 
         try {
-            // Set final status
+            // Set final status (field name is "line", not "status")
             var status = success ? "✅ Success" : "❌ Error";
             var errorLog = logEntry.field("Error_Log") || "";
             if (errorLog.trim().length > 0) {
                 status = "❌ Error";
             }
-            logEntry.set("status", status);
+            logEntry.set("line", status);
 
             // Add summary to info field
             if (summary) {

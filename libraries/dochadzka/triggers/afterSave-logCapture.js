@@ -49,8 +49,8 @@ if (typeof MementoLogCapture !== 'undefined' && typeof MementoConfig !== 'undefi
                 logEntry.set("Error_Log", errorLog);
 
                 // Set status based on errors
-                var status = errorLog.trim().length > 0 ? "❌ Error" : "✅ Success";
-                logEntry.set("status", status);
+                var lineStatus = errorLog.trim().length > 0 ? "❌ Error" : "✅ Success";
+                logEntry.set("line", lineStatus);
 
                 // Add summary info
                 var infoText = "# Automaticky zachytené logy\n\n";
