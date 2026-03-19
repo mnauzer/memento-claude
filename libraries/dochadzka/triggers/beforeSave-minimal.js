@@ -2,7 +2,8 @@
 // DOCHÁDZKA - Minimálny prepočet
 // ==============================================
 // Typ: Trigger
-// Event: Before Save
+// Udalosť: Aktualizácia záznamu
+// Fáza: Pred uložením záznamu
 // Verzia: 1.0.0
 // Dátum: 2026-03-19
 // ==============================================

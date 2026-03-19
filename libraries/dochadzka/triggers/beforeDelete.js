@@ -2,7 +2,8 @@
 // DOCHÁDZKA - Cleanup pred zmazaním
 // ==============================================
 // Typ: Trigger
-// Event: Before Delete
+// Udalosť: Odstraňovanie záznamu
+// Fáza: Pred uložením záznamu
 // Verzia: 1.0.0
 // Dátum: 2026-03-19
 // ==============================================
