@@ -3,7 +3,7 @@
 // ==============================================
 // Verzia: 1.0
 // Účel: Získať všetky polia z knižnice ASISTANTO Defaults
-//       pre aktualizáciu MementoConfig7.js
+//       pre aktualizáciu MementoConfig.js
 // ==============================================
 
 var currentEntry = entry();
@@ -49,10 +49,10 @@ for (var i = 0; i < fields.length; i++) {
 }
 
 output += "═══════════════════════════════════════════════\n";
-output += "MementoConfig7.js FORMAT:\n";
+output += "MementoConfig.js FORMAT:\n";
 output += "═══════════════════════════════════════════════\n\n";
 
-// Vygeneruj formát pre MementoConfig7.js
+// Vygeneruj formát pre MementoConfig.js
 output += "defaults: {\n";
 for (var j = 0; j < fields.length; j++) {
     var f = fields[j];

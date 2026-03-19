@@ -238,7 +238,7 @@ function executeCalculation(purchasePrice, materialName) {
 }
 
 // ==============================================
-// POZNÁMKA: Dialógové funkcie boli presunuté do MementoCore7.js
+// POZNÁMKA: Dialógové funkcie boli presunuté do MementoCore.js
 // a sú dostupné cez utils.showErrorDialog() a utils.showSuccessDialog()
 // ==============================================
 

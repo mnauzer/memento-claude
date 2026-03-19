@@ -37,8 +37,8 @@
 // Základné použitie:
 //    var config = MementoConfig.getConfig();  // Celý CONFIG objekt
 //
-// DÔLEŽITÉ: Tento súbor je optimalizovaná verzia MementoConfig7.js
-// Pre plnú konfiguráciu použite MementoConfig7.js
+// DÔLEŽITÉ: Tento súbor je optimalizovaná verzia MementoConfig.js
+// Pre plnú konfiguráciu použite MementoConfig.js
 
 
 var MementoConfig = (function() {

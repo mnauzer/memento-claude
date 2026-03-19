@@ -14,10 +14,10 @@
 //    - MementoConfig
 // ==============================================
 // 📖 LOAD ORDER:
-//    1. MementoConfig7.js
-//    2. MementoCore7.js
-//    3. MementoUtils7.js
-//    4. MementoBusiness7.js
+//    1. MementoConfig.js
+//    2. MementoCore.js
+//    3. MementoUtils.js
+//    4. MementoBusiness.js
 //    5. Dochadzka.js          ← MODUL
 //    6. Dochadzka.Calculate.js ← TENTO WRAPPER
 // ==============================================

@@ -1103,7 +1103,7 @@ var MementoCore = (function() {
     // // ==============================================
     // // NOTIFIKÁCIE
     // //
-    // // V MementoCore7.js
+    // // V MementoCore.js
     // function getLinkedNotifications(entry) {
     //     try {
     //         var config = getConfig();

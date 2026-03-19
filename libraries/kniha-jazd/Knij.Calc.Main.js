@@ -77,7 +77,7 @@
 // ✅ PRIDANÉ v10.4:
 //    - Automatický výpočet atribútu km pre zákazky
 //    - Km sa počíta z vzdialenosti miesta × 2 (tam a nazad)
-//    - Pridané rideLogOrders atribúty do MementoConfig7 v7.0.17
+//    - Pridané rideLogOrders atribúty do MementoConfig v7.0.17
 // ✅ PRIDANÉ v10.3:
 //    - Pridané vizuálne ikony pre denný report (📋)
 //    - Link na denný report uložený v poli "Denný report"

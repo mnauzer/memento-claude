@@ -26,7 +26,7 @@ var CONFIG = {
     scriptName: "Extract Library IDs",
     version: "1.0.0",
 
-    // Kľúčové knižnice ktoré hľadáme (based on MementoConfig7.js)
+    // Kľúčové knižnice ktoré hľadáme (based on MementoConfig.js)
     expectedLibraries: {
         "Materiál": "LIBRARY_ID_MATERIAL",
         "Dochádzka": "LIBRARY_ID_ATTENDANCE",

@@ -8,7 +8,7 @@
 //    - Spustí prepočet v Dennom reporte, aby sa aktualizovali info polia
 // ==============================================
 
-var utils = MementoUtils7;
+var utils = MementoUtils;
 var CONFIG = utils.getConfig();
 
 try {

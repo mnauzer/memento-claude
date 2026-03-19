@@ -138,7 +138,7 @@ var OrderCalculate = (function() {
 
         // Kontrola dostupnosti MementoUtils
         if (typeof MementoUtils === 'undefined') {
-            throw new Error("OrderCalculate: MementoUtils nie je načítaný! Importujte MementoUtils7.js v Memento Database.");
+            throw new Error("OrderCalculate: MementoUtils nie je načítaný! Importujte MementoUtils.js v Memento Database.");
         }
 
         var utils = MementoUtils;

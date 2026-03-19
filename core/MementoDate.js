@@ -18,7 +18,7 @@
 //    var weekNum = MementoDate.getWeekNumber(new Date());
 //    var workdays = MementoDate.getWorkdaysInMonth(2026, 3);
 // ==============================================
-// 🎯 EXTRACTED FROM: MementoCore7.js (Phase 3 refactoring)
+// 🎯 EXTRACTED FROM: MementoCore.js (Phase 3 refactoring)
 // ==============================================
 
 var MementoDate = (function() {
@@ -36,7 +36,7 @@ var MementoDate = (function() {
         dependencies: [],  // Optional: MementoConfig for extended features
         provides: ["isHoliday", "isWeekend", "isWorkday", "getWeekNumber", "getWorkdaysInMonth", "formatDate"],
         status: "stable",
-        note: "Phase 3: Extracted from MementoCore7.js"
+        note: "Phase 3: Extracted from MementoCore.js"
     };
 
     // ==============================================

@@ -24,7 +24,7 @@
 //    - OPRAVA: 3 bugs (typo vo volaniach funkcií - ordIcon, n, removeRecordIcon)
 //    - REFAKTORING: Odstránená lokálna funkcia setDayOfWeek() - použitá utils.setDayOfWeekField()
 //    - REFAKTORING: Odstránená lokálna funkcia removeRecordIcon() - použitá utils.removeRecordIcon()
-//    - PRIDANÉ: utils.setDayOfWeekField() do MementoCore7.js (generická funkcia)
+//    - PRIDANÉ: utils.setDayOfWeekField() do MementoCore.js (generická funkcia)
 //    - OPTIMALIZÁCIA: Znížená veľkosť scriptu odstránením duplicitných funkcií
 // ==============================================
 
