@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO LOG CAPTURE - AUTOMATIC LOG SHARING
-// Verzia: 1.0.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// Verzia: 1.0.2 | Dátum: 2026-03-19 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - Automatické zachytávanie logov do ASISTANTO Logs library
@@ -8,6 +8,10 @@
 //    - Eliminuje manuálne kopírovanie Debug_Log a Error_Log
 //    - Reusable pattern pre všetky knižnice
 // ==============================================
+// 🔧 CHANGELOG v1.0.2:
+//    - FIX: Changed library() to libByName() - correct Memento API function
+// 🔧 CHANGELOG v1.0.1:
+//    - SKIP: Version not released
 // 🔧 CHANGELOG v1.0.0:
 //    - Prvá verzia modulu
 //    - createLogEntry() - Vytvorenie log entry v ASISTANTO Logs
@@ -60,7 +64,7 @@ var MementoLogCapture = (function() {
 
     var MODULE_INFO = {
         name: "MementoLogCapture",
-        version: "1.0.0",
+        version: "1.0.2",
         author: "ASISTANTO",
         description: "Automatic log capture to ASISTANTO Logs library for Claude MCP integration",
         dependencies: ["MementoConfig"],
@@ -73,7 +77,7 @@ var MementoLogCapture = (function() {
             "appendToField"
         ],
         status: "stable",
-        changelog: "v1.0.0 - Initial release"
+        changelog: "v1.0.2 - Fixed: Use libByName() instead of library()"
     };
 
     // ==============================================
@@ -158,8 +162,8 @@ var MementoLogCapture = (function() {
      */
     function createLogEntry(libraryName, scriptName, scriptVersion) {
         try {
-            // Find ASISTANTO Logs library
-            var asistantoLogs = library("ASISTANTO Logs");
+            // Find ASISTANTO Logs library using libByName()
+            var asistantoLogs = libByName("ASISTANTO Logs");
             if (!asistantoLogs) {
                 // Cannot create log entry - library not found
                 return null;
