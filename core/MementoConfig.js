@@ -267,6 +267,8 @@ var MementoConfig = (function() {
 
         // === LIBRARY MODULES METADATA (NOVÉ v7.1.0) ===
         // Metadata pre library-specific reusable modules v modules/ directory
+        // NOTE: Library module versions listed here for documentation.
+        // Always verify against MODULE_INFO.version in actual module files.
         libraryModules: {
             Dochadzka: {
                 file: "modules/Dochadzka.js",

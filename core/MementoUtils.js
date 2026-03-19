@@ -326,9 +326,11 @@ var MementoUtils = (function() {
     function checkDependencies(silent) {
         silent = silent || false;
 
+        // NOTE: These minimum versions reflect the v8.0 architecture refactoring.
+        // Update only when breaking changes require higher versions.
         var required = {
-            MementoConfig: "7.1.0",
-            MementoCore: "7.6.0"
+            MementoConfig: "8.0.0",
+            MementoCore: "8.0.0"
         };
 
         var recommended = {
