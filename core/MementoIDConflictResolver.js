@@ -22,7 +22,21 @@
 var MementoIDConflictResolver = (function() {
     'use strict';
 
-    var version = "1.0.0";
+    // ==============================================
+    // MODULE INFO
+    // ==============================================
+
+    var MODULE_INFO = {
+        name: "MementoIDConflictResolver",
+        version: "1.1.0",
+        author: "ASISTANTO",
+        description: "ID conflict detection and resolution for team version",
+        dependencies: ["MementoConfig", "MementoCore"],
+        provides: ["checkAndResolveIDConflict", "findMaxID", "idExists"],
+        status: "stable"
+    };
+
+    var version = MODULE_INFO.version;
 
     // Lazy loading pre závislosti
     var _config = null;
@@ -249,6 +263,8 @@ var MementoIDConflictResolver = (function() {
     // ==============================================
 
     return {
+        // Module metadata
+        info: MODULE_INFO,
         version: version,
 
         // Hlavná funkcia

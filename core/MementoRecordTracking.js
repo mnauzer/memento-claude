@@ -21,7 +21,21 @@
 var MementoRecordTracking = (function() {
     'use strict';
 
-    var version = "1.1.0";
+    // ==============================================
+    // MODULE INFO
+    // ==============================================
+
+    var MODULE_INFO = {
+        name: "MementoRecordTracking",
+        version: "1.1.0",
+        author: "ASISTANTO",
+        description: "Automatic tracking of record creation and modifications",
+        dependencies: ["MementoConfig"],
+        provides: ["setEditMode", "setPrintMode", "setDebugMode", "trackRecordCreation", "trackRecordModification", "initializeNewRecord", "processRecordUpdate"],
+        status: "stable"
+    };
+
+    var version = MODULE_INFO.version;
 
     // Lazy loading pre závislosti
     var _config = null;
@@ -250,6 +264,8 @@ var MementoRecordTracking = (function() {
     // ==============================================
 
     return {
+        // Module metadata
+        info: MODULE_INFO,
         version: version,
 
         // View režimy

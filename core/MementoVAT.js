@@ -47,9 +47,12 @@ var MementoVAT = (function() {
 
     var MODULE_INFO = {
         name: "MementoVAT",
-        version: "2.0",
+        version: "1.1.0",
         author: "ASISTANTO",
-        description: "Reusable modul pre výpočet DPH"
+        description: "Reusable VAT calculation module with automatic rate lookup",
+        dependencies: ["MementoUtils", "MementoConfig"],
+        provides: ["calculateVAT", "getValidVatRate", "calculateVATAmount"],
+        status: "stable"
     };
 
     // ==============================================

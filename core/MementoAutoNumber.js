@@ -287,13 +287,31 @@ function padLeft(str, length, char) {
 var MementoAutoNumber = (function() {
     'use strict';
 
-    var version = "2.0.0";
+    // ==============================================
+    // MODULE INFO
+    // ==============================================
+
+    var MODULE_INFO = {
+        name: "MementoAutoNumber",
+        version: "1.1.0",
+        author: "ASISTANTO",
+        description: "Auto-numbering with placeholder format for any library",
+        dependencies: ["ASISTANTO Defaults library"],
+        provides: ["generateNumber", "parsePlaceholder", "findNextAvailableNumber"],
+        status: "stable"
+    };
+
+    var version = MODULE_INFO.version;
 
     // ==============================================
     // PUBLIC API
     // ==============================================
 
     var api = {
+        // Module metadata
+        info: MODULE_INFO,
+        version: version,
+
         // Hlavná funkcia pre generovanie čísel
         generateNumber: autoGenerateNumber,
 
@@ -302,8 +320,7 @@ var MementoAutoNumber = (function() {
         findNextAvailableNumber: findNextAvailableNumber,
         padLeft: padLeft,
 
-        // Metadata
-        version: version,
+        // Metadata (legacy - kept for compatibility)
         description: "Auto-generovanie čísel záznamov s placeholder formátom",
 
         /**
