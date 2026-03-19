@@ -1,6 +1,7 @@
 // ==============================================
-// MEMENTO TELEGRAM - Telegram integrácia
+// MEMENTO TELEGRAM - TELEGRAM BOT API
 // Verzia: 8.2.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// Predchádzajúca verzia: MementoTelegram8.js v8.2.0 (filename only changed)
 // ==============================================
 // 📋 ÚČEL:
 //    - Telegram Bot API integrácia

@@ -1,6 +1,7 @@
 // ==============================================
-// MEMENTO CORE - Základné funkcie
-// Verzia: 7.6.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// MEMENTO CORE - FOUNDATION UTILITIES
+// Verzia: 8.0.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// Predchádzajúca verzia: MementoCore7.js v7.6.0
 // ==============================================
 // 📋 ÚČEL:
 //    - Základné utility funkcie pre všetky scripty
@@ -31,7 +32,7 @@ var MementoCore = (function() {
 
     var MODULE_INFO = {
         name: "MementoCore",
-        version: "7.6.0",
+        version: "8.0.0",
         author: "ASISTANTO",
         description: "Foundation utilities - logging, validation, safe field access, formatting",
         dependencies: ["MementoConfig"],
@@ -42,7 +43,8 @@ var MementoCore = (function() {
             "formatDate", "formatTime", "formatMoney",
             "isWeekend", "isHoliday", "getIcon"
         ],
-        status: "stable"
+        status: "stable",
+        changelog: "v8.0.0 - Standardized version, removed version from filename"
     };
 
     var version = MODULE_INFO.version;

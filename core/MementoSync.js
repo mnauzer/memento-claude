@@ -1,9 +1,10 @@
 /**
  * Knižnica:    MementoSync
- * Názov:       MementoSync1.js
+ * Názov:       MementoSync.js
  * Verzia:      1.8
  * Autor:       Claude Code
- * Dátum:       2026-03-18
+ * Dátum:       2026-03-19
+ * Predchádzajúca verzia: MementoSync1.js v1.8 (filename only changed)
  *
  * Popis:       Synchronizácia medzi Memento Database a PostgreSQL
  *

@@ -1,6 +1,7 @@
 // ==============================================
-// MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.1.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// MEMENTO CONFIG - CENTRAL CONFIGURATION
+// Verzia: 8.0.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// Predchádzajúca verzia: MementoConfig7.js v7.1.0
 // ==============================================
 // 📋 CHANGELOG: {project_root}/docs/CHANGELOG-MementoConfig.md
 // ==============================================
@@ -55,7 +56,7 @@ var MementoConfig = (function() {
 
     var MODULE_INFO = {
         name: "MementoConfig",
-        version: "7.1.0",
+        version: "8.0.0",
         author: "ASISTANTO",
         description: "Central configuration for all libraries, fields, icons, and module metadata",
         dependencies: [],  // No dependencies - foundation module
@@ -63,7 +64,8 @@ var MementoConfig = (function() {
             "getConfig", "getLibrary", "getField", "getIcon",
             "getLibraryModule", "getModuleFields"
         ],
-        status: "stable"
+        status: "stable",
+        changelog: "v8.0.0 - Standardized version, removed version from filename"
     };
 
     // Interná konfigurácia

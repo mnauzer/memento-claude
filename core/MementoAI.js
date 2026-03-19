@@ -1,6 +1,7 @@
 // ==============================================
-// MEMENTO AI - AI integrácia
-// Verzia: 7.0 | Dátum: August 2025 | Autor: ASISTANTO
+// MEMENTO AI - AI SERVICE INTEGRATION
+// Verzia: 8.0.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// Predchádzajúca verzia: MementoAI7.js v7.1.0
 // ==============================================
 // 📋 ÚČEL:
 //    - Integrácia s AI službami (OpenAI, Claude)
@@ -24,12 +25,13 @@ var MementoAI = (function() {
 
     var MODULE_INFO = {
         name: "MementoAI",
-        version: "7.1.0",
+        version: "8.0.0",
         author: "ASISTANTO",
         description: "AI service integration (OpenAI GPT-4, Claude API, image analysis)",
         dependencies: ["MementoUtils"],
         provides: ["callOpenAI", "callClaude", "analyzeImage", "httpRequest"],
-        status: "stable"
+        status: "stable",
+        changelog: "v8.0.0 - Standardized version, removed version from filename"
     };
 
     var version = MODULE_INFO.version;

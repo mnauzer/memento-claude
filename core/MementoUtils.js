@@ -1,6 +1,7 @@
 // ==============================================
 // MEMENTOUTILS - Universal Module Aggregator
 // Verzia: 8.1.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// Predchádzajúca verzia: MementoUtils7.js v8.1.0 (filename only changed)
 // ==============================================
 // 📋 PURPOSE:
 //    - Single import point for all Memento modules
