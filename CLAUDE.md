@@ -10,41 +10,93 @@ This is a **Memento Database scripting project** - a JavaScript library and util
 
 ## High-Level Architecture
 
-### Module Dependency Chain
+### Module Dependency Chain (v8.0+)
 
 All scripts follow a strict dependency hierarchy:
 
 ```
-MementoConfig7.js (no dependencies - configuration only)
-    ↓
-MementoCore7.js (depends on Config - logging, validation, field access)
-    ↓
-MementoUtils7.js, MementoBusiness7.js, MementoAI7.js (depend on Core + Config)
-    ↓
-MementoTelegram8.js (depends on all above)
-    ↓
-Library Scripts (depend on relevant core modules)
+LEVEL 0: Configuration
+MementoConfig (v7.1+) - No dependencies
+
+LEVEL 1: Foundation
+MementoCore (v7.6+) - Depends on Config
+
+LEVEL 2: Focused Utilities
+MementoTime (v1.1+) - Time operations
+MementoDate (v1.0+) - Slovak calendar
+MementoValidation (v1.0+) - Validation patterns
+MementoFormatting (v1.0+) - Formatters
+MementoCalculations (v1.0+) - Business calculations
+
+LEVEL 3: Business Logic
+MementoBusiness (v8.0+) - High-level workflows (uses focused utilities)
+
+LEVEL 4: Aggregator
+MementoUtils (v8.1+) - Lazy-loading facade for all above
+
+SEPARATE CHAIN:
+MementoTelegram (v8.2+) - Depends ONLY on MementoCore (not Utils)
+                          Import directly: var telegram = typeof MementoTelegram !== 'undefined' ? MementoTelegram : null;
+
+Library Scripts - Depend on relevant core modules
 ```
 
-**Critical:** When working with any script, always verify its dependencies in the script header. Load order matters in Memento Database.
+**Critical:** Load order matters in Memento Database. See `docs/CORE_MODULES_AGGREGATION.md` for complete load order documentation.
+
+**Breaking Change v7→v8:** MementoTelegram NO LONGER accessible via `utils.telegram` (circular dependency fixed). Must import directly.
 
 ### Core Modules (`core/`)
 
-Located in `core/` directory for easy access from Memento Database. All core modules use version numbers in filenames (exception to naming convention).
+Located in `core/` directory for easy access from Memento Database.
 
-- **MementoConfig7.js** - Single source of truth for all library names, field names, library IDs, icons, constants. Never hardcode field names; always use `config.fields.{library}.{field}`.
+**NOTE:** Version numbers in filenames are being phased out (legacy modules still have them).
 
-- **MementoCore7.js** - Foundation utilities: logging (`addDebug`, `addError`, `addInfo`), safe field access, validation, icon management. Zero external dependencies.
+#### Foundation (ALWAYS REQUIRED)
 
-- **MementoUtils7.js** - Extended helpers: time calculations (15-minute rounding), date formatting, field manipulation, common utilities.
+- **MementoConfig (v7.1+)** - Single source of truth for all library names, field names, library IDs, icons, constants, module metadata. Never hardcode field names; always use `config.fields.{library}.{field}`.
 
-- **MementoBusiness7.js** - Business logic: attendance calculations, payroll processing, work hours, rate calculations. Domain-specific logic lives here.
+- **MementoCore (v7.6+)** - Foundation utilities: logging (`addDebug`, `addError`, `addInfo`), safe field access, validation, icon management. Zero external dependencies. Access via `utils.core` or direct functions on `utils`.
 
-- **MementoAI7.js** - AI service integration: OpenAI GPT-4, Claude API, HTTP wrappers, image analysis.
+#### Focused Utilities (NEW in v8.0 - Phase 3)
 
-- **MementoTelegram8.js** - Telegram Bot API: message sending/editing/deleting, group chat support, thread support, notification aggregation.
+- **MementoTime (v1.1+)** - Time operations: 15-minute rounding (`roundToQuarterHour`), work hours calculation (`calculateHoursDifference`), time formatting, break time calculation. Access via `utils.time`.
 
-- **MementoGPS.js** - GPS utilities: coordinate handling, distance calculations.
+- **MementoDate (v1.0+)** - Slovak calendar utilities: weekend detection (`isWeekend`), holiday checking (`isHoliday`), week numbers (`getWeekNumber`), workday calculations. Access via `utils.date`.
+
+- **MementoValidation (v1.0+)** - Validation patterns: time validation (`validateTime`), date validation (`validateDate`), number validation, required field checking. Access via `utils.validation`.
+
+- **MementoFormatting (v1.0+)** - Display formatters: money formatting (`formatMoney`), duration formatting (`formatDuration`), date/time formatting, employee name formatting. Access via `utils.formatting`.
+
+- **MementoCalculations (v1.0+)** - Business calculations: daily wage (`calculateDailyWage`), overtime (`calculateOvertime`), VAT calculation, break time, profitability. Access via `utils.calculations`.
+
+#### Business Logic
+
+- **MementoBusiness (v8.0+)** - High-level workflows: employee processing, attendance aggregation, report generation, obligation management. Orchestrates focused utilities. **Reduced from 3,942 to 1,050 lines in v8.0**. Access via `utils.business`.
+
+#### Aggregator
+
+- **MementoUtils (v8.1+)** - Universal aggregator providing single import point for all modules. Lazy-loading pattern for optimal performance. Comprehensive dependency checking (`checkAllDependencies`). See `docs/CORE_MODULES_AGGREGATION.md` for complete documentation.
+
+#### Specialized Modules
+
+- **MementoAI (v7.1+)** - AI service integration: OpenAI GPT-4, Claude API, HTTP wrappers, image analysis. Access via `utils.ai`.
+
+- **MementoTelegram (v8.2+)** - Telegram Bot API: message sending/editing/deleting, group chat support, thread support, notification aggregation. **⚠️ NOT aggregated in MementoUtils** (circular dependency). Must import directly: `var telegram = typeof MementoTelegram !== 'undefined' ? MementoTelegram : null;`
+
+- **MementoGPS (v1.1+)** - GPS utilities: coordinate handling, distance calculations, OSRM routing. Access via `utils.gps`.
+
+- **MementoRecordTracking (v1.1+)** - Record lifecycle tracking. Access via `utils.recordTracking`.
+
+- **MementoIDConflictResolver (v1.1+)** - ID conflict resolution for team environments. Access via `utils.idConflictResolver`.
+
+- **MementoSync (v1.1+)** - PostgreSQL synchronization module (specialized, import on demand).
+
+#### Deprecated Modules
+
+- **MementoVAT** - ⚠️ Deprecated: Use `utils.calculations.calculateVAT()` instead
+- **MementoAutoNumber** - ⚠️ Deprecated: Use `utils.business.generateNextNumber()` instead
+
+**See `docs/CORE_MODULES_DOCUMENTATION.md` for complete API reference.**
 
 ### Library Scripts (`libraries/`)
 
