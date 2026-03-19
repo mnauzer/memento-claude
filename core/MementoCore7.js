@@ -1,13 +1,20 @@
 // ==============================================
 // MEMENTO CORE - Základné funkcie
-// Verzia: 7.0 | Dátum: August 2025 | Autor: ASISTANTO
+// Verzia: 7.6.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - Základné utility funkcie pre všetky scripty
 //    - Logging, formátovanie, validácia
 //    - Safe field access
-//    - Žiadne závislosti na iných moduloch
+//    - Žiadne závislosti na iných moduloch (okrem MementoConfig)
 // ==============================================
+// 🔧 CHANGELOG v7.6.0:
+//    - PRIDANÉ: MODULE_INFO pre verziovanie a dependency tracking
+//    - AKTUALIZOVANÉ: validateInputData teraz podporuje aj array-based pattern
+//      * Starý pattern (section-based): validateInputData(entry, "attendance", options)
+//      * Nový pattern (array-based): validateInputData(entry, ["Dátum", "Príchod"], options)
+//      * Oba patterny fungujú pre backward compatibility
+//    - Pripravené pre Phase 1 core refactoring
 // 🔧 CHANGELOG v7.0:
 //    - Zjednodušená štruktúra bez fallbackov
 //    - Priamy prístup k MementoConfig
@@ -17,8 +24,28 @@
 
 var MementoCore = (function() {
     'use strict';
-    
-    var version = "7.0.2";
+
+    // ==============================================
+    // MODULE INFO
+    // ==============================================
+
+    var MODULE_INFO = {
+        name: "MementoCore",
+        version: "7.6.0",
+        author: "ASISTANTO",
+        description: "Foundation utilities - logging, validation, safe field access, formatting",
+        dependencies: ["MementoConfig"],
+        provides: [
+            "addDebug", "addError", "addInfo", "clearLogs",
+            "safeGet", "safeSet", "safeGetAttribute", "safeSetAttribute",
+            "validateInputData", "validateRequiredFields",
+            "formatDate", "formatTime", "formatMoney",
+            "isWeekend", "isHoliday", "getIcon"
+        ],
+        status: "stable"
+    };
+
+    var version = MODULE_INFO.version;
     
     // Lazy loading pre MementoConfig
     var _config = null;
@@ -803,92 +830,142 @@ var MementoCore = (function() {
 
     /**
      * Univerzálna validácia vstupných dát pre akúkoľvek knižnicu
+     *
+     * PODPORUJE DVA PATTERNY:
+     * 1. Array-based (ODPORÚČANÝ): validateInputData(entry, ["Dátum", "Príchod"], options)
+     * 2. Section-based (DEPRECATED): validateInputData(entry, "attendance", options)
+     *
      * @param {Entry} entry - Záznam na validáciu
-     * @param {string} librarySection - Názov sekcie knižnice v config.fields (napr. "attendance", "workRecord")
+     * @param {Array<string>|string} requiredFieldsOrSection - Array field names OR library section (deprecated)
      * @param {Object} options - Voliteľné nastavenia
-     * @param {Object} options.config - MementoConfig (voliteľné, ak nie je dostupný ako globálna premenná)
+     * @param {Object} options.config - MementoConfig (voliteľné)
      * @param {Object} options.customMessages - Vlastné error správy pre jednotlivé polia
-     * @param {Array} options.additionalFields - Ďalšie polia na validáciu navyše k requiredFields
-     * @returns {Object} - { success: boolean, error: string, data: { fieldKey: fieldValue, ... } }
+     * @param {Array} options.additionalFields - Ďalšie polia na validáciu
+     * @param {boolean} options.allowEmpty - Povoliť prázdne hodnoty (default: false)
+     * @returns {Object} - { success: boolean, error: string, data: { fieldName: value, ... }, missingFields: [...] }
+     *
+     * @example
+     * // NOVÝ PATTERN (array-based)
+     * var result = validateInputData(entry, ["Dátum", "Príchod", "Odchod"], {});
+     *
+     * // STARÝ PATTERN (section-based - deprecated)
+     * var result = validateInputData(entry, "attendance", {});
      */
-    function validateInputData(entry, librarySection, options) {
+    function validateInputData(entry, requiredFieldsOrSection, options) {
         try {
             options = options || {};
             var config = options.config || getConfig();
 
-            if (!config) {
-                addError(entry, "CONFIG nie je dostupný pre validáciu", "validateInputData");
-                return { success: false, error: "Chyba konfigurácie" };
+            // ==============================================
+            // PATTERN DETECTION
+            // ==============================================
+
+            var requiredFields = [];
+            var isArrayPattern = Array.isArray(requiredFieldsOrSection);
+            var isSectionPattern = typeof requiredFieldsOrSection === 'string';
+
+            if (isArrayPattern) {
+                // NOVÝ PATTERN - Array-based (field names directly)
+                requiredFields = requiredFieldsOrSection;
+                addDebug(entry, "🔍 Validujem vstupné dáta (array-based pattern)");
+
+            } else if (isSectionPattern) {
+                // STARÝ PATTERN - Section-based (library section lookup)
+                addDebug(entry, "⚠️ Používam DEPRECATED section-based pattern. Prejdite na array-based pattern.");
+
+                if (!config) {
+                    addError(entry, "CONFIG nie je dostupný pre validáciu", "validateInputData");
+                    return { success: false, error: "Chyba konfigurácie" };
+                }
+
+                // Získame field mapping pre túto knižnicu
+                var librarySection = requiredFieldsOrSection;
+                var fields = config.fields[librarySection];
+
+                if (!fields) {
+                    addError(entry, "Neznáma sekcia knižnice: " + librarySection, "validateInputData");
+                    return { success: false, error: "Neznáma sekcia knižnice: " + librarySection };
+                }
+
+                // Získame zoznam povinných polí z config
+                var requiredFieldKeys = fields.requiredFields || [];
+                if (requiredFieldKeys.length === 0) {
+                    addDebug(entry, "⚠️ Žiadne povinné polia nie sú definované pre: " + librarySection);
+                }
+
+                // Konvertuj field keys na field names
+                for (var i = 0; i < requiredFieldKeys.length; i++) {
+                    var fieldKey = requiredFieldKeys[i];
+                    var fieldName = fields[fieldKey];
+                    if (fieldName) {
+                        requiredFields.push(fieldName);
+                    } else {
+                        addError(entry, "Pole '" + fieldKey + "' nie je definované v config.fields." + librarySection, "validateInputData");
+                    }
+                }
+
+                addDebug(entry, "🔍 Validujem vstupné dáta pre: " + librarySection);
+
+            } else {
+                // NEPLATNÝ PATTERN
+                addError(entry, "validateInputData: Neplatný parameter - očakával sa Array alebo String", "validateInputData");
+                return { success: false, error: "Neplatný parameter validácie" };
             }
 
-            // Získame field mapping pre túto knižnicu
-            var fields = config.fields[librarySection];
-            if (!fields) {
-                addError(entry, "Neznáma sekcia knižnice: " + librarySection, "validateInputData");
-                return { success: false, error: "Neznáma sekcia knižnice" };
-            }
-
-            // Získame zoznam povinných polí
-            var requiredFieldKeys = fields.requiredFields || [];
+            // Pridaj dodatočné polia ak sú špecifikované
             if (options.additionalFields && Array.isArray(options.additionalFields)) {
-                requiredFieldKeys = requiredFieldKeys.concat(options.additionalFields);
+                requiredFields = requiredFields.concat(options.additionalFields);
             }
 
-            if (requiredFieldKeys.length === 0) {
-                addDebug(entry, "⚠️ Žiadne povinné polia nie sú definované pre: " + librarySection);
-            }
+            // ==============================================
+            // VALIDATION LOGIC (shared for both patterns)
+            // ==============================================
 
-            // Validácia a zber dát
             var data = {};
             var missingFields = [];
             var customMessages = options.customMessages || {};
+            var allowEmpty = options.allowEmpty || false;
 
-            addDebug(entry, "🔍 Validujem vstupné dáta pre: " + librarySection);
-
-            for (var i = 0; i < requiredFieldKeys.length; i++) {
-                var fieldKey = requiredFieldKeys[i];
-                var fieldName = fields[fieldKey];
-
-                if (!fieldName) {
-                    addError(entry, "Pole '" + fieldKey + "' nie je definované v config.fields." + librarySection, "validateInputData");
-                    continue;
-                }
-
+            for (var j = 0; j < requiredFields.length; j++) {
+                var fieldName = requiredFields[j];
                 var value = entry.field(fieldName);
 
                 // Kontrola prázdnosti
                 var isEmpty = (value === null || value === undefined || value === "" ||
                               (Array.isArray(value) && value.length === 0));
 
-                if (isEmpty) {
+                if (isEmpty && !allowEmpty) {
                     missingFields.push(fieldName);
-                    var errorMsg = customMessages[fieldKey] || ("Chýba povinné pole: " + fieldName);
+                    var errorMsg = customMessages[fieldName] || ("Chýba povinné pole: " + fieldName);
                     addDebug(entry, "❌ " + errorMsg);
                 } else {
-                    data[fieldKey] = value;
+                    // Ulož hodnotu do data objektu (použij field name ako kľúč)
+                    data[fieldName] = value;
                     addDebug(entry, "✅ " + fieldName + ": OK");
                 }
             }
 
-            // Výsledok validácie
+            // ==============================================
+            // RESULT
+            // ==============================================
+
             if (missingFields.length > 0) {
                 var errorMessage = "Chýbajú povinné polia: " + missingFields.join(", ");
                 addError(entry, errorMessage, "validateInputData");
-                addInfo(entry, "❌ Validácia zlyhala: " + errorMessage);
                 return {
                     success: false,
                     error: errorMessage,
                     missingFields: missingFields,
-                    data: data
+                    data: data  // Vráť aj partial data pre debugging
                 };
             }
 
             addDebug(entry, "✅ Validácia úspešná - všetky povinné polia sú vyplnené");
-            addInfo(entry, "✅ Vstupné dáta validované");
 
             return {
                 success: true,
-                data: data
+                data: data,
+                missingFields: []
             };
 
         } catch (e) {
@@ -1698,8 +1775,10 @@ var MementoCore = (function() {
     }
 
     return {
+        // Module metadata
+        info: MODULE_INFO,
         version: version,
-        
+
         // Logging
         addDebug: addDebug,
         addError: addError,

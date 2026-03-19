@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO CONFIG - Centralizovaná konfigurácia
-// Verzia: 7.0.53 | Dátum: 2025-10-12 | Autor: ASISTANTO
+// Verzia: 7.1.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
 // ==============================================
 // 📋 CHANGELOG: {project_root}/docs/CHANGELOG-MementoConfig.md
 // ==============================================
@@ -9,6 +9,7 @@
 //    - Všetky názvy knižníc, polí a atribútov
 //    - Globálne nastavenia a konštanty
 //    - Jednoduchý prístup cez API
+//    - Metadata pre library-specific modules (NOVÉ v7.1.0)
 // ==============================================
 //
 // 🔧 POUŽITIE V INÝCH MODULOCH:
@@ -32,14 +33,42 @@
 //    config.hasField("attendance", "date");    // Existuje pole?
 //    config.getAllLibraries();                 // Zoznam všetkých knižníc
 //    config.getAllFields("attendance");        // Zoznam polí kategórie
+//
+// NOVÉ v7.1.0 - Prístup k library modules:
+//    config.getLibraryModule("Dochadzka");     // Metadata o module
+//    config.getModuleFields("Dochadzka");      // Field mappings modulu
+// ==============================================
+//
+// 🔧 CHANGELOG v7.1.0:
+//    - PRIDANÉ: MODULE_INFO pre verziovanie
+//    - PRIDANÉ: libraryModules section pre metadata library-specific modules
+//    - Podpora pre nový modules/ directory architecture
+//    - Field mappings pre reusable modules (Dochadzka, Pokladna, CenovePonuky, KnihaJazd)
 // ==============================================
 
 var MementoConfig = (function() {
     'use strict';
-    
+
+    // ==============================================
+    // MODULE INFO
+    // ==============================================
+
+    var MODULE_INFO = {
+        name: "MementoConfig",
+        version: "7.1.0",
+        author: "ASISTANTO",
+        description: "Central configuration for all libraries, fields, icons, and module metadata",
+        dependencies: [],  // No dependencies - foundation module
+        provides: [
+            "getConfig", "getLibrary", "getField", "getIcon",
+            "getLibraryModule", "getModuleFields"
+        ],
+        status: "stable"
+    };
+
     // Interná konfigurácia
     var CONFIG = {
-        version: "7.0.53",  // CHANGELOG moved to /docs/CHANGELOG-MementoConfig.md - saved ~9KB
+        version: MODULE_INFO.version,  // CHANGELOG moved to /docs/CHANGELOG-MementoConfig.md - saved ~9KB
         recipientMapping: {
             "Partner": {
                 linkField: "Partner",
@@ -232,6 +261,92 @@ var MementoConfig = (function() {
             // Telegram knižnice
             notifications: "Notifications",
             telegramGroups: "Telegram Groups"
+        },
+
+        // === LIBRARY MODULES METADATA (NOVÉ v7.1.0) ===
+        // Metadata pre library-specific reusable modules v modules/ directory
+        libraryModules: {
+            Dochadzka: {
+                file: "modules/Dochadzka.js",
+                version: "1.0.1",
+                library: "Dochádzka",
+                status: "active",
+                description: "Attendance calculation and wage management module",
+                fields: {
+                    date: "Dátum",
+                    arrival: "Príchod",
+                    departure: "Odchod",
+                    employees: "Zamestnanci",
+                    workTime: "Pracovná doba",
+                    workedHours: "Odpracované hodiny",
+                    employeeCount: "Počet pracovníkov",
+                    wageCosts: "Mzdové náklady",
+                    totalWages: "Celková mzda",
+                    entryIcons: "ikony záznamu",
+                    entryStatus: "Stav záznamu",
+                    dayOffReason: "Dôvod voľna",
+                    info: "info"
+                }
+            },
+            Pokladna: {
+                file: "modules/Pokladna.js",
+                version: "1.0.0",
+                library: "Pokladňa",
+                status: "active",
+                description: "Cash register operations and obligations management",
+                fields: {
+                    date: "Dátum",
+                    amount: "Suma",
+                    sumWithVat: "Suma s DPH",
+                    isVat: "s DPH",
+                    vatRate: "Sadzba DPH",
+                    description: "Popis",
+                    obligations: "Záväzky",
+                    recordType: "Typ záznamu",
+                    info: "info"
+                }
+            },
+            CenovePonuky: {
+                file: "modules/CenovePonuky.js",
+                version: "1.0.0",
+                library: "Cenové ponuky",
+                status: "active",
+                description: "Price quote calculations and order creation",
+                fields: {
+                    identifier: "Identifikátor",
+                    description: "Popis",
+                    client: "Klient",
+                    parts: "Diely",
+                    sumWithoutVat: "Suma bez DPH",
+                    vat: "DPH",
+                    sumWithVat: "Suma s DPH",
+                    status: "Stav",
+                    info: "info"
+                }
+            },
+            KnihaJazd: {
+                file: "modules/KnihaJazd.js",
+                version: "1.0.0",
+                library: "Kniha jázd",
+                status: "active",
+                description: "Ride log calculation and daily report integration",
+                fields: {
+                    date: "Dátum",
+                    timeFrom: "Čas od",
+                    timeTo: "Čas do",
+                    vehicle: "Vozidlo",
+                    startLocation: "Začiatok",
+                    endLocation: "Koniec",
+                    kmStart: "Stav km začiatok",
+                    kmEnd: "Stav km koniec",
+                    kmTotal: "Km celkom",
+                    crew: "Osádka",
+                    wageCosts: "Mzdové náklady",
+                    transportCosts: "Náklady dopravy",
+                    info: "info"
+                }
+            }
+            // Future modules will be added here as they are extracted
         },
 
         // === ID KNIŽNÍC (pre API prístup) ===
@@ -1773,8 +1888,10 @@ var MementoConfig = (function() {
     
     // === PUBLIC API ===
     return {
+        // Module metadata
+        info: MODULE_INFO,
         version: CONFIG.version,
-        
+
         // Priamy prístup k celému CONFIGu
         getConfig: function() {
             return CONFIG;
@@ -1890,6 +2007,62 @@ var MementoConfig = (function() {
          */
         hasReportConfig: function(reportType) {
             return CONFIG.reportConfigs.hasOwnProperty(reportType);
+        },
+
+        // === LIBRARY MODULES (NOVÉ v7.1.0) ===
+
+        /**
+         * Získa metadata o library module
+         * @param {string} moduleName - Názov modulu (napr. "Dochadzka")
+         * @returns {Object|null} Metadata modulu alebo null
+         *
+         * @example
+         * var module = MementoConfig.getLibraryModule("Dochadzka");
+         * // Returns: { file: "modules/Dochadzka.js", version: "1.0.1", library: "Dochádzka", ... }
+         */
+        getLibraryModule: function(moduleName) {
+            return CONFIG.libraryModules[moduleName] || null;
+        },
+
+        /**
+         * Získa field mappings pre library module
+         * @param {string} moduleName - Názov modulu
+         * @returns {Object|null} Field mappings alebo null
+         *
+         * @example
+         * var fields = MementoConfig.getModuleFields("Dochadzka");
+         * // Returns: { date: "Dátum", arrival: "Príchod", ... }
+         */
+        getModuleFields: function(moduleName) {
+            var module = CONFIG.libraryModules[moduleName];
+            return module ? module.fields : null;
+        },
+
+        /**
+         * Získa verziu library modulu
+         * @param {string} moduleName - Názov modulu
+         * @returns {string|null} Verzia alebo null
+         */
+        getModuleVersion: function(moduleName) {
+            var module = CONFIG.libraryModules[moduleName];
+            return module ? module.version : null;
+        },
+
+        /**
+         * Kontrola existencie library modulu
+         * @param {string} moduleName - Názov modulu
+         * @returns {boolean} True ak existuje
+         */
+        hasLibraryModule: function(moduleName) {
+            return CONFIG.libraryModules.hasOwnProperty(moduleName);
+        },
+
+        /**
+         * Získa všetky dostupné library modules
+         * @returns {Array<string>} Zoznam názvov modulov
+         */
+        getAllLibraryModules: function() {
+            return Object.keys(CONFIG.libraryModules);
         }
     };
 })();
