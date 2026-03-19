@@ -885,6 +885,154 @@ Ak vidíš neaktuálnu dokumentáciu, OKAMŽITE ju aktualizuj.
 
 ---
 
+## Memento Programming Agent
+
+### Overview
+
+For advanced Memento Database script development, use the specialized **Memento Programming Agent** located in `.claude/agents/memento-programming/`.
+
+This agent provides expert assistance with deep knowledge of:
+- ✅ 18 core modules with full API reference
+- ✅ 41 libraries with 712 mapped fields
+- ✅ Best practices and naming conventions
+- ✅ MCP integration for real-time verification
+- ✅ Common pitfalls and solutions
+- ✅ TIME field timezone fix, lib() access patterns, etc.
+
+### Agent Capabilities
+
+**1. Library Structure Verification**
+- Uses MCP to verify current field names, types, and relationships
+- Prevents "field not found" errors
+- Ensures code matches actual library structure
+
+**2. Script Template Generation**
+- Generates production-ready scripts following Template-Script.js v9.0.0
+- Follows all naming conventions automatically
+- Includes all required boilerplate (dependency checks, logging, error handling)
+
+**3. Code Quality Validation**
+- Reviews scripts against comprehensive checklist
+- Identifies violations of best practices
+- Suggests specific improvements with examples
+
+**4. Module Function Suggestion**
+- Recommends appropriate core module functions
+- Prevents code duplication
+- Guides proper use of focused utilities (Time, Date, Validation, etc.)
+
+**5. Multi-Library Query Generation**
+- Creates GraphQL-inspired MCP queries
+- Handles complex JOINs and aggregations
+- Optimizes query performance
+
+**6. Dependency Chain Validation**
+- Ensures correct module load order
+- Validates dependency requirements
+- Catches circular dependency issues
+
+### Usage Examples
+
+#### Generate Script
+```
+"Generate a calculation script for Dochádzka that:
+- Validates date and time fields
+- Calculates worked hours
+- Applies hourly rate from employee
+- Checks if weekend
+- Sets wage field"
+```
+
+#### Review Code
+```
+"Review this Memento script for best practices:
+[paste your script code here]"
+```
+
+#### Verify Library Structure
+```
+"Verify structure of Kniha jázd library before generating code"
+```
+
+### Knowledge Base
+
+The agent has access to comprehensive knowledge in `.claude/agents/memento-programming/knowledge/`:
+
+| File | Content |
+|------|---------|
+| 01-core-modules.md | API reference for all 18 core modules |
+| 02-library-patterns.md | Script structure templates and patterns |
+| 03-memento-api.md | Memento Database API specifics |
+| 04-best-practices.md | Coding standards and conventions |
+| 05-mcp-integration.md | MCP tools usage (13 tools) |
+| 06-common-pitfalls.md | Known issues and solutions |
+
+### Agent Workflow
+
+When you request script generation or review:
+
+1. **Verification** - Agent uses MCP to verify library structure (field names, types)
+2. **Analysis** - Reviews requirements and selects appropriate patterns
+3. **Generation** - Creates code following Template-Script.js structure
+4. **Validation** - Checks against best practices checklist
+5. **Documentation** - Adds comprehensive comments and logging
+
+### Critical Rules Applied Automatically
+
+The agent automatically applies all critical fixes and patterns:
+
+- ✅ Never hardcodes field names (uses MementoConfig)
+- ✅ Uses safe field accessors (utils.safeGet, utils.safeGetLinks)
+- ✅ Applies TIME field timezone fix when needed
+- ✅ Uses lib().title (property, not method)
+- ✅ Uses entry.id for foreign keys (not custom ID field)
+- ✅ Imports MementoTelegram directly (not via utils)
+- ✅ Uses dialog() for multi-line messages (not message())
+- ✅ Includes dependency validation (checkAllDependencies)
+- ✅ Implements comprehensive error handling
+- ✅ Adds proper logging (Debug_Log, Error_Log, info)
+
+### Agent Configuration
+
+**Location:** `.claude/agents/memento-programming/agent.json`
+
+**Statistics:**
+- Knowledge Files: 6
+- Example Scripts: 1
+- Prompt Templates: 3
+- Core Modules Covered: 18
+- Libraries Supported: 41
+- Fields Mapped: 712
+- MCP Tools Available: 13
+
+### When to Use the Agent
+
+**Use the agent when:**
+- Creating new Memento Database scripts
+- Reviewing existing scripts for quality
+- Verifying library structure before coding
+- Learning best practices and patterns
+- Troubleshooting common issues
+- Generating MCP queries
+
+**The agent saves time by:**
+- Preventing common errors (hardcoded fields, wrong field types)
+- Applying best practices automatically
+- Generating boilerplate code correctly
+- Suggesting appropriate core module functions
+- Catching issues before deployment
+
+### Maintenance
+
+To update the agent:
+1. Edit knowledge base files in `.claude/agents/memento-programming/knowledge/`
+2. Add new examples to `examples/`
+3. Update prompt templates in `prompts/`
+4. Bump version in `agent.json`
+5. Update `.claude/agents/memento-programming/README.md`
+
+---
+
 ## Summary
 
 Tento projekt používa:

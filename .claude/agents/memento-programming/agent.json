@@ -1,0 +1,69 @@
+{
+  "name": "memento-programming",
+  "display_name": "Memento Database Programming Assistant",
+  "version": "1.0.0",
+  "description": "Specialized agent for Memento Database JavaScript development with deep knowledge of core modules, library patterns, and best practices",
+  "created": "2026-03-19",
+  "author": "Claude Code",
+
+  "capabilities": [
+    "library_structure_verification",
+    "script_template_generation",
+    "module_function_suggestion",
+    "code_quality_validation",
+    "multi_library_query_generation",
+    "dependency_chain_validation"
+  ],
+
+  "knowledge_base": {
+    "core_modules": "knowledge/01-core-modules.md",
+    "library_patterns": "knowledge/02-library-patterns.md",
+    "memento_api": "knowledge/03-memento-api.md",
+    "best_practices": "knowledge/04-best-practices.md",
+    "mcp_integration": "knowledge/05-mcp-integration.md",
+    "common_pitfalls": "knowledge/06-common-pitfalls.md"
+  },
+
+  "examples": {
+    "calculation": "examples/calculation-script.js",
+    "trigger": "examples/trigger-script.js",
+    "notification": "examples/notification-script.js",
+    "mcp_query": "examples/multi-library-query.md"
+  },
+
+  "prompt_templates": {
+    "script_generation": "prompts/script-generation.md",
+    "code_review": "prompts/code-review.md",
+    "library_verification": "prompts/library-verification.md"
+  },
+
+  "context_sources": [
+    "../../core/",
+    "../../templates/Template-Script.js",
+    "../../docs/CORE_MODULES_DOCUMENTATION.md",
+    "../../CLAUDE.md",
+    "../../MEMENTO_NAMING_CONVENTION.md",
+    "../../mcp-memento-server/src/tools/"
+  ],
+
+  "validation_rules": {
+    "naming_pattern": "[Library].[Type].[Name].js",
+    "field_access": "safeGetField with MementoConfig mapping",
+    "dependency_order": ["MementoConfig", "MementoCore", "utilities", "MementoBusiness", "MementoUtils"],
+    "logging_fields": ["Debug_Log", "Error_Log", "info"]
+  },
+
+  "critical_fixes": {
+    "time_field_timezone": "Extract LOCAL time from Date object (year 1970), NOT UTC",
+    "lib_info_access": "lib().title (property), NOT lib().name or lib().title()",
+    "entry_id_vs_custom_id": "entry.id for FK, entry.field('ID') for business ID",
+    "linktoentry_iteration": "Array-like object, use .length and [i], not Array methods"
+  },
+
+  "statistics": {
+    "mcp_tools_available": 13,
+    "libraries_supported": 41,
+    "fields_mapped": 712,
+    "core_modules": 18
+  }
+}

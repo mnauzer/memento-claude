@@ -59,7 +59,8 @@ screenshots/
 # Skryté adresáre
 .backup/
 .backup*/
-.claude/
+.claude/*          # Ignore everything in .claude/
+!.claude/agents/   # Except agents directory
 .conversations/
 .doc/
 .docs/
@@ -152,6 +153,11 @@ playground.js
 # Delete trigger scripty (SYNCHRONIZOVANÉ)
 !*Delete*.js
 !*delete*.js
+
+# Agent files (SYNCHRONIZOVANÉ)
+!.claude/agents/**/*.md
+!.claude/agents/**/*.json
+!.claude/agents/**/*.js
 
 # ========================================
 # POZNÁMKA:
