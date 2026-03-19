@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO TIME - Time Utilities Module
-// Verzia: 1.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// Verzia: 1.1.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
 // ==============================================
 // 📋 PURPOSE:
 //    - Centralized time manipulation utilities
@@ -34,9 +34,17 @@ var MementoTime = (function() {
 
     var MODULE_INFO = {
         name: "MementoTime",
-        version: "1.0.0",
+        version: "1.1.0",
         author: "ASISTANTO",
-        description: "Time manipulation and formatting utilities"
+        description: "Time manipulation and formatting utilities (rounding, calculations, conversions)",
+        dependencies: [],  // No dependencies - standalone module
+        provides: [
+            "roundToQuarterHour", "calculateHoursDifference", "calculateBreakTime",
+            "minutesToDecimalHours", "decimalHoursToMinutes", "formatHoursAsTime",
+            "formatHoursDisplay", "crossesMidnight", "isValidTime"
+        ],
+        status: "stable",
+        note: "Phase 3: Enhanced with complete MODULE_INFO"
     };
 
     // ==============================================
