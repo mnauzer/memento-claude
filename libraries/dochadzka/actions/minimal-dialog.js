@@ -1,0 +1,1 @@
+dialog("🔍 Debug v3 Started", "If you see this, dialog() works!\n\nNow running tests...", "OK");

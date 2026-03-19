@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO LOG CAPTURE - AUTOMATIC LOG SHARING
-// Verzia: 1.0.4 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// Verzia: 1.1.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - Automatické zachytávanie logov do ASISTANTO Logs library
@@ -8,6 +8,9 @@
 //    - Eliminuje manuálne kopírovanie Debug_Log a Error_Log
 //    - Reusable pattern pre všetky knižnice
 // ==============================================
+// 🔧 CHANGELOG v1.1.0:
+//    - FIX: Use CORRECT create() syntax - pass field values as object
+//    - Per official docs: https://scripts.mementodatabase.com/script_api/library/
 // 🔧 CHANGELOG v1.0.4:
 //    - FIX: Removed "line" field setting - field is for error line number, not status
 // 🔧 CHANGELOG v1.0.3:
@@ -68,7 +71,7 @@ var MementoLogCapture = (function() {
 
     var MODULE_INFO = {
         name: "MementoLogCapture",
-        version: "1.0.4",
+        version: "1.1.0",
         author: "ASISTANTO",
         description: "Automatic log capture to ASISTANTO Logs library for Claude MCP integration",
         dependencies: ["MementoConfig"],
@@ -81,7 +84,7 @@ var MementoLogCapture = (function() {
             "appendToField"
         ],
         status: "stable",
-        changelog: "v1.0.4 - Fixed: Removed 'line' field setting (field is for error line numbers)"
+        changelog: "v1.1.0 - Fixed: Use correct create() syntax with field values object"
     };
 
     // ==============================================
@@ -173,29 +176,24 @@ var MementoLogCapture = (function() {
                 return null;
             }
 
-            // Create new log entry
-            var logEntry = asistantoLogs.create();
-
-            // Set metadata fields
-            logEntry.set("date", new Date());
-            logEntry.set("library", libraryName || "Unknown");
-
+            // Prepare script info
             var scriptInfo = scriptName;
             if (scriptVersion) {
                 scriptInfo += " v" + scriptVersion;
             }
-            logEntry.set("script", scriptInfo);
 
-            // Initialize log fields as empty
-            logEntry.set("Debug_Log", "");
-            logEntry.set("Error_Log", "");
-            logEntry.set("info", "");
+            // Create new log entry with CORRECT syntax (pass field values as object)
+            var logEntry = asistantoLogs.create({
+                "date": new Date().getTime(),
+                "library": libraryName || "Unknown",
+                "script": scriptInfo,
+                "Debug_Log": "",
+                "Error_Log": "",
+                "info": ""
+            });
 
             // Note: Don't set "line" field - it's for error line number, not status
-
-            // Set user (current user)
             // Note: Memento doesn't have built-in user() function
-            // This would need to be passed in or detected via other means
 
             return logEntry;
 
