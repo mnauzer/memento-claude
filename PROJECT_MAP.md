@@ -1,14 +1,14 @@
 # Memento-Claude Project Map
 
-**Posledná aktualizácia:** 2026-03-19 17:30
-**Celkový počet súborov:** 72 JavaScript files (+ MementoVAT modul)
-**Verzia projektu:** 8.0
+**Posledná aktualizácia:** 2026-03-19 22:52
+**Celkový počet súborov:** 77 JavaScript files (Phase 3/4 complete: +5 focused modules)
+**Verzia projektu:** 8.1.0
 
 ---
 
 ## Quick Navigation
 
-- [Core Modules](#core-modules) - 19 základných modulov (univerzálne)
+- [Core Modules](#core-modules) - 25 základných modulov (univerzálne) - **+5 new in Phase 3/4**
 - [Library-Specific Modules](#library-specific-modules) - Moduly pre konkrétne knižnice (nový adresár `modules/`)
 - [Library Scripts](#library-scripts) - Obchodná logika po knižniciach
   - [Evidencia - Denné záznamy](#evidencia---denné-záznamy)
@@ -23,40 +23,65 @@
 
 ---
 
-## Core Modules (20 súborov)
+## Core Modules (25 súborov)
 
-### Foundation Layer
+**Architecture:** Phase 3/4 (March 2026) - Split MementoBusiness monolith into focused modules
 
-| Súbor | Verzia | Účel | Závislosti |
-|-------|--------|------|-------------|
-| MementoConfig7.js | 7.0.53 | Centrálna konfigurácia - názvy knižníc, polí, ikon, konštánt | - |
-| MementoCore7.js | 7.0.2 | Foundation utilities - logging, formátovanie, validácia, safe field access | MementoConfig |
-| MementoUtils7.js | 7.4.0 | Agregátor všetkých modulov (lazy loading), jednotný prístupový bod | All modules |
-| **MementoTime.js** | **1.0.0** | **Time utilities - 15min rounding, time calculations, formatting (NEW)** | **moment.js** |
+### Foundation Layer (LEVEL 0-1)
 
-### Business Logic Layer
+| Súbor | Verzia | Lines | Účel | Závislosti |
+|-------|--------|-------|------|-------------|
+| MementoConfig7.js | **7.1.0** | ~600 | Centrálna konfigurácia - názvy knižníc, polí, ikon, konštánt, module metadata | - |
+| MementoCore7.js | **7.6.0** | ~1,200 | Foundation utilities - logging, validácia, safe field access, MODULE_INFO | MementoConfig |
 
-| Súbor | Verzia | Účel | Závislosti |
-|-------|--------|------|-------------|
-| MementoBusiness7.js | 7.x | Business logika - mzdy, pracovný čas, výkazy, rate calculations | MementoCore, Config |
+### Focused Utilities Layer (LEVEL 2 - NEW in Phase 3)
+
+| Súbor | Verzia | Lines | Účel | Závislosti |
+|-------|--------|-------|------|-------------|
+| **MementoTime.js** | **1.1.0** | **370** | **Time operations - 15min rounding, work hours, time formatting** | **moment.js** |
+| **MementoDate.js** | **1.0.0** | **470** | **Slovak calendar - holidays, weekends, workdays, week numbers** | **MementoConfig** |
+| **MementoValidation.js** | **1.0.0** | **600** | **Validation patterns - time, date, number, required fields** | **MementoCore** |
+| **MementoFormatting.js** | **1.0.0** | **550** | **Formatters - money, duration, date, phone, markdown** | **-** |
+| **MementoCalculations.js** | **1.0.0** | **750** | **Business calculations - wages, overtime, VAT, profitability** | **MementoTime, Date** |
+
+### Business Logic Layer (LEVEL 3)
+
+| Súbor | Verzia | Lines | Účel | Závislosti |
+|-------|--------|-------|------|-------------|
+| MementoBusiness.js | **8.0.0** | **1,050** | **High-level workflows - employee processing, reports (REFACTORED from 3,942 lines)** | Time, Date, Validation, Formatting, Calculations |
+
+**Note:** `.obsolete/core/MementoBusiness7.js` (3,942 lines) archived for reference.
+
+### Aggregator Layer (LEVEL 4)
+
+| Súbor | Verzia | Lines | Účel | Závislosti |
+|-------|--------|-------|------|-------------|
+| MementoUtils7.js | **8.1.0** | ~1,800 | Lazy-loading agregátor všetkých modulov, dependency checking, backward compatibility facade | All above |
 
 ### Integration Layer
 
-| Súbor | Verzia | Účel | Závislosti |
-|-------|--------|------|-------------|
-| MementoAI7.js | 7.x | AI integrácia - OpenAI GPT-4, Claude API, image analysis | MementoCore, Config |
-| MementoTelegram8.js | 8.x | Telegram Bot API - messaging, groups, threads, notifications | MementoCore, Config |
-| MementoGPS.js | 1.x | GPS utilities - coordinates, distance calculations, OSRM routing | MementoCore, Config |
-| MementoSync1.js | 1.x | PostgreSQL synchronizácia | MementoCore, Config |
+| Súbor | Verzia | Lines | Účel | Závislosti |
+|-------|--------|-------|------|-------------|
+| MementoAI7.js | **7.1.0** | ~800 | AI integrácia - OpenAI GPT-4, Claude API, image analysis | MementoCore, Config |
+| MementoTelegram8.js | **8.2.0** | ~1,200 | Telegram Bot API - messaging, groups, threads (**NOT in Utils - circular dependency fix**) | **MementoCore** (NOT Utils) |
+| MementoGPS.js | **1.1.0** | ~400 | GPS utilities - coordinates, distance calculations, OSRM routing | MementoCore, Config |
+| MementoSync1.js | **1.1.0** | ~600 | PostgreSQL synchronizácia | MementoCore, Config |
 
 ### Infrastructure Layer
 
-| Súbor | Verzia | Účel | Závislosti |
-|-------|--------|------|-------------|
-| MementoRecordTracking.js | 1.x | Sledovanie vytvorenia/úpravy záznamov | MementoCore, Config |
-| MementoIDConflictResolver.js | 1.x | Riešenie ID konfliktov (team verzia) | MementoCore, Config |
-| MementoAutoNumber.js | 1.x | Automatické generovanie čísel záznamov | MementoCore, Config |
-| MementoConfigProjects.js | 1.x | Optimizovaná konfigurácia pre projekty | MementoConfig |
+| Súbor | Verzia | Lines | Účel | Závislosti |
+|-------|--------|-------|------|-------------|
+| MementoRecordTracking.js | **1.1.0** | ~300 | Sledovanie vytvorenia/úpravy záznamov | MementoCore, Config |
+| MementoIDConflictResolver.js | **1.1.0** | ~250 | Riešenie ID konfliktov (team verzia) | MementoCore, Config |
+| MementoAutoNumber.js | **1.1.0** | ~200 | ⚠️ DEPRECATED - Use `utils.business.generateNextNumber()` | MementoCore, Config |
+| MementoConfigProjects.js | 1.x | ~150 | Optimizovaná konfigurácia pre projekty | MementoConfig |
+
+### Deprecated Modules
+
+| Súbor | Status | Use Instead |
+|-------|--------|-------------|
+| MementoVAT.js | ⚠️ DEPRECATED | `utils.calculations.calculateVAT()` |
+| MementoAutoNumber.js | ⚠️ DEPRECATED | `utils.business.generateNextNumber()` |
 
 ### Reusable Library Modules
 
