@@ -20,6 +20,18 @@ if (!result.success) {
     cancel();
 }
 
+// Handle day off case
+if (result.isDayOff) {
+    dialog("Voľný deň", "Záznam je nastavený na: " + (result.reason || "Voľno") + "\n\nPrepočet preskočený.", "OK");
+    cancel();
+}
+
+// Check if data exists
+if (!result.data) {
+    dialog("Chyba", "Prepočet nevrátil žiadne dáta", "OK");
+    cancel();
+}
+
 var msg = "✅ Prepočet dokončený\n\n";
 msg += "📊 Výsledky:\n";
 msg += "• Hodiny: " + (result.data.totalHours || 0).toFixed(1) + " h\n";
