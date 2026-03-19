@@ -1218,6 +1218,81 @@ var MementoBusiness = (function() {
         }
     }
 
+    /**
+     * Calculate work time with rounding (wrapper for MementoTime functions)
+     * @param {Date} arrival - Arrival time
+     * @param {Date} departure - Departure time
+     * @param {Object} options - Options object
+     * @returns {Object} Result with work time details
+     */
+    function calculateWorkTime(arrival, departure, options) {
+        try {
+            var time = getTime();
+            var core = getCore();
+
+            if (!time) {
+                return {
+                    success: false,
+                    error: "MementoTime module not available"
+                };
+            }
+
+            options = options || {};
+            var roundToQuarter = options.roundToQuarter !== false; // Default true
+
+            // Round times if requested
+            var arrivalRounded = arrival;
+            var departureRounded = departure;
+
+            if (roundToQuarter && time.roundToQuarterHour) {
+                arrivalRounded = time.roundToQuarterHour(arrival, "nearest");
+                departureRounded = time.roundToQuarterHour(departure, "nearest");
+            }
+
+            // Calculate hours difference
+            var hoursResult = time.calculateHoursDifference(arrivalRounded, departureRounded);
+
+            if (!hoursResult || hoursResult.decimalHours === undefined) {
+                return {
+                    success: false,
+                    error: "Failed to calculate hours difference"
+                };
+            }
+
+            // Add debug logging if entry provided
+            if (options.entry && core && core.addDebug) {
+                var debugLabel = options.debugLabel || "Work Time";
+                core.addDebug(options.entry, "  • " + debugLabel + ": " +
+                    hoursResult.decimalHours.toFixed(1) + " hodín");
+
+                if (roundToQuarter) {
+                    core.addDebug(options.entry, "  • Zaokrúhlené časy: " +
+                        moment(arrivalRounded).format("HH:mm") + " - " +
+                        moment(departureRounded).format("HH:mm"));
+                }
+            }
+
+            return {
+                success: true,
+                startTimeOriginal: arrival,
+                endTimeOriginal: departure,
+                startTimeRounded: arrivalRounded,
+                endTimeRounded: departureRounded,
+                pracovnaDobaHodiny: hoursResult.decimalHours,
+                hours: hoursResult.hours,
+                minutes: hoursResult.minutes,
+                totalMinutes: hoursResult.totalMinutes,
+                crossesMidnight: hoursResult.crossesMidnight || false
+            };
+
+        } catch (error) {
+            return {
+                success: false,
+                error: error.toString()
+            };
+        }
+    }
+
     // ==============================================
     // PUBLIC API
     // ==============================================
@@ -1242,6 +1317,9 @@ var MementoBusiness = (function() {
         findValidItemPrice: findValidItemPrice,
         findValidMachinePrice: findValidMachinePrice,
         findValidWorkPrice: findValidWorkPrice,
+
+        // Work time calculation
+        calculateWorkTime: calculateWorkTime,
 
         // Employee processing workflows
         processEmployee: processEmployee,
