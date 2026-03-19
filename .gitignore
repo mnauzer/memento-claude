@@ -115,6 +115,11 @@ playground.js
 !.env.example
 !CLAUDE.md
 
+# Log Capture Pattern dokumentácia (SYNCHRONIZOVANÉ)
+!docs/LOG_CAPTURE_PATTERN.md
+!docs/LIBRARY_SCRIPT_ORGANIZATION.md
+!utils/mcp-helpers/*.md
+
 # PostgreSQL dokumentácia (SYNCHRONIZOVANÉ)
 !postgresql/memento-scripts/*.md
 !postgresql/*.md
