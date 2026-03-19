@@ -17,9 +17,23 @@
 
 var MementoAI = (function() {
     'use strict';
-    
-    var version = "7.0";
-    
+
+    // ==============================================
+    // MODULE INFO
+    // ==============================================
+
+    var MODULE_INFO = {
+        name: "MementoAI",
+        version: "7.1.0",
+        author: "ASISTANTO",
+        description: "AI service integration (OpenAI GPT-4, Claude API, image analysis)",
+        dependencies: ["MementoUtils"],
+        provides: ["callOpenAI", "callClaude", "analyzeImage", "httpRequest"],
+        status: "stable"
+    };
+
+    var version = MODULE_INFO.version;
+
     // Lazy loading pre závislosti
     var _config = null;
     var _core = null;
@@ -415,10 +429,12 @@ var MementoAI = (function() {
     // ==============================================
     // PUBLIC API
     // ==============================================
-    
+
     return {
+        // Module metadata
+        info: MODULE_INFO,
         version: version,
-        
+
         // Konštanty
         AI_PROVIDERS: AI_PROVIDERS,
         

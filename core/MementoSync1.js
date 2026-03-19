@@ -66,7 +66,21 @@
 var MementoSync = (function() {
     'use strict';
 
-    var VERSION = '1.8';
+    // ==============================================
+    // MODULE INFO
+    // ==============================================
+
+    var MODULE_INFO = {
+        name: "MementoSync",
+        version: "1.1.0",
+        author: "ASISTANTO",
+        description: "PostgreSQL synchronization for Memento Database",
+        dependencies: [],
+        provides: ["SyncToPostgreSQL"],
+        status: "stable"
+    };
+
+    var VERSION = MODULE_INFO.version;
 
     // ======================================
     // DEFAULT CONFIGURATION
@@ -655,6 +669,10 @@ var MementoSync = (function() {
     // ======================================
 
     return {
+        // Module metadata
+        info: MODULE_INFO,
+        version: VERSION,
+
         syncToPostgreSQL: syncToPostgreSQL,
         syncTrashToPostgreSQL: syncTrashToPostgreSQL,
         deleteFromPostgreSQL: deleteFromPostgreSQL,

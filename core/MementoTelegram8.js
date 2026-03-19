@@ -20,9 +20,23 @@
 
 var MementoTelegram = (function() {
     'use strict';
-    
-    var version = "8.0.2";
-    
+
+    // ==============================================
+    // MODULE INFO
+    // ==============================================
+
+    var MODULE_INFO = {
+        name: "MementoTelegram",
+        version: "8.1.0",
+        author: "ASISTANTO",
+        description: "Telegram Bot API integration with group chat and thread support",
+        dependencies: ["MementoUtils", "MementoConfig"],
+        provides: ["sendMessage", "editMessage", "deleteMessage", "sendGroupSummary", "formatMarkdown"],
+        status: "stable"
+    };
+
+    var version = MODULE_INFO.version;
+
     // Lazy loading pre závislosti
     var _config = null;
     var _core = null;
@@ -1475,10 +1489,12 @@ var MementoTelegram = (function() {
     // ==============================================
     // PUBLIC API
     // ==============================================
-     
+
     return {
+        // Module metadata
+        info: MODULE_INFO,
         version: version,
-        
+
         // Základné Telegram funkcie
         createTelegramMessage: createTelegramMessage,
         editTelegramMessage: editTelegramMessage,

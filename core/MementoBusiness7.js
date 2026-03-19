@@ -18,8 +18,27 @@
 var MementoBusiness = (function() {
     'use strict';
 
-    var version = "7.4.0";  // Pridaná funkcia generateNextNumber pre automatické generovanie čísel záznamov
-    
+    // ==============================================
+    // MODULE INFO
+    // ==============================================
+
+    var MODULE_INFO = {
+        name: "MementoBusiness",
+        version: "7.1.0",
+        author: "ASISTANTO",
+        description: "Business logic: attendance calculations, payroll, work hours, employee management (MONOLITH - will be split in Phase 3)",
+        dependencies: ["MementoUtils", "MementoCore", "MementoConfig"],
+        provides: [
+            "calculateWorkHours", "calculateWage", "processAttendance",
+            "calculateOvertime", "getRateForEmployee", "createObligation",
+            "formatWorkReport", "calculateBreak", "processEmployees"
+        ],
+        status: "stable",
+        note: "This 3,920-line monolith will be split into focused modules (Time, Date, Validation, Formatting, Calculations) in Phase 3"
+    };
+
+    var version = MODULE_INFO.version;
+
     // Lazy loading pre závislosti
     var _config = null;
     var _core = null;
@@ -3053,8 +3072,10 @@ var MementoBusiness = (function() {
     // ==============================================
 
     return {
+        // Module metadata
+        info: MODULE_INFO,
         version: version,
-        
+
         // Časové výpočty
         calculateWorkHours: calculateWorkHours,
         calculateWorkTime: calculateWorkTime,
