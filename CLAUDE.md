@@ -165,14 +165,227 @@ var date = utils.safeGetField(entry, dateFieldName, null);
 
 ### Adding a New Library Script
 
-1. Check `MEMENTO_NAMING_CONVENTION.md` for naming rules
-2. Copy `Template-Script.js` as starting point
-3. Rename following convention: `[Lib].[Type].[Name].js`
-4. Update script header with library, name, version, dependencies
-5. Add configuration to `MementoConfig7.js` if new fields/libraries
-6. Implement logic following the template structure
-7. Test in Memento Database (cannot test locally)
-8. Document in library README if needed
+**CRITICAL FIRST STEP:** Before writing any code, verify the library structure!
+
+1. **Verify library structure via API/MCP:**
+   - Check current field names and types
+   - Verify library ID
+   - Confirm field structure hasn't changed
+   - Use: `memento_api_simple.py` or MCP Google Calendar/Gmail tools
+   - Example: `python memento_api_simple.py --library "Dochádzka" --structure`
+
+2. Check `MEMENTO_NAMING_CONVENTION.md` for naming rules
+3. Copy `templates/Template-Script.js` as starting point
+4. Rename following convention: `[Lib].[Type].[Name].js`
+5. Update script header with library, name, version, dependencies
+6. Add configuration to `MementoConfig7.js` if new fields/libraries
+7. Implement logic following the template structure
+8. Test in Memento Database (cannot test locally)
+9. Document in library README if needed
+
+**Why verify first?**
+- Field names must be **exact** (case-sensitive, Slovak characters)
+- Field types affect how you access data (text vs number vs date vs linkToEntry)
+- Library structure may have changed since last update
+- Prevents runtime errors and failed field access
+
+---
+
+### Creating Reusable Modules (PREFERRED APPROACH)
+
+**IMPORTANT:** All scripts should be created as **reusable modules** whenever possible.
+
+#### What is a Reusable Module?
+
+A reusable module is a script that:
+- ✅ Uses IIFE (Immediately Invoked Function Expression) pattern
+- ✅ Exports public API functions
+- ✅ Can be called from other scripts without copying code
+- ✅ Is synchronized with GitHub
+- ✅ Lives in `core/` directory
+
+#### Why Reusable Modules?
+
+**Traditional approach (BAD):**
+```javascript
+// ❌ Copy 300+ lines of code into every script that needs VAT calculation
+function calculateVAT() { /* 300 lines */ }
+function getValidVatRate() { /* 100 lines */ }
+// ...repeat in every library
+```
+
+**Reusable module approach (GOOD):**
+```javascript
+// ✅ Load once, use everywhere
+var result = MementoVAT.calculateVAT(entry(), config);
+```
+
+**Benefits:**
+- 🚀 No code duplication - Load once, use everywhere
+- 🔧 Central maintenance - Fix bug once, works everywhere
+- 📦 Git synchronization - Version control for business logic
+- 🎯 Simpler scripts - One line instead of 300+ lines
+- 🔄 Easy updates - Update module, all scripts benefit
+
+#### Creating a Reusable Module
+
+**1. Module Structure (IIFE Pattern):**
+
+```javascript
+var ModuleName = (function() {
+    'use strict';
+
+    // Private variables
+    var version = "1.0";
+
+    // Private functions
+    function privateHelper() {
+        // Internal logic
+    }
+
+    // Public API
+    return {
+        version: version,
+
+        publicFunction: function(entry, config) {
+            // Public logic
+            return { success: true, data: {} };
+        },
+
+        anotherFunction: function(param1, param2) {
+            // More logic
+            return result;
+        }
+    };
+})();
+```
+
+**2. Module Template Checklist:**
+
+- [ ] File in `core/` directory (e.g., `core/MementoVAT.js`)
+- [ ] IIFE pattern: `var ModuleName = (function() { ... })()`
+- [ ] Version info in module
+- [ ] Comprehensive header documentation
+- [ ] Public API with clear function signatures
+- [ ] Parameter validation
+- [ ] Error handling with helpful messages
+- [ ] Usage examples in header
+- [ ] Separate documentation file in `docs/`
+
+**3. Using a Reusable Module:**
+
+**In Memento Database:**
+```javascript
+// Wrapper script (e.g., Pokl.Calc.VAT.js)
+
+// 1. Validate module exists
+if (typeof MementoVAT === 'undefined') {
+    message("❌ Chýba MementoVAT modul!");
+    cancel();
+}
+
+// 2. Configure for your library
+var config = {
+    fields: {
+        isVat: "s DPH",
+        sum: "Suma",
+        sumTotal: "Suma s DPH"
+    }
+};
+
+// 3. Call module function
+var result = MementoVAT.calculateVAT(entry(), config);
+
+// 4. Handle result
+if (!result.success) {
+    dialog("Chyba", result.error, "OK");
+    cancel();
+}
+```
+
+**4. Load Order in Memento:**
+
+**CRITICAL:** Reusable modules must load BEFORE scripts that use them.
+
+In Memento Database:
+1. Go to **Nastavenia → Skripty**
+2. Drag & drop reusable modules to the TOP
+3. Wrapper scripts below
+
+```
+Load order:
+1. MementoVAT.js ← Reusable module FIRST
+2. Pokl.Calc.VAT.js ← Wrapper script AFTER
+3. Other scripts...
+```
+
+#### Git Synchronization for Reusable Modules
+
+**IMPORTANT:** Reusable modules are synchronized with GitHub.
+
+**Workflow:**
+1. **Develop in Git:** Edit `core/ModuleName.js` locally
+2. **Test:** Verify logic, run examples
+3. **Commit:** `git commit -m "feat: update ModuleName to v2.0"`
+4. **Deploy to Memento:** Copy updated code to Memento Database
+5. **Verify:** Test in actual Memento environment
+
+**Git → Memento Sync:**
+```
+Git Repository              Memento Database
+├── core/
+│   └── MementoVAT.js  →   Global Script "MementoVAT"
+├── libraries/
+│   └── pokladna/
+│       └── Pokl.Calc.VAT.js → Script "Pokl.Calc.VAT"
+```
+
+**Benefits of Git Sync:**
+- ✅ Version control (full history)
+- ✅ Backup (never lose code)
+- ✅ Collaboration (multiple developers)
+- ✅ Testing (test before deploy)
+- ✅ Rollback (revert if needed)
+
+#### When to Create Reusable Module vs Regular Script
+
+**Create Reusable Module when:**
+- ✅ Logic will be used in **multiple libraries** (VAT calculation, GPS routing, etc.)
+- ✅ Code is **complex** (100+ lines)
+- ✅ Logic is **stable** (doesn't change per library)
+- ✅ Needs **centralized maintenance**
+
+**Create Regular Script when:**
+- ⚠️ Logic is **library-specific** (only one library uses it)
+- ⚠️ Code is **simple** (< 50 lines)
+- ⚠️ Frequently changes per use case
+
+**Examples:**
+- **Reusable Module:** VAT calculation, GPS routing, Telegram notifications, Auto-numbering
+- **Regular Script:** Library-specific field calculations, simple triggers, one-off actions
+
+#### Existing Reusable Modules
+
+| Module | File | Purpose |
+|--------|------|---------|
+| MementoConfig | `core/MementoConfig7.js` | Central configuration |
+| MementoCore | `core/MementoCore7.js` | Core utilities |
+| MementoUtils | `core/MementoUtils7.js` | Aggregator (lazy loading) |
+| MementoBusiness | `core/MementoBusiness7.js` | Business logic |
+| MementoAI | `core/MementoAI7.js` | AI integration |
+| MementoTelegram | `core/MementoTelegram8.js` | Telegram Bot API |
+| MementoGPS | `core/MementoGPS.js` | GPS utilities |
+| MementoVAT | `core/MementoVAT.js` | VAT calculations |
+| MementoAutoNumber | `core/MementoAutoNumber.js` | Auto-numbering |
+
+**All reusable modules:**
+- Live in `core/` directory
+- Use IIFE pattern
+- Export public API
+- Synchronized with Git
+- Documented in `docs/`
+
+---
 
 ### Modifying Core Modules
 
@@ -322,6 +535,8 @@ dialog("Výsledok prepočtu", details, "OK");
 5. **Poor error handling** - Wrap operations in try/catch, log to Error_Log
 6. **Direct field access** - Use safe accessors from MementoUtils
 7. **Using message() for long text** - Use dialog() for detailed info (message() shows only 2 lines for ~2 seconds)
+8. **Not verifying library structure** - Always check field names/types via API/MCP before coding (field names must be exact!)
+9. **Copying code instead of using reusable modules** - Create reusable modules for shared logic, call functions instead of duplicating code
 
 ## When Modifying Files
 
@@ -347,7 +562,12 @@ dialog("Výsledok prepočtu", details, "OK");
 
 ```
 memento-claude/
-├── core/                   # Core modules (all in root, no subdirs)
+├── core/                   # Universal core modules (cross-library)
+├── modules/                # Library-specific reusable modules (NEW)
+│   ├── README.md          # Module directory documentation
+│   ├── Pokladna.js        # (Planned) Cash register operations
+│   ├── Dochadzka.js       # (Planned) Attendance calculations
+│   └── ...                # See modules/README.md for complete list
 ├── libraries/              # Business domain scripts (27 directories)
 │   ├── dochadzka/         # Attendance
 │   ├── kniha-jazd/        # Vehicle logbook
@@ -363,7 +583,11 @@ memento-claude/
 └── *.md                    # Documentation
 ```
 
-**Note:** Core modules are flat in `core/` for easy access from Memento Database. Do not create subdirectories.
+**Notes:**
+- **`core/`** - Universal modules that work across ALL libraries (MementoCore, MementoVAT, MementoTime)
+- **`modules/`** - Library-specific reusable modules (Pokladna.js, Dochadzka.js, etc.) - NEW in Phase 2
+- **`libraries/*/`** - Thin wrapper scripts that call module functions
+- Core modules are flat in `core/` for easy access from Memento Database. Do not create subdirectories.
 
 ---
 
