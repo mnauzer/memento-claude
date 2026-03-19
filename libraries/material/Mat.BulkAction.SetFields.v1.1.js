@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - MATERIÁL NASTAVENIE POLÍ BULK ACTION
-// Verzia: 1.1 | Dátum: September 2025 | Autor: ASISTANTO
+// Verzia: 1.1.0 | Dátum: September 2025 | Autor: ASISTANTO
 // Knižnica: Materiál | Trigger: Bulk Action
 // ==============================================
 // 📋 FUNKCIA:

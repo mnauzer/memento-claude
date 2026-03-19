@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - POKLADŇA ÚHRADA ZÁVÄZKOV
-// Verzia: 8.0 | Dátum: September 2025 | Autor: ASISTANTO
+// Verzia: 8.0.2 | Dátum: September 2025 | Autor: ASISTANTO
 // Knižnica: Pokladňa | Trigger: After Save + Action Script
 // ==============================================
 // 📋 FUNKCIA:

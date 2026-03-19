@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - MATERIÁL NASTAVENIE POLÍ ACTION
-// Verzia: 1.0 | Dátum: September 2025 | Autor: ASISTANTO
+// Verzia: 1.0.0 | Dátum: September 2025 | Autor: ASISTANTO
 // Knižnica: Materiál | Trigger: Manual Action
 // ==============================================
 // 📋 FUNKCIA:

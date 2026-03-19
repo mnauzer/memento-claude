@@ -1,6 +1,6 @@
 // ==============================================
 // LIBRARY MODULE - Dochadzka (Attendance)
-// Verzia: 1.0.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// Verzia: 1.0.1 | Dátum: 2026-03-19 | Autor: ASISTANTO
 // ==============================================
 // 📋 PURPOSE:
 //    - Reusable module for attendance calculations

@@ -1,6 +1,6 @@
 // ==============================================
 // DOCHÁDZKA - BEFORE DELETE CLEANUP
-// Verzia: 1.1 | Dátum: December 2024 | Autor: ASISTANTO
+// Verzia: 1.0 | Dátum: December 2024 | Autor: ASISTANTO
 // Knižnica: Dochádzka | Trigger: Before Delete (Deleting an Entry)
 // ==============================================
 // 📋 FUNKCIA:

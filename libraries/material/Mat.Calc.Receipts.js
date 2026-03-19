@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - PRÍJEMKY MATERIÁLU PREPOČET
-// Verzia: 1.0 | Dátum: September 2025 | Autor: ASISTANTO
+// Verzia: 1.0.0 | Dátum: September 2025 | Autor: ASISTANTO
 // Knižnica: Príjemky materiálu | Trigger: Before Save
 // ==============================================
 // 📋 FUNKCIA:

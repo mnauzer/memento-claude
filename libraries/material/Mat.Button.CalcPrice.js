@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - MATERIÁL PREPOČET CENY BUTTON
-// Verzia: 1.0 | Dátum: September 2025 | Autor: ASISTANTO
+// Verzia: 1.0.0 | Dátum: September 2025 | Autor: ASISTANTO
 // Knižnica: Materiál | Trigger: Button Script
 // ==============================================
 // 📋 FUNKCIA:

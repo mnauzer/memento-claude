@@ -1,6 +1,6 @@
 // ==============================================
 // DOCHÁDZKA PREPOČET - MODUL
-// Verzia: 9.0.0 | Dátum: October 2025 | Autor: ASISTANTO
+// Verzia: 9.0.4 | Dátum: 2026-03-19 | Autor: ASISTANTO
 // Knižnica: Dochádzka | Typ: Module
 // ==============================================
 // 📋 FUNKCIA:

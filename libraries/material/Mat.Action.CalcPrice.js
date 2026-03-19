@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - MATERIÁL PREPOČET CENY ACTION
-// Verzia: 1.2 | Dátum: September 2025 | Autor: ASISTANTO
+// Verzia: 1.2.0 | Dátum: September 2025 | Autor: ASISTANTO
 // Knižnica: Materiál | Trigger: Manual Action
 // ==============================================
 // 📋 FUNKCIA:

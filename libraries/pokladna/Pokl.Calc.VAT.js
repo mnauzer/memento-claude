@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - POKLADŇA PREPOČET DPH
-// Verzia: 1.0 | Dátum: September 2025 | Autor: ASISTANTO
+// Verzia: 1.0.1 | Dátum: September 2025 | Autor: ASISTANTO
 // Knižnica: Pokladňa | Trigger: Before Save
 // ==============================================
 // 📋 FUNKCIA:
