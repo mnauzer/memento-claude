@@ -38,14 +38,15 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.0.0",
+        version: "1.0.1",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
         status: "active",
         extractedFrom: "Doch.Calc.Main.js v8.2.0",
         extractedLines: 528,
-        extractedDate: "2026-03-19"
+        extractedDate: "2026-03-19",
+        changelog: "v1.0.1 - Fixed validation to use manual field checking instead of utils.validateInputData"
     };
 
     // ==============================================
@@ -195,30 +196,57 @@ var Dochadzka = (function() {
      */
     function validateInputData(entry, config, utils) {
         try {
-            var options = {
-                config: config,
-                customMessages: {
-                    date: "Dátum nie je vyplnený",
-                    arrival: "Príchod nie je vyplnený",
-                    departure: "Odchod nie je vyplnený",
-                    employees: "Žiadni zamestnanci v zázname"
-                }
-            };
+            // MANUAL VALIDATION (bez závislosti na utils.validateInputData)
+            var errors = [];
 
-            var result = utils.validateInputData(entry, "attendance", options);
-
-            if (!result.success) {
-                return result;
+            // Validácia dátumu
+            var date = utils.safeGet(entry, config.fields.date);
+            if (!date) {
+                errors.push("Dátum nie je vyplnený");
             }
 
-            // Add supplementary debug info
-            addDebug(entry, "  • Dátum: " + moment(result.data.date).format("DD.MM.YYYY") +
-                    " (" + utils.getDayNameSK(moment(result.data.date).day()).toUpperCase() + ")");
-            addDebug(entry, "  • Čas: " + moment(result.data.arrival).format("HH:mm") +
-                    " - " + moment(result.data.departure).format("HH:mm"));
-            addDebug(entry, "  • Počet zamestnancov: " + result.data.employees.length);
+            // Validácia príchodu
+            var arrival = utils.safeGet(entry, config.fields.arrival);
+            if (!arrival) {
+                errors.push("Príchod nie je vyplnený");
+            }
 
-            return result;
+            // Validácia odchodu
+            var departure = utils.safeGet(entry, config.fields.departure);
+            if (!departure) {
+                errors.push("Odchod nie je vyplnený");
+            }
+
+            // Validácia zamestnancov
+            var employees = utils.safeGetLinks(entry, config.fields.employees);
+            if (!employees || employees.length === 0) {
+                errors.push("Žiadni zamestnanci v zázname");
+            }
+
+            // Ak sú chyby, vráť ich
+            if (errors.length > 0) {
+                return {
+                    success: false,
+                    error: errors.join(", ")
+                };
+            }
+
+            // Validácia úspešná - vráť dáta
+            addDebug(entry, "  • Dátum: " + moment(date).format("DD.MM.YYYY") +
+                    " (" + utils.getDayNameSK(moment(date).day()).toUpperCase() + ")");
+            addDebug(entry, "  • Čas: " + moment(arrival).format("HH:mm") +
+                    " - " + moment(departure).format("HH:mm"));
+            addDebug(entry, "  • Počet zamestnancov: " + employees.length);
+
+            return {
+                success: true,
+                data: {
+                    date: date,
+                    arrival: arrival,
+                    departure: departure,
+                    employees: employees
+                }
+            };
 
         } catch (error) {
             addError(entry, error.toString(), "validateInputData", error);
