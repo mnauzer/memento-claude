@@ -4,14 +4,26 @@
 
 ```
 memento-claude/
-├── core/                           # Základné moduly systému (všetky v root core/)
-│   ├── MementoCore7.js            # Foundation utilities (logging, field access, validation)
-│   ├── MementoConfig7.js          # Centralized configuration management
-│   ├── MementoUtils7.js           # Extended utilities and helper functions
-│   ├── MementoBusiness7.js        # Business logic (attendance, payroll calculations)
-│   ├── MementoAI7.js              # AI services integration (OpenAI, Claude)
-│   ├── MementoTelegram8.js        # Telegram Bot API integration
-│   └── MementoGPS.js              # GPS utilities
+├── core/                           # Základné moduly systému (17 modules - Phase 3/4 complete)
+│   ├── MementoConfig7.js          # v7.1.0 - Centralized configuration + MODULE_INFO
+│   ├── MementoCore7.js            # v7.6.0 - Foundation utilities (logging, validation, field access)
+│   │
+│   ├── MementoTime.js             # v1.1.0 🆕 Phase 3 - Time operations, 15min rounding
+│   ├── MementoDate.js             # v1.0.0 🆕 Phase 3 - Slovak calendar, holidays, weekends
+│   ├── MementoValidation.js       # v1.0.0 🆕 Phase 3 - Validation patterns
+│   ├── MementoFormatting.js       # v1.0.0 🆕 Phase 3 - Money, duration, date formatters
+│   ├── MementoCalculations.js     # v1.0.0 🆕 Phase 3 - Wages, overtime, VAT calculations
+│   │
+│   ├── MementoBusiness.js         # v8.0.0 ♻️ REFACTORED - High-level workflows (1,050 lines, was 3,942)
+│   ├── MementoUtils7.js           # v8.1.0 - Lazy-loading aggregator for all modules
+│   │
+│   ├── MementoAI7.js              # v7.1.0 - AI services (OpenAI, Claude)
+│   ├── MementoTelegram8.js        # v8.2.0 - Telegram Bot API (depends on Core only)
+│   ├── MementoGPS.js              # v1.1.0 - GPS utilities and routing
+│   ├── MementoRecordTracking.js   # v1.1.0 - Record lifecycle tracking
+│   ├── MementoIDConflictResolver.js # v1.1.0 - ID conflict resolution
+│   ├── MementoAutoNumber.js       # v1.1.0 ⚠️ DEPRECATED - Use utils.business.generateNextNumber()
+│   └── MementoSync1.js            # v1.1.0 - PostgreSQL synchronization
 │
 ├── libraries/                      # Knižnice Memento Database
 │   ├── dochadzka/                 # Dochádzka (Attendance)
@@ -60,18 +72,57 @@ memento-claude/
 └── templates/                      # Šablóny pre nové scripty
 ```
 
-## Závislosť modulov
+## Závislosť modulov (v8.0+ Architecture - Phase 3/4)
 
-### Dependency Chain
+### Dependency Chain - 4 Levels
+
 ```
-MementoConfig (žiadne závislosti)
-    ↓
-MementoCore (závisí od MementoConfig)
-    ↓
-MementoBusiness, MementoAI, MementoUtils (závisia od Core + Config)
-    ↓
-MementoTelegram (závisí od všetkých vyššie uvedených)
+LEVEL 0: Configuration
+┌────────────────────┐
+│ MementoConfig 7.1  │ (no dependencies)
+└────────────────────┘
+          ↓
+LEVEL 1: Foundation
+┌────────────────────┐
+│ MementoCore 7.6    │ (depends on Config)
+└────────────────────┘
+          ↓
+LEVEL 2: Focused Utilities (NEW in Phase 3)
+┌────────────────────┐  ┌────────────────────┐  ┌────────────────────┐
+│ MementoTime 1.1    │  │ MementoDate 1.0    │  │ MementoValidation  │
+└────────────────────┘  └────────────────────┘  │      1.0           │
+┌────────────────────┐  ┌────────────────────┐  └────────────────────┘
+│ MementoFormatting  │  │ MementoCalculations│
+│      1.0           │  │      1.0           │
+└────────────────────┘  └────────────────────┘
+          ↓
+LEVEL 3: Business Logic
+┌────────────────────────────────────────┐
+│ MementoBusiness 8.0                    │
+│ (orchestrates focused utilities)       │
+└────────────────────────────────────────┘
+          ↓
+LEVEL 4: Aggregator
+┌────────────────────────────────────────┐
+│ MementoUtils 8.1                       │
+│ (lazy-loading facade)                  │
+└────────────────────────────────────────┘
+
+SEPARATE CHAINS (no circular dependencies):
+┌────────────────────┐
+│ MementoTelegram 8.2│ ← Depends ONLY on MementoCore (NOT Utils)
+└────────────────────┘
+
+┌────────────────────┐  ┌────────────────────┐  ┌────────────────────┐
+│ MementoAI 7.1      │  │ MementoGPS 1.1     │  │ Other modules...   │
+└────────────────────┘  └────────────────────┘  └────────────────────┘
 ```
+
+**Key Changes in v8.0:**
+- ✅ MementoBusiness split into 5 focused modules (Phase 3)
+- ✅ MementoTelegram separated from Utils (circular dependency fix)
+- ✅ 4-level architecture for better organization
+- ✅ All modules now have MODULE_INFO metadata
 
 ## Knižnice - Popis a súvislosti
 
@@ -168,50 +219,134 @@ MementoTelegram (závisí od všetkých vyššie uvedených)
 - Linkuje na Zamestnancov (sadzby)
 - Vytvára work statements
 
-## Core moduly - Popis
+## Core moduly - Popis (v8.0+)
 
 Všetky core moduly sú umiestnené priamo v `core/` adresári pre jednoduchú prístupnosť z Memento Database.
 
-### core/MementoCore7.js
-- Safe field access utilities
-- Logging functions
+**Total:** 17 core modules (Phase 3/4: +5 new focused utilities)
+
+### Foundation Layer
+
+#### core/MementoConfig7.js (v7.1.0)
+- Centrálna konfigurácia - single source of truth
+- Field name mappings pre všetky knižnice
+- Library IDs a metadata
+- MODULE_INFO registry pre všetky moduly
+- Nastavenia pre všetky scripty
+
+#### core/MementoCore7.js (v7.6.0)
+- Foundation utilities - základ všetkých skriptov
+- Safe field access (safeGet, safeSet, safeGetLinks)
+- Logging system (addDebug, addError, addInfo)
 - Validation utilities
-- Base utilities pre všetky scripty
+- Icon management
+- MODULE_INFO standard implementation
 
-### core/MementoConfig7.js
-- Centrálna konfigurácia
-- Field name mappings
-- Library IDs
-- Nastavenia pre všetky moduly
+### Focused Utilities Layer (🆕 NEW in Phase 3)
 
-### core/MementoUtils7.js
-- Extended helper functions
-- Time calculations (15-minute rounding)
+#### core/MementoTime.js (v1.1.0)
+- Time operations - 15-minute rounding (Slovak standard)
+- Work hours calculation with overnight support
+- Break time calculation (Slovak labor law)
+- Time formatting and conversions
+- Eliminuje 35-45% code duplication across 5+ attendance scripts
+
+#### core/MementoDate.js (v1.0.0)
+- Slovak calendar utilities
+- Holiday detection (13 fixed + movable holidays)
+- Weekend checking
+- Week number calculation (ISO 8601)
+- Workdays calculation
+- Date parsing and formatting
+
+#### core/MementoValidation.js (v1.0.0)
+- Validation patterns pre všetky typy polí
+- Time validation (allowFuture, maxHours, etc.)
+- Date validation (minDate, maxDate, allowPast)
+- Number validation (min, max, decimals)
+- Required fields checking
+- Email and phone validation (Slovak format)
+
+#### core/MementoFormatting.js (v1.0.0)
+- Display formatters pre všetky výstupy
+- Money formatting (Slovak: "1 250,50 €")
+- Duration formatting ("8:30")
 - Date/time formatting
-- Common utilities
+- Employee name formatting
+- Phone number formatting (Slovak: "+421 901 234 567")
+- Markdown generation for Telegram
 
-### core/MementoBusiness7.js
-- Business logic pre attendance
-- Payroll calculations
-- Work hours calculations
-- Rate calculations
+#### core/MementoCalculations.js (v1.0.0)
+- Business calculations - mzdy, nadčasy, DPH
+- Daily wage with overtime (Slovak law)
+- Overtime calculation (standard 8h + 25% bonus)
+- Break time calculation
+- VAT calculation and extraction
+- Profitability calculation
+- Proration logic
 
-### core/MementoAI7.js
+### Business Logic Layer
+
+#### core/MementoBusiness.js (v8.0.0 - ♻️ REFACTORED)
+- High-level business workflows only
+- Employee processing (orchestrates focused utilities)
+- Report generation
+- Obligation management
+- **Reduced from 3,942 to 1,050 lines (73% reduction)**
+- Depends on: Time, Date, Validation, Formatting, Calculations
+
+### Aggregator Layer
+
+#### core/MementoUtils7.js (v8.1.0)
+- Lazy-loading aggregator pre všetky moduly
+- Single import point: `var utils = MementoUtils;`
+- Comprehensive dependency checking (`checkAllDependencies`)
+- Backward compatibility facade
+- Access patterns: `utils.time`, `utils.date`, `utils.validation`, etc.
+
+### Integration Layer
+
+#### core/MementoAI7.js (v7.1.0)
 - OpenAI GPT-4 integration
 - Claude API integration
 - HTTP wrapper pre AI services
 - Image analysis
+- Access via: `utils.ai`
 
-### core/MementoTelegram8.js
+#### core/MementoTelegram8.js (v8.2.0)
 - Telegram Bot API integration
 - Message sending/editing/deletion
 - Group and thread support
 - Notification aggregation
+- **⚠️ NOT in MementoUtils** (circular dependency fix)
+- Import directly: `var telegram = typeof MementoTelegram !== 'undefined' ? MementoTelegram : null;`
 
-### core/MementoGPS.js
+#### core/MementoGPS.js (v1.1.0)
 - GPS coordinate utilities
 - Distance calculations
+- OSRM routing API integration
 - Location services
+- Access via: `utils.gps`
+
+### Infrastructure Layer
+
+#### core/MementoRecordTracking.js (v1.1.0)
+- Record lifecycle tracking
+- Creation/modification timestamps
+- Edit mode management
+
+#### core/MementoIDConflictResolver.js (v1.1.0)
+- ID conflict resolution for team environments
+- Automatic ID regeneration
+
+#### core/MementoAutoNumber.js (v1.1.0)
+- ⚠️ DEPRECATED - Use `utils.business.generateNextNumber()` instead
+- Auto-numbering for records
+
+#### core/MementoSync1.js (v1.1.0)
+- PostgreSQL synchronization
+- Bulk data sync
+- Specialized module (import on demand)
 
 ## Utility Scripts
 
