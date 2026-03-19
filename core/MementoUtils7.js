@@ -1,14 +1,94 @@
 // ==============================================
-// MEMENTOUTILS - Hlavný agregátor modulov
-// Verzia: 8.0.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// MEMENTOUTILS - Universal Module Aggregator
+// Verzia: 8.1.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
 // ==============================================
-// 📋 ÚČEL:
-//    - Jednotný prístupový bod pre všetky moduly
-//    - Agreguje funkcie z Core, AI, Business, GPS, RecordTracking, IDConflictResolver
-//    - Pridáva CONFIG z MementoConfig
-//    - Lazy loading pre asynchrónne načítanie
-//    - ⚠️ NEOBSAHUJE Telegram (circular dependency - import priamo)
+// 📋 PURPOSE:
+//    - Single import point for all Memento modules
+//    - Lazy loading pattern for optimal performance
+//    - Version compatibility checking
+//    - Comprehensive module documentation
+//    - Helpful error messages
 // ==============================================
+// 🎯 WHAT'S AGGREGATED:
+//
+// Core Foundation (ALWAYS REQUIRED):
+//    ✅ MementoConfig v7.1+    → utils.config (central configuration)
+//    ✅ MementoCore v7.6+      → utils.core (logging, field access, validation)
+//
+// Business Logic:
+//    ✅ MementoBusiness v8.0+  → utils.business (high-level workflows)
+//
+// Focused Utility Modules (NEW in v8.0):
+//    ✅ MementoTime v1.1+      → utils.time (time rounding, calculations)
+//    ✅ MementoDate v1.0+      → utils.date (Slovak calendar, holidays)
+//    ✅ MementoValidation v1.0+ → utils.validation (field validation, rules)
+//    ✅ MementoFormatting v1.0+ → utils.formatting (money, duration, markdown)
+//    ✅ MementoCalculations v1.0+ → utils.calculations (wages, overtime, VAT)
+//
+// Specialized Modules:
+//    ✅ MementoAI v7.1+        → utils.ai (OpenAI, Claude API)
+//    ✅ MementoGPS v1.1+       → utils.gps (GPS routing, OSRM)
+//    ✅ MementoRecordTracking v1.1+ → utils.recordTracking (record lifecycle)
+//    ✅ MementoIDConflictResolver v1.1+ → utils.idConflictResolver (ID conflicts)
+//
+// ==============================================
+// ⚠️ NOT AGGREGATED (import separately):
+//
+//    ❌ MementoTelegram v8.2+ - Circular dependency, must import directly:
+//       var telegram = typeof MementoTelegram !== 'undefined' ? MementoTelegram : null;
+//
+//    ❌ MementoSync v1.1+ - Specialized, import on demand
+//
+//    ❌ MementoVAT v1.1+ - Deprecated, use MementoCalculations.calculateVAT()
+//
+//    ❌ MementoAutoNumber v1.1+ - Use MementoBusiness.generateNextNumber()
+//
+// ==============================================
+// 📖 USAGE EXAMPLES:
+//
+// Basic usage (single import):
+//    var utils = MementoUtils;
+//    utils.addDebug(entry, "Hello from utils!");
+//
+// Access aggregated modules:
+//    utils.time.roundToQuarterHour(time, "nearest");
+//    utils.date.isWeekend(today);
+//    utils.formatting.formatMoney(1250);
+//    utils.calculations.calculateDailyWage(8.5, 12);
+//
+// Import Telegram separately:
+//    var telegram = typeof MementoTelegram !== 'undefined' ? MementoTelegram : null;
+//    if (telegram) {
+//        telegram.sendMessage(...);
+//    }
+//
+// Check module availability:
+//    if (utils.validation) {
+//        var result = utils.validation.validateTime(timeValue);
+//    }
+//
+// ==============================================
+// 🔧 MIGRATION FROM v7 TO v8:
+//
+// OLD (v7):
+//    utils.formatMoney(1250);           // Direct function
+//    utils.calculateWorkHours(s, e);    // From Business
+//    utils.isWeekend(date);             // From Core
+//
+// NEW (v8 - PREFERRED):
+//    utils.formatting.formatMoney(1250);           // Via Formatting module
+//    utils.calculations.calculateWorkHours(s, e);  // Via Calculations module
+//    utils.date.isWeekend(date);                   // Via Date module
+//
+// OLD functions still work (backward compatible facade) but are deprecated.
+//
+// ==============================================
+// 🔧 CHANGELOG v8.1.0:
+//    - PRIDANÉ: Comprehensive documentation (what's aggregated vs not)
+//    - PRIDANÉ: checkDependencies() function for version checking
+//    - PRIDANÉ: Helpful error messages in module getters
+//    - IMPROVED: Header documentation with usage examples and migration guide
+//    - Phase 4: Complete MementoUtils Aggregator COMPLETE
 // 🔧 CHANGELOG v8.0.0 (BREAKING):
 //    - PRIDANÉ: 5 nových focused modulov (Time, Date, Validation, Formatting, Calculations)
 //    - MementoBusiness v8.0.0 (refactorovaný z 3,942 na 1,050 riadkov)
@@ -50,9 +130,9 @@ var MementoUtils = (function() {
 
     var MODULE_INFO = {
         name: "MementoUtils",
-        version: "8.0.0",
+        version: "8.1.0",
         author: "ASISTANTO",
-        description: "Universal aggregator for all core modules with lazy loading",
+        description: "Universal aggregator with lazy loading, version checking, and comprehensive documentation",
         dependencies: ["MementoCore", "MementoConfig"],
         optionalDependencies: [
             "MementoBusiness", "MementoAI", "MementoGPS", "MementoRecordTracking",
@@ -60,17 +140,24 @@ var MementoUtils = (function() {
             "MementoValidation", "MementoFormatting", "MementoCalculations"
         ],
         provides: [
-            "All functions from aggregated modules",
+            "Single import point for all modules",
             "Lazy loading pattern",
-            "Single import point for scripts"
+            "Version compatibility checking",
+            "Helpful error messages",
+            "Backward compatible facade"
         ],
         aggregates: [
             "config", "core", "ai", "business", "gps", "recordTracking", "idConflictResolver",
             "time", "date", "validation", "formatting", "calculations"
         ],
-        notAggregated: ["MementoTelegram - must be imported directly to avoid circular dependency"],
+        notAggregated: [
+            "MementoTelegram - circular dependency (import directly)",
+            "MementoSync - specialized (import on demand)",
+            "MementoVAT - deprecated (use MementoCalculations.calculateVAT)",
+            "MementoAutoNumber - deprecated (use MementoBusiness.generateNextNumber)"
+        ],
         status: "stable",
-        breaking: "v8.0.0 - Added new focused modules (Time, Date, Validation, Formatting, Calculations). MementoBusiness v8.0.0 is breaking."
+        note: "Phase 4: Complete aggregator with comprehensive documentation and version checking"
     };
 
     var version = MODULE_INFO.version;
@@ -200,7 +287,127 @@ var MementoUtils = (function() {
         loadModule('formatting');
         loadModule('calculations');
     }
-    
+
+    /**
+     * Helper function for version comparison
+     * @param {string} version1 - Version string (e.g., "8.1.0")
+     * @param {string} version2 - Version string (e.g., "8.0.0")
+     * @returns {number} -1 if v1 < v2, 0 if v1 == v2, 1 if v1 > v2
+     */
+    function compareVersions(version1, version2) {
+        if (!version1 || !version2) return 0;
+
+        var v1parts = version1.split('.').map(function(x) { return parseInt(x, 10) || 0; });
+        var v2parts = version2.split('.').map(function(x) { return parseInt(x, 10) || 0; });
+
+        for (var i = 0; i < Math.max(v1parts.length, v2parts.length); i++) {
+            var v1part = v1parts[i] || 0;
+            var v2part = v2parts[i] || 0;
+
+            if (v1part > v2part) return 1;
+            if (v1part < v2part) return -1;
+        }
+
+        return 0;
+    }
+
+    /**
+     * Check all module dependencies and versions
+     * @param {boolean} silent - If true, don't log to console (default: false)
+     * @returns {Object} {success: boolean, missing: Array, outdated: Array, available: Array}
+     *
+     * @example
+     * var check = MementoUtils.checkDependencies();
+     * if (!check.success) {
+     *     dialog("Chýbajúce moduly", check.missing.join(", "), "OK");
+     * }
+     */
+    function checkDependencies(silent) {
+        silent = silent || false;
+
+        var required = {
+            MementoConfig: "7.1.0",
+            MementoCore: "7.6.0"
+        };
+
+        var recommended = {
+            MementoBusiness: "8.0.0",
+            MementoTime: "1.1.0",
+            MementoDate: "1.0.0",
+            MementoValidation: "1.0.0",
+            MementoFormatting: "1.0.0",
+            MementoCalculations: "1.0.0"
+        };
+
+        var missing = [];
+        var outdated = [];
+        var available = [];
+
+        // Check required modules
+        for (var moduleName in required) {
+            var module = typeof window !== 'undefined' ? window[moduleName] : (typeof global !== 'undefined' ? global[moduleName] : undefined);
+
+            if (!module) {
+                missing.push(moduleName + " (required >= " + required[moduleName] + ")");
+            } else {
+                var moduleVersion = module.version || module.info && module.info.version || "unknown";
+                if (moduleVersion !== "unknown" && compareVersions(moduleVersion, required[moduleName]) < 0) {
+                    outdated.push(moduleName + " (need >= " + required[moduleName] + ", have " + moduleVersion + ")");
+                } else {
+                    available.push(moduleName + " v" + moduleVersion);
+                }
+            }
+        }
+
+        // Check recommended modules
+        for (var recModuleName in recommended) {
+            var recModule = typeof window !== 'undefined' ? window[recModuleName] : (typeof global !== 'undefined' ? global[recModuleName] : undefined);
+
+            if (!recModule) {
+                // Not an error, just recommended
+                if (!silent) {
+                    // Optional: could log warning
+                }
+            } else {
+                var recModuleVersion = recModule.version || recModule.info && recModule.info.version || "unknown";
+                if (recModuleVersion !== "unknown" && compareVersions(recModuleVersion, recommended[recModuleName]) < 0) {
+                    outdated.push(recModuleName + " (recommend >= " + recommended[recModuleName] + ", have " + recModuleVersion + ")");
+                } else {
+                    available.push(recModuleName + " v" + recModuleVersion);
+                }
+            }
+        }
+
+        var success = missing.length === 0 && outdated.length === 0;
+
+        // Log results if not silent
+        if (!silent && typeof log !== 'undefined') {
+            log("=== MementoUtils v" + version + " Dependency Check ===");
+            if (missing.length > 0) {
+                log("❌ MISSING MODULES:");
+                for (var i = 0; i < missing.length; i++) {
+                    log("  - " + missing[i]);
+                }
+            }
+            if (outdated.length > 0) {
+                log("⚠️ OUTDATED MODULES:");
+                for (var j = 0; j < outdated.length; j++) {
+                    log("  - " + outdated[j]);
+                }
+            }
+            if (success) {
+                log("✅ All dependencies OK (" + available.length + " modules available)");
+            }
+        }
+
+        return {
+            success: success,
+            missing: missing,
+            outdated: outdated,
+            available: available
+        };
+    }
+
     /**
      * Wrapper pre lazy volanie funkcií
      * @param {string} moduleName - Názov modulu
@@ -446,14 +653,20 @@ var MementoUtils = (function() {
             loadAllModules(); // Pokús sa načítať všetky
 
             return {
-                config: modules.config ? modules.config.version : "N/A",
-                core: modules.core ? modules.core.version : "N/A",
-                ai: modules.ai ? modules.ai.version : "N/A",
+                config: modules.config ? (modules.config.version || modules.config.info && modules.config.info.version || "N/A") : "N/A",
+                core: modules.core ? (modules.core.version || modules.core.info && modules.core.info.version || "N/A") : "N/A",
+                ai: modules.ai ? (modules.ai.version || modules.ai.info && modules.ai.info.version || "N/A") : "N/A",
                 // telegram: NOT AGGREGATED (circular dependency - import directly)
-                business: modules.business ? modules.business.version : "N/A",
-                gps: modules.gps ? modules.gps.version : "N/A",
-                recordTracking: modules.recordTracking ? modules.recordTracking.version : "N/A",
-                idConflictResolver: modules.idConflictResolver ? modules.idConflictResolver.version : "N/A"
+                business: modules.business ? (modules.business.version || modules.business.info && modules.business.info.version || "N/A") : "N/A",
+                gps: modules.gps ? (modules.gps.version || modules.gps.info && modules.gps.info.version || "N/A") : "N/A",
+                recordTracking: modules.recordTracking ? (modules.recordTracking.version || modules.recordTracking.info && modules.recordTracking.info.version || "N/A") : "N/A",
+                idConflictResolver: modules.idConflictResolver ? (modules.idConflictResolver.version || modules.idConflictResolver.info && modules.idConflictResolver.info.version || "N/A") : "N/A",
+                // Phase 3 - New focused modules
+                time: modules.time ? (modules.time.version || modules.time.info && modules.time.info.version || "N/A") : "N/A",
+                date: modules.date ? (modules.date.version || modules.date.info && modules.date.info.version || "N/A") : "N/A",
+                validation: modules.validation ? (modules.validation.version || modules.validation.info && modules.validation.info.version || "N/A") : "N/A",
+                formatting: modules.formatting ? (modules.formatting.version || modules.formatting.info && modules.formatting.info.version || "N/A") : "N/A",
+                calculations: modules.calculations ? (modules.calculations.version || modules.calculations.info && modules.calculations.info.version || "N/A") : "N/A"
             };
         },
         
@@ -486,20 +699,54 @@ var MementoUtils = (function() {
         
         /**
          * Debug helper - vypíše status všetkých modulov
-         * @param {Entry} entry - Kam zapísať debug info
+         * @param {Entry} entry - Kam zapísať debug info (optional)
+         * @param {boolean} detailed - Show detailed version check (default: false)
          */
-        debugModules: function(entry) {
-            var status = "=== MEMENTOUTILS STATUS ===\n";
-            status += "Verzia: " + version + "\n\n";
-            
-            status += "NAČÍTANÉ MODULY:\n";
-            var loaded = this.getLoadedModules();
-            for (var module in loaded) {
-                status += "• " + module + ": " + loaded[module] + "\n";
+        debugModules: function(entry, detailed) {
+            detailed = detailed || false;
+
+            var status = "=== MEMENTOUTILS v" + version + " STATUS ===\n\n";
+
+            // Run comprehensive dependency check if detailed
+            if (detailed) {
+                var check = checkDependencies(true); // silent = true
+
+                status += "DEPENDENCY CHECK:\n";
+                if (check.success) {
+                    status += "✅ All dependencies OK\n\n";
+                } else {
+                    if (check.missing.length > 0) {
+                        status += "❌ MISSING:\n";
+                        for (var i = 0; i < check.missing.length; i++) {
+                            status += "  - " + check.missing[i] + "\n";
+                        }
+                    }
+                    if (check.outdated.length > 0) {
+                        status += "⚠️ OUTDATED:\n";
+                        for (var j = 0; j < check.outdated.length; j++) {
+                            status += "  - " + check.outdated[j] + "\n";
+                        }
+                    }
+                    status += "\n";
+                }
+
+                status += "AVAILABLE MODULES (" + check.available.length + "):\n";
+                for (var k = 0; k < check.available.length; k++) {
+                    status += "  • " + check.available[k] + "\n";
+                }
+            } else {
+                // Simple check (backward compatible)
+                status += "NAČÍTANÉ MODULY:\n";
+                var loaded = this.getLoadedModules();
+                for (var module in loaded) {
+                    status += "  • " + module + ": " + loaded[module] + "\n";
+                }
             }
-            
+
             if (entry && modules.core) {
                 modules.core.addDebug(entry, status);
+            } else if (typeof log !== 'undefined') {
+                log(status);
             } else {
                 message(status);
             }
@@ -570,32 +817,55 @@ var MementoUtils = (function() {
         // === TIME MODULE ===
         get time() {
             loadModule('time');
+            if (!modules.time && typeof console !== 'undefined') {
+                console.error("[MementoUtils] MementoTime not loaded. Load core/MementoTime.js (v1.1.0+) first.");
+            }
             return modules.time || null;
         },
 
         // === DATE MODULE ===
         get date() {
             loadModule('date');
+            if (!modules.date && typeof console !== 'undefined') {
+                console.error("[MementoUtils] MementoDate not loaded. Load core/MementoDate.js (v1.0.0+) first.");
+            }
             return modules.date || null;
         },
 
         // === VALIDATION MODULE ===
         get validation() {
             loadModule('validation');
+            if (!modules.validation && typeof console !== 'undefined') {
+                console.error("[MementoUtils] MementoValidation not loaded. Load core/MementoValidation.js (v1.0.0+) first.");
+            }
             return modules.validation || null;
         },
 
         // === FORMATTING MODULE ===
         get formatting() {
             loadModule('formatting');
+            if (!modules.formatting && typeof console !== 'undefined') {
+                console.error("[MementoUtils] MementoFormatting not loaded. Load core/MementoFormatting.js (v1.0.0+) first.");
+            }
             return modules.formatting || null;
         },
 
         // === CALCULATIONS MODULE ===
         get calculations() {
             loadModule('calculations');
+            if (!modules.calculations && typeof console !== 'undefined') {
+                console.error("[MementoUtils] MementoCalculations not loaded. Load core/MementoCalculations.js (v1.0.0+) first.");
+            }
             return modules.calculations || null;
-        }
+        },
+
+        // === DEPENDENCY CHECKING (NEW in v8.1.0) ===
+        /**
+         * Check all module dependencies and versions
+         * @param {boolean} silent - If true, don't log to console
+         * @returns {Object} {success, missing, outdated, available}
+         */
+        checkAllDependencies: checkDependencies
     };
     
     // === INICIALIZÁCIA ===
