@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTOUTILS - Hlavný agregátor modulov
-// Verzia: 7.8.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// Verzia: 8.0.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - Jednotný prístupový bod pre všetky moduly
@@ -9,6 +9,11 @@
 //    - Lazy loading pre asynchrónne načítanie
 //    - ⚠️ NEOBSAHUJE Telegram (circular dependency - import priamo)
 // ==============================================
+// 🔧 CHANGELOG v8.0.0 (BREAKING):
+//    - PRIDANÉ: 5 nových focused modulov (Time, Date, Validation, Formatting, Calculations)
+//    - MementoBusiness v8.0.0 (refactorovaný z 3,942 na 1,050 riadkov)
+//    - Nové gettery: utils.time, utils.date, utils.validation, utils.formatting, utils.calculations
+//    - Phase 3B: Split MementoBusiness COMPLETE
 // 🔧 CHANGELOG v7.8.0:
 //    - ODSTRÁNENÉ: MementoTelegram z aggregation (circular dependency fix)
 //    - Telegram musí byť importovaný priamo v scriptoch
@@ -45,19 +50,27 @@ var MementoUtils = (function() {
 
     var MODULE_INFO = {
         name: "MementoUtils",
-        version: "7.8.0",
+        version: "8.0.0",
         author: "ASISTANTO",
         description: "Universal aggregator for all core modules with lazy loading",
         dependencies: ["MementoCore", "MementoConfig"],
-        optionalDependencies: ["MementoBusiness", "MementoAI", "MementoGPS", "MementoRecordTracking", "MementoIDConflictResolver"],
+        optionalDependencies: [
+            "MementoBusiness", "MementoAI", "MementoGPS", "MementoRecordTracking",
+            "MementoIDConflictResolver", "MementoTime", "MementoDate",
+            "MementoValidation", "MementoFormatting", "MementoCalculations"
+        ],
         provides: [
             "All functions from aggregated modules",
             "Lazy loading pattern",
             "Single import point for scripts"
         ],
-        aggregates: ["config", "core", "ai", "business", "gps", "recordTracking", "idConflictResolver"],
+        aggregates: [
+            "config", "core", "ai", "business", "gps", "recordTracking", "idConflictResolver",
+            "time", "date", "validation", "formatting", "calculations"
+        ],
         notAggregated: ["MementoTelegram - must be imported directly to avoid circular dependency"],
-        status: "stable"
+        status: "stable",
+        breaking: "v8.0.0 - Added new focused modules (Time, Date, Validation, Formatting, Calculations). MementoBusiness v8.0.0 is breaking."
     };
 
     var version = MODULE_INFO.version;
@@ -74,7 +87,13 @@ var MementoUtils = (function() {
         business: null,
         gps: null,
         recordTracking: null,
-        idConflictResolver: null
+        idConflictResolver: null,
+        // Phase 3 - New focused modules
+        time: null,
+        date: null,
+        validation: null,
+        formatting: null,
+        calculations: null
     };
     
     /**
@@ -127,6 +146,37 @@ var MementoUtils = (function() {
                     modules.idConflictResolver = MementoIDConflictResolver;
                 }
                 break;
+
+            // Phase 3 - New focused modules
+            case 'time':
+                if (!modules.time && typeof MementoTime !== 'undefined') {
+                    modules.time = MementoTime;
+                }
+                break;
+
+            case 'date':
+                if (!modules.date && typeof MementoDate !== 'undefined') {
+                    modules.date = MementoDate;
+                }
+                break;
+
+            case 'validation':
+                if (!modules.validation && typeof MementoValidation !== 'undefined') {
+                    modules.validation = MementoValidation;
+                }
+                break;
+
+            case 'formatting':
+                if (!modules.formatting && typeof MementoFormatting !== 'undefined') {
+                    modules.formatting = MementoFormatting;
+                }
+                break;
+
+            case 'calculations':
+                if (!modules.calculations && typeof MementoCalculations !== 'undefined') {
+                    modules.calculations = MementoCalculations;
+                }
+                break;
         }
     }
     
@@ -143,6 +193,12 @@ var MementoUtils = (function() {
         loadModule('gps');
         loadModule('recordTracking');
         loadModule('idConflictResolver');
+        // Phase 3 - New focused modules
+        loadModule('time');
+        loadModule('date');
+        loadModule('validation');
+        loadModule('formatting');
+        loadModule('calculations');
     }
     
     /**
@@ -505,7 +561,41 @@ var MementoUtils = (function() {
         // Detekcia a riešenie ID konfliktov (pre team verziu Memento Database)
         checkAndResolveIDConflict: lazyCall('idConflictResolver', 'checkAndResolveIDConflict'),
         findMaxID: lazyCall('idConflictResolver', 'findMaxID'),
-        idExists: lazyCall('idConflictResolver', 'idExists')
+        idExists: lazyCall('idConflictResolver', 'idExists'),
+
+        // ==============================================
+        // PHASE 3 - NEW FOCUSED MODULES (v8.0.0)
+        // ==============================================
+
+        // === TIME MODULE ===
+        get time() {
+            loadModule('time');
+            return modules.time || null;
+        },
+
+        // === DATE MODULE ===
+        get date() {
+            loadModule('date');
+            return modules.date || null;
+        },
+
+        // === VALIDATION MODULE ===
+        get validation() {
+            loadModule('validation');
+            return modules.validation || null;
+        },
+
+        // === FORMATTING MODULE ===
+        get formatting() {
+            loadModule('formatting');
+            return modules.formatting || null;
+        },
+
+        // === CALCULATIONS MODULE ===
+        get calculations() {
+            loadModule('calculations');
+            return modules.calculations || null;
+        }
     };
     
     // === INICIALIZÁCIA ===
