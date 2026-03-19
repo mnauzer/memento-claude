@@ -755,6 +755,680 @@ core.removeRecordIcon(entry(), "✅");  // Odstráni ikonu
 
 ---
 
+## MementoTime.js
+
+**Verzia:** 1.1.0
+**Závislosť:** moment.js (built-in)
+**Účel:** Time operations - 15-minute rounding, work hours calculation, time formatting
+**Prístup:** `utils.time` alebo `MementoTime` (direct import)
+**Phase 3:** Extracted from MementoBusiness - eliminates code duplication across 5+ scripts
+
+### Overview
+
+MementoTime centralizuje všetky časové operácie vrátane slovenskej business logiky (15-minútové intervaly, pracovný čas, prestávky podľa zákonníka práce).
+
+### Key Functions
+
+#### roundToQuarterHour(time, direction)
+
+Zaokrúhli čas na 15-minútové intervaly (Slovak business standard).
+
+```javascript
+var time = new Date("2026-03-19 08:17:00");
+
+// Nearest (default)
+var rounded = utils.time.roundToQuarterHour(time, "nearest");  // 08:15:00
+
+// Round up
+var roundedUp = utils.time.roundToQuarterHour(time, "up");     // 08:30:00
+
+// Round down
+var roundedDown = utils.time.roundToQuarterHour(time, "down"); // 08:15:00
+```
+
+**Directions:** `"nearest"`, `"up"`, `"down"`
+
+#### calculateHoursDifference(startTime, endTime, options)
+
+Vypočíta rozdiel v hodinách medzi dvoma časmi (podporuje nočné zmeny).
+
+```javascript
+var start = "2026-03-19 08:00";
+var end = "2026-03-19 16:30";
+
+var result = utils.time.calculateHoursDifference(start, end, {
+    roundQuarters: true,   // Zaokrúhli časy na 15min
+    includeBreak: true,    // Odráta prestávku
+    breakDuration: 30      // 30 minút prestávka
+});
+
+// Returns:
+// {
+//   hours: 8,
+//   minutes: 0,
+//   decimalHours: 8.0,
+//   totalMinutes: 480,
+//   crossesMidnight: false
+// }
+```
+
+**Options:**
+- `roundQuarters` (boolean) - Zaokrúhli časy pred výpočtom
+- `includeBreak` (boolean) - Odráta prestávku
+- `breakDuration` (number) - Minúty prestávky (default: 30)
+
+#### calculateBreakTime(workHours, options)
+
+Vypočíta povinnú prestávku podľa Zákonníka práce SR.
+
+```javascript
+var breakTime = utils.time.calculateBreakTime(8.5, {
+    threshold: 6,   // Po 6h práce
+    duration: 30    // 30min prestávka
+});
+// Returns: 30 (minút)
+
+var noBreak = utils.time.calculateBreakTime(5);  // 0 (pod 6h)
+```
+
+#### minutesToDecimalHours(minutes) / decimalHoursToMinutes(hours)
+
+```javascript
+var hours = utils.time.minutesToDecimalHours(90);    // 1.5
+var minutes = utils.time.decimalHoursToMinutes(1.5); // 90
+```
+
+#### formatHoursAsTime(decimalHours)
+
+```javascript
+var time = utils.time.formatHoursAsTime(7.5);   // "7:30"
+var time = utils.time.formatHoursAsTime(8.75);  // "8:45"
+```
+
+#### formatHoursDisplay(decimalHours, decimals)
+
+```javascript
+var display = utils.time.formatHoursDisplay(6.75);     // "6.75h"
+var display = utils.time.formatHoursDisplay(8.5, 1);   // "8.5h"
+```
+
+#### crossesMidnight(startTime, endTime)
+
+```javascript
+var crosses = utils.time.crossesMidnight("22:00", "02:00");  // true
+var crosses = utils.time.crossesMidnight("08:00", "16:00");  // false
+```
+
+#### isValidTime(time)
+
+```javascript
+var valid = utils.time.isValidTime(new Date());     // true
+var valid = utils.time.isValidTime("invalid");      // false
+```
+
+### Constants
+
+```javascript
+utils.time.CONSTANTS.MINUTES_PER_HOUR;  // 60
+utils.time.CONSTANTS.HOURS_PER_DAY;     // 24
+utils.time.CONSTANTS.QUARTER_HOUR;      // 15
+```
+
+---
+
+## MementoDate.js
+
+**Verzia:** 1.0.0
+**Závislosť:** MementoConfig (pre sviatky)
+**Účel:** Slovak calendar utilities - holidays, weekends, workdays
+**Prístup:** `utils.date` alebo `MementoDate` (direct import)
+**Phase 3:** NEW - Centralized Slovak calendar logic
+
+### Overview
+
+MementoDate poskytuje kompletnú podporu pre slovenský kalendár vrátane všetkých sviatkov (pevných aj pohyblivých), víkendov a pracovných dní.
+
+### Key Functions
+
+#### isHoliday(date)
+
+Skontroluje či je dátum slovenský sviatok.
+
+```javascript
+var jan1 = new Date("2026-01-01");
+var isHoliday = utils.date.isHoliday(jan1);  // true (Nový rok)
+
+var workday = new Date("2026-01-02");
+var isHoliday = utils.date.isHoliday(workday);  // false
+```
+
+**Podporované sviatky:**
+- **Pevné:** 1.1., 6.1., 1.5., 8.5., 5.7., 29.8., 1.9., 15.9., 1.11., 17.11., 24.12., 25.12., 26.12.
+- **Pohyblivé:** Veľký piatok, Veľkonočný pondelok, Druhý sviatok vianočný
+
+#### getHolidayName(date)
+
+```javascript
+var name = utils.date.getHolidayName(new Date("2026-05-01"));
+// Returns: "Sviatok práce"
+
+var name = utils.date.getHolidayName(new Date("2026-08-29"));
+// Returns: "Výročie Slovenského národného povstania"
+```
+
+#### isWeekend(date)
+
+```javascript
+var saturday = new Date("2026-03-21");
+var isWeekend = utils.date.isWeekend(saturday);  // true
+
+var monday = new Date("2026-03-23");
+var isWeekend = utils.date.isWeekend(monday);     // false
+```
+
+#### getWeekNumber(date)
+
+ISO 8601 week number.
+
+```javascript
+var week = utils.date.getWeekNumber(new Date("2026-03-19"));
+// Returns: 12
+```
+
+#### getWorkdaysInMonth(year, month)
+
+Vypočíta počet pracovných dní v mesiaci (vynecháva víkendy a sviatky).
+
+```javascript
+var workdays = utils.date.getWorkdaysInMonth(2026, 3);  // March 2026
+// Returns: 21 (example - depends on actual month)
+```
+
+#### parseDate(str, format) / formatDate(date, format)
+
+```javascript
+// Parse
+var date = utils.date.parseDate("19.03.2026", "DD.MM.YYYY");
+
+// Format
+var str = utils.date.formatDate(new Date(), "DD.MM.YYYY");  // "19.03.2026"
+var str = utils.date.formatDate(new Date(), "YYYY-MM-DD");  // "2026-03-19"
+```
+
+### Slovak Holidays Reference
+
+```javascript
+// Fixed holidays (always same date)
+utils.date.SLOVAK_FIXED_HOLIDAYS = [
+    "01-01",  // Nový rok
+    "01-06",  // Zjavenie Pána (Traja králi)
+    "05-01",  // Sviatok práce
+    "05-08",  // Deň víťazstva nad fašizmom
+    "07-05",  // Sviatok sv. Cyrila a Metoda
+    "08-29",  // Výročie SNP
+    "09-01",  // Deň Ústavy SR
+    "09-15",  // Sedembolestná Panna Mária
+    "11-01",  // Sviatok všetkých svätých
+    "11-17",  // Deň boja za slobodu a demokraciu
+    "12-24",  // Štedrý deň
+    "12-25",  // 1. sviatok vianočný
+    "12-26"   // 2. sviatok vianočný
+];
+
+// Movable holidays calculated automatically
+// - Veľký piatok (Good Friday)
+// - Veľkonočný pondelok (Easter Monday)
+```
+
+---
+
+## MementoValidation.js
+
+**Verzia:** 1.0.0
+**Závislosť:** MementoCore
+**Účel:** Validation patterns - time, date, number, required fields
+**Prístup:** `utils.validation` alebo `MementoValidation` (direct import)
+**Phase 3:** NEW - Standardized validation across all libraries
+
+### Overview
+
+MementoValidation poskytuje jednotné validačné vzory pre všetky typy polí s konzistentnými chybovými hláseniami.
+
+### Key Functions
+
+#### validateTime(timeValue, options)
+
+Validuje TIME pole s možnosťami kontroly.
+
+```javascript
+var startTime = utils.safeGet(entry(), "Príchod");
+
+var result = utils.validation.validateTime(startTime, {
+    required: true,
+    allowFuture: false,
+    maxHours: 24
+});
+
+if (!result.valid) {
+    dialog("Chyba", result.error, "OK");
+    cancel();
+}
+
+// Returns:
+// {
+//   valid: true/false,
+//   error: null or "error message",
+//   value: parsed value
+// }
+```
+
+**Options:**
+- `required` (boolean) - Pole musí mať hodnotu
+- `allowFuture` (boolean) - Povoliť budúce časy
+- `allowPast` (boolean) - Povoliť minulé časy
+- `maxHours` (number) - Maximum hodín
+
+#### validateDate(dateValue, options)
+
+Validuje DATE pole.
+
+```javascript
+var workDate = utils.safeGet(entry(), "Dátum");
+
+var result = utils.validation.validateDate(workDate, {
+    required: true,
+    allowFuture: false,
+    minDate: moment().subtract(1, 'year').toDate(),
+    maxDate: new Date()
+});
+
+if (!result.valid) {
+    dialog("Chyba", result.error, "OK");
+    cancel();
+}
+```
+
+**Options:**
+- `required` (boolean) - Pole musí mať hodnotu
+- `allowFuture` (boolean) - Povoliť budúce dátumy
+- `allowPast` (boolean) - Povoliť minulé dátumy
+- `minDate` (Date) - Minimálny dátum
+- `maxDate` (Date) - Maximálny dátum
+
+#### validateNumber(numValue, options)
+
+Validuje číselné polia.
+
+```javascript
+var amount = utils.safeGet(entry(), "Suma");
+
+var result = utils.validation.validateNumber(amount, {
+    required: true,
+    min: 0,
+    max: 1000000,
+    allowNegative: false,
+    decimals: 2
+});
+```
+
+**Options:**
+- `required` (boolean) - Pole musí mať hodnotu
+- `min` (number) - Minimálna hodnota
+- `max` (number) - Maximálna hodnota
+- `allowNegative` (boolean) - Povoliť záporné čísla
+- `decimals` (number) - Počet desatinných miest
+
+#### validateRequired(entry, fieldNames)
+
+Kontroluje povinné polia (najpouživanejšia funkcia).
+
+```javascript
+var result = utils.validation.validateRequired(entry(), [
+    "Dátum",
+    "Príchod",
+    "Odchod",
+    "Zamestnanci"
+]);
+
+if (!result.valid) {
+    dialog("Chyba",
+           "Chýbajú povinné polia:\n" + result.missing.join(", "),
+           "OK");
+    cancel();
+}
+
+// Returns:
+// {
+//   valid: true/false,
+//   missing: ["field1", "field2"],  // Zoznam chýbajúcich polí
+//   error: "error message"
+// }
+```
+
+#### validateRange(value, min, max)
+
+```javascript
+var result = utils.validation.validateRange(hours, 0, 24);
+// Returns: { valid: true/false, error: "..." }
+```
+
+#### validateEmail(email)
+
+```javascript
+var result = utils.validation.validateEmail("user@example.com");
+// Returns: { valid: true, error: null }
+```
+
+#### validatePhone(phone, format)
+
+Validuje slovenské telefónne čísla.
+
+```javascript
+var result = utils.validation.validatePhone("0901234567", "SK");
+// Returns: { valid: true/false, error: "...", formatted: "+421 901 234 567" }
+```
+
+---
+
+## MementoFormatting.js
+
+**Verzia:** 1.0.0
+**Závislosť:** None (standalone)
+**Účel:** Display formatters - money, duration, date, phone, markdown
+**Prístup:** `utils.formatting` alebo `MementoFormatting` (direct import)
+**Phase 3:** NEW - Centralized formatting logic
+
+### Overview
+
+MementoFormatting poskytuje jednotné formátovanie pre všetky typy výstupov s podporou slovenskej lokalizácie.
+
+### Key Functions
+
+#### formatMoney(amount, decimals)
+
+Formátuje peniaze v slovenskom formáte.
+
+```javascript
+var formatted = utils.formatting.formatMoney(1250.50);
+// Returns: "1 250,50 €"
+
+var formatted = utils.formatting.formatMoney(1000000);
+// Returns: "1 000 000,00 €"
+
+var formatted = utils.formatting.formatMoney(12.5, 0);
+// Returns: "13 €" (rounded)
+```
+
+**Format:**
+- Tisícový oddeľovač: medzera
+- Desatinný oddeľovač: čiarka
+- Symbol: €
+- Default decimals: 2
+
+#### formatDuration(hours, format)
+
+Formátuje hodiny na časový formát.
+
+```javascript
+var duration = utils.formatting.formatDuration(8.5);
+// Returns: "8:30"
+
+var duration = utils.formatting.formatDuration(0.75);
+// Returns: "0:45"
+
+var duration = utils.formatting.formatDuration(12.25);
+// Returns: "12:15"
+```
+
+#### formatNumber(num, decimals, thousandSep)
+
+```javascript
+var num = utils.formatting.formatNumber(1234567.89, 2, " ");
+// Returns: "1 234 567,89"
+
+var num = utils.formatting.formatNumber(1234.5, 0);
+// Returns: "1 235"
+```
+
+#### formatPercent(value, decimals)
+
+```javascript
+var percent = utils.formatting.formatPercent(0.25, 0);
+// Returns: "25%"
+
+var percent = utils.formatting.formatPercent(0.333, 2);
+// Returns: "33,3%"
+```
+
+#### formatDate(date, format) / formatTime(date, format)
+
+```javascript
+// Date
+var str = utils.formatting.formatDate(new Date(), "DD.MM.YYYY");
+// Returns: "19.03.2026"
+
+var str = utils.formatting.formatDate(new Date(), "YYYY-MM-DD");
+// Returns: "2026-03-19"
+
+// Time
+var str = utils.formatting.formatTime(new Date(), "HH:mm");
+// Returns: "14:30"
+
+var str = utils.formatting.formatTime(new Date(), "HH:mm:ss");
+// Returns: "14:30:45"
+```
+
+#### formatEmployeeName(employee)
+
+Formátuje meno zamestnanca konzistentne.
+
+```javascript
+var name = utils.formatting.formatEmployeeName(employeeEntry);
+// Returns: "Meno Priezvisko" alebo "Priezvisko Meno" (podľa konfigurácie)
+```
+
+#### formatPhone(phone, format)
+
+Formátuje telefónne číslo.
+
+```javascript
+var phone = utils.formatting.formatPhone("0901234567");
+// Returns: "+421 901 234 567"
+
+var phone = utils.formatting.formatPhone("+421901234567", "SK");
+// Returns: "+421 901 234 567"
+```
+
+#### formatMarkdown(data, template)
+
+Generuje markdown text pre Telegram notifikácie.
+
+```javascript
+var markdown = utils.formatting.formatMarkdown({
+    title: "Dochádzka",
+    date: new Date(),
+    hours: 8.5,
+    wage: 102
+}, "attendance");
+
+// Returns formatted Telegram markdown
+```
+
+---
+
+## MementoCalculations.js
+
+**Verzia:** 1.0.0
+**Závislosť:** MementoTime, MementoDate
+**Účel:** Business calculations - wages, overtime, VAT, profitability
+**Prístup:** `utils.calculations` alebo `MementoCalculations` (direct import)
+**Phase 3:** NEW - Extracted from MementoBusiness (complex calculations)
+
+### Overview
+
+MementoCalculations obsahuje všetky business výpočty s podporou slovenskej legislatívy (nadčasy, DPH, prestávky).
+
+### Key Functions
+
+#### calculateDailyWage(hoursWorked, hourlyRate, options)
+
+Vypočíta dennú mzdu s nadčasmi a príplatkami.
+
+```javascript
+var wage = utils.calculations.calculateDailyWage(10.5, 12, {
+    standardHours: 8,           // 8h normálne
+    overtimeMultiplier: 1.25,   // 25% príplatok za nadčas
+    weekendBonus: 1.0,          // Žiadny víkendový príplatok (pracovný deň)
+    holidayBonus: 1.0           // Žiadny sviatkový príplatok
+});
+
+// Returns:
+// {
+//   wage: 157.50,              // Celková mzda
+//   regularWage: 96.00,        // Základná mzda (8h × 12€)
+//   overtimeWage: 37.50,       // Nadčasy (2.5h × 12€ × 1.25)
+//   regularHours: 8.0,         // Štandardné hodiny
+//   overtimeHours: 2.5,        // Nadčasové hodiny
+//   hourlyRate: 12.00          // Hodinovka
+// }
+```
+
+**Options:**
+- `standardHours` (number) - Štandardný pracovný čas (default: 8)
+- `overtimeMultiplier` (number) - Násobok pre nadčasy (default: 1.25)
+- `weekendBonus` (number) - Príplatok za víkend (default: 1.5)
+- `holidayBonus` (number) - Príplatok za sviatok (default: 2.0)
+
+#### calculateOvertime(totalHours, standardHours, hourlyRate)
+
+Vypočíta nadčasy samostatne.
+
+```javascript
+var overtime = utils.calculations.calculateOvertime(10, 8, 12);
+
+// Returns:
+// {
+//   overtimeHours: 2.0,
+//   overtimeWage: 30.00,      // 2h × 12€ × 1.25
+//   regularHours: 8.0,
+//   regularWage: 96.00
+// }
+```
+
+#### calculateBreakTime(workHours, rules)
+
+```javascript
+var breakMinutes = utils.calculations.calculateBreakTime(8.5, {
+    threshold: 6,    // Po 6h práce
+    duration: 30     // 30min prestávka
+});
+// Returns: 30 (minút)
+```
+
+#### calculateVAT(amount, rate)
+
+Vypočíta DPH a rozdelí základnú cenu.
+
+```javascript
+var vat = utils.calculations.calculateVAT(1200, 0.20);
+
+// Returns:
+// {
+//   amountWithVat: 1200.00,    // Suma s DPH
+//   amountWithoutVat: 1000.00, // Základ dane
+//   vatAmount: 200.00,         // Suma DPH
+//   vatRate: 0.20              // Sadzba DPH (20%)
+// }
+```
+
+#### calculateProration(totalAmount, days, totalDays)
+
+Proporcionálny výpočet (napr. mzda za časť mesiaca).
+
+```javascript
+var prorated = utils.calculations.calculateProration(1200, 15, 30);
+// Returns: 600.00 (half month)
+```
+
+#### calculateProfitability(revenue, costs)
+
+Vypočíta ziskovosť.
+
+```javascript
+var profit = utils.calculations.calculateProfitability(10000, 7500);
+
+// Returns:
+// {
+//   revenue: 10000,
+//   costs: 7500,
+//   profit: 2500,
+//   profitMargin: 0.25,        // 25%
+//   profitability: 0.33        // 33% (profit/costs)
+// }
+```
+
+#### calculateHourlyRate(dailyWage, standardHours)
+
+```javascript
+var rate = utils.calculations.calculateHourlyRate(96, 8);
+// Returns: 12.00
+```
+
+### Complete Example
+
+```javascript
+// Real-world attendance calculation
+var entry = entry();
+var date = utils.safeGet(entry, "Dátum");
+var startTime = utils.safeGet(entry, "Príchod");
+var endTime = utils.safeGet(entry, "Odchod");
+var employees = utils.safeGetLinks(entry, "Zamestnanci");
+
+var totalWage = 0;
+
+for (var i = 0; i < employees.length; i++) {
+    var emp = employees[i];
+
+    // Calculate work hours
+    var workHours = utils.time.calculateHoursDifference(startTime, endTime, {
+        roundQuarters: true,
+        includeBreak: true,
+        breakDuration: 30
+    });
+
+    // Get hourly rate
+    var rate = utils.safeGet(emp, "Hodinovka", 0);
+
+    // Check for bonuses
+    var isWeekend = utils.date.isWeekend(date);
+    var isHoliday = utils.date.isHoliday(date);
+
+    // Calculate wage
+    var wage = utils.calculations.calculateDailyWage(workHours.decimalHours, rate, {
+        standardHours: 8,
+        overtimeMultiplier: 1.25,
+        weekendBonus: isWeekend ? 1.5 : 1.0,
+        holidayBonus: isHoliday ? 2.0 : 1.0
+    });
+
+    totalWage += wage.wage;
+
+    // Log details
+    utils.addDebug(entry,
+        utils.formatting.formatEmployeeName(emp) + ": " +
+        utils.formatting.formatDuration(workHours.decimalHours) + " / " +
+        utils.formatting.formatMoney(wage.wage)
+    );
+}
+
+// Save result
+utils.safeSet(entry, "Celková mzda", totalWage);
+utils.safeSet(entry, "info",
+    "Celková mzda: " + utils.formatting.formatMoney(totalWage));
+```
+
+---
+
 ## MementoUtils7.js
 
 **Verzia:** 7.4.0
