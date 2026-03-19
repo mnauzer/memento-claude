@@ -19,9 +19,9 @@
 8. [MementoFormatting.js](#mementoformattingjs) - **🆕 NEW in Phase 3**
 9. [MementoCalculations.js](#mementocalculationsjs) - **🆕 NEW in Phase 3**
 10. [MementoBusiness.js](#mementobusinessjs) - **♻️ REFACTORED in Phase 3**
-11. [MementoUtils.js](#mementoutils7js)
-12. [MementoAI7.js](#mementoai7js)
-13. [MementoTelegram8.js](#mementotelegram8js)
+11. [MementoUtils.js](#mementoutilsjs)
+12. [MementoAI.js](#mementoaijs)
+13. [MementoTelegram.js](#mementotelegramjs)
 14. [MementoGPS.js](#mementogpsjs)
 15. [MementoRecordTracking.js](#mentorecordtrackingjs)
 16. [MementoIDConflictResolver.js](#mementoidconflictresolverjs)
@@ -1822,9 +1822,9 @@ var obligation = MementoBusiness.createObligation({
 
 ---
 
-## MementoAI7.js
+## MementoAI.js
 
-**Verzia:** 7.0
+**Verzia:** 8.0.0
 **Závislosť:** MementoConfig, MementoCore
 **Účel:** AI služby (OpenAI, Claude), HTTP wrapper
 
@@ -1921,9 +1921,9 @@ var result = MementoAI.analyzeImage(
 
 ---
 
-## MementoTelegram8.js
+## MementoTelegram.js
 
-**Verzia:** 8.0.2
+**Verzia:** 8.2.0
 **Závislosť:** MementoConfig, MementoCore, MementoAI
 **Účel:** Telegram Bot API, správy, notifikácie, skupiny, threads
 

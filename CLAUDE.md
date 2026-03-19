@@ -230,7 +230,7 @@ var date = utils.safeGetField(entry, dateFieldName, null);
 3. Copy `templates/Template-Script.js` as starting point
 4. Rename following convention: `[Lib].[Type].[Name].js`
 5. Update script header with library, name, version, dependencies
-6. Add configuration to `MementoConfig7.js` if new fields/libraries
+6. Add configuration to `MementoConfig.js` if new fields/libraries
 7. Implement logic following the template structure
 8. Test in Memento Database (cannot test locally)
 9. Document in library README if needed
@@ -420,12 +420,12 @@ Git Repository              Memento Database
 
 | Module | File | Purpose |
 |--------|------|---------|
-| MementoConfig | `core/MementoConfig7.js` | Central configuration |
-| MementoCore | `core/MementoCore7.js` | Core utilities |
-| MementoUtils | `core/MementoUtils7.js` | Aggregator (lazy loading) |
-| MementoBusiness | `core/MementoBusiness7.js` | Business logic |
-| MementoAI | `core/MementoAI7.js` | AI integration |
-| MementoTelegram | `core/MementoTelegram8.js` | Telegram Bot API |
+| MementoConfig | `core/MementoConfig.js` | Central configuration |
+| MementoCore | `core/MementoCore.js` | Core utilities |
+| MementoUtils | `core/MementoUtils.js` | Aggregator (lazy loading) |
+| MementoBusiness | `core/MementoBusiness.js` | Business logic |
+| MementoAI | `core/MementoAI.js` | AI integration |
+| MementoTelegram | `core/MementoTelegram.js` | Telegram Bot API |
 | MementoGPS | `core/MementoGPS.js` | GPS utilities |
 | MementoVAT | `core/MementoVAT.js` | VAT calculations |
 | MementoAutoNumber | `core/MementoAutoNumber.js` | Auto-numbering |
@@ -443,8 +443,8 @@ Git Repository              Memento Database
 
 **CAUTION:** Core modules are used by ALL scripts. Changes have broad impact.
 
-1. Check version in filename (e.g., `MementoCore7.js` is version 7.x)
-2. Update version in script if breaking changes (7.0 → 8.0)
+1. Check version in MODULE_INFO (filenames no longer contain versions)
+2. Update MODULE_INFO.version if breaking changes (e.g., 8.0.0 → 9.0.0)
 3. Update CHANGELOG section in script header
 4. Test with multiple library scripts before committing
 5. Consider backward compatibility - many scripts may depend on current behavior
@@ -605,7 +605,7 @@ dialog("Výsledok prepočtu", details, "OK");
 - Test in actual Memento Database environment
 
 ### For Configuration
-- Add new entries to MementoConfig7.js
+- Add new entries to MementoConfig.js
 - Document in appropriate section (libraries, fields, constants)
 - Use descriptive keys following existing patterns
 - Update version number in MementoConfig
@@ -655,17 +655,17 @@ memento-claude/
 
 | Modul | Súbor | Účel |
 |-------|-------|------|
-| Config | `MementoConfig7.js` | Centrálna konfigurácia všetkých knižníc, polí, ikon |
-| Core | `MementoCore7.js` | Logging, formátovanie, validácia, safe field access |
-| Utils | `MementoUtils7.js` | Agregátor všetkých modulov (lazy loading) |
-| Business | `MementoBusiness7.js` | Business logika: mzdy, pracovný čas, výkazy |
-| AI | `MementoAI7.js` | OpenAI, Claude API integrácia |
-| Telegram | `MementoTelegram8.js` | Telegram Bot API, notifikácie |
+| Config | `MementoConfig.js` | Centrálna konfigurácia všetkých knižníc, polí, ikon |
+| Core | `MementoCore.js` | Logging, formátovanie, validácia, safe field access |
+| Utils | `MementoUtils.js` | Agregátor všetkých modulov (lazy loading) |
+| Business | `MementoBusiness.js` | Business logika: mzdy, pracovný čas, výkazy |
+| AI | `MementoAI.js` | OpenAI, Claude API integrácia |
+| Telegram | `MementoTelegram.js` | Telegram Bot API, notifikácie |
 | GPS | `MementoGPS.js` | GPS routing, OSRM API |
 | RecordTracking | `MementoRecordTracking.js` | Sledovanie vytvorenia/úpravy záznamov |
 | IDConflictResolver | `MementoIDConflictResolver.js` | Riešenie ID konfliktov (team verzia) |
 | AutoNumber | `MementoAutoNumber.js` | Automatické generovanie čísel |
-| Sync | `MementoSync1.js` | PostgreSQL synchronizácia |
+| Sync | `MementoSync.js` | PostgreSQL synchronizácia |
 
 **Reusable Moduly pre knižnice:**
 - `CP.Calculate.Module.js` - Prepočet cenovej ponuky
@@ -791,14 +791,14 @@ Všetky staré verzie, testovacie a backup súbory sa nachádzajú v `.obsolete/
 
 **Postup:**
 1. Všetky core moduly sú v `core/` adresári
-2. Všetky core moduly začínajú `Memento*` (napr. MementoCore7.js)
+2. Všetky core moduly začínajú `Memento*` (napr. MementoCore.js, MementoUtils.js)
 3. Detailnú dokumentáciu nájdeš v `docs/CORE_MODULES_DOCUMENTATION.md`
 4. Quick reference v `docs/CORE_MODULES_QUICK_REFERENCE.md`
 
 **Príklady:**
-- Hľadám funkciu na zaokrúhľovanie času → `core/MementoCore7.js` → `roundToQuarterHour()`
-- Hľadám centrálnu konfiguráciu → `core/MementoConfig7.js`
-- Hľadám Telegram API → `core/MementoTelegram8.js`
+- Hľadám funkciu na zaokrúhľovanie času → `core/MementoCore.js` → `roundToQuarterHour()`
+- Hľadám centrálnu konfiguráciu → `core/MementoConfig.js`
+- Hľadám Telegram API → `core/MementoTelegram.js`
 - Hľadám GPS routing → `core/MementoGPS.js`
 
 ---
