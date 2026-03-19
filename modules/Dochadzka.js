@@ -1,36 +1,32 @@
 // ==============================================
-// LIBRARY MODULE - Dochádzka (Attendance)
-// Verzia: 0.1.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// LIBRARY MODULE - Dochadzka (Attendance)
+// Verzia: 1.0.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
 // ==============================================
 // 📋 PURPOSE:
-//    - Reusable module for Attendance operations
-//    - Calculate work hours with 15-minute rounding
-//    - Compute wages based on hourly rates
-//    - Handle break time calculations (30 min after 6h)
-//    - Update daily reports automatically
-//    - Track obligations and payments
+//    - Reusable module for attendance calculations
+//    - Work time calculation with 15-minute rounding
+//    - Employee wage computation (hourly rate + extras)
+//    - Obligation creation/update for wages
+//    - Daily report integration
 // ==============================================
 // 🔧 DEPENDENCIES:
 //    - MementoUtils v7.0+
 //    - MementoConfig (central configuration)
 //    - MementoTime (for time rounding)
-//    - MementoBusiness (wage calculations)
-//    - DailyReportModule (daily report updates)
+//    - MementoBusiness (for wage calculations)
 // ==============================================
 // 📖 USAGE:
-//    // Calculate attendance hours
-//    var result = Dochadzka.calculateAttendance(entry(), {
-//        roundingMode: "nearest" // "up", "down", "nearest"
-//    });
-//
-//    // Compute wage
-//    var wage = Dochadzka.calculateWage(entry(), {
-//        employee: employeeEntry,
-//        hours: 8.5
-//    });
+//    var result = Dochadzka.calculateAttendance(entry(), config);
+//    if (result.success) {
+//        // Attendance calculated successfully
+//    }
 // ==============================================
 // 📚 DOCUMENTATION:
 //    See modules/docs/Dochadzka.md for complete field reference
+// ==============================================
+// 📝 EXTRACTED FROM:
+//    - Doch.Calc.Main.js v8.2.0 (528 lines)
+//    - Extraction date: 2026-03-19
 // ==============================================
 
 var Dochadzka = (function() {
@@ -42,11 +38,14 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "0.1.0",
+        version: "1.0.0",
         author: "ASISTANTO",
-        description: "Attendance management and wage calculation module",
+        description: "Attendance calculation and wage management module",
         library: "Dochádzka",
-        status: "initial" // initial, active, stable
+        status: "active",
+        extractedFrom: "Doch.Calc.Main.js v8.2.0",
+        extractedLines: 528,
+        extractedDate: "2026-03-19"
     };
 
     // ==============================================
@@ -54,33 +53,30 @@ var Dochadzka = (function() {
     // ==============================================
 
     var DEFAULT_CONFIG = {
-        fields: {
-            // Core fields
-            date: "Dátum",
-            employee: "Zamestnanec",
-            arrivalTime: "Príchod",
-            departureTime: "Odchod",
+        scriptName: "Dochádzka Prepočet",
 
-            // Calculated fields
-            workedHours: "Odpracované hodiny",
-            breakTime: "Prestávka",
-            wage: "Mzda",
-            hourlyRate: "Hodinová sadzba",
-
-            // Tracking fields
-            dailyReport: "Denný report",
-            obligation: "Záväzok",
-            status: "Status",
-
-            // Debug fields
-            debugLog: "Debug_Log",
-            errorLog: "Error_Log",
-            info: "info"
+        settings: {
+            roundToQuarterHour: true,  // 15-minute rounding
+            roundDirection: "nearest", // "up", "down", "nearest"
+            includeBreaks: true,
+            breakThreshold: 6, // hours before break required
+            breakDuration: 30  // minutes
         },
-        constants: {
-            BREAK_THRESHOLD_HOURS: 6,      // Break required after 6 hours
-            BREAK_DURATION_MINUTES: 30,    // 30-minute break
-            DEFAULT_ROUNDING: "nearest"    // Default time rounding mode
+
+        // Field names will be populated from MementoConfig
+        fields: {
+            date: null,
+            employees: null,
+            arrival: null,
+            departure: null,
+            workTime: null,
+            workedHours: null,
+            employeeCount: null,
+            wageCosts: null,
+            entryIcons: null,
+            entryStatus: null,
+            dayOffReason: null,
+            info: null
         }
     };
 
@@ -88,6 +84,10 @@ var Dochadzka = (function() {
     // PRIVATE HELPER FUNCTIONS
     // ==============================================
 
+    /**
+     * Get configuration from MementoConfig or use defaults
+     * @private
+     */
     function getConfig() {
         if (typeof MementoConfig !== 'undefined') {
             return MementoConfig.getConfig();
@@ -95,102 +95,642 @@ var Dochadzka = (function() {
         return null;
     }
 
+    /**
+     * Get MementoUtils reference
+     * @private
+     */
+    function getUtils() {
+        if (typeof MementoUtils !== 'undefined') {
+            return MementoUtils;
+        }
+        throw new Error("MementoUtils not loaded - required dependency");
+    }
+
+    /**
+     * Add debug message to entry
+     * @private
+     */
     function addDebug(entry, message, icon) {
-        if (typeof MementoUtils !== 'undefined' && MementoUtils.addDebug) {
-            MementoUtils.addDebug(entry, message, icon);
-        } else if (typeof log !== 'undefined') {
-            log(message);
+        try {
+            var utils = getUtils();
+            if (utils.addDebug) {
+                utils.addDebug(entry, message, icon);
+            }
+        } catch (e) {
+            // Silent fail if utils not available
         }
     }
 
+    /**
+     * Add error message to entry
+     * @private
+     */
     function addError(entry, message, functionName, error) {
-        if (typeof MementoUtils !== 'undefined' && MementoUtils.addError) {
-            MementoUtils.addError(entry, message, functionName, error);
-        } else if (typeof log !== 'undefined') {
-            log("ERROR in " + functionName + ": " + message + " | " + error);
+        try {
+            var utils = getUtils();
+            if (utils.addError) {
+                utils.addError(entry, message, functionName, error);
+            }
+        } catch (e) {
+            // Silent fail if utils not available
         }
     }
 
-    function addInfo(entry, message, data, scriptInfo) {
-        if (typeof MementoUtils !== 'undefined' && MementoUtils.addInfo) {
-            MementoUtils.addInfo(entry, message, data, scriptInfo);
-        }
-    }
-
+    /**
+     * Merge user config with defaults
+     * @private
+     */
     function mergeConfig(userConfig) {
         if (!userConfig) return DEFAULT_CONFIG;
 
-        var merged = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+        var config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
 
-        // Merge fields
-        if (userConfig.fields) {
-            for (var key in userConfig.fields) {
-                if (userConfig.fields.hasOwnProperty(key)) {
-                    merged.fields[key] = userConfig.fields[key];
-                }
+        // Merge settings
+        if (userConfig.settings) {
+            for (var key in userConfig.settings) {
+                config.settings[key] = userConfig.settings[key];
             }
         }
 
-        // Merge constants
-        if (userConfig.constants) {
-            for (var key in userConfig.constants) {
-                if (userConfig.constants.hasOwnProperty(key)) {
-                    merged.constants[key] = userConfig.constants[key];
-                }
-            }
+        // Merge field names from MementoConfig
+        var centralConfig = getConfig();
+        if (centralConfig && centralConfig.fields && centralConfig.fields.attendance) {
+            config.fields = {
+                date: centralConfig.fields.attendance.date,
+                employees: centralConfig.fields.attendance.employees,
+                arrival: centralConfig.fields.attendance.arrival,
+                departure: centralConfig.fields.attendance.departure,
+                workTime: centralConfig.fields.attendance.workTime,
+                workedHours: centralConfig.fields.attendance.workedHours,
+                employeeCount: centralConfig.fields.attendance.employeeCount,
+                wageCosts: centralConfig.fields.attendance.wageCosts,
+                entryIcons: centralConfig.fields.attendance.entryIcons,
+                entryStatus: centralConfig.fields.attendance.entryStatus,
+                dayOffReason: centralConfig.fields.attendance.dayOffReason,
+                info: centralConfig.fields.common.info
+            };
+
+            config.attributes = centralConfig.fields.attendance.employeeAttributes;
+            config.libraries = centralConfig.libraries;
+            config.icons = centralConfig.icons;
+
+            // Obligation settings
+            config.obligationTypes = {
+                wages: centralConfig.constants.obligationTypes.wages
+            };
+            config.obligationStates = {
+                paid: centralConfig.constants.obligationStates.paid || "Zaplatené",
+                unpaid: centralConfig.constants.obligationStates.unpaid || "Nezaplatené",
+                partiallyPaid: centralConfig.constants.obligationStates.partiallyPaid || "Čiastočne zaplatené"
+            };
+            config.obligationsFields = centralConfig.fields.obligations;
         }
 
-        return merged;
+        return config;
+    }
+
+    /**
+     * Validate input data for attendance entry
+     * @private
+     */
+    function validateInputData(entry, config, utils) {
+        try {
+            var options = {
+                config: config,
+                customMessages: {
+                    date: "Dátum nie je vyplnený",
+                    arrival: "Príchod nie je vyplnený",
+                    departure: "Odchod nie je vyplnený",
+                    employees: "Žiadni zamestnanci v zázname"
+                }
+            };
+
+            var result = utils.validateInputData(entry, "attendance", options);
+
+            if (!result.success) {
+                return result;
+            }
+
+            // Add supplementary debug info
+            addDebug(entry, "  • Dátum: " + moment(result.data.date).format("DD.MM.YYYY") +
+                    " (" + utils.getDayNameSK(moment(result.data.date).day()).toUpperCase() + ")");
+            addDebug(entry, "  • Čas: " + moment(result.data.arrival).format("HH:mm") +
+                    " - " + moment(result.data.departure).format("HH:mm"));
+            addDebug(entry, "  • Počet zamestnancov: " + result.data.employees.length);
+
+            return result;
+
+        } catch (error) {
+            addError(entry, error.toString(), "validateInputData", error);
+            return { success: false, error: error.toString() };
+        }
+    }
+
+    /**
+     * Calculate work time from arrival to departure
+     * @private
+     */
+    function calculateWorkTime(entry, arrival, departure, config, utils) {
+        try {
+            var options = {
+                entry: entry,
+                config: config,
+                roundToQuarter: config.settings.roundToQuarterHour,
+                startFieldName: config.fields.arrival,
+                endFieldName: config.fields.departure,
+                workTimeFieldName: config.fields.workTime,
+                debugLabel: "Pracovná doba"
+            };
+
+            var result = utils.calculateWorkTime(arrival, departure, options);
+
+            // Map field names for backward compatibility
+            if (result.success) {
+                result.arrivalRounded = result.startTimeRounded;
+                result.departureRounded = result.endTimeRounded;
+                result.arrivalOriginal = result.startTimeOriginal;
+                result.departureOriginal = result.endTimeOriginal;
+            }
+
+            return result;
+
+        } catch (error) {
+            addError(entry, error.toString(), "calculateWorkTime", error);
+            return { success: false, error: error.toString() };
+        }
+    }
+
+    /**
+     * Process employees - calculate wages and create/update obligations
+     * @private
+     */
+    function processEmployees(entry, employees, workHours, date, config, utils) {
+        try {
+            var options = {
+                entry: entry,
+                config: config,
+                employeeFieldName: config.fields.employees,
+                attributes: config.attributes,
+                includeExtras: true,  // Include extras/premiums/penalties
+                processObligations: true,  // Process wage obligations
+                processObligation: function(date, empData, obligations) {
+                    return processObligation(entry, date, empData, obligations, config, utils);
+                },
+                findLinkedObligations: utils.findLinkedObligations,
+                libraryType: 'attendance'
+            };
+
+            return utils.processEmployees(employees, workHours, date, options);
+
+        } catch (error) {
+            addError(entry, error.toString(), "processEmployees", error);
+            return {
+                success: false,
+                error: error.toString(),
+                created: 0,
+                updated: 0,
+                errors: 1
+            };
+        }
+    }
+
+    /**
+     * Process obligation for single employee
+     * @private
+     */
+    function processObligation(entry, date, empData, obligations, config, utils) {
+        var employee = empData.entry;
+        var result = {
+            created: 0,
+            updated: 0,
+            errors: 0,
+            total: 0,
+            totalAmount: 0,
+            success: false
+        };
+
+        try {
+            addDebug(entry, utils.getIcon("search") +
+                    " Hľadám záväzok " + utils.formatEmployeeName(employee));
+
+            // Find existing obligation for this employee
+            var existingObligation = null;
+            for (var j = 0; j < obligations.length; j++) {
+                var obligation = obligations[j];
+                var linkedEmployee = utils.safeGetLinks(obligation, config.obligationsFields.employee);
+
+                if (linkedEmployee && linkedEmployee.length > 0 &&
+                    linkedEmployee[0].field("ID") === employee.field("ID")) {
+                    addDebug(entry, utils.getIcon("exclamation") + " Nájdený záväzok");
+                    existingObligation = obligation;
+                    break;
+                }
+            }
+
+            if (existingObligation) {
+                // Update existing obligation
+                if (utils.updateObligation(date, existingObligation, empData.dailyWage)) {
+                    result.updated++;
+                    result.totalAmount += empData.dailyWage;
+                } else {
+                    result.errors++;
+                }
+            } else {
+                // Create new obligation
+                if (utils.createObligation(date, empData, "attendance")) {
+                    result.created++;
+                    result.totalAmount += empData.dailyWage;
+                } else {
+                    result.errors++;
+                }
+            }
+
+            result.total++;
+            result.success = result.errors === 0 && result.total > 0;
+
+            return result;
+
+        } catch (error) {
+            addError(entry, "Chyba pri spracovaní zamestnanca: " + error.toString(),
+                    "processObligation");
+            result.errors++;
+            return result;
+        }
+    }
+
+    /**
+     * Set calculated fields on entry
+     * @private
+     */
+    function setEntryFields(entry, employeeResult, entryIcons, entryStatus, config, utils) {
+        try {
+            utils.safeSet(entry, config.fields.workedHours, employeeResult.odpracovaneTotal);
+            utils.safeSet(entry, config.fields.wageCosts, employeeResult.celkoveMzdy);
+            utils.safeSet(entry, config.fields.entryIcons, entryIcons);
+            utils.safeSet(entry, config.fields.entryStatus, entryStatus);
+
+            addDebug(entry, "  • Pracovná doba: " + employeeResult.pracovnaDoba + " hodín");
+            addDebug(entry, "  • Odpracované spolu: " + employeeResult.odpracovaneTotal + " hodín");
+            addDebug(entry, "  • Mzdové náklady: " + utils.formatMoney(employeeResult.celkoveMzdy));
+            addDebug(entry, " Celkové výpočty úspešné", "success");
+
+            return { success: true };
+
+        } catch (error) {
+            addError(entry, error.toString(), "setEntryFields", error);
+            return { success: false };
+        }
+    }
+
+    /**
+     * Create markdown info record
+     * @private
+     */
+    function createInfoRecord(entry, workTimeResult, employeeResult, config, utils) {
+        try {
+            var date = entry.field(config.fields.date);
+            var dateFormatted = utils.formatDate(date, "DD.MM.YYYY");
+            var dayName = utils.getDayNameSK(moment(date).day()).toUpperCase();
+
+            var infoMessage = "# 📋 DOCHÁDZKA - AUTOMATICKÝ PREPOČET\n\n";
+
+            infoMessage += "## 📅 Základné údaje \n";
+            infoMessage += "- **Dátum:** " + dateFormatted + " (" + dayName + ")\n";
+            infoMessage += "- **Pracovný čas:** " + moment(workTimeResult.arrivalRounded).format("HH:mm") +
+                           " - " + moment(workTimeResult.departureRounded).format("HH:mm") + "\n";
+            infoMessage += "- **Pracovná doba:** " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
+
+            infoMessage += "## 👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + " " +
+                          utils.selectOsobaForm(employeeResult.pocetPracovnikov) + ")\n\n";
+
+            for (var i = 0; i < employeeResult.detaily.length; i++) {
+                var detail = employeeResult.detaily[i];
+                infoMessage += "### 👤 " + utils.formatEmployeeName(detail.zamestnanec) + "\n";
+                infoMessage += "- **Hodinovka:** " + detail.hodinovka + " €/h\n";
+                if (detail.priplatok > 0) infoMessage += "- **Príplatok:** +" + detail.priplatok + " €/h\n";
+                if (detail.premia > 0) infoMessage += "- **Prémia:** +" + detail.premia + " €\n";
+                if (detail.pokuta > 0) infoMessage += "- **Pokuta:** -" + detail.pokuta + " €\n";
+                infoMessage += "- **Denná mzda:** " + detail.dennaMzda + " €\n\n";
+            }
+
+            infoMessage += "## 💰 SÚHRN\n";
+            infoMessage += "- **Odpracované celkom:** " + employeeResult.odpracovaneTotal + " hodín\n";
+            infoMessage += "- **Mzdové náklady:** " + utils.formatMoney(employeeResult.celkoveMzdy) + "\n\n";
+
+            infoMessage += "## 🔧 TECHNICKÉ INFORMÁCIE\n";
+            infoMessage += "- **Module:** " + MODULE_INFO.name + " v" + MODULE_INFO.version + "\n";
+            infoMessage += "- **Čas spracovania:** " + moment().format("HH:mm:ss") + "\n";
+            infoMessage += "- **MementoUtils:** v" + (utils.version || "N/A") + "\n";
+
+            if (typeof MementoConfig !== 'undefined') {
+                infoMessage += "- **MementoConfig:** v" + MementoConfig.version + "\n";
+            }
+
+            infoMessage += "\n---\n**✅ PREPOČET DOKONČENÝ ÚSPEŠNE**";
+
+            entry.set(config.fields.info, infoMessage);
+
+            addDebug(entry, "✅ Info záznam vytvorený s Markdown formátovaním");
+
+            return { success: true };
+
+        } catch (error) {
+            addError(entry, error.toString(), "createInfoRecord", error);
+            return { success: false };
+        }
+    }
+
+    /**
+     * Apply weekend/holiday coloring
+     * @private
+     */
+    function applyDateColoring(entry, date, utils) {
+        try {
+            var isHoliday = utils.isHoliday(date);
+            var isWeekend = utils.isWeekend(date);
+
+            if (isHoliday) {
+                utils.setColor(entry, "bg", "pastel blue");
+            } else if (isWeekend) {
+                utils.setColor(entry, "bg", "pastel orange");
+            }
+
+            return { success: true };
+
+        } catch (error) {
+            addError(entry, error.toString(), "applyDateColoring", error);
+            return { success: false };
+        }
+    }
+
+    /**
+     * Handle day off entries (Voľno)
+     * @private
+     */
+    function handleDayOff(entry, config, utils) {
+        try {
+            var entryStatus = utils.safeGet(entry, config.fields.entryStatus, []);
+
+            if (entryStatus.indexOf("Voľno") !== -1) {
+                var dayOffReason = utils.safeGet(entry, config.fields.dayOffReason, null);
+                var icon = null;
+
+                if (dayOffReason === "Dažď") {
+                    icon = config.icons.weather_delay;
+                } else if (dayOffReason === "Voľný deň" || dayOffReason === "Dovolenka") {
+                    icon = config.icons.vacation;
+                } else if (dayOffReason === "Voľno - mokrý terén") {
+                    icon = config.icons.soil_wet;
+                }
+
+                if (icon) {
+                    utils.safeSet(entry, config.fields.entryIcons, icon);
+                }
+
+                utils.setColor(entry, "bg", "light gray");
+
+                return {
+                    success: true,
+                    isDayOff: true,
+                    reason: dayOffReason
+                };
+            }
+
+            return {
+                success: true,
+                isDayOff: false
+            };
+
+        } catch (error) {
+            addError(entry, error.toString(), "handleDayOff", error);
+            return {
+                success: false,
+                isDayOff: false
+            };
+        }
     }
 
     // ==============================================
-    // PUBLIC API - PLACEHOLDER FUNCTIONS
+    // PUBLIC API
     // ==============================================
 
     /**
-     * Calculate attendance hours with time rounding
+     * Calculate attendance for entry
+     *
+     * Main function that orchestrates the entire attendance calculation process:
+     * 1. Check for day off status
+     * 2. Validate input data
+     * 3. Calculate work time with rounding
+     * 4. Process employees (wages + obligations)
+     * 5. Set calculated fields
+     * 6. Create info record
+     * 7. Update daily report
+     * 8. Apply date coloring
      *
      * @param {Entry} entry - Memento entry object
      * @param {Object} options - Configuration options
-     *   - roundingMode: "up" | "down" | "nearest" (default: "nearest")
-     *   - applyBreak: boolean (default: true)
-     * @returns {Object} Result object with calculated hours
+     * @param {Object} options.settings - Override default settings
+     * @param {boolean} options.skipDailyReport - Skip daily report update
+     * @param {boolean} options.skipColoring - Skip date-based coloring
+     * @returns {Object} Result object with success status and data
      *
      * @example
      * var result = Dochadzka.calculateAttendance(entry(), {
-     *     roundingMode: "nearest",
-     *     applyBreak: true
+     *     settings: {
+     *         roundToQuarterHour: true,
+     *         roundDirection: "nearest"
+     *     }
      * });
-     * // Returns: { success: true, hours: 8.0, breakMinutes: 30, wage: 96.0 }
+     *
+     * if (result.success) {
+     *     message("✅ Prepočet dokončený: " + result.data.totalHours + " hodín");
+     * } else {
+     *     message("❌ Chyba: " + result.error);
+     * }
      */
     function calculateAttendance(entry, options) {
         try {
-            var config = mergeConfig(options && options.config);
-            var roundingMode = (options && options.roundingMode) || config.constants.DEFAULT_ROUNDING;
-            var applyBreak = (options && typeof options.applyBreak !== 'undefined') ? options.applyBreak : true;
+            options = options || {};
 
-            addDebug(entry, "Dochadzka v" + MODULE_INFO.version + " - calculateAttendance started", "info");
+            // Get dependencies
+            var utils = getUtils();
+            var config = mergeConfig(options);
 
-            // TODO: Implement attendance calculation logic
-            // 1. Get arrival and departure times
-            // 2. Round times using MementoTime.roundToQuarterHour()
-            // 3. Calculate gross hours
-            // 4. Apply break if needed (after 6 hours)
-            // 5. Calculate net hours
-            // 6. Calculate wage if hourly rate available
-            // 7. Update fields
+            // Clear logs and initialize
+            utils.clearLogs(entry, true);
+            utils.safeSet(entry, config.fields.entryIcons, "");
+
+            addDebug(entry, "=== " + MODULE_INFO.name + " v" + MODULE_INFO.version + " ===", "start");
+            addDebug(entry, "Čas spustenia: " + utils.formatDate(moment()), "calendar");
+
+            // Track steps for summary
+            var steps = {
+                step1: { success: false, name: "Kontrola voľného dňa" },
+                step2: { success: false, name: "Validácia dát" },
+                step3: { success: false, name: "Výpočet pracovnej doby" },
+                step4: { success: false, name: "Spracovanie zamestnancov" },
+                step5: { success: false, name: "Celkové výpočty" },
+                step6: { success: false, name: "Info záznam" },
+                step7: { success: false, name: "Denný report" },
+                step8: { success: false, name: "Farebné označenie" }
+            };
+
+            // STEP 1: Check for day off
+            addDebug(entry, " KROK 1: Kontrola voľného dňa", "validation");
+            var dayOffResult = handleDayOff(entry, config, utils);
+            steps.step1.success = dayOffResult.success;
+
+            if (dayOffResult.isDayOff) {
+                addDebug(entry, "✅ Záznam je nastavený na: " + dayOffResult.reason);
+                addDebug(entry, "⏹️ Prepočet preskočený (voľný deň)");
+
+                return {
+                    success: true,
+                    isDayOff: true,
+                    reason: dayOffResult.reason,
+                    steps: steps
+                };
+            }
+
+            // STEP 2: Validate input data
+            addDebug(entry, " KROK 2: Načítanie a validácia dát", "validation");
+            var validationResult = validateInputData(entry, config, utils);
+            if (!validationResult.success) {
+                addError(entry, "Validácia zlyhala: " + validationResult.error, "calculateAttendance");
+                return {
+                    success: false,
+                    error: validationResult.error,
+                    steps: steps
+                };
+            }
+            steps.step2.success = true;
+
+            // STEP 3: Calculate work time
+            addDebug(entry, " KROK 3: Výpočet pracovnej doby", "update");
+            var workTimeResult = calculateWorkTime(
+                entry,
+                validationResult.data.arrival,
+                validationResult.data.departure,
+                config,
+                utils
+            );
+
+            if (!workTimeResult.success) {
+                addError(entry, "Výpočet času zlyhal: " + workTimeResult.error, "calculateAttendance");
+                return {
+                    success: false,
+                    error: workTimeResult.error,
+                    steps: steps
+                };
+            }
+            steps.step3.success = true;
+
+            // STEP 4: Process employees
+            addDebug(entry, " KROK 4: Spracovanie zamestnancov", "group");
+            var employeeResult = processEmployees(
+                entry,
+                validationResult.data.employees,
+                workTimeResult.pracovnaDobaHodiny,
+                validationResult.data.date,
+                config,
+                utils
+            );
+
+            // Update entry status and icons based on obligations
+            var entryStatus = utils.safeGet(entry, config.fields.entryStatus, []);
+            var entryIcons = utils.safeGet(entry, config.fields.entryIcons, "") || "";
+
+            if (employeeResult.success) {
+                if (entryStatus.indexOf("Záväzky") === -1) {
+                    entryStatus.push("Záväzky");
+                }
+                if (employeeResult.created > 0 || employeeResult.updated > 0) {
+                    entryIcons += config.icons.obligations;
+                }
+            }
+            steps.step4.success = employeeResult.success;
+
+            // STEP 5: Set entry fields
+            addDebug(entry, " KROK 5: Celkové výpočty", "calculation");
+            var totalsResult = setEntryFields(entry, employeeResult, entryIcons, entryStatus, config, utils);
+            steps.step5.success = totalsResult.success;
+
+            // STEP 6: Create info record
+            addDebug(entry, " KROK 6: Vytvorenie info záznamu", "note");
+            var infoResult = createInfoRecord(entry, workTimeResult, employeeResult, config, utils);
+            steps.step6.success = infoResult.success;
+
+            // STEP 7: Update daily report (unless skipped)
+            if (!options.skipDailyReport) {
+                addDebug(entry, " KROK 7: Spracovanie Denný report", "note");
+                var dailyReportResult = utils.createOrUpdateDailyReport(entry, 'attendance', {
+                    debugEntry: entry,
+                    createBackLink: false
+                });
+                steps.step7.success = dailyReportResult.success;
+
+                if (dailyReportResult.success) {
+                    var action = dailyReportResult.created ? "vytvorený" : "aktualizovaný";
+                    addDebug(entry, "✅ Denný report " + action + " úspešne");
+                } else {
+                    addDebug(entry, "⚠️ Chyba pri spracovaní Denný report: " +
+                            (dailyReportResult.error || "Neznáma chyba"));
+                }
+            } else {
+                steps.step7.success = true; // Skipped
+            }
+
+            // STEP 8: Apply date coloring (unless skipped)
+            if (!options.skipColoring) {
+                addDebug(entry, " KROK 8: Farebné označenie", "color");
+                var coloringResult = applyDateColoring(entry, validationResult.data.date, utils);
+                steps.step8.success = coloringResult.success;
+            } else {
+                steps.step8.success = true; // Skipped
+            }
+
+            // Check overall success
+            var allSuccess = true;
+            for (var step in steps) {
+                if (!steps[step].success) {
+                    allSuccess = false;
+                    break;
+                }
+            }
+
+            // Final summary
+            addDebug(entry, "\n📊 === FINÁLNY SÚHRN ===");
+            for (var stepKey in steps) {
+                var status = steps[stepKey].success ? "✅" : "❌";
+                addDebug(entry, status + " " + steps[stepKey].name);
+            }
+
+            if (allSuccess) {
+                addDebug(entry, "\n✅ Všetky kroky dokončené úspešne!");
+            } else {
+                addDebug(entry, "\n⚠️ Niektoré kroky zlyhali!");
+            }
+
+            addDebug(entry, "⏱️ Čas ukončenia: " + moment().format("HH:mm:ss"));
+            addDebug(entry, "📋 === KONIEC " + MODULE_INFO.name + " v" + MODULE_INFO.version + " ===");
 
             return {
-                success: true,
-                message: "Function not yet implemented - placeholder",
+                success: allSuccess,
+                isDayOff: false,
                 data: {
-                    hours: 0,
-                    breakMinutes: 0,
-                    wage: 0
-                }
+                    date: validationResult.data.date,
+                    workHours: workTimeResult.pracovnaDobaHodiny,
+                    totalHours: employeeResult.odpracovaneTotal,
+                    totalWages: employeeResult.celkoveMzdy,
+                    employeeCount: employeeResult.pocetPracovnikov,
+                    obligationsCreated: employeeResult.created || 0,
+                    obligationsUpdated: employeeResult.updated || 0
+                },
+                steps: steps
             };
+
         } catch (error) {
-            addError(entry, "Error in calculateAttendance", "calculateAttendance", error);
+            addError(entry, "Kritická chyba v calculateAttendance", "calculateAttendance", error);
             return {
                 success: false,
                 error: error.toString()
@@ -199,138 +739,37 @@ var Dochadzka = (function() {
     }
 
     /**
-     * Calculate wage for attendance entry
+     * Validate attendance entry without performing calculation
      *
      * @param {Entry} entry - Memento entry object
      * @param {Object} options - Configuration options
-     *   - employee: Employee entry (optional - will be fetched if not provided)
-     *   - hours: Number of hours (optional - will be calculated if not provided)
-     * @returns {Object} Wage calculation result
+     * @returns {Object} Validation result
      *
      * @example
-     * var result = Dochadzka.calculateWage(entry(), {
-     *     hours: 8.5
-     * });
+     * var result = Dochadzka.validateEntry(entry());
+     * if (!result.valid) {
+     *     message("❌ Chyby: " + result.errors.join(", "));
+     * }
      */
-    function calculateWage(entry, options) {
+    function validateEntry(entry, options) {
         try {
-            addDebug(entry, "Dochadzka - calculateWage started", "info");
+            options = options || {};
+            var utils = getUtils();
+            var config = mergeConfig(options);
 
-            // TODO: Implement wage calculation
-            // 1. Get employee from link or options
-            // 2. Get hourly rate from employee or entry
-            // 3. Calculate wage = hours × rate
-            // 4. Handle overtime if applicable
-            // 5. Return result
+            var validationResult = validateInputData(entry, config, utils);
 
             return {
-                success: true,
-                wage: 0,
-                hourlyRate: 0,
-                hours: 0
+                valid: validationResult.success,
+                errors: validationResult.success ? [] : [validationResult.error],
+                data: validationResult.data || null
             };
-        } catch (error) {
-            addError(entry, "Error in calculateWage", "calculateWage", error);
-            return {
-                success: false,
-                error: error.toString()
-            };
-        }
-    }
 
-    /**
-     * Update linked daily report
-     *
-     * @param {Entry} entry - Memento entry object
-     * @param {Object} options - Configuration options
-     * @returns {Object} Update result
-     */
-    function updateDailyReport(entry, options) {
-        try {
-            addDebug(entry, "Dochadzka - updateDailyReport started", "info");
-
-            // TODO: Use DailyReportModule.updateLinkedDailyReports()
-            // Pass appropriate config for Dochádzka library
-
-            return {
-                success: true,
-                message: "Function not yet implemented - placeholder"
-            };
-        } catch (error) {
-            addError(entry, "Error in updateDailyReport", "updateDailyReport", error);
-            return {
-                success: false,
-                error: error.toString()
-            };
-        }
-    }
-
-    /**
-     * Validate attendance entry
-     *
-     * @param {Entry} entry - Memento entry object
-     * @param {Array<string>} requiredFields - Required field names (optional)
-     * @returns {Object} Validation result
-     */
-    function validateEntry(entry, requiredFields) {
-        try {
-            var config = DEFAULT_CONFIG;
-            var errors = [];
-
-            // Default required fields
-            var required = requiredFields || [
-                config.fields.date,
-                config.fields.employee,
-                config.fields.arrivalTime,
-                config.fields.departureTime
-            ];
-
-            // TODO: Implement validation
-            // 1. Check all required fields present
-            // 2. Validate date is valid
-            // 3. Validate times are valid
-            // 4. Validate departure > arrival
-            // 5. Validate employee link exists
-
-            return {
-                valid: true,
-                errors: []
-            };
         } catch (error) {
             return {
                 valid: false,
-                errors: [error.toString()]
-            };
-        }
-    }
-
-    /**
-     * Create or update obligation for attendance
-     *
-     * @param {Entry} entry - Memento entry object
-     * @param {Object} options - Configuration options
-     * @returns {Object} Obligation creation result
-     */
-    function manageObligation(entry, options) {
-        try {
-            addDebug(entry, "Dochadzka - manageObligation started", "info");
-
-            // TODO: Implement obligation management
-            // 1. Check if obligation already exists
-            // 2. Calculate total amount (wage)
-            // 3. Create or update obligation entry
-            // 4. Link to attendance entry
-            // 5. Set status and due date
-
-            return {
-                success: true,
-                message: "Function not yet implemented - placeholder"
-            };
-        } catch (error) {
-            addError(entry, "Error in manageObligation", "manageObligation", error);
-            return {
-                success: false,
-                error: error.toString()
+                errors: [error.toString()],
+                data: null
             };
         }
     }
@@ -346,16 +785,7 @@ var Dochadzka = (function() {
 
         // Main functions
         calculateAttendance: calculateAttendance,
-        calculateWage: calculateWage,
-        updateDailyReport: updateDailyReport,
-        validateEntry: validateEntry,
-        manageObligation: manageObligation
-
-        // Additional functions to be added:
-        // - calculateMonthlyTotal: Calculate total hours/wage for month
-        // - generateReport: Generate attendance report for period
-        // - handleCustomCalculation: Support custom calculation rules per employee
-        // - syncWithPayroll: Sync attendance data with payroll system
+        validateEntry: validateEntry
     };
 
 })();

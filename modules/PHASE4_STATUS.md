@@ -98,24 +98,42 @@ Create condensed documentation for 17 remaining libraries:
 
 ---
 
-### 🚧 Phase 4.4: Function Implementation (Next Major Phase)
+### 🚧 Phase 4.4: Function Implementation (IN PROGRESS)
 
-**High Priority Functions to Extract:**
+**High Priority Functions:**
 
-1. **Pokladna.payObligations()** - Extract from Pokl.Action.PayObligations.js (1,113 lines)
-   - Complex payment distribution logic
+1. **✅ Pokladna.payObligations()** - COMPLETE (v1.0.0)
+   - Extracted from Pokl.Action.PayObligations.js (1,114 lines → 1,050 lines module)
+   - Complex payment distribution logic implemented
    - Handles multiple obligations with single payment
    - Updates obligation status and payment records
+   - Supports receivables offset
+   - Creates overpayment entries (receivable/advance/bonus)
+   - Date: 2026-03-19
 
-2. **CenovePonuky.calculateQuote()** - Extract from CenPon.Calculate.js (1,278 lines)
-   - Quote total calculations with VAT
-   - Price method handling (s DPH / Bez DPH)
-   - Parts aggregation
+2. **✅ CenovePonuky.calculateQuote()** - COMPLETE (v1.0.0)
+   - Extracted from CenPon.Calculate.js (1,277 lines → 1,050 lines module)
+   - Complete quote calculation with 10-step process
+   - Support for 2 quote types (Položky/Hodinovka)
+   - 5 transport billing methods (Neúčtovať/Paušál/Km/%/Pevná cena)
+   - 5 mass transfer billing methods (Neúčtovať/Paušál/Podľa hmotnosti/%/Pevná cena)
+   - Dynamic parts field selection (Diely vs Diely HZS)
+   - Subcontracts management across 3 fields
+   - Material weight calculation
+   - VAT calculation and final totals
+   - Date: 2026-03-19
 
-3. **Dochadzka.calculateAttendance()** - Extract from Doch.Calc.Main.js (~250 lines)
-   - Time rounding integration (MementoTime)
-   - Break calculation (30min after 6h)
-   - Wage computation
+3. **✅ Dochadzka.calculateAttendance()** - COMPLETE (v1.0.0)
+   - Extracted from Doch.Calc.Main.js (528 lines → 785 lines module)
+   - Complete 8-step attendance calculation process
+   - Work time calculation with 15-minute rounding
+   - Employee wage computation (hourly + extras + premiums - penalties)
+   - Obligation creation/update for wages
+   - Daily report integration
+   - Weekend/holiday detection and coloring
+   - Markdown info record with detailed summary
+   - Day off handling (Voľno/Dažď/Dovolenka)
+   - Date: 2026-03-19
 
 4. **Material.calculateReceipt()** - Extract from Mat.Calc.Receipts.js
    - Stock level updates
@@ -161,13 +179,14 @@ Create condensed documentation for 17 remaining libraries:
 | Phase | Effort | Priority | Status |
 |-------|--------|----------|--------|
 | Phase 4.3: Remaining docs | 2-3h | Low | Optional |
-| Phase 4.4: Pokladna.payObligations() | 4-6h | HIGH | Critical |
-| Phase 4.4: CenovePonuky.calculateQuote() | 3-4h | HIGH | Critical |
-| Phase 4.4: Dochadzka.calculateAttendance() | 2-3h | HIGH | Critical |
+| ~~Phase 4.4: Pokladna.payObligations()~~ | ~~4-6h~~ | HIGH | ✅ COMPLETE |
+| ~~Phase 4.4: CenovePonuky.calculateQuote()~~ | ~~3-4h~~ | HIGH | ✅ COMPLETE |
+| ~~Phase 4.4: Dochadzka.calculateAttendance()~~ | ~~2-3h~~ | HIGH | ✅ COMPLETE |
 | Phase 4.4: Material functions | 2-3h | MEDIUM | Important |
 | Phase 5: GitHub integration | 2-3h | MEDIUM | Infrastructure |
 
-**Total Remaining (High Priority Only):** ~15-20 hours
+**Total Remaining (High Priority Only):** ~0 hours (all 3 high-priority functions complete!)
+**Completed:** 3/3 high-priority functions (Pokladna, CenovePonuky, Dochadzka)
 
 ---
 

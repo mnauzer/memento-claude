@@ -9,6 +9,15 @@
 //    - Komplexná práca s Memento Framework
 //    - Best practices a error handling
 // ==============================================
+// ⚠️ KRITICKÉ: PRED ZAČIATKOM VÝVOJA SCRIPTU:
+//    1. Over štruktúru knižnice cez API alebo MCP
+//    2. Skontroluj presné názvy polí (case-sensitive, diakritika)
+//    3. Over typy polí (Text, Číslo, Dátum, LinkToEntry, atď.)
+//    4. Potvrď Library ID ak pristupuješ k iným knižniciam
+//
+//    Použiť: python memento_api_simple.py --library "Názov" --structure
+//    Alebo: MCP nástroje pre API prístup
+// ==============================================
 // 💡 USER COMMUNICATION BEST PRACTICES:
 //
 // message() - PRE KRÁTKE SPRÁVY:
@@ -91,6 +100,24 @@ function initializeScript() {
 
 // ==============================================
 // VALIDÁCIA VSTUPNÝCH DÁT
+// ==============================================
+// 📋 PRED ZAČIATKOM VÝVOJA:
+//    VŽDY si over štruktúru knižnice cez API alebo MCP!
+//
+//    Prečo?
+//    - Názvy polí musia byť PRESNÉ (case-sensitive, slovenské znaky)
+//    - Typ poľa ovplyvňuje ako s ním pracuješ (text/number/date/linkToEntry)
+//    - Štruktúra knižnice sa mohla zmeniť od poslednej aktualizácie
+//
+//    Ako overiť:
+//    1. Python API: python memento_api_simple.py --library "Názov" --structure
+//    2. MCP nástroje: Použiť Google Calendar/Gmail MCP pre API prístup
+//    3. Memento UI: Nastavenia knižnice → Polia
+//
+//    Čo overiť:
+//    ✓ Presné názvy všetkých polí (vrátane diakritiky)
+//    ✓ Typy polí (Text, Číslo, Dátum, Čas, LinkToEntry, atď.)
+//    ✓ Library ID (ak potrebuješ pristupovať k iným knižniciam)
 // ==============================================
 
 /**
