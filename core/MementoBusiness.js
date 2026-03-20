@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO BUSINESS - High-Level Business Workflows
-// Verzia: 8.4.0 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 8.4.1 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - High-level business workflow orchestration
@@ -10,6 +10,15 @@
 //    - Obligation management workflows
 // ==============================================
 // 🔧 CHANGELOG:
+// v8.4.1 (2026-03-20) - CRITICAL FIX: LinkToEntry detection used wrong property:
+//    - FIX: Detection now checks for .attr() and .setAttr() methods, NOT .e property
+//    - BEFORE: var isLinkToEntry = employee.e !== undefined (ALWAYS FALSE!)
+//    - AFTER: var isLinkToEntry = typeof employee.attr === 'function'
+//    - BEFORE: var employeeEntry = employee.e (UNDEFINED!)
+//    - AFTER: var employeeEntry = employee (LinkToEntry IS the entry!)
+//    - RESULT: LinkToEntry detection WORKS, attributes ARE read/written!
+//    - This was the final missing piece - detection was completely broken!
+//
 // v8.4.0 (2026-03-20) - CRITICAL FIX: Read "denná mzda" attribute instead of recalculating:
 //    - FIX: processEmployee() now READS "denná mzda" if already set by setEmployeeAttributes()
 //    - BEFORE: Always calculated wage, overwriting setEmployeeAttributes() result
@@ -107,7 +116,7 @@ var MementoBusiness = (function() {
 
     var MODULE_INFO = {
         name: "MementoBusiness",
-        version: "8.4.0",
+        version: "8.4.1",
         author: "ASISTANTO",
         description: "High-level business workflows (employee processing, reports, obligations, material prices)",
         dependencies: [
@@ -617,10 +626,14 @@ var MementoBusiness = (function() {
 
         try {
             // CRITICAL: Detect if employee is linkToEntry object or entry object
-            // linkToEntry has .e property (linked entry) and .get/.set methods (attributes)
-            var isLinkToEntry = employee && typeof employee === 'object' && employee.e !== undefined;
+            // linkToEntry has .attr() and .setAttr() methods for attribute access
+            // IMPORTANT: LinkToEntry does NOT have .e property! (discovered in v1.1.2)
+            // LinkToEntry object IS the employee entry AND has attribute methods
+            var isLinkToEntry = employee && typeof employee === 'object' &&
+                               typeof employee.attr === 'function' &&
+                               typeof employee.setAttr === 'function';
             var employeeLink = isLinkToEntry ? employee : null;
-            var employeeEntry = isLinkToEntry ? employee.e : employee;
+            var employeeEntry = employee; // LinkToEntry IS the entry, no .e property!
 
             // DEBUG: Show object type detection
             if (core) {
