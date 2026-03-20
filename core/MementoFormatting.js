@@ -30,7 +30,7 @@ var MementoFormatting = (function() {
 
     var MODULE_INFO = {
         name: "MementoFormatting",
-        version: "1.0.0",
+        version: "1.1.0",
         author: "ASISTANTO",
         description: "Formatting utilities for display (money, numbers, duration, markdown)",
         dependencies: [],  // Optional: MementoCore for enhanced features
@@ -353,8 +353,10 @@ var MementoFormatting = (function() {
      * @param {Object} employeeEntry - Employee entry object
      * @param {Object} options - Formatting options
      * @param {Boolean} options.showNick - Include nickname if available (default: true)
+     * @param {Boolean} options.nickFirst - Show format as "Nick (Priezvisko)" instead of "Meno Priezvisko (Nick)" (default: false)
      * @param {String} options.nameField - Field name for full name (default: "Meno a priezvisko")
      * @param {String} options.nickField - Field name for nickname (default: "Prezývka")
+     * @param {String} options.lastNameField - Field name for last name (default: "Priezvisko")
      * @returns {String} Formatted employee name
      *
      * @example
@@ -363,12 +365,17 @@ var MementoFormatting = (function() {
      *
      * MementoFormatting.formatEmployeeName(empEntry, {showNick: false});
      * // "Peter Novák"
+     *
+     * MementoFormatting.formatEmployeeName(empEntry, {nickFirst: true});
+     * // "Peťo (Novák)"
      */
     function formatEmployeeName(employeeEntry, options) {
         options = options || {};
         var showNick = options.showNick !== undefined ? options.showNick : true;
+        var nickFirst = options.nickFirst || false;
         var nameField = options.nameField || "Meno a priezvisko";
         var nickField = options.nickField || "Prezývka";
+        var lastNameField = options.lastNameField || "Priezvisko";
 
         try {
             if (!employeeEntry) {
@@ -395,7 +402,23 @@ var MementoFormatting = (function() {
                 }
 
                 if (nick) {
-                    return fullName + " (" + nick + ")";
+                    // If nickFirst is true, format as "Nick (Priezvisko)"
+                    if (nickFirst) {
+                        var lastName;
+                        if (core && core.safeGet) {
+                            lastName = core.safeGet(employeeEntry, lastNameField);
+                        } else {
+                            lastName = employeeEntry.field(lastNameField);
+                        }
+                        if (lastName) {
+                            return nick + " (" + lastName + ")";
+                        }
+                        // Fallback if lastName not available
+                        return nick;
+                    } else {
+                        // Default format: "Meno Priezvisko (Nick)"
+                        return fullName + " (" + nick + ")";
+                    }
                 }
             }
 

@@ -38,7 +38,7 @@ var MementoBusiness = (function() {
 
     var MODULE_INFO = {
         name: "MementoBusiness",
-        version: "8.0.2",
+        version: "8.0.3",
         author: "ASISTANTO",
         description: "High-level business workflows (employee processing, reports, obligations, material prices)",
         dependencies: [
@@ -548,9 +548,10 @@ var MementoBusiness = (function() {
 
         try {
             // CRITICAL: Never hardcode field names - use formatting module or config
+            // Format as "Nick (Priezvisko)"
             var employeeName = "N/A";
             if (formatting && formatting.formatEmployeeName) {
-                employeeName = formatting.formatEmployeeName(employee);
+                employeeName = formatting.formatEmployeeName(employee, {nickFirst: true});
             } else if (config && config.fields && config.fields.employee) {
                 // Fallback: construct name from firstName + lastName
                 var firstName = employee.field(config.fields.employee.firstName) || "";

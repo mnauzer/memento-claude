@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.0.9",
+        version: "1.0.10",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -502,7 +502,7 @@ var Dochadzka = (function() {
             utils.safeSet(entry, config.fields.entryIcons, entryIcons);
             utils.safeSet(entry, config.fields.entryStatus, entryStatus);
 
-            addDebug(entry, "  • Pracovná doba: " + employeeResult.pracovnaDoba + " hodín");
+            addDebug(entry, "  • Pracovná doba: " + employeeResult.pracovnaDoba.toFixed(2) + " hodín");
             addDebug(entry, "  • Odpracované spolu: " + employeeResult.odpracovaneTotal + " hodín");
             addDebug(entry, "  • Mzdové náklady: " + utils.formatMoney(employeeResult.celkoveMzdy));
             addDebug(entry, " Celkové výpočty úspešné", "success");
@@ -531,7 +531,7 @@ var Dochadzka = (function() {
             infoMessage += "- **Dátum:** " + dateFormatted + " (" + dayName + ")\n";
             infoMessage += "- **Pracovný čas:** " + moment(workTimeResult.arrivalRounded).format("HH:mm") +
                            " - " + moment(workTimeResult.departureRounded).format("HH:mm") + "\n";
-            infoMessage += "- **Pracovná doba:** " + workTimeResult.pracovnaDobaHodiny + " hodín\n\n";
+            infoMessage += "- **Pracovná doba:** " + workTimeResult.pracovnaDobaHodiny.toFixed(2) + " hodín\n\n";
 
             infoMessage += "## 👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + " " +
                           utils.selectOsobaForm(employeeResult.pocetPracovnikov) + ")\n\n";
@@ -542,14 +542,14 @@ var Dochadzka = (function() {
                     var detail = employeeResult.detaily[i];
                     // CRITICAL: Use correct property names from utils.processEmployees result
                     // detail.employeeEntry (not zamestnanec), detail.hourlyRate (not hodinovka), detail.wage (not dennaMzda)
-                    // Get employee name - entry.name is a PROPERTY (string), not a function
+                    // Get employee name in format "Nick (Priezvisko)"
                     var empName = "N/A";
-                    if (detail.employeeEntry && detail.employeeEntry.name) {
+                    if (utils.formatEmployeeName && detail.employeeEntry) {
+                        empName = utils.formatEmployeeName(detail.employeeEntry, {nickFirst: true}) || "N/A";
+                    } else if (detail.employeeEntry && detail.employeeEntry.name) {
                         empName = detail.employeeEntry.name;  // Property, not method!
                     } else if (detail.employee) {
                         empName = detail.employee;
-                    } else if (utils.formatEmployeeName && detail.employeeEntry) {
-                        empName = utils.formatEmployeeName(detail.employeeEntry) || "N/A";
                     }
                     infoMessage += "### 👤 " + empName + "\n";
                     infoMessage += "- **Hodinovka:** " + (detail.hourlyRate || 0) + " €/h\n";
