@@ -30,7 +30,7 @@ var MementoFormatting = (function() {
 
     var MODULE_INFO = {
         name: "MementoFormatting",
-        version: "1.1.3",
+        version: "1.1.4",
         author: "ASISTANTO",
         description: "Formatting utilities for display (money, numbers, duration, markdown)",
         dependencies: [],  // Optional: MementoCore for enhanced features
@@ -374,7 +374,7 @@ var MementoFormatting = (function() {
         var showNick = options.showNick !== undefined ? options.showNick : true;
         var nickFirst = options.nickFirst || false;
         var nameField = options.nameField || "Meno a priezvisko";
-        var nickField = options.nickField || "Prezývka";
+        var nickField = options.nickField || "Nick";  // Fixed: use "Nick" not "Prezývka"
         var lastNameField = options.lastNameField || "Priezvisko";
 
         try {
