@@ -17,6 +17,8 @@
  *   - Zamestnanci module v1.0+
  *
  * Changelog:
+ *   v1.2.0 (2026-03-20) - Clear Debug_Log before execution
+ *     - Always start with fresh log (no old entries)
  *   v1.1.0 (2026-03-20) - Fixed trigger pattern
  *     - Removed dialog() and cancel() (blocking in triggers)
  *     - Silent fail with logging only
@@ -36,7 +38,7 @@ if (typeof MementoUtils !== 'undefined' && typeof Zamestnanci !== 'undefined') {
 var utils = MementoUtils;
 var currentEntry = entry();
 
-var SCRIPT_VERSION = "1.1.0";
+var SCRIPT_VERSION = "1.2.0";
 var SCRIPT_NAME = "Zam.Trigger.Calculate";
 
 // ==============================================
@@ -44,6 +46,9 @@ var SCRIPT_NAME = "Zam.Trigger.Calculate";
 // ==============================================
 
 try {
+    // Vymaž starý Debug_Log pre čerstvý prepočet
+    currentEntry.set("Debug_Log", "");
+
     utils.addDebug(currentEntry, "🔄 " + SCRIPT_NAME + " v" + SCRIPT_VERSION);
 
     var result = Zamestnanci.calculateWages(currentEntry, utils.config, utils);
