@@ -135,6 +135,7 @@ playground.js
 # Library dokumentácia a field cache (SYNCHRONIZOVANÉ)
 !libraries/**/README.md
 !libraries/**/QUICK_REFERENCE.md
+!libraries/**/FIELD_REFERENCE.md
 !libraries/**/fields.json
 
 # Bezpečnostné scripty (SYNCHRONIZOVANÉ)
