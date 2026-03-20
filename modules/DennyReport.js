@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO MODULE - DENNÝ REPORT
-// Verzia: 1.0.0 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 1.1.0 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - Reusable modul pre Denný report knižnicu
@@ -8,8 +8,15 @@
 //    - Agregácia dát z Dochádzky, Záznamov prác, Knihy jázd a Pokladne
 //    - Validácia konzistencie zamestnancov
 //    - Generovanie info záznamov a popisov
+//    - High-level handlers pre triggers a actions (NEW v1.1.0)
 // ==============================================
 // 🔧 CHANGELOG:
+// v1.1.0 (2026-03-20) - HIGH-LEVEL HANDLERS:
+//    - ADDED: handleBeforeSave() - kompletná logika pre BeforeSave trigger
+//    - ADDED: handleAfterSave() - kompletná logika pre AfterSave trigger
+//    - ADDED: recalculateAll() - kompletná logika pre recalculate action
+//    - BENEFIT: Wrapper scripty znížené z 100-150 → 10-20 riadkov
+//    - BENEFIT: Všetka logika v module - centrálna údržba
 // v1.0.0 (2026-03-20) - INITIAL MODULE VERSION:
 //    - Extracted from DenRep.Calc.Main.js (1575 lines → module)
 //    - All business logic in reusable IIFE module
@@ -27,9 +34,9 @@ var DennyReport = (function() {
 
     var MODULE_INFO = {
         name: "DennyReport",
-        version: "1.0.0",
+        version: "1.1.0",
         author: "ASISTANTO",
-        description: "Denný report - auto-linking, aggregation, validation, reporting",
+        description: "Denný report - auto-linking, aggregation, validation, reporting, high-level handlers",
         dependencies: [
             "MementoUtils",
             "MementoConfig",
@@ -39,7 +46,10 @@ var DennyReport = (function() {
             "processReport",
             "autoLinkRecords",
             "validateRecords",
-            "mergeDuplicates"
+            "mergeDuplicates",
+            "handleBeforeSave",
+            "handleAfterSave",
+            "recalculateAll"
         ],
         status: "stable"
     };
@@ -524,6 +534,270 @@ var DennyReport = (function() {
     }
 
     // ==============================================
+    // HIGH-LEVEL HANDLERS FOR TRIGGERS/ACTIONS
+    // ==============================================
+
+    /**
+     * Handler pre BeforeSave trigger (newEntry aj updateEntry)
+     * Kompletná logika: validácia, prepočet, logging, message
+     * @param {Object} currentEntry - Denný report entry
+     * @throws {Error} Ak nastane kritická chyba
+     */
+    function handleBeforeSave(currentEntry) {
+        var utils = getUtils();
+        var config = getConfig();
+
+        if (!utils || !config) {
+            throw new Error("MementoUtils alebo MementoConfig nie je dostupný");
+        }
+
+        var SCRIPT_NAME = "DennyReport.handleBeforeSave";
+
+        utils.addDebug(currentEntry, "🚀 === ŠTART handleBeforeSave v" + MODULE_INFO.version + " ===");
+        utils.clearLogs(currentEntry, true);
+
+        // Validácia dátumu
+        var reportDate = utils.safeGet(currentEntry, config.fields.dailyReport.date);
+        if (!reportDate) {
+            utils.addError(currentEntry, "Dátum nie je vyplnený", SCRIPT_NAME);
+            throw new Error("❌ Dátum nie je vyplnený!");
+        }
+
+        utils.addDebug(currentEntry, "📅 Dátum reportu: " + utils.formatDate(reportDate));
+
+        // Zavolaj modul pre auto-linkovanie a validáciu
+        utils.addDebug(currentEntry, "🔗 KROK 1: Auto-linkovanie a validácia");
+        var result = processReport(currentEntry, {
+            maxRecordsToCheck: 200
+        });
+
+        // Kontrola výsledku
+        if (!result.success) {
+            utils.addError(currentEntry, "Chyba prepočtu: " + (result.error || "Unknown error"), SCRIPT_NAME);
+            throw new Error("❌ Chyba prepočtu!\n\n" + result.error);
+        }
+
+        // Log linking results
+        var totalLinked = result.linked.attendance + result.linked.workRecords +
+                         result.linked.rideLog + result.linked.cashBook;
+
+        var totalUnlinked = result.unlinked.attendance + result.unlinked.workRecords +
+                           result.unlinked.rideLog + result.unlinked.cashBook;
+
+        if (totalLinked > 0) {
+            utils.addDebug(currentEntry, "  ✅ Nalinkované: " + totalLinked + " nových záznamov");
+        }
+
+        if (totalUnlinked > 0) {
+            utils.addDebug(currentEntry, "  ⚠️ Unlinkované: " + totalUnlinked + " záznamov (nesprávny dátum)");
+        }
+
+        utils.addDebug(currentEntry, "✅ === PREPOČET DOKONČENÝ ===");
+
+        // Zobraz krátke zhrnutie (len ak sú zmeny)
+        if (totalLinked > 0 || totalUnlinked > 0) {
+            var summary = "✅ Denný report aktualizovaný\n";
+            if (totalLinked > 0) {
+                summary += "\n🔗 Nalinkované: " + totalLinked;
+            }
+            if (totalUnlinked > 0) {
+                summary += "\n⚠️ Unlinkované: " + totalUnlinked;
+            }
+            // Return summary to be shown by wrapper
+            return { success: true, message: summary };
+        }
+
+        return { success: true };
+    }
+
+    /**
+     * Handler pre AfterSave trigger (newEntry aj updateEntry)
+     * Aktualizuje ikony vo všetkých linknutých záznamoch
+     * @param {Object} currentEntry - Denný report entry
+     */
+    function handleAfterSave(currentEntry) {
+        var utils = getUtils();
+        var config = getConfig();
+
+        if (!utils || !config) {
+            return; // Silent fail pre AfterSave
+        }
+
+        var SCRIPT_NAME = "DennyReport.handleAfterSave";
+
+        try {
+            utils.addDebug(currentEntry, "🔄 " + SCRIPT_NAME + " v" + MODULE_INFO.version);
+
+            var dailyReportIcon = "📊";
+            var iconField = "ikony záznamu";
+            var updatedCount = 0;
+
+            // Získaj všetky linknuté záznamy
+            var linkedRecords = [
+                { field: config.fields.dailyReport.attendance, label: "Dochádzka" },
+                { field: config.fields.dailyReport.workRecord, label: "Práce" },
+                { field: config.fields.dailyReport.rideLog, label: "Jazdy" },
+                { field: config.fields.dailyReport.cashBook, label: "Pokladňa" }
+            ];
+
+            // Prejdi všetky typy linknutých záznamov
+            for (var i = 0; i < linkedRecords.length; i++) {
+                var recordType = linkedRecords[i];
+                var records = utils.safeGetLinks(currentEntry, recordType.field) || [];
+
+                if (records.length === 0) continue;
+
+                utils.addDebug(currentEntry, "  🔍 " + recordType.label + ": " + records.length + " záznamov");
+
+                // Aktualizuj ikonu v každom zázname
+                for (var j = 0; j < records.length; j++) {
+                    var record = records[j];
+                    var recordId = record.field("ID");
+
+                    try {
+                        var currentIcons = utils.safeGet(record, iconField, "");
+
+                        // Pridaj ikonu ak ešte neexistuje
+                        if (currentIcons.indexOf(dailyReportIcon) === -1) {
+                            var newIcons = currentIcons ? currentIcons + " " + dailyReportIcon : dailyReportIcon;
+                            utils.safeSet(record, iconField, newIcons);
+                            updatedCount++;
+                            utils.addDebug(currentEntry, "    ✅ Pridaná ikona do " + recordType.label + " #" + recordId);
+                        }
+                    } catch (error) {
+                        // Silent fail pre jednotlivé záznamy
+                        utils.addDebug(currentEntry, "    ⚠️ Chyba pri aktualizácii " + recordType.label + " #" + recordId + ": " + error.toString());
+                    }
+                }
+            }
+
+            if (updatedCount > 0) {
+                utils.addDebug(currentEntry, "✅ Aktualizovaných " + updatedCount + " ikon v linknutých záznamoch");
+            } else {
+                utils.addDebug(currentEntry, "ℹ️ Všetky linknuté záznamy už majú ikonu");
+            }
+
+        } catch (error) {
+            // Silent fail - AfterSave nesmie zablokovať uloženie
+            if (utils) {
+                utils.addError(currentEntry, "Chyba v " + SCRIPT_NAME + ": " + error.toString(), SCRIPT_NAME, error);
+            }
+        }
+    }
+
+    /**
+     * Handler pre recalculate action
+     * Prepočíta všetky Denné reporty v knižnici
+     * @returns {Object} Result {success, stats, summary}
+     */
+    function recalculateAll() {
+        var utils = getUtils();
+        var config = getConfig();
+
+        if (!utils || !config) {
+            throw new Error("MementoUtils alebo MementoConfig nie je dostupný");
+        }
+
+        var SCRIPT_NAME = "DennyReport.recalculateAll";
+        var dailyReportLib = utils.core.getLibraryByName(config.libraries.dailyReport);
+
+        if (!dailyReportLib) {
+            throw new Error("Denný report knižnica nenájdená");
+        }
+
+        utils.addDebug(dailyReportLib.entries()[0], "🔄 === ŠTART " + SCRIPT_NAME + " v" + MODULE_INFO.version + " ===");
+
+        // Získaj všetky Denné reporty
+        var allReports = dailyReportLib.entries();
+
+        if (allReports.length === 0) {
+            return {
+                success: true,
+                stats: { total: 0 },
+                summary: "ℹ️ Žiadne záznamy na prepočítanie."
+            };
+        }
+
+        // Prepočítaj všetky záznamy
+        var stats = {
+            total: allReports.length,
+            success: 0,
+            errors: 0,
+            totalLinked: 0,
+            totalUnlinked: 0,
+            skipped: 0
+        };
+
+        utils.addDebug(allReports[0], "🔄 Spúšťam prepočet " + allReports.length + " záznamov...");
+
+        for (var i = 0; i < allReports.length; i++) {
+            var report = allReports[i];
+            var reportId = report.field("ID");
+            var reportDate = utils.safeGet(report, config.fields.dailyReport.date);
+
+            if (!reportDate) {
+                utils.addDebug(allReports[0], "  ⚠️ Záznam #" + reportId + " nemá dátum - preskakujem");
+                stats.skipped++;
+                continue;
+            }
+
+            try {
+                var result = processReport(report, {
+                    maxRecordsToCheck: 200
+                });
+
+                if (result.success) {
+                    stats.success++;
+                    stats.totalLinked += (result.linked.attendance + result.linked.workRecords +
+                                        result.linked.rideLog + result.linked.cashBook);
+                    stats.totalUnlinked += (result.unlinked.attendance + result.unlinked.workRecords +
+                                          result.unlinked.rideLog + result.unlinked.cashBook);
+
+                    // Log každých 10 záznamov
+                    if ((i + 1) % 10 === 0) {
+                        utils.addDebug(allReports[0], "  📊 Spracovaných " + (i + 1) + "/" + allReports.length + " záznamov");
+                    }
+                } else {
+                    stats.errors++;
+                    utils.addDebug(allReports[0], "  ❌ Chyba v zázname #" + reportId + ": " + result.error);
+                }
+
+            } catch (error) {
+                stats.errors++;
+                utils.addDebug(allReports[0], "  ❌ Výnimka v zázname #" + reportId + ": " + error.toString());
+            }
+        }
+
+        // Finálne zhrnutie
+        var finalSummary = "✅ PREPOČET DOKONČENÝ\n\n";
+        finalSummary += "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+        finalSummary += "Celkom záznamov: " + stats.total + "\n";
+        finalSummary += "Úspešne spracovaných: " + stats.success + "\n";
+        if (stats.errors > 0) {
+            finalSummary += "Chýb: " + stats.errors + "\n";
+        }
+        if (stats.skipped > 0) {
+            finalSummary += "Preskočených: " + stats.skipped + "\n";
+        }
+        finalSummary += "\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+        finalSummary += "🔗 Nalinkované: " + stats.totalLinked + "\n";
+        finalSummary += "⚠️ Unlinkované: " + stats.totalUnlinked + "\n\n";
+        finalSummary += "Prepočet dokončený.";
+
+        utils.addDebug(allReports[0], "✅ === PREPOČET DOKONČENÝ ===");
+        utils.addDebug(allReports[0], "  📊 Úspešne: " + stats.success + "/" + stats.total);
+        utils.addDebug(allReports[0], "  🔗 Nalinkované: " + stats.totalLinked);
+        utils.addDebug(allReports[0], "  ⚠️ Unlinkované: " + stats.totalUnlinked);
+
+        return {
+            success: true,
+            stats: stats,
+            summary: finalSummary,
+            shortSummary: "✅ Prepočítaných " + stats.success + " záznamov\n🔗 Nalinkované: " + stats.totalLinked
+        };
+    }
+
+    // ==============================================
     // PUBLIC API
     // ==============================================
 
@@ -536,6 +810,11 @@ var DennyReport = (function() {
         processReport: processReport,
         autoLinkRecords: autoLinkRecords,
         validateAndUnlinkInvalidDates: validateAndUnlinkInvalidDates,
-        mergeDuplicates: mergeDuplicates
+        mergeDuplicates: mergeDuplicates,
+
+        // High-level handlers (NEW - v1.1.0)
+        handleBeforeSave: handleBeforeSave,
+        handleAfterSave: handleAfterSave,
+        recalculateAll: recalculateAll
     };
 })();
