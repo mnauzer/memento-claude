@@ -593,17 +593,23 @@ var MementoBusiness = (function() {
         var currentEntry = options.entry || entry();
 
         try {
+            // CRITICAL: Detect if employee is linkToEntry object or entry object
+            // linkToEntry has .e property (linked entry) and .get/.set methods (attributes)
+            var isLinkToEntry = employee && typeof employee === 'object' && employee.e !== undefined;
+            var employeeLink = isLinkToEntry ? employee : null;
+            var employeeEntry = isLinkToEntry ? employee.e : employee;
+
             // CRITICAL: Never hardcode field names - use formatting module or config
             // Format as "Nick (Priezvisko)"
             var employeeName = "N/A";
 
             if (formatting && formatting.formatEmployeeName) {
-                employeeName = formatting.formatEmployeeName(employee, {nickFirst: true});
+                employeeName = formatting.formatEmployeeName(employeeEntry, {nickFirst: true});
             } else if (config && config.fields && config.fields.employee) {
                 // Fallback: construct name from firstName + lastName
-                var firstName = employee.field(config.fields.employee.firstName) || "";
-                var lastName = employee.field(config.fields.employee.lastName) || "";
-                var nick = employee.field(config.fields.employee.nick) || "";
+                var firstName = employeeEntry.field(config.fields.employee.firstName) || "";
+                var lastName = employeeEntry.field(config.fields.employee.lastName) || "";
+                var nick = employeeEntry.field(config.fields.employee.nick) || "";
                 employeeName = (firstName + " " + lastName).trim() || nick || "N/A";
             }
 
@@ -612,7 +618,7 @@ var MementoBusiness = (function() {
             }
 
             // Find hourly rate
-            var hourlyRate = findValidHourlyRate(employee, date);
+            var hourlyRate = findValidHourlyRate(employeeEntry, date);
             if (!hourlyRate || hourlyRate <= 0) {
                 if (core) {
                     core.addError(currentEntry, "Zamestnanec " + employeeName + " nemá platnú hodinovú sadzbu", "processEmployee");
@@ -628,14 +634,69 @@ var MementoBusiness = (function() {
                 core.addDebug(currentEntry, "    • Hodinovka: " + hourlyRate + " €/h");
             }
 
-            // Calculate wage using MementoCalculations
+            // CRITICAL: If linkToEntry, set attributes
+            if (isLinkToEntry && employeeLink) {
+                // Attribute IDs (from Dochádzka library field analysis):
+                // 0 = hodinovka (currency)
+                // 1 = +príplatok (€/h) (currency) - manual, keep as is
+                // 2 = +prémia (€) (currency) - manual, keep as is
+                // 4 = -pokuta (€) (currency) - manual, keep as is
+                // 6 = odpracované (double)
+                // 3 = denná mzda (currency)
+                // 5 = poznámka (text) - optional
+
+                // Set worked hours attribute (attr ID 6)
+                employeeLink.set(6, workHours);
+
+                // Set hourly rate attribute (attr ID 0)
+                employeeLink.set(0, hourlyRate);
+
+                if (core) {
+                    core.addDebug(currentEntry, "    • Atribúty: odpracované=" + workHours + "h, hodinovka=" + hourlyRate + "€/h");
+                }
+            }
+
+            // Get manual attributes if linkToEntry (supplement, bonus, penalty)
+            var supplement = 0;  // +príplatok (€/h) - attr ID 1
+            var bonus = 0;       // +prémia (€) - attr ID 2
+            var penalty = 0;     // -pokuta (€) - attr ID 4
+
+            if (isLinkToEntry && employeeLink) {
+                supplement = employeeLink.get(1) || 0;
+                bonus = employeeLink.get(2) || 0;
+                penalty = employeeLink.get(4) || 0;
+
+                if (supplement !== 0 || bonus !== 0 || penalty !== 0) {
+                    if (core) {
+                        var extrasStr = "";
+                        if (supplement !== 0) extrasStr += " príplatok=" + supplement + "€/h";
+                        if (bonus !== 0) extrasStr += " prémia=" + bonus + "€";
+                        if (penalty !== 0) extrasStr += " pokuta=" + penalty + "€";
+                        core.addDebug(currentEntry, "    • Extras:" + extrasStr);
+                    }
+                }
+            }
+
+            // Calculate daily wage with manual extras
+            // Formula: (hourlyRate + supplement) × workHours + bonus - penalty
+            var dailyWage = (hourlyRate + supplement) * workHours + bonus - penalty;
+
+            if (core) {
+                core.addDebug(currentEntry, "    • Denná mzda: " + dailyWage + " €");
+            }
+
+            // CRITICAL: If linkToEntry, set daily wage attribute (attr ID 3)
+            if (isLinkToEntry && employeeLink) {
+                employeeLink.set(3, dailyWage);
+            }
+
+            // For backward compatibility, also calculate via MementoCalculations
             var wageResult = calculations ?
                 calculations.calculateDailyWage(workHours, hourlyRate) :
                 { wage: workHours * hourlyRate, regularWage: workHours * hourlyRate, overtimeWage: 0 };
 
-            if (core) {
-                core.addDebug(currentEntry, "    • Mzda: " + wageResult.wage + " €");
-            }
+            // Use our calculated wage (with extras) instead of simple calculation
+            wageResult.wage = dailyWage;
 
             // Process obligation if enabled
             var obligationCreated = false;
@@ -651,7 +712,7 @@ var MementoBusiness = (function() {
                         var obl = options.linkedObligations[j];
                         var oblEmployee = core.safeGetLinks(obl, config.fields.obligations.employee);
 
-                        if (oblEmployee && oblEmployee.length > 0 && oblEmployee[0].id === employee.id) {
+                        if (oblEmployee && oblEmployee.length > 0 && oblEmployee[0].id === employeeEntry.id) {
                             existingObligation = obl;
                             break;
                         }
@@ -676,7 +737,7 @@ var MementoBusiness = (function() {
                         sourceEntry: currentEntry
                     };
 
-                    var obligationResult = createObligation(date, obligationData, employee);
+                    var obligationResult = createObligation(date, obligationData, employeeEntry);
                     obligationCreated = obligationResult && obligationResult.success;
 
                     if (obligationCreated && core) {
@@ -689,9 +750,13 @@ var MementoBusiness = (function() {
                 success: true,
                 data: {
                     employee: employeeName,
-                    employeeEntry: employee,
+                    employeeEntry: employeeEntry,
+                    employeeLink: employeeLink,  // NEW: Return link for further processing if needed
                     hours: workHours,
                     hourlyRate: hourlyRate,
+                    supplement: supplement,      // NEW: Return extras
+                    bonus: bonus,
+                    penalty: penalty,
                     wage: wageResult.wage,
                     regularWage: wageResult.regularWage,
                     overtimeWage: wageResult.overtimeWage,
