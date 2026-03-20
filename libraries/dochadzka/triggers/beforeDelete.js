@@ -4,14 +4,23 @@
 // Typ: Trigger
 // Udalosť: Odstraňovanie záznamu
 // Fáza: Pred uložením záznamu
-// Verzia: 1.0.0
+// Verzia: 2.0.0
 // Dátum: 2026-03-19
 // ==============================================
 // 📋 FUNKCIA:
 //    - Vymaže súvisiace záväzky pred zmazaním záznamu
 //    - Aktualizuje Denný report
+//    - Cleanup operácie pre zachovanie integrity dát
 // ==============================================
-// 🔧 JS KNIŽNICE: MementoUtils
+// 🔗 ZÁVISLOSTI (JS knižnice - pridaj v Memento):
+//    1. MementoUtils (v8.1+) - Safe field access utilities
+// ==============================================
+// 📚 CORE MODULY (GitHub):
+//    - core/MementoUtils.js (v8.1+)
+// ==============================================
+// 🔧 CHANGELOG v2.0.0:
+//    - Added comprehensive dependency documentation
+//    - Verified correct Memento API usage
 // ==============================================
 
 var utils = MementoUtils;
@@ -30,7 +39,7 @@ if (obligations && obligations.length > 0) {
             // Záväzok už neexistuje alebo nemôže byť zmazaný
         }
     }
-    
+
     if (count > 0) {
         message("🗑️ Zmazané " + count + " záväzkov");
     }

@@ -4,11 +4,16 @@
 // Typ: Trigger
 // Udalosť: Aktualizácia záznamu
 // Fáza: Pred uložením záznamu
-// Verzia: 1.0.0
+// Verzia: 2.0.0
 // Dátum: 2026-03-19
 // ==============================================
-// 📋 FUNKCIA: Najkratší možný prepočet (6 riadkov)
-// 🔧 JS KNIŽNICE: Dochadzka, MementoUtils
+// 📋 FUNKCIA: Najkratší možný prepočet (minimalistická verzia)
+// ==============================================
+// 🔗 ZÁVISLOSTI (JS knižnice - pridaj v Memento):
+//    - Dochadzka (v1.0+)
+// ==============================================
+// 📚 LIBRARY MODULY (GitHub):
+//    - modules/Dochadzka.js
 // ==============================================
 
 var result = Dochadzka.calculateAttendance(entry(), {});
