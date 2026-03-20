@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.0.6",
+        version: "1.0.7",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -317,7 +317,7 @@ var Dochadzka = (function() {
             if (result.success && result.details && result.details.length > 0) {
                 // Get linked obligations from this attendance entry
                 var linkedObligations = utils.findLinkedObligations ?
-                    utils.findLinkedObligations(entry, config.fields.obligations) : [];
+                    (utils.findLinkedObligations(entry, config.fields.obligations) || []) : [];
 
                 for (var i = 0; i < result.details.length; i++) {
                     var empDetail = result.details[i];
@@ -461,8 +461,15 @@ var Dochadzka = (function() {
         try {
             // CRITICAL: Set rounded times and work time
             if (workTimeResult && workTimeResult.success) {
-                utils.safeSet(entry, config.fields.arrival, workTimeResult.arrivalRounded);
-                utils.safeSet(entry, config.fields.departure, workTimeResult.departureRounded);
+                // IMPORTANT: Convert Date objects to timestamps for TIME fields
+                // Memento TIME fields need timestamp (milliseconds), not Date object
+                var arrivalTimestamp = workTimeResult.arrivalRounded ?
+                    workTimeResult.arrivalRounded.getTime() : null;
+                var departureTimestamp = workTimeResult.departureRounded ?
+                    workTimeResult.departureRounded.getTime() : null;
+
+                utils.safeSet(entry, config.fields.arrival, arrivalTimestamp);
+                utils.safeSet(entry, config.fields.departure, departureTimestamp);
                 utils.safeSet(entry, config.fields.workTime, workTimeResult.pracovnaDobaHodiny);
             }
 
