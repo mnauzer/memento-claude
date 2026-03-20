@@ -1330,11 +1330,12 @@ var MementoConfig = (function() {
             obligations: {
                 date: "Dátum",
                 dueDate: "Splatnosť",
-                type: "Typ", // SingleChoice: Nákup materiálu, Mzda, Podiely, Pôžička, Poistné, Faktúra
+                type: "Typ", // SingleChoice: Nákup materiálu, Mzda, Podiely, Pôžička, Poistné, Faktúra, Mzdy
                 state: "Stav", // SingleChoice: Neuhradené, Čiastočne uhradené, Uhradené
+                status: "Stav", // Alias for state (backward compatibility)
                 creditor: "Veriteľ", //SingleChoice list: Dodávateľ, Partner, Zamestnanec, Klient
                 employee: "Zamestnanec", //linktToEntry Zamestnanci
-                supplier: "Dodávateľ", //linktToEntry Zamestnanci
+                supplier: "Dodávateľ", //linktToEntry Dodávatelia
                 client: "Klient", //linktToEntry Klienti
                 partner: "Partner", //linktToEntry Partneri
                 attendance: "Dochádzka", //linktToEntry Dochádzka

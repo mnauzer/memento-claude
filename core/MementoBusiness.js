@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO BUSINESS - High-Level Business Workflows
-// Verzia: 8.0.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// Verzia: 8.0.8 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - High-level business workflow orchestration
@@ -9,7 +9,17 @@
 //    - Material price management workflows
 //    - Obligation management workflows
 // ==============================================
-// 🔧 CHANGELOG v8.0.0 (BREAKING CHANGES):
+// 🔧 CHANGELOG:
+// v8.0.8 (2026-03-20):
+//    - FIX: Obligation creation now properly sets field types:
+//      * "Veriteľ" (creditor) = STRING "Zamestnanec" (RADIO field)
+//      * "Zamestnanec" (employee) = entry object (ENTRIES field)
+//      * "Typ" (type) = STRING "Mzdy" (CHOICE field)
+//      * "Popis" (description) = auto-generated with employee name and date
+//      * "Dochádzka" (attendance) = link to source attendance entry
+//    - FIX: Use "state" field instead of "status" for obligation state
+//
+// v8.0.0 (2026-03-19) - BREAKING CHANGES:
 //    - REFACTORED: Extracted utilities to focused modules
 //    - Reduced from 3,942 lines to ~1,000 lines (75% reduction)
 //    - Now depends on: MementoTime, MementoDate, MementoValidation,
@@ -38,7 +48,7 @@ var MementoBusiness = (function() {
 
     var MODULE_INFO = {
         name: "MementoBusiness",
-        version: "8.0.7",
+        version: "8.0.8",
         author: "ASISTANTO",
         description: "High-level business workflows (employee processing, reports, obligations, material prices)",
         dependencies: [
@@ -821,9 +831,42 @@ var MementoBusiness = (function() {
 
                 var newObligation = obligationsLib.create({});
                 core.safeSet(newObligation, config.fields.obligations.date, date);
-                core.safeSet(newObligation, config.fields.obligations.creditor, [creditor]);
+
+                // CRITICAL: creditor is RADIO field (select), set to STRING "Zamestnanec"
+                core.safeSet(newObligation, config.fields.obligations.creditor, "Zamestnanec");
+
+                // employee is ENTRIES field (linkToEntry), set to employee entry object
+                core.safeSet(newObligation, config.fields.obligations.employee, [creditor]);
+
+                // type is CHOICE field (select), set to STRING "Mzdy"
+                core.safeSet(newObligation, config.fields.obligations.type, "Mzdy");
+
+                // Generate description with employee name and date
+                var formatting = getFormatting();
+                var employeeName = "N/A";
+                if (formatting && formatting.formatEmployeeName) {
+                    employeeName = formatting.formatEmployeeName(creditor, {nickFirst: true}) || "N/A";
+                }
+
+                var dateFormatted = "N/A";
+                if (date) {
+                    var d = new Date(date);
+                    var day = d.getDate();
+                    var month = d.getMonth() + 1;
+                    var year = d.getFullYear();
+                    dateFormatted = day + "." + month + "." + year;
+                }
+
+                var description = "Mzda zamestnanca " + employeeName + " za deň " + dateFormatted;
+                core.safeSet(newObligation, config.fields.obligations.description, description);
+
+                // Link back to source attendance entry if available
+                if (data.sourceEntry) {
+                    core.safeSet(newObligation, config.fields.obligations.attendance, [data.sourceEntry]);
+                }
+
                 core.safeSet(newObligation, config.fields.obligations.amount, data.amount);
-                core.safeSet(newObligation, config.fields.obligations.status, "Nezaplatené");
+                core.safeSet(newObligation, config.fields.obligations.state, "Neuhradené");
 
                 return {
                     success: true,
