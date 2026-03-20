@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.0.7",
+        version: "1.0.8",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -461,12 +461,33 @@ var Dochadzka = (function() {
         try {
             // CRITICAL: Set rounded times and work time
             if (workTimeResult && workTimeResult.success) {
-                // IMPORTANT: Convert Date objects to timestamps for TIME fields
-                // Memento TIME fields need timestamp (milliseconds), not Date object
-                var arrivalTimestamp = workTimeResult.arrivalRounded ?
-                    workTimeResult.arrivalRounded.getTime() : null;
-                var departureTimestamp = workTimeResult.departureRounded ?
-                    workTimeResult.departureRounded.getTime() : null;
+                // IMPORTANT: Handle TIME field values - can be Date object, string, or timestamp
+                // Memento TIME fields need timestamp (milliseconds)
+                var arrivalTimestamp = null;
+                var departureTimestamp = null;
+
+                if (workTimeResult.arrivalRounded) {
+                    if (typeof workTimeResult.arrivalRounded === 'object' && workTimeResult.arrivalRounded.getTime) {
+                        // It's a Date object
+                        arrivalTimestamp = workTimeResult.arrivalRounded.getTime();
+                    } else if (typeof workTimeResult.arrivalRounded === 'number') {
+                        // It's already a timestamp
+                        arrivalTimestamp = workTimeResult.arrivalRounded;
+                    } else {
+                        // It's a string or other format - use directly
+                        arrivalTimestamp = workTimeResult.arrivalRounded;
+                    }
+                }
+
+                if (workTimeResult.departureRounded) {
+                    if (typeof workTimeResult.departureRounded === 'object' && workTimeResult.departureRounded.getTime) {
+                        departureTimestamp = workTimeResult.departureRounded.getTime();
+                    } else if (typeof workTimeResult.departureRounded === 'number') {
+                        departureTimestamp = workTimeResult.departureRounded;
+                    } else {
+                        departureTimestamp = workTimeResult.departureRounded;
+                    }
+                }
 
                 utils.safeSet(entry, config.fields.arrival, arrivalTimestamp);
                 utils.safeSet(entry, config.fields.departure, departureTimestamp);
@@ -519,7 +540,15 @@ var Dochadzka = (function() {
                     var detail = employeeResult.detaily[i];
                     // CRITICAL: Use correct property names from utils.processEmployees result
                     // detail.employeeEntry (not zamestnanec), detail.hourlyRate (not hodinovka), detail.wage (not dennaMzda)
-                    var empName = detail.employee || utils.formatEmployeeName(detail.employeeEntry) || "N/A";
+                    // Get employee name directly from entry.name() method
+                    var empName = "N/A";
+                    if (detail.employeeEntry && detail.employeeEntry.name) {
+                        empName = detail.employeeEntry.name();
+                    } else if (detail.employee) {
+                        empName = detail.employee;
+                    } else if (utils.formatEmployeeName && detail.employeeEntry) {
+                        empName = utils.formatEmployeeName(detail.employeeEntry) || "N/A";
+                    }
                     infoMessage += "### 👤 " + empName + "\n";
                     infoMessage += "- **Hodinovka:** " + (detail.hourlyRate || 0) + " €/h\n";
                     if (detail.overtimeHours && detail.overtimeHours > 0) {
