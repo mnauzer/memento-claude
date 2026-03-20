@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.1.0
+ * Version:     1.2.0
  * Author:      ASISTANTO
  * Date:        2026-03-20
  *
@@ -28,6 +28,10 @@
  *   }
  *
  * Changelog:
+ *   v1.2.0 (2026-03-20) - Fix period filter (choice field returns string!)
+ *     - Convert choice value to number with parseInt()
+ *     - Add debug log showing choice type (string vs number)
+ *     - Fixes issue where all periods defaulted to "tento mesiac"
  *   v1.1.0 (2026-03-20) - Visual improvements in debug log
  *     - Add visual separators between KROK 1 and KROK 2
  *     - Better readability of debug output
@@ -48,7 +52,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.1.0",
+        version: "1.2.0",
         author: "ASISTANTO",
         date: "2026-03-20"
     };
@@ -64,7 +68,10 @@ var Zamestnanci = (function() {
         var now = referenceDate || new Date();
         var start, end;
 
-        switch (choice) {
+        // Convert choice to number (Memento choice fields return strings!)
+        var choiceNum = parseInt(choice, 10);
+
+        switch (choiceNum) {
             case 1: // tento deň
                 start = moment(now).startOf('day');
                 end = moment(now).endOf('day');
@@ -144,7 +151,7 @@ var Zamestnanci = (function() {
     function calculateWageFields(employeeEntry, periodChoice, isPeriodTotal, config, utils) {
         try {
             var periodName = isPeriodTotal ? "obdobie total" : "obdobie";
-            utils.addDebug(employeeEntry, "🔄 Počítam pre: " + periodName + " (voľba " + periodChoice + ")");
+            utils.addDebug(employeeEntry, "🔄 Počítam pre: " + periodName + " (voľba " + periodChoice + ", typ: " + typeof periodChoice + ")");
 
             // Get date range for period
             var dateRange = calculateDateRange(periodChoice);
