@@ -1171,6 +1171,16 @@ var DennyReport = (function() {
 
         utils.addDebug(currentEntry, "  🎨 Ikony sekcií aktualizované");
 
+        // Pole Popis - vyplň názvami zákaziek
+        var orderDescription = "";
+        if (workRecordsResult.orders && workRecordsResult.orders.length > 0) {
+            orderDescription = workRecordsResult.orders.join(", ");
+        } else {
+            orderDescription = "Žiadna zákazka";
+        }
+        utils.safeSet(currentEntry, config.fields.dailyReport.description, orderDescription);
+        utils.addDebug(currentEntry, "  📋 Popis (zákazky): " + orderDescription);
+
         // KROK 3: Výpočet celkových hodín
         var totalHoursResult = calculateTotalHours(attendanceResult, workRecordsResult);
         if (totalHoursResult.totalHours > 0) {
