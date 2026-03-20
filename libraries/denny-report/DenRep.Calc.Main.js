@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - DENNÝ REPORT PREPOČET
-// Verzia: 1.10.0 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 1.10.1 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // Knižnica: Denný report | Trigger: Before Save
 // ==============================================
 // ✅ FUNKCIONALITA v1.9.1:
@@ -21,6 +21,12 @@
 //    - Kontrola prestojov (porovnanie hodín Dochádzka vs Práce)
 //    - Príprava na integráciu s MementoTelegram a MementoAI
 // 🔧 CHANGELOG:
+// v1.10.1 (2026-03-20) - RACE CONDITION FIX:
+//    - INCREASED: maxRecordsToCheck from 100 → 200 records
+//      * Ensures Level 2 fallback in MementoBusiness.createOrUpdateDailyReport()
+//        has enough records to search (~6 months of data)
+//      * Aligns with MementoBusiness v8.2.0 race condition fix
+//
 // v1.10.0 (2026-03-20) - PERFORMANCE OPTIMIZATION:
 //    - OPTIMIZATION: autoLinkRecords() now checks only last 100 records
 //      * Before: lib.entries() loaded ALL records (365+ per library!)
@@ -50,7 +56,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Denný report Prepočet",
-    version: "1.10.0",
+    version: "1.10.1",
 
     // Referencie na centrálny config
     fields: {
@@ -122,7 +128,7 @@ function autoLinkRecords(reportDate) {
         var attendanceLib = libByName(CONFIG.libraries.attendance);
         // OPTIMIZATION: entries() returns newest first, limit search to recent records
         var attendanceEntries = attendanceLib.entries();
-        var maxRecordsToCheck = 100; // Check only last 100 records (optimization)
+        var maxRecordsToCheck = 200; // Check last 200 records (~6 months, aligns with Level 2 fallback)
         var attendanceCount = Math.min(attendanceEntries.length, maxRecordsToCheck);
         utils.addDebug(currentEntry, "  🔍 Kontrolujem Dochádzku: " + attendanceCount + " posledných záznamov (z " + attendanceEntries.length + ")");
 
