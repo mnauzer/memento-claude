@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.0.8",
+        version: "1.0.9",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -461,31 +461,33 @@ var Dochadzka = (function() {
         try {
             // CRITICAL: Set rounded times and work time
             if (workTimeResult && workTimeResult.success) {
-                // IMPORTANT: Handle TIME field values - can be Date object, string, or timestamp
-                // Memento TIME fields need timestamp (milliseconds)
+                // IMPORTANT: Convert TIME field values to millisecond timestamps
+                // Memento TIME fields need numeric timestamp (milliseconds since epoch)
+                // roundToQuarterHour() returns values that need conversion
                 var arrivalTimestamp = null;
                 var departureTimestamp = null;
 
                 if (workTimeResult.arrivalRounded) {
-                    if (typeof workTimeResult.arrivalRounded === 'object' && workTimeResult.arrivalRounded.getTime) {
-                        // It's a Date object
-                        arrivalTimestamp = workTimeResult.arrivalRounded.getTime();
-                    } else if (typeof workTimeResult.arrivalRounded === 'number') {
-                        // It's already a timestamp
-                        arrivalTimestamp = workTimeResult.arrivalRounded;
-                    } else {
-                        // It's a string or other format - use directly
-                        arrivalTimestamp = workTimeResult.arrivalRounded;
+                    try {
+                        // Always convert to Date and then to timestamp
+                        // This handles Date objects, strings, and timestamps
+                        var arrivalDate = new Date(workTimeResult.arrivalRounded);
+                        if (!isNaN(arrivalDate.getTime())) {
+                            arrivalTimestamp = arrivalDate.getTime();
+                        }
+                    } catch (e) {
+                        addError(entry, "Failed to convert arrival time: " + e.toString(), "setEntryFields");
                     }
                 }
 
                 if (workTimeResult.departureRounded) {
-                    if (typeof workTimeResult.departureRounded === 'object' && workTimeResult.departureRounded.getTime) {
-                        departureTimestamp = workTimeResult.departureRounded.getTime();
-                    } else if (typeof workTimeResult.departureRounded === 'number') {
-                        departureTimestamp = workTimeResult.departureRounded;
-                    } else {
-                        departureTimestamp = workTimeResult.departureRounded;
+                    try {
+                        var departureDate = new Date(workTimeResult.departureRounded);
+                        if (!isNaN(departureDate.getTime())) {
+                            departureTimestamp = departureDate.getTime();
+                        }
+                    } catch (e) {
+                        addError(entry, "Failed to convert departure time: " + e.toString(), "setEntryFields");
                     }
                 }
 
@@ -540,10 +542,10 @@ var Dochadzka = (function() {
                     var detail = employeeResult.detaily[i];
                     // CRITICAL: Use correct property names from utils.processEmployees result
                     // detail.employeeEntry (not zamestnanec), detail.hourlyRate (not hodinovka), detail.wage (not dennaMzda)
-                    // Get employee name directly from entry.name() method
+                    // Get employee name - entry.name is a PROPERTY (string), not a function
                     var empName = "N/A";
                     if (detail.employeeEntry && detail.employeeEntry.name) {
-                        empName = detail.employeeEntry.name();
+                        empName = detail.employeeEntry.name;  // Property, not method!
                     } else if (detail.employee) {
                         empName = detail.employee;
                     } else if (utils.formatEmployeeName && detail.employeeEntry) {
