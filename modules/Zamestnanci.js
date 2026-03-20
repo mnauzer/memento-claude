@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.2.0
+ * Version:     1.3.0
  * Author:      ASISTANTO
  * Date:        2026-03-20
  *
@@ -28,6 +28,10 @@
  *   }
  *
  * Changelog:
+ *   v1.3.0 (2026-03-20) - Fix period filter AGAIN (choice returns LABEL!)
+ *     - Choice field returns LABEL text ("posledných 14 dní"), not value!
+ *     - Create choiceMap to convert Slovak labels to numeric values
+ *     - Fallback to parseInt and default value (3 = tento mesiac)
  *   v1.2.0 (2026-03-20) - Fix period filter (choice field returns string!)
  *     - Convert choice value to number with parseInt()
  *     - Add debug log showing choice type (string vs number)
@@ -52,7 +56,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.2.0",
+        version: "1.3.0",
         author: "ASISTANTO",
         date: "2026-03-20"
     };
@@ -68,8 +72,24 @@ var Zamestnanci = (function() {
         var now = referenceDate || new Date();
         var start, end;
 
-        // Convert choice to number (Memento choice fields return strings!)
-        var choiceNum = parseInt(choice, 10);
+        // Map choice labels to numbers (Memento returns label text, not values!)
+        var choiceMap = {
+            "tento deň": 1,
+            "tento týždeň": 2,
+            "tento mesiac": 3,
+            "tento rok": 4,
+            "Total": 5,
+            "minulý týždeň": 6,
+            "minulý mesiac": 7,
+            "minulý rok": 8,
+            "posledných 7 dní": 9,
+            "posledných 14 dní": 10,
+            "posledných 30 dní": 11,
+            "posledných 90 dní": 12
+        };
+
+        // Convert choice to number
+        var choiceNum = choiceMap[choice] || parseInt(choice, 10) || 3; // default: tento mesiac
 
         switch (choiceNum) {
             case 1: // tento deň
