@@ -2,7 +2,7 @@
  * Knižnica:    Zamestnanci
  * Názov:       Zam.Trigger.Calculate
  * Typ:         Trigger (After Save - Field Update)
- * Verzia:      1.1.0
+ * Verzia:      1.3.0
  * Autor:       ASISTANTO
  * Dátum:       2026-03-20
  *
@@ -17,6 +17,9 @@
  *   - Zamestnanci module v1.0+
  *
  * Changelog:
+ *   v1.3.0 (2026-03-20) - Add diagnostics for Field Update event
+ *     - Log when modules are missing (diagnostic message)
+ *     - Show script execution in Debug_Log field
  *   v1.2.0 (2026-03-20) - Clear Debug_Log before execution
  *     - Always start with fresh log (no old entries)
  *   v1.1.0 (2026-03-20) - Fixed trigger pattern
@@ -29,17 +32,38 @@
 'use strict';
 
 // ==============================================
+// DIAGNOSTIC CHECK (outside if block)
+// ==============================================
+
+var SCRIPT_VERSION = "1.3.0";
+var SCRIPT_NAME = "Zam.Trigger.Calculate";
+
+// Check if modules are available
+var hasUtils = typeof MementoUtils !== 'undefined';
+var hasZamestnanci = typeof Zamestnanci !== 'undefined';
+
+if (!hasUtils || !hasZamestnanci) {
+    // Modules not available - log to Debug_Log field
+    var currentEntry = entry();
+    var diagnosticMsg = "[" + new Date().toLocaleString('sk-SK') + "] ❌ " + SCRIPT_NAME + " v" + SCRIPT_VERSION + "\n";
+    diagnosticMsg += "DIAGNOSTIC: Chýbajúce moduly!\n";
+    diagnosticMsg += "- MementoUtils: " + (hasUtils ? "✅" : "❌ CHÝBA!") + "\n";
+    diagnosticMsg += "- Zamestnanci: " + (hasZamestnanci ? "✅" : "❌ CHÝBA!") + "\n";
+    diagnosticMsg += "→ Script sa NESPUSTIL (moduly nie sú načítané)\n";
+
+    var existingLog = currentEntry.field("Debug_Log") || "";
+    currentEntry.set("Debug_Log", existingLog + diagnosticMsg);
+}
+
+// ==============================================
 // VALIDÁCIA A HLAVNÁ FUNKCIA
 // ==============================================
 
 // Zabal celý kód do if bloku - žiadne return na top level!
-if (typeof MementoUtils !== 'undefined' && typeof Zamestnanci !== 'undefined') {
+if (hasUtils && hasZamestnanci) {
 
 var utils = MementoUtils;
 var currentEntry = entry();
-
-var SCRIPT_VERSION = "1.2.0";
-var SCRIPT_NAME = "Zam.Trigger.Calculate";
 
 // ==============================================
 // MAIN EXECUTION
@@ -64,4 +88,4 @@ try {
     utils.addError(currentEntry, "KRITICKÁ CHYBA: " + error.toString(), SCRIPT_NAME, error);
 }
 
-} // Koniec if (typeof MementoUtils !== 'undefined' && typeof Zamestnanci !== 'undefined')
+} // Koniec if (hasUtils && hasZamestnanci)
