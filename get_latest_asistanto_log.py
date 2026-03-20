@@ -110,7 +110,7 @@ def extract_field_values(entry):
             field_values['debug_log'] = fval
         elif fid == 15:
             field_values['error_log'] = fval
-        elif fid == 16:
+        elif fid == 17:  # Fixed: info field is ID 17 (richtext), not 16
             field_values['info'] = fval
         elif fid == 12:
             field_values['user'] = fval

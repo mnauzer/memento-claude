@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.0.12",
+        version: "1.0.13",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -541,16 +541,9 @@ var Dochadzka = (function() {
                 for (var i = 0; i < employeeResult.detaily.length; i++) {
                     var detail = employeeResult.detaily[i];
                     // CRITICAL: Use correct property names from utils.processEmployees result
-                    // detail.employeeEntry (not zamestnanec), detail.hourlyRate (not hodinovka), detail.wage (not dennaMzda)
-                    // Get employee name in format "Nick (Priezvisko)"
-                    var empName = "N/A";
-                    if (utils.formatEmployeeName && detail.employeeEntry) {
-                        empName = utils.formatEmployeeName(detail.employeeEntry, {nickFirst: true}) || "N/A";
-                    } else if (detail.employeeEntry && detail.employeeEntry.name) {
-                        empName = detail.employeeEntry.name;  // Property, not method!
-                    } else if (detail.employee) {
-                        empName = detail.employee;
-                    }
+                    // detail.employee is already formatted string "Nick (Priezvisko)" from MementoBusiness
+                    // detail.employeeEntry is the entry object
+                    var empName = detail.employee || "N/A";
                     infoMessage += "### 👤 " + empName + "\n";
                     infoMessage += "- **Hodinovka:** " + (detail.hourlyRate || 0) + " €/h\n";
                     if (detail.overtimeHours && detail.overtimeHours > 0) {
