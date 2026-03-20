@@ -4,8 +4,8 @@
 // Typ: Trigger
 // Udalosť: Aktualizácia záznamu
 // Fáza: Po uložení záznamu
-// Verzia: 2.0.0
-// Dátum: 2026-03-19
+// Verzia: 2.0.1
+// Dátum: 2026-03-20
 // ==============================================
 // 📋 FUNKCIA:
 //    - Automaticky kopíruje Debug_Log a Error_Log do ASISTANTO Logs library
@@ -21,6 +21,9 @@
 //    - core/MementoConfig.js (v8.0+)
 //    - core/MementoLogCapture.js (v1.1.0+)
 // ==============================================
+// 🔧 CHANGELOG v2.0.1:
+//    - FIX: Date formatting in info field (use new Date() instead of moment())
+//    - Prevents serialized function output in info field
 // 🔧 CHANGELOG v2.0.0:
 //    - Updated for MementoLogCapture v1.1.0 (correct create() syntax)
 //    - Added comprehensive dependency documentation
@@ -52,7 +55,7 @@ if (typeof MementoLogCapture !== 'undefined' && typeof MementoConfig !== 'undefi
             var logEntry = MementoLogCapture.createLogEntry(
                 lib().title,
                 "Auto-capture (AfterSave)",
-                "2.0.0"
+                "2.0.1"
             );
 
             if (logEntry) {
@@ -63,7 +66,13 @@ if (typeof MementoLogCapture !== 'undefined' && typeof MementoConfig !== 'undefi
                 // Add summary info (markdown formatted)
                 var infoText = "# Automaticky zachytené logy\n\n";
                 infoText += "**Zdroj:** " + lib().title + "\n";
-                infoText += "**Dátum:** " + moment().format("DD.MM.YYYY HH:mm:ss") + "\n";
+
+                // Format current date safely (avoid moment() issues in triggers)
+                var now = new Date();
+                var dateStr = now.getDate() + "." + (now.getMonth() + 1) + "." + now.getFullYear() + " " +
+                              now.getHours() + ":" + (now.getMinutes() < 10 ? "0" : "") + now.getMinutes();
+                infoText += "**Dátum:** " + dateStr + "\n";
+
                 infoText += "**Debug Log:** " + (debugLog.trim().length > 0 ? "✅ Áno" : "⚪ Nie") + "\n";
                 infoText += "**Error Log:** " + (errorLog.trim().length > 0 ? "❌ Áno" : "⚪ Nie") + "\n";
                 logEntry.set("info", infoText);
