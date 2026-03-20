@@ -1131,8 +1131,8 @@ var DennyReport = (function() {
             utils.addDebug(currentEntry, "  ⚠️ Unlinkované: " + totalUnlinked + " záznamov (nesprávny dátum)");
         }
 
-        // KROK 2: Agregácia dát z každej sekcie
-        utils.addDebug(currentEntry, "📊 KROK 2: Agregácia dát");
+        // KROK 2: Agregácia dát z každej sekcie + ikony
+        utils.addDebug(currentEntry, "📊 KROK 2: Agregácia dát a ikony");
 
         var attendanceResult = processAttendance(currentEntry);
         var workRecordsResult = processWorkRecords(currentEntry);
@@ -1143,6 +1143,33 @@ var DennyReport = (function() {
         utils.addDebug(currentEntry, "  ✅ Práce: " + workRecordsResult.count + " záznamov, " + workRecordsResult.totalHours.toFixed(2) + " h");
         utils.addDebug(currentEntry, "  ✅ Jazdy: " + rideLogResult.count + " záznamov, " + rideLogResult.totalKm.toFixed(2) + " km");
         utils.addDebug(currentEntry, "  ✅ Pokladňa: " + cashBookResult.count + " záznamov");
+
+        // Pridaj/odstráň ikony podľa prítomnosti sekcií
+        if (attendanceResult.count > 0) {
+            utils.addRecordIcon(currentEntry, "👥");
+        } else {
+            utils.removeRecordIcon(currentEntry, "👥");
+        }
+
+        if (workRecordsResult.count > 0) {
+            utils.addRecordIcon(currentEntry, "🛠️");
+        } else {
+            utils.removeRecordIcon(currentEntry, "🛠️");
+        }
+
+        if (rideLogResult.count > 0) {
+            utils.addRecordIcon(currentEntry, "🚗");
+        } else {
+            utils.removeRecordIcon(currentEntry, "🚗");
+        }
+
+        if (cashBookResult.count > 0) {
+            utils.addRecordIcon(currentEntry, "💰");
+        } else {
+            utils.removeRecordIcon(currentEntry, "💰");
+        }
+
+        utils.addDebug(currentEntry, "  🎨 Ikony sekcií aktualizované");
 
         // KROK 3: Výpočet celkových hodín
         var totalHoursResult = calculateTotalHours(attendanceResult, workRecordsResult);
