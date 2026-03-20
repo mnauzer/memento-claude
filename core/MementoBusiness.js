@@ -1359,7 +1359,7 @@ var MementoBusiness = (function() {
             if (options.entry && core && core.addDebug) {
                 var debugLabel = options.debugLabel || "Work Time";
                 core.addDebug(options.entry, "  • " + debugLabel + ": " +
-                    hoursResult.decimalHours.toFixed(1) + " hodín");
+                    hoursResult.decimalHours.toFixed(2) + " hodín");
 
                 if (roundToQuarter) {
                     core.addDebug(options.entry, "  • Zaokrúhlené časy: " +
