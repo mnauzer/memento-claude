@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.3.0
+ * Version:     1.3.1
  * Author:      ASISTANTO
  * Date:        2026-03-20
  *
@@ -28,6 +28,9 @@
  *   }
  *
  * Changelog:
+ *   v1.3.1 (2026-03-20) - Trim choice labels (Memento adds trailing spaces!)
+ *     - "minulý mesiac " (with space) didn't match "minulý mesiac" in map
+ *     - Trim choice before lookup: choice.toString().trim()
  *   v1.3.0 (2026-03-20) - Fix period filter AGAIN (choice returns LABEL!)
  *     - Choice field returns LABEL text ("posledných 14 dní"), not value!
  *     - Create choiceMap to convert Slovak labels to numeric values
@@ -56,7 +59,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.3.0",
+        version: "1.3.1",
         author: "ASISTANTO",
         date: "2026-03-20"
     };
@@ -88,8 +91,11 @@ var Zamestnanci = (function() {
             "posledných 90 dní": 12
         };
 
+        // CRITICAL: Trim choice (Memento adds trailing spaces!)
+        var choiceTrimmed = choice ? choice.toString().trim() : "";
+
         // Convert choice to number
-        var choiceNum = choiceMap[choice] || parseInt(choice, 10) || 3; // default: tento mesiac
+        var choiceNum = choiceMap[choiceTrimmed] || parseInt(choiceTrimmed, 10) || 3; // default: tento mesiac
 
         switch (choiceNum) {
             case 1: // tento deň
