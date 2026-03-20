@@ -32,20 +32,10 @@ try {
     var config = MementoConfig.getConfig();
     var currentEntry = entry();
 
-    // Get logs from current entry
+    // Get logs from current entry (always copy, even if empty)
     var debugLog = currentEntry.field(config.fields.common.debugLog) || "";
     var errorLog = currentEntry.field(config.fields.common.errorLog) || "";
     var infoContent = currentEntry.field(config.fields.common.info) || "";
-
-    // Check if there are any logs to copy
-    if (!debugLog && !errorLog && !infoContent) {
-        dialog()
-            .title("Žiadne logy")
-            .text("⚠️ Tento záznam neobsahuje žiadne logy.\n\nDebug_Log, Error_Log a info sú prázdne.")
-            .positiveButton("OK", function() { return true; })
-            .show();
-        cancel();
-    }
 
     // Get ASISTANTO Logs library
     var asistantoLogs = libByName("ASISTANTO Logs");
@@ -63,24 +53,14 @@ try {
     var dateStr = now.getDate() + "." + (now.getMonth() + 1) + "." + now.getFullYear() + " " +
                   now.getHours() + ":" + (now.getMinutes() < 10 ? "0" : "") + now.getMinutes();
 
-    // Create info summary
-    var infoSummary = "# Manuálne vytvorený log\n\n";
-    infoSummary += "**Zdroj:** " + lib().title + "\n";
-    infoSummary += "**Dátum:** " + dateStr + "\n";
-    infoSummary += "**Debug Log:** " + (debugLog ? "✅ Áno (" + debugLog.length + " znakov)" : "⚪ Nie") + "\n";
-    infoSummary += "**Error Log:** " + (errorLog ? "❌ Áno (" + errorLog.length + " znakov)" : "⚪ Nie") + "\n";
-    infoSummary += "**Info:** " + (infoContent ? "📋 Áno (" + infoContent.length + " znakov)" : "⚪ Nie") + "\n\n";
-    infoSummary += "---\n";
-    infoSummary += "Vytvorené manuálne pomocou action scriptu.";
-
-    // Create log entry
+    // Create log entry - copy original info field content (not summary)
     var logEntry = asistantoLogs.create({
         "date": now.getTime(),
         "library": lib().title,
-        "script": "Manual Log Entry v1.0.0",
+        "script": "Manual Log Entry v1.1.0",
         "Debug_Log": debugLog,
         "Error_Log": errorLog,
-        "info": infoSummary
+        "info": infoContent  // Copy original info content from entry
     });
 
     if (!logEntry) {
