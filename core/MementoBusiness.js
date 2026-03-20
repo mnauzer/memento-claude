@@ -38,7 +38,7 @@ var MementoBusiness = (function() {
 
     var MODULE_INFO = {
         name: "MementoBusiness",
-        version: "8.0.4",
+        version: "8.0.5",
         author: "ASISTANTO",
         description: "High-level business workflows (employee processing, reports, obligations, material prices)",
         dependencies: [
@@ -551,18 +551,21 @@ var MementoBusiness = (function() {
             // Format as "Nick (Priezvisko)"
             var employeeName = "N/A";
 
-            // Debug: Check if formatting module is available
-            if (core) {
-                core.addDebug(currentEntry, "    🔍 Debug: formatting = " + (formatting ? "✅ loaded" : "❌ NOT loaded"));
-                if (formatting) {
-                    core.addDebug(currentEntry, "    🔍 Debug: formatEmployeeName = " + (formatting.formatEmployeeName ? "✅ exists" : "❌ missing"));
-                }
+            // Debug: Check employee entry fields
+            if (core && employee) {
+                var prezyvka = employee.field("Prezývka") || "";
+                var priezvisko = employee.field("Priezvisko") || "";
+                var menoAPriezvisko = employee.field("Meno a priezvisko") || "";
+                core.addDebug(currentEntry, "    🔍 Employee fields:");
+                core.addDebug(currentEntry, "       • Prezývka: '" + prezyvka + "'");
+                core.addDebug(currentEntry, "       • Priezvisko: '" + priezvisko + "'");
+                core.addDebug(currentEntry, "       • Meno a priezvisko: '" + menoAPriezvisko + "'");
             }
 
             if (formatting && formatting.formatEmployeeName) {
                 employeeName = formatting.formatEmployeeName(employee, {nickFirst: true});
                 if (core) {
-                    core.addDebug(currentEntry, "    🔍 Debug: formatEmployeeName returned: '" + employeeName + "'");
+                    core.addDebug(currentEntry, "    🔍 formatEmployeeName returned: '" + employeeName + "'");
                 }
             } else if (config && config.fields && config.fields.employee) {
                 // Fallback: construct name from firstName + lastName
@@ -571,8 +574,7 @@ var MementoBusiness = (function() {
                 var nick = employee.field(config.fields.employee.nick) || "";
                 employeeName = (firstName + " " + lastName).trim() || nick || "N/A";
                 if (core) {
-                    core.addDebug(currentEntry, "    🔍 Debug: Fallback name (firstName + lastName): '" + employeeName + "'");
-                    core.addDebug(currentEntry, "    🔍 Debug: firstName='" + firstName + "', lastName='" + lastName + "', nick='" + nick + "'");
+                    core.addDebug(currentEntry, "    🔍 Fallback: firstName='" + firstName + "', lastName='" + lastName + "', nick='" + nick + "'");
                 }
             }
 
