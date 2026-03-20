@@ -1,340 +1,609 @@
-# Denný report - Prepočtový Script
+# Denný report - Dokumentácia
 
-## Verzia: 1.0.1
+## Verzia: 2.0.0 (DennyReport Module v1.2.0)
 
-## Popis
+**Posledná aktualizácia:** 2026-03-20
 
-Hlavný prepočtový script pre knižnicu **Denný report**. Agreguje dáta z viacerých knižníc (Dochádzka, Záznam prác, Kniha jázd, Pokladňa), vykonáva výpočty a vytvára prehľadné info záznamy.
+---
 
-## Umiestnenie
+## 📋 Popis
 
-`/home/rasto/memento-claude/libraries/denny-report/Drep.Calc.Main.js`
+Knižnica **Denný report** agreguje dáta z 4 zdrojových knižníc (Dochádzka, Záznam prác, Kniha jázd, Pokladňa), vykonáva validácie, výpočty a vytvára komplexné zhrnutia.
 
-## Trigger
+**Nová architektúra (v2.0.0):**
+- ✅ **Ultra-thin wrapper scripts** (10-20 riadkov) - iba volania modulu
+- ✅ **DennyReport reusable module** - všetka logika v module
+- ✅ **GitHub synchronizácia** - verzovanie a centrálna údržba
+- ✅ **Event-specific handlers** - samostatné scripty pre každý event
 
-**Before Save** v knižnici Denný report
+---
 
-## Závislosti
+## 📁 Štruktúra Scriptov
 
-- **MementoUtils7.js** - utility funkcie
-- **MementoConfig7.js v7.0.23+** - konfigurácia polí
-- **MementoTelegram** - pripravené na integráciu (TODO)
-- **MementoAI** - pripravené na integráciu (TODO)
+### Event Handlers (Thin Wrappers)
 
-## Funkcionalita
+| Script | Event | Verzia | Účel |
+|--------|-------|--------|------|
+| `newEntryBeforeSave.js` | BeforeSave (new) | 2.0.0 | Volá `DennyReport.handleBeforeSave()` |
+| `updateEntryBeforeSave.js` | BeforeSave (update) | 2.0.0 | Volá `DennyReport.handleBeforeSave()` |
+| `newEntryAfterSave.js` | AfterSave (new) | 2.0.0 | Volá `DennyReport.handleAfterSave()` |
+| `updateEntryAfterSave.js` | AfterSave (update) | 2.0.0 | Volá `DennyReport.handleAfterSave()` |
+| `recalculate.js` | Action (manual) | 2.0.0 | Volá `DennyReport.recalculateAll()` |
 
-### 1. Spracovanie Dochádzky (`processAttendance()`)
-
-**Vstup:**
-- Linknuté záznamy z knižnice Dochádzka (pole "Dochádzka")
-
-**Proces:**
-1. Získa všetky linknuté záznamy dochádzky
-2. Pre každý záznam:
-   - Zamestnanci
-   - Príchod a odchod
-   - Odpracované hodiny
-3. Agreguje celkové hodiny
-4. Zbiera unikátny zoznam zamestnancov
-
-**Výstup (v Debug logu):**
-```
-📊 DOCHÁDZKA - ZHRNUTIE: 2025-10-05 13:04:00
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📈 Celkom záznamov: 1
-⏱️ Celkom odpracovaných hodín: 8.00 h
-👥 Zamestnanci (2): Novák, Horák
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📋 Dochádzka #123
-  👥 Zamestnanci: Novák, Horák
-  🕐 Príchod: 07:00
-  🕑 Odchod: 15:00
-  ⏱️ Odpracované: 8.00 h
-```
-
-**Return objekt:**
+**Každý wrapper script obsahuje:**
 ```javascript
-{
-    success: true,
-    count: 1,
-    totalHours: 8.0,
-    employees: ["Novák", "Horák"],
-    info: "..." // formátovaný text
+// Validácia závislostí
+if (typeof DennyReport === 'undefined') {
+    message("❌ Chýba DennyReport modul!");
+    cancel();
+}
+
+// Volanie modulu
+try {
+    var result = DennyReport.handleBeforeSave(entry());
+    if (result && result.message) {
+        message(result.message);
+    }
+} catch (error) {
+    dialog("Kritická chyba", error.toString(), "OK");
+    cancel();
 }
 ```
 
----
+### Reusable Module
 
-### 2. Spracovanie Záznamov prác (`processWorkRecords()`)
-
-**Vstup:**
-- Linknuté záznamy z knižnice Záznam prác (pole "Záznam prác")
-
-**Proces:**
-1. Získa všetky linknuté záznamy prác
-2. Pre každý záznam:
-   - Zákazka
-   - Zamestnanec
-   - Popis práce
-   - Hodiny
-3. Agreguje celkové hodiny
-4. Zbiera unikátny zoznam zákaziek
-
-**Výstup (v Debug logu):**
-```
-📝 ZÁZNAMY PRÁC - ZHRNUTIE: 2025-10-05 13:04:00
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📈 Celkom záznamov: 1
-⏱️ Celkom hodín: 5.50 h
-🎯 Zákazky (1): Projekt ABC
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📝 Záznam prác #456
-  🎯 Zákazka: Projekt ABC
-  👤 Zamestnanec: Novák
-  📋 Popis: Inštalácia okien
-  ⏱️ Hodiny: 5.50 h
-```
-
-**Return objekt:**
-```javascript
-{
-    success: true,
-    count: 1,
-    totalHours: 5.5,
-    orders: ["Projekt ABC"],
-    info: "..."
-}
-```
+| Module | Verzia | Umiestnenie | GitHub |
+|--------|--------|-------------|--------|
+| `DennyReport` | 1.2.0 | `modules/DennyReport.js` | ✅ Synchronized |
 
 ---
 
-### 3. Spracovanie Knihy jázd (`processRideLog()`)
+## 🔧 DennyReport Module v1.2.0
 
-**Vstup:**
-- Linknuté záznamy z knižnice Kniha jázd (pole "Kniha jázd")
+### Závislosti
 
-**Proces:**
-1. Získa všetky linknuté záznamy jázd
-2. Pre každý záznam:
-   - Vozidlo
-   - Vodič
-   - Trasa
-   - Km
-3. Agreguje celkové km
-4. Zbiera unikátny zoznam vozidiel
+**Vyžadované moduly:**
+- `MementoUtils` (v8.0+)
+- `MementoConfig` (v8.0+)
+- `MementoCore` (v8.0+)
 
-**Výstup (v Debug logu):**
+**Load order v Memento Database:**
 ```
-🚗 KNIHA JÁZD - ZHRNUTIE: 2025-10-05 13:04:00
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📈 Celkom záznamov: 2
-📏 Celkom km: 250.50 km
-🚙 Vozidlá (2): VW Caddy, Ford Transit
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🚗 Kniha jázd #789
-  🚙 Vozidlo: VW Caddy
-  👤 Vodič: Novák
-  📍 Trasa: Lučenec - Bratislava - Lučenec
-  📏 Km: 150.00 km
+1. MementoConfig
+2. MementoCore
+3. MementoUtils
+4. DennyReport ← Tento modul
+5. Wrapper scripts (newEntryBeforeSave, etc.)
 ```
 
-**Return objekt:**
-```javascript
-{
-    success: true,
-    count: 2,
-    totalKm: 250.5,
-    vehicles: ["VW Caddy", "Ford Transit"],
-    info: "..."
-}
+### Poskytované Funkcie
+
+#### High-Level Handlers (v1.1.0+)
+
+| Funkcia | Účel | Použitie |
+|---------|------|----------|
+| `handleBeforeSave(entry)` | Kompletná logika pre BeforeSave trigger | Volá sa z wrapper scriptov |
+| `handleAfterSave(entry)` | Aktualizácia ikon v linknutých záznamoch | Volá sa z wrapper scriptov |
+| `recalculateAll()` | Prepočet všetkých Denných reportov | Volá sa z action scriptu |
+
+#### Agregačné Funkcie (v1.2.0+)
+
+| Funkcia | Return | Agreguje |
+|---------|--------|----------|
+| `processAttendance(entry)` | `{success, count, totalHours, employees}` | Dochádzka: hodiny, zamestnanci |
+| `processWorkRecords(entry)` | `{success, count, totalHours, employees, orders, orderFullNames}` | Práce: hodiny, zákazky, zamestnanci |
+| `processRideLog(entry)` | `{success, count, totalKm, vehicles, crew}` | Jazdy: km, vozidlá, posádka |
+| `processCashBook(entry)` | `{success, count, totalIncome, totalExpense}` | Pokladňa: príjmy, výdavky |
+
+#### Validačné a Výpočtové Funkcie (v1.2.0+)
+
+| Funkcia | Účel |
+|---------|------|
+| `calculateTotalHours(attendance, workRecords)` | Vypočíta celkové odpracované hodiny (max z Dochádzky/Prác) |
+| `validateRecordsData(entry, attendance, workRecords, rideLog)` | Validuje konzistenciu zamestnancov medzi sekciami |
+| `createCommonInfo(entry, attendance, workRecords, rideLog, cashBook, totalHours, validation)` | Vytvorí markdown zhrnutie do info poľa |
+
+#### Core Funkcie (v1.0.0+)
+
+| Funkcia | Účel |
+|---------|------|
+| `processReport(entry, options)` | Auto-linkovanie + validácia dátumov |
+| `autoLinkRecords(entry, reportDate, options)` | Nájde a nalinkuje záznamy s rovnakým dátumom |
+| `validateAndUnlinkInvalidDates(entry, reportDate)` | Unlinkne záznamy s nesprávnym dátumom |
+| `mergeDuplicates(entry)` | Zlúči duplicitné Denné reporty (rovnaký dátum) |
+
+---
+
+## 🎯 Funkcionalita
+
+### 1. Auto-Linkovanie Záznamov
+
+**Ako funguje:**
+1. Kontroluje posledných 200 záznamov z každej knižnice
+2. Hľadá záznamy s rovnakým dátumom ako Denný report
+3. Automaticky linkne nájdené záznamy
+4. Unlinkne záznamy s nesprávnym dátumom
+
+**Linkované knižnice:**
+- 📋 Dochádzka → pole "Dochádzka"
+- 📝 Záznam prác → pole "Záznam prác"
+- 🚗 Kniha jázd → pole "Kniha jázd"
+- 💰 Pokladňa → pole "Pokladňa"
+
+**Debug log:**
+```
+🔗 KROK 1: Auto-linkovanie a validácia
+  🔍 Kontrolujem Dochádzka: 200 posledných záznamov (z 1500)
+  ✅ Linknutý záznam Dochádzka #123
+  ✅ Linknutý záznam Dochádzka #124
+  ✅ Nalinkované: 2 nových záznamov
+```
+
+### 2. Agregácia Dát
+
+**Spracovanie Dochádzky:**
+- Agreguje hodiny zo všetkých linknutých záznamov
+- Zbiera unikátny zoznam zamestnancov (nick)
+- Počíta celkové odpracované hodiny
+
+**Spracovanie Záznamov Prác:**
+- Agreguje hodiny zo všetkých linknutých záznamov
+- Zbiera unikátny zoznam zákaziek (názov)
+- Zbiera unikátny zoznam zamestnancov
+- Vytvorí formát "Číslo.Názov" pre každú zákazku
+
+**Spracovanie Knihy Jázd:**
+- Agreguje km zo všetkých linknutých záznamov
+- Zbiera unikátny zoznam vozidiel
+- Zbiera unikátny zoznam posádky
+
+**Spracovanie Pokladne:**
+- Agreguje príjmy (typ "Príjem")
+- Agreguje výdavky (typ "Výdaj" alebo "Výdavok")
+- Ignoruje PP (Priebežná položka)
+- Vypočíta bilanciu
+
+**Debug log:**
+```
+📊 KROK 2: Agregácia dát a ikony
+  ✅ Dochádzka: 3 záznamov, 24.00 h
+  ✅ Práce: 5 záznamov, 22.50 h
+  ✅ Jazdy: 2 záznamov, 45.50 km
+  ✅ Pokladňa: 2 záznamov
+  🎨 Ikony sekcií aktualizované
+  📋 Popis (zákazky): Struhárová (Kováčová), Pazer (BB Slnečné stráne)
+```
+
+### 3. Validácia Konzistencie
+
+**Kontroluje:**
+- ⚠️ Chýbajúce záznamy (Dochádzka, Práce, Jazdy)
+- ⚠️ Nezhoda počtu zamestnancov medzi Dochádzkou a Prácami
+- ⚠️ Nezhoda počtu zamestnancov medzi Dochádzkou a Jazdami
+
+**Príklad upozornení:**
+```
+❌ Počet zamestnancov sa nezhoduje: Dochádzka (3) ≠ Záznamy prác (2)
+⚠️ Chybuje záznam z Knihy jázd
+```
+
+### 4. Detekcia Prestojov
+
+**Logika:**
+- Porovnáva hodiny z Dochádzky vs. hodiny z Prác
+- Tolerancia: ±0.1 hodiny
+- **Prestoje:** Dochádzka > Práce (zamestnanci prítomní, ale nepracovali)
+- **Chyba:** Práce > Dochádzka (treba skontrolovať)
+
+**Príklad:**
+```
+## ⏸️ Prestoje
+
+- **Prestoj:** 1.50 h
+- **Dochádzka:** 24.00 h
+- **Práce:** 22.50 h
+- ⚠️ Zamestnanci boli prítomní, ale nevykonávali práce
+```
+
+### 5. Generovanie Info Zhrnutia
+
+**Pole:** `info - Denný report - Zhrnutie`
+
+**Formát:** Markdown
+
+**Sekcie:**
+1. 📊 Hlavička (dátum, čas aktualizácie)
+2. ⚠️ Upozornenia (ak existujú)
+3. ⏸️ Prestoje (ak existujú)
+4. 👥 Dochádzka (ak existuje)
+5. 📝 Záznamy prác (ak existujú)
+6. 🚗 Kniha jázd (ak existuje)
+7. 💰 Pokladňa (ak existuje)
+8. ⏱️ Celkové hodiny (ak > 0)
+
+**Príklad:**
+```markdown
+## 📊 DENNÝ REPORT - ZHRNUTIE
+
+**Dátum:** 20.03.2026
+**Aktualizované:** 20.03.2026 14:30
+
+## ⚠️ Upozornenia
+
+- ❌ Počet zamestnancov sa nezhoduje: Dochádzka (3) ≠ Záznamy prác (2)
+
+## ⏸️ Prestoje
+
+- **Prestoj:** 1.50 h
+- **Dochádzka:** 24.00 h
+- **Práce:** 22.50 h
+- ⚠️ Zamestnanci boli prítomní, ale nevykonávali práce
+
+---
+
+## 👥 Dochádzka
+
+- **Počet záznamov:** 3
+- **Odpracované hodiny:** 24.00 h
+- **Zamestnanci (3):** Janko, Ferko, Jožko
+
+## 📝 Záznamy prác
+
+- **Počet záznamov:** 5
+- **Celkom hodín:** 22.50 h
+- **Zamestnanci (2):** Janko, Ferko
+- **Zákazky (2):** Struhárová (Kováčová), Pazer (BB Slnečné stráne)
+
+## 🚗 Kniha jázd
+
+- **Počet záznamov:** 2
+- **Celkom km:** 45.50 km
+- **Posádka (3):** Janko, Ferko, Jožko
+- **Vozidlá (2):** Volkswagen, Ford
+
+## 💰 Pokladňa
+
+- **Počet záznamov:** 2
+- **Príjmy:** +1500.00 €
+- **Výdavky:** -350.00 €
+- **Bilancia:** +1150.00 €
+
+---
+
+## ⏱️ Celkové hodiny
+
+**24.00 h**
+```
+
+### 6. Aktualizácia Polí
+
+**Automaticky sa vypĺňajú:**
+
+| Pole | Zdroj | Formát | Príklad |
+|------|-------|--------|---------|
+| `Deň v týždni` | Vypočítané z dátumu | "Utorok", "Streda" | "Utorok" |
+| `Odpracované hodiny` | max(Dochádzka, Práce) | Číslo | 24.00 |
+| `Popis` | Názvy zákaziek z Prác | Text, čiarkou oddelené | "Struhárová (Kováčová), Pazer (BB Slnečné stráne)" |
+| `info` | Markdown zhrnutie | Markdown | (viď príklad vyššie) |
+
+**Ak nie sú žiadne zákazky:**
+- Pole `Popis` = `"Žiadna zákazka"`
+
+### 7. Ikony Záznamu
+
+**Pole:** `ikony záznamu`
+
+**Automaticky sa pridávajú/odstraňujú:**
+
+| Ikona | Podmienka | Význam |
+|-------|-----------|--------|
+| 👥 | Dochádzka count > 0 | Má záznamy Dochádzky |
+| 🛠️ | Práce count > 0 | Má záznamy Prác |
+| 🚗 | Jazdy count > 0 | Má záznamy Jázd |
+| 💰 | Pokladňa count > 0 | Má záznamy Pokladne |
+| ⚠️ | Upozornenia existujú | Sú problémy na kontrolu |
+| ⏸️ | Prestoje > 0.1h | Detekované prestoje |
+
+**Príklad:** `👥 🛠️ 🚗 💰 ⚠️ ⏸️`
+
+### 8. Ikony v Linknutých Záznamoch
+
+**Pole:** `ikony záznamu` (v Dochádzke, Prácach, Jazdách, Pokladni)
+
+**Automaticky sa pridáva:** 📊
+
+**Kedy:** Po uložení Denného reportu (handleAfterSave)
+
+**Význam:** Tento záznam je prepojený s Denným reportom
+
+**Debug log:**
+```
+🔄 DennyReport.handleAfterSave v1.2.0
+  🔍 Dochádzka: 3 záznamov
+    ✅ Pridaná ikona do Dochádzka #123
+    ✅ Pridaná ikona do Dochádzka #124
+    ✅ Pridaná ikona do Dochádzka #125
+  🔍 Práce: 5 záznamov
+    ✅ Pridaná ikona do Práce #456
+  ✅ Aktualizovaných 8 ikon v linknutých záznamoch
 ```
 
 ---
 
-### 4. Spracovanie Pokladne (`processCashBook()`)
+## 🔄 Workflow
 
-**Vstup:**
-- Linknuté záznamy z knižnice Pokladňa (pole "Pokladňa")
+### Pri uložení Denného reportu (BeforeSave)
 
-**Proces:**
-1. Získa všetky linknuté záznamy pokladne
-2. Pre každý záznam:
-   - Typ (Príjem/Výdavok)
-   - Suma
-   - Popis
-3. Agreguje príjmy a výdavky
-4. Vypočíta bilanciu
+1. ✅ **Validácia** - Skontroluje dátum (povinné)
+2. ✅ **Auto-linkovanie** - Nájde a nalinkuje záznamy s rovnakým dátumom
+3. ✅ **Validácia dátumov** - Unlinkne záznamy s nesprávnym dátumom
+4. ✅ **Agregácia** - Spracuje všetky 4 sekcie
+5. ✅ **Ikony sekcií** - Pridá/odstráni ikony podľa obsahu
+6. ✅ **Pole Popis** - Vyplní názvy zákaziek
+7. ✅ **Výpočet hodín** - Vypočíta celkové odpracované hodiny
+8. ✅ **Validácia konzistencie** - Skontroluje zamestnancov
+9. ✅ **Info zhrnutie** - Vytvorí markdown zhrnutie
+10. ✅ **Message** - Zobrazí krátke zhrnutie zmien
 
-**Výstup (v Debug logu):**
-```
-💰 POKLADŇA - ZHRNUTIE: 2025-10-05 13:04:00
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📈 Celkom záznamov: 3
-📈 Príjmy: +1500.00 €
-📉 Výdavky: -450.00 €
-💰 Bilancia: 1050.00 €
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+### Po uložení Denného reportu (AfterSave)
 
-💰 Pokladňa #101
-  📊 Typ: Príjem
-  💵 Suma: 1500.00 €
-  📋 Popis: Platba od zákazníka
-```
+1. ✅ **Ikony v linknutých záznamoch** - Pridá 📊 do všetkých linknutých záznamov
 
-**Return objekt:**
-```javascript
-{
-    success: true,
-    count: 3,
-    totalIncome: 1500.0,
-    totalExpense: 450.0,
-    info: "..."
-}
-```
+### Manuálny prepočet (Action)
+
+1. ✅ **Načíta všetky Denné reporty** - Zoradené od najnovších
+2. ✅ **Prepočíta každý záznam** - Volá handleBeforeSave() pre každý
+3. ✅ **Zobrazí štatistiky** - Dialog s výsledkami prepočtu
 
 ---
 
-### 5. Výpočet celkových hodín (`calculateTotalHours()`)
+## 📊 Debug Logging
 
-**Vstup:**
-- `attendanceResult` - výsledok z dochádzky
-- `workRecordsResult` - výsledok zo záznamov prác
+**Pole:** `Debug_Log`
 
-**Proces:**
-1. Získa hodiny z dochádzky
-2. Získa hodiny zo záznamov prác
-3. Použije maximum z oboch hodnôt
-4. Ak sú obe 0, sčíta ich
+**Formát:** Chronologický log s timestampmi
 
-**Výstup:**
+**Príklad kompletného logu:**
 ```
-⏱️ Celkové odpracované hodiny: 8.00 h
-ℹ️ Zatiaľ nezapisujeme do poľa hoursWorked
-```
+🚀 === ŠTART handleBeforeSave v1.2.0 ===
+📅 Dátum reportu: 20.03.2026
 
-**Return objekt:**
-```javascript
-{
-    success: true,
-    totalHours: 8.0
-}
-```
+🔗 KROK 1: Auto-linkovanie a validácia
+  🔍 Kontrolujem Dochádzka: 200 posledných záznamov (z 1500)
+  ✅ Linknutý záznam Dochádzka #123
+  ✅ Linknutý záznam Dochádzka #124
+  🔍 Kontrolujem Práce: 200 posledných záznamov (z 800)
+  ✅ Linknutý záznam Práce #456
+  ✅ Nalinkované: 3 nových záznamov
 
----
+🔍 VALIDÁCIA DÁTUMOV: Kontrolujem zhodu s dátumom 20.03.2026
+✅ Všetky linknuté záznamy majú správny dátum
 
-### 6. Generovanie popisu záznamu (`generateRecordDescription()`)
+📊 KROK 2: Agregácia dát a ikony
+  ✅ Dochádzka: 3 záznamov, 24.00 h
+  ✅ Práce: 5 záznamov, 22.50 h
+  ✅ Jazdy: 2 záznamov, 45.50 km
+  ✅ Pokladňa: 2 záznamov
+  🎨 Ikony sekcií aktualizované
+  📋 Popis (zákazky): Struhárová (Kováčová), Pazer (BB Slnečné stráne)
 
-**Vstup:**
-- Všetky result objekty zo sekcií
+⏱️ Celkové hodiny: 24.00 h
+⚠️ Validácia: 1 upozornení
 
-**Proces:**
-1. Vytvorí stručný popis z jednotlivých sekcií
-2. Formát: "👥 X dochádzka | 📝 Y práca | 🚗 Z jazda | 💰 W pokladňa"
+📝 KROK 3: Vytvorenie info zhrnutia
+  ✅ Spoločný info záznam vytvorený a zapísaný
 
-**Výstup:**
-```
-✅ Popis záznamu: 👥 1 dochádzka (Novák, Horák) | 📝 1 práca (Projekt ABC) | 🚗 2 jazda (VW Caddy, Ford Transit) | 💰 3 pokladňa
-ℹ️ Zatiaľ nezapisujeme do poľa recordDescription
-```
-
-**Return objekt:**
-```javascript
-{
-    success: true,
-    description: "..."
-}
-```
-
----
-
-## Aktuálny stav (v1.0.1)
-
-### ✅ Implementované:
-- Agregácia dát z 4 hlavných sekcií
-- Výpočty celkových hodnôt (hodiny, km, príjmy, výdavky)
-- Vytváranie formátovaných info záznamov
-- Debug výstupy do Debug_Log
-
-### ⏳ TODO (pripravené na implementáciu):
-- Zapisovanie do polí (`infoAttendance`, `infoWorkRecords`, `infoRideLog`, `infoCashBook`)
-- Zapisovanie do polí (`hoursWorked`, `recordDescription`)
-- Spätné linkovanie do jednotlivých záznamov
-- Telegram notifikácie (integrácia s MementoTelegram)
-- AI analýzy (integrácia s MementoAI)
-
-### ❌ Odstránené:
-- `formatDateTime()` → opravené na `formatDate() + formatTime()`
-- Spätné linkovanie (funkcia `createBacklinks()`)
-- Priame zapisovanie do polí (zatiaľ len debug výstupy)
-
----
-
-## Testovanie
-
-### Pred testovaním:
-1. Skontroluj, či máš v knižnici Denný report záznam s dátumom
-2. Pridaj linknuté záznamy z Dochádzky, Záznamov prác, Knihy jázd, Pokladne
-3. Skontroluj Debug_Log pre výstupy
-
-### Očakávané výsledky:
-- Všetky info bloky sa zobrazia v Debug_Log
-- Výpočty sú správne (hodiny, km, príjmy, výdavky)
-- Žiadne chyby v Error_Log
-
-### Príklad Debug výstupu:
-```
-🚀 === ŠTART Denný report Prepočet v1.0.1 ===
-📅 Dátum reportu: 02.10.2025
-🧮 KROK 1: Spracovanie Dochádzky
-  📊 Počet záznamov dochádzky: 1
-  📊 INFO DOCHÁDZKA:
-  [celý info blok]
-  ✅ Info dochádzka vytvorený (1 záznamov)
-...
 ✅ === PREPOČET DOKONČENÝ ===
 ```
 
 ---
 
-## Chybové stavy
+## ⚠️ Chybové Stavy
 
-### Chýbajúci dátum:
+### Chýbajúci modul
+
+**Chyba:**
+```
+❌ Chýba DennyReport modul!
+
+Nahrajte modul pre tento script.
+```
+
+**Riešenie:** Nahrajte `DennyReport` modul v Nastavenia → Automations
+
+### Chýbajúci dátum
+
+**Chyba:**
 ```
 ❌ Dátum nie je vyplnený!
 ```
 
-### Žiadne záznamy v sekcii:
+**Riešenie:** Vyplňte pole "Dátum" v Dennom reporte
+
+### Kritická chyba v module
+
+**Chyba:**
 ```
-ℹ️ Žiadne záznamy dochádzky
-ℹ️ Žiadne záznamy prác
-ℹ️ Žiadne záznamy z knihy jázd
-ℹ️ Žiadne záznamy z pokladne
+❌ KRITICKÁ CHYBA
+
+Script: DennyReport.handleBeforeSave v1.2.0
+
+Chyba: [error message]
+
+Stack trace: [...]
 ```
 
-### Chyba v spracovaní:
-```
-❌ ERROR: Chyba pri spracovaní dochádzky: [error message]
-```
+**Riešenie:**
+1. Skontrolujte `Error_Log` pre detaily
+2. Skontrolujte `Debug_Log` pre trace
+3. Overte že všetky závislosti sú nahrané (MementoUtils, MementoConfig)
 
 ---
 
-## Ďalšie kroky
+## 🧪 Testovanie
 
-1. Otestovať agregácie a výpočty
-2. Overiť formátovanie info záznamov
-3. Po schválení pridať zapisovanie do polí
-4. Implementovať spätné linkovanie
-5. Integrovať Telegram notifikácie
-6. Integrovať AI analýzy
+### Základný test
+
+1. Vytvorte nový Denný report s dátumom (napr. dnes)
+2. Pridajte záznamy s rovnakým dátumom v Dochádzke, Prácach, Jazdách, Pokladni
+3. Uložte Denný report
+4. Skontrolujte:
+   - ✅ Pole `info` má markdown zhrnutie
+   - ✅ Pole `Popis` má názvy zákaziek
+   - ✅ Pole `ikony záznamu` má ikony sekcií (👥🛠️🚗💰)
+   - ✅ Linknuté záznamy majú ikonu 📊
+   - ✅ `Debug_Log` bez chýb
+
+### Test auto-linkovania
+
+1. Vytvorte Denný report bez linknutých záznamov
+2. Dátum: napr. 15.03.2026
+3. Vytvorte záznamy v Dochádzke s dátumom 15.03.2026
+4. Uložte Denný report (BeforeSave trigger)
+5. Skontrolujte:
+   - ✅ Dochádzka záznamy sa automaticky nalinkovali
+   - ✅ `Debug_Log` ukazuje "Linknutý záznam Dochádzka #..."
+
+### Test validácie dátumov
+
+1. Manuálne nalinkujte záznam s nesprávnym dátumom
+2. Uložte Denný report
+3. Skontrolujte:
+   - ✅ Záznam s nesprávnym dátumom sa unlinkol
+   - ✅ `Debug_Log` ukazuje "Unlinknutý ... (nesprávny dátum)"
+
+### Test prestojov
+
+1. Vytvorte Denný report s:
+   - Dochádzka: 24 hodín
+   - Práce: 22.5 hodín
+2. Uložte
+3. Skontrolujte:
+   - ✅ Pole `info` obsahuje sekciu "⏸️ Prestoje"
+   - ✅ Pole `ikony záznamu` obsahuje ⏸️
+   - ✅ Prestoj: 1.5h
+
+### Test manuálneho prepočtu
+
+1. Otvorte knižnicu Denný report
+2. Spustite akciu "Prepočítať všetky záznamy"
+3. Skontrolujte:
+   - ✅ Dialog zobrazí štatistiky prepočtu
+   - ✅ Všetky záznamy majú aktualizované info polia
 
 ---
 
-## Poznámky
+## 🔧 Riešenie Problémov
 
-- Script dodržiava štandardy MementoUtils ekosystému
-- Štruktúra podobná `Knij.Calc.Main.js` a `Zazp.Calc.Main.js`
-- Používa lazy loading cez MementoUtils7
-- Konzistentné error handling a debug logging
+### Problem: Pole `info` je prázdne
+
+**Príčina:** createCommonInfo() zlyhala
+
+**Riešenie:**
+1. Skontrolujte `Error_Log`
+2. Overte že pole `info` existuje v knižnici
+3. Overte že MementoCore má funkciu `safeSet()`
+
+### Problem: Ikony sa nepridávajú
+
+**Príčina:** Pole "ikony záznamu" neexistuje alebo má iný názov
+
+**Riešenie:**
+1. Overte že pole "ikony záznamu" existuje v knižnici
+2. Overte že MementoCore má funkcie `addRecordIcon()` a `removeRecordIcon()`
+
+### Problem: Auto-linkovanie nefunguje
+
+**Príčina:** Záznamy majú iný dátum alebo knižnica má iný názov
+
+**Riešenie:**
+1. Skontrolujte `Debug_Log` pre "Kontrolujem ... záznamov"
+2. Overte že dátumy sa zhodujú (formát DD.MM.YYYY)
+3. Overte názvy knižníc v MementoConfig
+
+### Problem: Zákazky sa nezobrazujú v poli Popis
+
+**Príčina:** Záznamy prác nemajú linknutú Zákazku
+
+**Riešenie:**
+1. Overte že Záznamy prác majú vyplnené pole "Zákazka"
+2. Overte že Zákazka má vyplnené pole "Názov"
+
+### Problem: Duplicitné Denné reporty pre jeden dátum
+
+**Príčina:** Race condition pri auto-linkovaní (súbežné uloženia)
+
+**Riešenie:**
+1. Spustite akciu "Zlúčiť duplikáty" (ak existuje)
+2. Alebo manuálne zlúčte záznamy a zmažte duplikáty
+
+---
+
+## 📚 História Verzií
+
+### v2.0.0 (2026-03-20) - MAJOR REFACTORING
+
+**Ultra-thin wrappers + DennyReport module:**
+- ✅ Rozdelené na 5 event-specific scriptov (10-20 riadkov každý)
+- ✅ Všetka logika presunutá do DennyReport modulu v1.2.0
+- ✅ GitHub synchronizácia pre centrálnu údržbu
+- ✅ Eliminované duplicitné kódy
+
+**DennyReport Module v1.2.0:**
+- ✅ Agregačné funkcie (processAttendance, processWorkRecords, processRideLog, processCashBook)
+- ✅ Výpočtové funkcie (calculateTotalHours)
+- ✅ Validačné funkcie (validateRecordsData)
+- ✅ Info generovanie (createCommonInfo) - markdown zhrnutie
+- ✅ Ikony sekcií (👥🛠️🚗💰⚠️⏸️)
+- ✅ Ikony v linknutých záznamoch (📊)
+- ✅ Automatické vypĺňanie poľa Popis (názvy zákaziek)
+
+**DennyReport Module v1.1.0:**
+- ✅ High-level handlers (handleBeforeSave, handleAfterSave, recalculateAll)
+- ✅ Wrapper scripty znížené z 100-150 riadkov na 10-20 riadkov
+
+**DennyReport Module v1.0.0:**
+- ✅ Auto-linkovanie záznamov podľa dátumu
+- ✅ Validácia dátumov (unlink nesprávnych)
+- ✅ Merge duplicates funkcionalita
+
+### v1.0.1 (2025-10-05) - INITIAL VERSION
+
+- ✅ Agregácia dát z 4 sekcií (Dochádzka, Práce, Jazdy, Pokladňa)
+- ✅ Debug výstupy do Debug_Log
+- ⏳ Zatiaľ bez zapisovania do polí (iba výpočty)
+
+---
+
+## 🚀 Roadmap
+
+### v2.1.0 (plánované)
+
+- [ ] Telegram notifikácie pri uložení Denného reportu
+- [ ] AI analýzy prestojov a odporúčania
+- [ ] Export do PDF/Excel
+- [ ] Grafické vizualizácie (grafy)
+
+### v2.2.0 (plánované)
+
+- [ ] Multi-day reports (týždenné, mesačné zhrnutia)
+- [ ] Porovnanie s predchádzajúcimi dňami
+- [ ] Automatická detekcia anomálií
+
+---
+
+## 📞 Podpora
+
+**Problémy?**
+1. Skontrolujte `Debug_Log` a `Error_Log`
+2. Pozrite sekciu "Riešenie problémov" vyššie
+3. Overte že všetky závislosti sú nahrané
+
+**GitHub Issues:**
+- Nahláste problémy na GitHub repozitári projektu
+
+---
+
+## 📄 Licencia
+
+ASISTANTO Internal Project © 2026
