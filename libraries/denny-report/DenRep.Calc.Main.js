@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - DENNÝ REPORT PREPOČET
-// Verzia: 1.10.1 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 1.10.2 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // Knižnica: Denný report | Trigger: Before Save
 // ==============================================
 // ✅ FUNKCIONALITA v1.9.1:
@@ -19,8 +19,13 @@
 //    - Validácia chýbajúcich záznamov (Dochádzka, Práce, Jazdy povinné)
 //    - Validácia konzistencie zamestnancov s menami (počet + zhoda)
 //    - Kontrola prestojov (porovnanie hodín Dochádzka vs Práce)
-//    - Príprava na integráciu s MementoTelegram a MementoAI
+//    - NOTE: Telegram/AI integrations removed - create separate scripts if needed
 // 🔧 CHANGELOG:
+// v1.10.2 (2026-03-20) - OPTIMIZATION - REMOVE UNNECESSARY DEPENDENCIES:
+//    - REMOVED: MementoTelegram and MementoAI module requirements
+//    - DISABLED: sendTelegramNotifications() function (commented out)
+//    - REASON: Basic functionality doesn't need Telegram/AI modules
+//    - TODO: Create separate notification script with MementoTelegram if needed
 // v1.10.1 (2026-03-20) - RACE CONDITION FIX:
 //    - INCREASED: maxRecordsToCheck from 100 → 200 records
 //      * Ensures Level 2 fallback in MementoBusiness.createOrUpdateDailyReport()
@@ -48,15 +53,15 @@
 // ==============================================
 
 var utils = MementoUtils;
-var telegram = MementoTelegram;
-var ai = MementoAI;
+// NOTE: Telegram and AI modules removed - not needed for basic functionality
+// Add them later in separate notification/AI scripts if needed
 var config = utils.getConfig();
 var centralConfig = utils.config;
 var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Denný report Prepočet",
-    version: "1.10.1",
+    version: "1.10.2",
 
     // Referencie na centrálny config
     fields: {
@@ -410,9 +415,10 @@ function main() {
         utils.addDebug(currentEntry, utils.getIcon("note") + " KROK 8: Vytvorenie spoločného info");
         createCommonInfo(attendanceResult, workRecordsResult, rideLogResult, cashBookResult, totalHoursResult, validationResult);
 
-        // KROK 9: Telegram notifikácie (voliteľné - pripravené na neskoršiu implementáciu)
-        utils.addDebug(currentEntry, utils.getIcon("telegram") + " KROK 9: Telegram notifikácie");
-        sendTelegramNotifications(attendanceResult, workRecordsResult, rideLogResult, cashBookResult);
+        // KROK 9: Telegram notifikácie - DISABLED (MementoTelegram not required)
+        // TODO: Create separate notification script with MementoTelegram module
+        // utils.addDebug(currentEntry, utils.getIcon("telegram") + " KROK 9: Telegram notifikácie");
+        // sendTelegramNotifications(attendanceResult, workRecordsResult, rideLogResult, cashBookResult);
 
         utils.addDebug(currentEntry, utils.getIcon("success") + " === PREPOČET DOKONČENÝ ===");
 
