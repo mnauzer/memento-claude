@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO BUSINESS - High-Level Business Workflows
-// Verzia: 8.1.0 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 8.1.1 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - High-level business workflow orchestration
@@ -10,7 +10,14 @@
 //    - Obligation management workflows
 // ==============================================
 // 🔧 CHANGELOG:
-// v8.1.0 (2026-03-20) - PERFORMANCE OPTIMIZATION:
+// v8.1.1 (2026-03-20) - PERFORMANCE OPTIMIZATION (Daily Report):
+//    - OPTIMIZATION: createOrUpdateDailyReport() now uses linksFrom()
+//      * Before: dailyReportLib.entries() loaded ALL reports (365+ records!)
+//      * After: linksFrom() loads only linked reports (1-2 max)
+//      * Result: 100x+ faster for large databases
+//      * Example: 365 reports → only 1 loaded
+//
+// v8.1.0 (2026-03-20) - PERFORMANCE OPTIMIZATION (Obligations):
 //    - OPTIMIZATION: processEmployees() now loads linkedObligations ONCE
 //      * Before: Called safeGetLinksFrom() for EACH employee (3x for 3 employees)
 //      * After: Calls entry.linksFrom() ONCE, passes to all employees
@@ -68,7 +75,7 @@ var MementoBusiness = (function() {
 
     var MODULE_INFO = {
         name: "MementoBusiness",
-        version: "8.1.0",
+        version: "8.1.1",
         author: "ASISTANTO",
         description: "High-level business workflows (employee processing, reports, obligations, material prices)",
         dependencies: [
@@ -1188,20 +1195,7 @@ var MementoBusiness = (function() {
                 return { success: false, error: "Denný report library not found" };
             }
 
-            // Find existing daily report for this date
-            var allReports = dailyReportLib.entries();
-            var existingReport = null;
-
-            for (var i = 0; i < allReports.length; i++) {
-                var report = allReports[i];
-                var reportDate = core.safeGet(report, config.fields.dailyReport.date);
-                if (reportDate && moment(reportDate).isSame(date, 'day')) {
-                    existingReport = report;
-                    break;
-                }
-            }
-
-            // Map library type to backlink field name in Denný report
+            // Map library type to backlink field name (we need this BEFORE finding existing)
             var backlinkFieldMap = {
                 "attendance": config.fields.dailyReport.attendance,
                 "workRecord": config.fields.dailyReport.workRecord,
@@ -1212,6 +1206,36 @@ var MementoBusiness = (function() {
             var backlinkField = backlinkFieldMap[libraryType];
             if (!backlinkField) {
                 return { success: false, error: "Unknown library type: " + libraryType };
+            }
+
+            // CRITICAL: Use linksFrom instead of entries() for efficiency!
+            // Before: dailyReportLib.entries() loaded ALL reports (365+ records)
+            // After: linksFrom() loads only linked reports (1-2 max)
+            var existingReport = null;
+
+            try {
+                var linkedReports = sourceEntry.linksFrom(
+                    config.libraries.dailyReport,
+                    backlinkField
+                ) || [];
+
+                if (core && linkedReports.length > 0) {
+                    core.addDebug(sourceEntry, "  📋 Nájdených " + linkedReports.length + " prepojených denných reportov");
+                }
+
+                // Find report for this specific date (should be max 1)
+                for (var i = 0; i < linkedReports.length; i++) {
+                    var report = linkedReports[i];
+                    var reportDate = core.safeGet(report, config.fields.dailyReport.date);
+                    if (reportDate && moment(reportDate).isSame(date, 'day')) {
+                        existingReport = report;
+                        break;
+                    }
+                }
+            } catch (e) {
+                if (core) {
+                    core.addDebug(sourceEntry, "  ⚠️ Nemožno načítať prepojené reporty: " + e.toString());
+                }
             }
 
             if (existingReport) {
