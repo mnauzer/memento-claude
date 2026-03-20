@@ -38,7 +38,7 @@ var MementoBusiness = (function() {
 
     var MODULE_INFO = {
         name: "MementoBusiness",
-        version: "8.0.3",
+        version: "8.0.4",
         author: "ASISTANTO",
         description: "High-level business workflows (employee processing, reports, obligations, material prices)",
         dependencies: [
