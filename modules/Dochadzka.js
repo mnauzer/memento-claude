@@ -1,6 +1,6 @@
 // ==============================================
 // LIBRARY MODULE - Dochadzka (Attendance)
-// Verzia: 1.0.2 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 1.0.3 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // ==============================================
 // 📋 PURPOSE:
 //    - Reusable module for attendance calculations
@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.0.2",
+        version: "1.0.3",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -46,7 +46,7 @@ var Dochadzka = (function() {
         extractedFrom: "Doch.Calc.Main.js v8.2.0",
         extractedLines: 528,
         extractedDate: "2026-03-19",
-        changelog: "v1.0.2 - Fixed createInfoRecord to check if employeeResult.detaily exists before iteration"
+        changelog: "v1.0.3 - Fixed processEmployees to transform result from utils.processEmployees to expected format (odpracovaneTotal, celkoveMzdy, etc.)"
     };
 
     // ==============================================
@@ -308,13 +308,33 @@ var Dochadzka = (function() {
                 libraryType: 'attendance'
             };
 
-            return utils.processEmployees(employees, workHours, date, options);
+            var result = utils.processEmployees(employees, workHours, date, options);
+
+            // CRITICAL: Transform result from utils.processEmployees() format to expected format
+            // utils.processEmployees returns: {processed, failed, totalWage, details, success}
+            // Expected format: {odpracovaneTotal, celkoveMzdy, pocetPracovnikov, detaily, pracovnaDoba, created, updated, success}
+            return {
+                success: result.success,
+                pocetPracovnikov: result.processed || 0,
+                odpracovaneTotal: workHours * (result.processed || 0), // Total hours = workHours per employee * count
+                celkoveMzdy: result.totalWage || 0,
+                detaily: result.details || [],
+                pracovnaDoba: workHours, // Work time per employee
+                created: 0, // Obligations created (would need to track separately)
+                updated: 0, // Obligations updated (would need to track separately)
+                error: result.error
+            };
 
         } catch (error) {
             addError(entry, error.toString(), "processEmployees", error);
             return {
                 success: false,
                 error: error.toString(),
+                pocetPracovnikov: 0,
+                odpracovaneTotal: 0,
+                celkoveMzdy: 0,
+                detaily: [],
+                pracovnaDoba: 0,
                 created: 0,
                 updated: 0,
                 errors: 1
