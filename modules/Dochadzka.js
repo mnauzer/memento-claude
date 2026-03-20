@@ -1,6 +1,6 @@
 // ==============================================
 // LIBRARY MODULE - Dochadzka (Attendance)
-// Verzia: 1.0.14 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 1.1.0 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // ==============================================
 // 📋 PURPOSE:
 //    - Reusable module for attendance calculations
@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.0.14",
+        version: "1.1.0",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -47,6 +47,14 @@ var Dochadzka = (function() {
         extractedLines: 528,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.1.0 (2026-03-20) - CRITICAL FIX: LinkToEntry Attribute API",
+            "  - NEW: setEmployeeAttributes() function sets attributes BEFORE processEmployees()",
+            "  - FIX: Uses CORRECT Memento attribute API:",
+            "    * .setAttr(name, value) NOT .set(id, value)",
+            "    * .attr(name) NOT .get(id)",
+            "    * Attributes use STRING NAMES: 'odpracované', 'hodinovka', 'denná mzda'",
+            "  - Order: 1) Set attributes, 2) Create obligations, 3) Aggregate",
+            "  - Formula: denná mzda = (hodinovka + príplatok) × odpracované + prémia - pokuta",
             "v1.0.14 (2026-03-20) - FIX: Removed duplicate obligation creation logic",
             "  - Obligation creation now handled ONLY by utils.processEmployees()",
             "  - Prevents duplicate obligations with 'N/A' in description",
@@ -291,6 +299,140 @@ var Dochadzka = (function() {
         } catch (error) {
             addError(entry, error.toString(), "calculateWorkTime", error);
             return { success: false, error: error.toString() };
+        }
+    }
+
+    /**
+     * Set linkToEntry attributes DIRECTLY on entry object
+     * CRITICAL: Must be called BEFORE processEmployees() to set attributes
+     * @private
+     */
+    function setEmployeeAttributes(entry, workHours, date, config, utils) {
+        try {
+            addDebug(entry, "📝 === NASTAVUJEM ATRIBÚTY LINKTOENTRY ===", "attribute");
+
+            // Get employees linkToEntry field DIRECTLY from entry
+            var employeesFieldName = config.fields.employees;
+            var employeesLinks = entry.field(employeesFieldName);
+
+            if (!employeesLinks || employeesLinks.length === 0) {
+                addDebug(entry, "⚠️ Žiadni zamestnanci na nastavenie atribútov");
+                return { success: false, error: "No employees" };
+            }
+
+            addDebug(entry, "👥 Počet zamestnancov: " + employeesLinks.length);
+
+            var totalWage = 0;
+            var employeeDetails = [];
+
+            // Process each employee link DIRECTLY
+            for (var i = 0; i < employeesLinks.length; i++) {
+                var empLink = employeesLinks[i];
+                var employee = empLink.e; // Get linked employee entry
+
+                // Get employee name
+                var employeeName = utils.formatEmployeeName ?
+                    utils.formatEmployeeName(employee) :
+                    (employee.field("Nick") || "N/A");
+
+                addDebug(entry, "  [" + (i + 1) + "] " + employeeName);
+
+                // STEP 1: Get hourly rate from employee
+                var hourlyRate = 0;
+                if (utils.findValidHourlyRate) {
+                    hourlyRate = utils.findValidHourlyRate(employee, date);
+                } else {
+                    // Fallback: get from Hodinovka field
+                    hourlyRate = employee.field("Aktuálna hodinovka") || 0;
+                }
+
+                if (!hourlyRate || hourlyRate <= 0) {
+                    addError(entry, "Zamestnanec " + employeeName + " nemá hodinovú sadzbu!", "setEmployeeAttributes");
+                    continue;
+                }
+
+                addDebug(entry, "    • Hodinovka z knižnice: " + hourlyRate + "€/h");
+
+                // STEP 2: Set basic attributes
+                // CRITICAL: Use .setAttr(name, value) NOT .set(id, value)!
+                try {
+                    // odpracované = work hours
+                    empLink.setAttr("odpracované", workHours);
+                    addDebug(entry, "    • SET odpracované = " + workHours + "h");
+
+                    // hodinovka = hourly rate
+                    empLink.setAttr("hodinovka", hourlyRate);
+                    addDebug(entry, "    • SET hodinovka = " + hourlyRate + "€/h");
+
+                } catch (setError) {
+                    addError(entry, "CHYBA pri nastavení základných atribútov: " + setError.toString(), "setEmployeeAttributes");
+                    continue;
+                }
+
+                // STEP 3: Read manual attributes (user-entered)
+                // CRITICAL: Use .attr(name) NOT .get(id)!
+                var supplement = empLink.attr("+príplatok (€/h)") || 0;
+                var bonus = empLink.attr("+prémia (€)") || 0;
+                var penalty = empLink.attr("-pokuta (€)") || 0;
+
+                if (supplement !== 0 || bonus !== 0 || penalty !== 0) {
+                    var extrasLog = "    • Manuálne hodnoty:";
+                    if (supplement !== 0) extrasLog += " príplatok=" + supplement + "€/h";
+                    if (bonus !== 0) extrasLog += " prémia=" + bonus + "€";
+                    if (penalty !== 0) extrasLog += " pokuta=" + penalty + "€";
+                    addDebug(entry, extrasLog);
+                }
+
+                // STEP 4: Calculate daily wage
+                // Formula: (hourlyRate + supplement) × workHours + bonus - penalty
+                var dailyWage = (hourlyRate + supplement) * workHours + bonus - penalty;
+
+                addDebug(entry, "    • VÝPOČET: (" + hourlyRate + " + " + supplement + ") × " +
+                    workHours + " + " + bonus + " - " + penalty + " = " + dailyWage + "€");
+
+                // STEP 5: Set daily wage attribute
+                // CRITICAL: Use .setAttr(name, value) NOT .set(id, value)!
+                try {
+                    empLink.setAttr("denná mzda", dailyWage);
+                    addDebug(entry, "    • SET denná mzda = " + dailyWage + "€");
+                    addDebug(entry, "    ✅ Atribúty NASTAVENÉ pre " + employeeName);
+
+                } catch (wageError) {
+                    addError(entry, "CHYBA pri nastavení dennej mzdy: " + wageError.toString(), "setEmployeeAttributes");
+                    continue;
+                }
+
+                totalWage += dailyWage;
+
+                // Store details for later use
+                employeeDetails.push({
+                    employee: employeeName,
+                    employeeEntry: employee,
+                    hours: workHours,
+                    hourlyRate: hourlyRate,
+                    supplement: supplement,
+                    bonus: bonus,
+                    penalty: penalty,
+                    wage: dailyWage
+                });
+            }
+
+            addDebug(entry, "✅ === ATRIBÚTY NASTAVENÉ PRE VŠETKÝCH " + employeesLinks.length + " ZAMESTNANCOV ===");
+            addDebug(entry, "💰 Celková mzda: " + totalWage + "€");
+
+            return {
+                success: true,
+                count: employeesLinks.length,
+                totalWage: totalWage,
+                details: employeeDetails
+            };
+
+        } catch (error) {
+            addError(entry, "Kritická chyba pri nastavovaní atribútov: " + error.toString(), "setEmployeeAttributes", error);
+            return {
+                success: false,
+                error: error.toString()
+            };
         }
     }
 
@@ -773,8 +915,23 @@ var Dochadzka = (function() {
             }
             steps.step3.success = true;
 
-            // STEP 4: Process employees
-            addDebug(entry, " KROK 4: Spracovanie zamestnancov", "group");
+            // STEP 3.5: Set linkToEntry attributes DIRECTLY on entry
+            addDebug(entry, " KROK 3.5: Nastavenie atribútov linkToEntry", "attribute");
+            var attributeResult = setEmployeeAttributes(
+                entry,
+                workTimeResult.pracovnaDobaHodiny,
+                validationResult.data.date,
+                config,
+                utils
+            );
+
+            if (!attributeResult.success) {
+                addError(entry, "Nastavenie atribútov zlyhalo: " + attributeResult.error, "calculateAttendance");
+                // Don't fail completely, continue with warnings
+            }
+
+            // STEP 4: Process employees (create obligations)
+            addDebug(entry, " KROK 4: Vytvorenie záväzkov", "group");
             var employeeResult = processEmployees(
                 entry,
                 validationResult.data.employees,

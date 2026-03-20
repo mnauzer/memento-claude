@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO BUSINESS - High-Level Business Workflows
-// Verzia: 8.2.0 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 8.3.0 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - High-level business workflow orchestration
@@ -10,6 +10,21 @@
 //    - Obligation management workflows
 // ==============================================
 // 🔧 CHANGELOG:
+// v8.3.0 (2026-03-20) - CRITICAL FIX: LinkToEntry Attribute API:
+//    - FIX: processEmployee() now uses CORRECT Memento attribute API
+//      * BEFORE (WRONG): employeeLink.set(id, value) and .get(id)
+//      * AFTER (CORRECT): employeeLink.setAttr(name, value) and .attr(name)
+//      * Attributes use STRING NAMES, not numeric IDs!
+//      * Example: .setAttr("denná mzda", 120) NOT .set(3, 120)
+//    - FIX: Updated all attribute access in processEmployee():
+//      * "odpracované" - worked hours
+//      * "hodinovka" - hourly rate
+//      * "+príplatok (€/h)" - supplement
+//      * "+prémia (€)" - bonus
+//      * "-pokuta (€)" - penalty
+//      * "denná mzda" - daily wage
+//    - RESULT: Attributes now ACTUALLY get set in Memento Database!
+//
 // v8.2.0 (2026-03-20) - RACE CONDITION FIX (Daily Report):
 //    - FIX: createOrUpdateDailyReport() now has 2-level defense against race conditions
 //      * Level 1 (fast): linksFrom() - checks for backlink (< 10ms)
@@ -84,7 +99,7 @@ var MementoBusiness = (function() {
 
     var MODULE_INFO = {
         name: "MementoBusiness",
-        version: "8.2.0",
+        version: "8.3.0",
         author: "ASISTANTO",
         description: "High-level business workflows (employee processing, reports, obligations, material prices)",
         dependencies: [
@@ -651,27 +666,29 @@ var MementoBusiness = (function() {
                     core.addDebug(currentEntry, "  📝 NASTAVUJEM ATRIBÚTY linkToEntry:");
                 }
 
-                // Attribute IDs (from Dochádzka library field analysis):
-                // 0 = hodinovka (currency)
-                // 1 = +príplatok (€/h) (currency) - manual, keep as is
-                // 2 = +prémia (€) (currency) - manual, keep as is
-                // 4 = -pokuta (€) (currency) - manual, keep as is
-                // 6 = odpracované (double)
-                // 3 = denná mzda (currency)
-                // 5 = poznámka (text) - optional
+                // Attribute names (from Dochádzka library field analysis):
+                // CRITICAL: Use .setAttr(name, value) and .attr(name), NOT .set(id) or .get(id)!
+                // "odpracované" - worked hours (double)
+                // "hodinovka" - hourly rate (currency)
+                // "+príplatok (€/h)" - supplement per hour (currency) - manual, keep as is
+                // "+prémia (€)" - bonus (currency) - manual, keep as is
+                // "-pokuta (€)" - penalty (currency) - manual, keep as is
+                // "denná mzda" - daily wage (currency) - calculated
+                // "poznámka" - note (text) - optional
 
                 try {
-                    // Set worked hours attribute (attr ID 6)
+                    // Set worked hours attribute
+                    // CRITICAL: Use .setAttr(name, value) NOT .set(id, value)!
                     if (core) {
-                        core.addDebug(currentEntry, "    • Nastavujem attr[6] odpracované = " + workHours + "h");
+                        core.addDebug(currentEntry, "    • Nastavujem odpracované = " + workHours + "h");
                     }
-                    employeeLink.set(6, workHours);
+                    employeeLink.setAttr("odpracované", workHours);
 
-                    // Set hourly rate attribute (attr ID 0)
+                    // Set hourly rate attribute
                     if (core) {
-                        core.addDebug(currentEntry, "    • Nastavujem attr[0] hodinovka = " + hourlyRate + "€/h");
+                        core.addDebug(currentEntry, "    • Nastavujem hodinovka = " + hourlyRate + "€/h");
                     }
-                    employeeLink.set(0, hourlyRate);
+                    employeeLink.setAttr("hodinovka", hourlyRate);
 
                     if (core) {
                         core.addDebug(currentEntry, "  ✅ Atribúty NASTAVENÉ: odpracované=" + workHours + "h, hodinovka=" + hourlyRate + "€/h");
@@ -688,9 +705,9 @@ var MementoBusiness = (function() {
             }
 
             // Get manual attributes if linkToEntry (supplement, bonus, penalty)
-            var supplement = 0;  // +príplatok (€/h) - attr ID 1
-            var bonus = 0;       // +prémia (€) - attr ID 2
-            var penalty = 0;     // -pokuta (€) - attr ID 4
+            var supplement = 0;  // +príplatok (€/h)
+            var bonus = 0;       // +prémia (€)
+            var penalty = 0;     // -pokuta (€)
 
             if (isLinkToEntry && employeeLink) {
                 if (core) {
@@ -698,14 +715,15 @@ var MementoBusiness = (function() {
                 }
 
                 try {
-                    supplement = employeeLink.get(1) || 0;
-                    bonus = employeeLink.get(2) || 0;
-                    penalty = employeeLink.get(4) || 0;
+                    // CRITICAL: Use .attr(name) NOT .get(id)!
+                    supplement = employeeLink.attr("+príplatok (€/h)") || 0;
+                    bonus = employeeLink.attr("+prémia (€)") || 0;
+                    penalty = employeeLink.attr("-pokuta (€)") || 0;
 
                     if (core) {
-                        core.addDebug(currentEntry, "    • attr[1] +príplatok = " + supplement + "€/h");
-                        core.addDebug(currentEntry, "    • attr[2] +prémia = " + bonus + "€");
-                        core.addDebug(currentEntry, "    • attr[4] -pokuta = " + penalty + "€");
+                        core.addDebug(currentEntry, "    • +príplatok = " + supplement + "€/h");
+                        core.addDebug(currentEntry, "    • +prémia = " + bonus + "€");
+                        core.addDebug(currentEntry, "    • -pokuta = " + penalty + "€");
                     }
 
                     if (supplement !== 0 || bonus !== 0 || penalty !== 0) {
@@ -734,14 +752,15 @@ var MementoBusiness = (function() {
                 core.addDebug(currentEntry, "    • Výsledok: " + dailyWage + " €");
             }
 
-            // CRITICAL: If linkToEntry, set daily wage attribute (attr ID 3)
+            // CRITICAL: If linkToEntry, set daily wage attribute
             if (isLinkToEntry && employeeLink) {
                 if (core) {
-                    core.addDebug(currentEntry, "  📝 NASTAVUJEM attr[3] denná mzda = " + dailyWage + "€");
+                    core.addDebug(currentEntry, "  📝 NASTAVUJEM denná mzda = " + dailyWage + "€");
                 }
 
                 try {
-                    employeeLink.set(3, dailyWage);
+                    // CRITICAL: Use .setAttr(name, value) NOT .set(id, value)!
+                    employeeLink.setAttr("denná mzda", dailyWage);
 
                     if (core) {
                         core.addDebug(currentEntry, "  ✅ Denná mzda NASTAVENÁ");
