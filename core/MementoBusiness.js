@@ -550,13 +550,30 @@ var MementoBusiness = (function() {
             // CRITICAL: Never hardcode field names - use formatting module or config
             // Format as "Nick (Priezvisko)"
             var employeeName = "N/A";
+
+            // Debug: Check if formatting module is available
+            if (core) {
+                core.addDebug(currentEntry, "    🔍 Debug: formatting = " + (formatting ? "✅ loaded" : "❌ NOT loaded"));
+                if (formatting) {
+                    core.addDebug(currentEntry, "    🔍 Debug: formatEmployeeName = " + (formatting.formatEmployeeName ? "✅ exists" : "❌ missing"));
+                }
+            }
+
             if (formatting && formatting.formatEmployeeName) {
                 employeeName = formatting.formatEmployeeName(employee, {nickFirst: true});
+                if (core) {
+                    core.addDebug(currentEntry, "    🔍 Debug: formatEmployeeName returned: '" + employeeName + "'");
+                }
             } else if (config && config.fields && config.fields.employee) {
                 // Fallback: construct name from firstName + lastName
                 var firstName = employee.field(config.fields.employee.firstName) || "";
                 var lastName = employee.field(config.fields.employee.lastName) || "";
-                employeeName = (firstName + " " + lastName).trim() || employee.field(config.fields.employee.nick) || "N/A";
+                var nick = employee.field(config.fields.employee.nick) || "";
+                employeeName = (firstName + " " + lastName).trim() || nick || "N/A";
+                if (core) {
+                    core.addDebug(currentEntry, "    🔍 Debug: Fallback name (firstName + lastName): '" + employeeName + "'");
+                    core.addDebug(currentEntry, "    🔍 Debug: firstName='" + firstName + "', lastName='" + lastName + "', nick='" + nick + "'");
+                }
             }
 
             if (core) {
