@@ -38,7 +38,7 @@ var MementoBusiness = (function() {
 
     var MODULE_INFO = {
         name: "MementoBusiness",
-        version: "8.0.1",
+        version: "8.0.2",
         author: "ASISTANTO",
         description: "High-level business workflows (employee processing, reports, obligations, material prices)",
         dependencies: [
@@ -991,29 +991,109 @@ var MementoBusiness = (function() {
     }
 
     /**
-     * Create or update daily report (simplified wrapper)
-     * @param {Object} sourceEntry - Source entry
-     * @param {String} libraryType - Library type ("attendance", "workRecord", "rideLog")
+     * Create or update daily report (simplified implementation)
+     * @param {Object} sourceEntry - Source entry (attendance, work record, etc.)
+     * @param {String} libraryType - Library type ("attendance", "workRecord", "rideLog", "cashBook")
      * @param {Object} options - Report options
-     * @returns {Object} Result {success, report}
+     * @returns {Object} Result {success, report, created, updated}
      */
     function createOrUpdateDailyReport(sourceEntry, libraryType, options) {
-        // Map library type to report type
-        var reportTypeMap = {
-            "attendance": "work",
-            "workRecord": "work",
-            "rideLog": "transport"
-        };
+        var core = getCore();
+        var config = getConfig();
 
-        var reportType = reportTypeMap[libraryType];
-        if (!reportType) {
-            return { success: false, error: "Unknown library type: " + libraryType };
+        options = options || {};
+
+        try {
+            if (!sourceEntry || !libraryType) {
+                return { success: false, error: "Missing required parameters" };
+            }
+
+            // Get date from source entry (different field names per library)
+            var dateField = config.fields[libraryType] ? config.fields[libraryType].date : "Dátum";
+            var date = core.safeGet(sourceEntry, dateField);
+
+            if (!date) {
+                return { success: false, error: "Date not found in source entry" };
+            }
+
+            // Get Denný report library
+            var dailyReportLib = libByName(config.libraries.dailyReport);
+            if (!dailyReportLib) {
+                return { success: false, error: "Denný report library not found" };
+            }
+
+            // Find existing daily report for this date
+            var allReports = dailyReportLib.entries();
+            var existingReport = null;
+
+            for (var i = 0; i < allReports.length; i++) {
+                var report = allReports[i];
+                var reportDate = core.safeGet(report, config.fields.dailyReport.date);
+                if (reportDate && moment(reportDate).isSame(date, 'day')) {
+                    existingReport = report;
+                    break;
+                }
+            }
+
+            // Map library type to backlink field name in Denný report
+            var backlinkFieldMap = {
+                "attendance": config.fields.dailyReport.attendance,
+                "workRecord": config.fields.dailyReport.workRecord,
+                "rideLog": config.fields.dailyReport.rideLog,
+                "cashBook": config.fields.dailyReport.cashBook
+            };
+
+            var backlinkField = backlinkFieldMap[libraryType];
+            if (!backlinkField) {
+                return { success: false, error: "Unknown library type: " + libraryType };
+            }
+
+            if (existingReport) {
+                // Update existing - add source entry to backlink field
+                var existingLinks = core.safeGetLinks(existingReport, backlinkField, []);
+                var alreadyLinked = false;
+
+                for (var j = 0; j < existingLinks.length; j++) {
+                    if (existingLinks[j].id === sourceEntry.id) {
+                        alreadyLinked = true;
+                        break;
+                    }
+                }
+
+                if (!alreadyLinked) {
+                    existingLinks.push(sourceEntry);
+                    core.safeSet(existingReport, backlinkField, existingLinks);
+                }
+
+                return {
+                    success: true,
+                    report: existingReport,
+                    created: false,
+                    updated: true
+                };
+            } else {
+                // Create new daily report
+                var newReport = dailyReportLib.create({});
+                core.safeSet(newReport, config.fields.dailyReport.date, date);
+                core.safeSet(newReport, backlinkField, [sourceEntry]);
+
+                return {
+                    success: true,
+                    report: newReport,
+                    created: true,
+                    updated: false
+                };
+            }
+
+        } catch (error) {
+            if (core) {
+                core.addError(entry(), "Chyba pri vytváraní Denný report: " + error.toString(), "createOrUpdateDailyReport", error);
+            }
+            return {
+                success: false,
+                error: error.toString()
+            };
         }
-
-        // This would need pre-calculated data - simplified for now
-        var calculatedData = options.calculatedData || {};
-
-        return createOrUpdateReport(sourceEntry, reportType, calculatedData, options);
     }
 
     /**
