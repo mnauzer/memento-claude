@@ -1,6 +1,6 @@
 // ==============================================
 // LIBRARY MODULE - Dochadzka (Attendance)
-// Verzia: 1.0.5 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 1.0.6 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // ==============================================
 // 📋 PURPOSE:
 //    - Reusable module for attendance calculations
@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.0.5",
+        version: "1.0.6",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -46,7 +46,7 @@ var Dochadzka = (function() {
         extractedFrom: "Doch.Calc.Main.js v8.2.0",
         extractedLines: 528,
         extractedDate: "2026-03-19",
-        changelog: "v1.0.5 - Fixed: rounded times, work time calculation, employee info display, obligations creation"
+        changelog: "v1.0.6 - Added visual icons for created obligations (💸) and daily report (📅)"
     };
 
     // ==============================================
@@ -783,6 +783,16 @@ var Dochadzka = (function() {
                 if (dailyReportResult.success) {
                     var action = dailyReportResult.created ? "vytvorený" : "aktualizovaný";
                     addDebug(entry, "✅ Denný report " + action + " úspešne");
+
+                    // CRITICAL: Add daily report icon to entry
+                    if (dailyReportResult.created || dailyReportResult.updated) {
+                        var currentIcons = utils.safeGet(entry, config.fields.entryIcons, "") || "";
+                        if (currentIcons.indexOf(config.icons.calendar) === -1) {
+                            currentIcons += config.icons.calendar;
+                            utils.safeSet(entry, config.fields.entryIcons, currentIcons);
+                            addDebug(entry, "  ✅ Pridaná ikona denného reportu");
+                        }
+                    }
                 } else {
                     addDebug(entry, "⚠️ Chyba pri spracovaní Denný report: " +
                             (dailyReportResult.error || "Neznáma chyba"));
