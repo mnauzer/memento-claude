@@ -379,6 +379,7 @@ var MementoConfig = (function() {
          
             // Systémové knižnice
             defaults: "KTZ6dsnY9", // ASISTANTO Defaults
+            globalLogs: "H6PRzPqxU", // ASISTANTO Logs (verified 2026-03-20)
         },
 
         // === NÁZVY POLÍ ===
