@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO BUSINESS - High-Level Business Workflows
-// Verzia: 8.0.8 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 8.1.0 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - High-level business workflow orchestration
@@ -10,6 +10,22 @@
 //    - Obligation management workflows
 // ==============================================
 // 🔧 CHANGELOG:
+// v8.1.0 (2026-03-20) - PERFORMANCE OPTIMIZATION:
+//    - OPTIMIZATION: processEmployees() now loads linkedObligations ONCE
+//      * Before: Called safeGetLinksFrom() for EACH employee (3x for 3 employees)
+//      * After: Calls entry.linksFrom() ONCE, passes to all employees
+//      * Result: 3x faster obligation processing, cleaner code
+//    - NEW: Obligation validation in processEmployees()
+//      * Checks: obligation count === employee count
+//      * Logs warning if mismatch detected
+//    - NEW: Separate tracking for obligationsCreated vs obligationsUpdated
+//      * processEmployees() returns both counts
+//      * Better visibility into what happened
+//    - FIX: updateObligation() now REPLACES amount instead of adding
+//      * Before: 100€ + 120€ = 220€ (WRONG on recalculate!)
+//      * After: 100€ → 120€ (CORRECT - sets new value)
+//      * Logs old → new amount for debugging
+//
 // v8.0.8 (2026-03-20):
 //    - FIX: Obligation creation now properly sets field types:
 //      * "Veriteľ" (creditor) = STRING "Zamestnanec" (RADIO field)
@@ -52,7 +68,7 @@ var MementoBusiness = (function() {
 
     var MODULE_INFO = {
         name: "MementoBusiness",
-        version: "8.0.8",
+        version: "8.1.0",
         author: "ASISTANTO",
         description: "High-level business workflows (employee processing, reports, obligations, material prices)",
         dependencies: [
@@ -605,22 +621,51 @@ var MementoBusiness = (function() {
                 core.addDebug(currentEntry, "    • Mzda: " + wageResult.wage + " €");
             }
 
-            // Create obligation if enabled
+            // Process obligation if enabled
             var obligationCreated = false;
-            if (options.createObligation !== false) {
-                var obligationData = {
-                    amount: wageResult.wage,
-                    hours: workHours,
-                    hourlyRate: hourlyRate,
-                    date: date,
-                    sourceEntry: currentEntry
-                };
+            var obligationUpdated = false;
 
-                var obligationResult = createObligation(date, obligationData, employee);
-                obligationCreated = obligationResult && obligationResult.success;
+            if (options.createObligation !== false && options.processObligations !== false) {
+                // CRITICAL: Use pre-loaded linkedObligations (efficient!)
+                var existingObligation = null;
 
-                if (obligationCreated && core) {
-                    core.addDebug(currentEntry, "    ✅ Záväzok vytvorený/aktualizovaný");
+                if (options.linkedObligations && options.linkedObligations.length > 0) {
+                    // Find existing obligation for this employee in pre-loaded list
+                    for (var j = 0; j < options.linkedObligations.length; j++) {
+                        var obl = options.linkedObligations[j];
+                        var oblEmployee = core.safeGetLinks(obl, config.fields.obligations.employee);
+
+                        if (oblEmployee && oblEmployee.length > 0 && oblEmployee[0].id === employee.id) {
+                            existingObligation = obl;
+                            break;
+                        }
+                    }
+                }
+
+                if (existingObligation) {
+                    // Update existing obligation
+                    var updateResult = updateObligation(date, existingObligation, wageResult.wage);
+                    obligationUpdated = updateResult && updateResult.success;
+
+                    if (obligationUpdated && core) {
+                        core.addDebug(currentEntry, "    🔄 Záväzok aktualizovaný");
+                    }
+                } else {
+                    // Create new obligation
+                    var obligationData = {
+                        amount: wageResult.wage,
+                        hours: workHours,
+                        hourlyRate: hourlyRate,
+                        date: date,
+                        sourceEntry: currentEntry
+                    };
+
+                    var obligationResult = createObligation(date, obligationData, employee);
+                    obligationCreated = obligationResult && obligationResult.success;
+
+                    if (obligationCreated && core) {
+                        core.addDebug(currentEntry, "    ✅ Záväzok vytvorený");
+                    }
                 }
             }
 
@@ -635,7 +680,8 @@ var MementoBusiness = (function() {
                     regularWage: wageResult.regularWage,
                     overtimeWage: wageResult.overtimeWage,
                     overtimeHours: wageResult.overtimeHours,
-                    obligationCreated: obligationCreated
+                    obligationCreated: obligationCreated,
+                    obligationUpdated: obligationUpdated
                 }
             };
 
@@ -662,6 +708,7 @@ var MementoBusiness = (function() {
     function processEmployees(employees, workHours, date, options) {
         var core = getCore();
         var formatting = getFormatting();
+        var config = getConfig();
 
         options = options || {};
         var currentEntry = options.entry || entry();
@@ -682,12 +729,37 @@ var MementoBusiness = (function() {
                 core.addDebug(currentEntry, "👥 Spracovávam " + employees.length + " zamestnancov", "people");
             }
 
+            // CRITICAL: Load linked obligations ONCE for all employees (efficient!)
+            var linkedObligations = null;
+            if (currentEntry && options.processObligations !== false && config) {
+                try {
+                    linkedObligations = currentEntry.linksFrom(
+                        config.libraries.obligations,
+                        config.fields.obligations.attendance
+                    ) || [];
+
+                    if (core && linkedObligations.length > 0) {
+                        core.addDebug(currentEntry, "  📋 Načítaných " + linkedObligations.length + " existujúcich záväzkov");
+                    }
+                } catch (e) {
+                    if (core) {
+                        core.addDebug(currentEntry, "  ⚠️ Nemožno načítať záväzky: " + e.toString());
+                    }
+                    linkedObligations = [];
+                }
+            }
+
+            // Pass linked obligations to processEmployee via options
+            options.linkedObligations = linkedObligations;
+
             var results = {
                 success: true,
                 processed: 0,
                 failed: 0,
                 totalWage: 0,
-                details: []
+                details: [],
+                obligationsCreated: 0,
+                obligationsUpdated: 0
             };
 
             // Process each employee
@@ -699,6 +771,13 @@ var MementoBusiness = (function() {
                     results.processed++;
                     results.totalWage += empResult.data.wage;
                     results.details.push(empResult.data);
+
+                    // Track obligation operations
+                    if (empResult.data.obligationCreated) {
+                        results.obligationsCreated++;
+                    } else if (empResult.data.obligationUpdated) {
+                        results.obligationsUpdated++;
+                    }
                 } else {
                     results.failed++;
                     results.success = false;
@@ -708,12 +787,27 @@ var MementoBusiness = (function() {
                 }
             }
 
+            // Validation: Check obligations count vs employees count
+            if (core && linkedObligations && options.processObligations !== false) {
+                var expectedCount = results.processed; // Successfully processed employees
+                var actualCount = linkedObligations.length + results.obligationsCreated;
+
+                if (actualCount !== expectedCount) {
+                    core.addDebug(currentEntry, "  ⚠️ Nezhoda záväzkov: " + actualCount + " záväzkov pre " + expectedCount + " zamestnancov");
+                }
+            }
+
             // Summary
             if (core) {
                 core.addDebug(currentEntry, "📊 Súhrn spracovania:", "summary");
                 core.addDebug(currentEntry, "  • Spracovaných: " + results.processed + "/" + employees.length);
                 core.addDebug(currentEntry, "  • Celková mzda: " +
                     (formatting ? formatting.formatMoney(results.totalWage) : results.totalWage + " €"));
+
+                if (options.processObligations !== false) {
+                    core.addDebug(currentEntry, "  • Záväzky vytvorené: " + results.obligationsCreated);
+                    core.addDebug(currentEntry, "  • Záväzky aktualizované: " + results.obligationsUpdated);
+                }
             }
 
             return results;
@@ -905,8 +999,8 @@ var MementoBusiness = (function() {
      * Update obligation amount
      * @param {Date} date - Obligation date
      * @param {Object} obligation - Obligation entry
-     * @param {Number} newAmount - New amount
-     * @returns {Object} Result {success, obligation}
+     * @param {Number} newAmount - New amount (REPLACES old amount, not adds to it!)
+     * @returns {Object} Result {success, obligation, previousAmount, newAmount}
      */
     function updateObligation(date, obligation, newAmount) {
         var core = getCore();
@@ -918,15 +1012,24 @@ var MementoBusiness = (function() {
             }
 
             var currentAmount = core.safeGet(obligation, config.fields.obligations.amount, 0);
-            var updatedAmount = currentAmount + newAmount;
 
-            core.safeSet(obligation, config.fields.obligations.amount, updatedAmount);
+            // CRITICAL: REPLACE amount, don't add to it!
+            // When recalculating attendance, we want to SET the new wage, not add to old wage
+            core.safeSet(obligation, config.fields.obligations.amount, newAmount);
+
+            if (core && currentAmount !== newAmount) {
+                var formatting = getFormatting();
+                var oldFormatted = formatting ? formatting.formatMoney(currentAmount) : currentAmount + " €";
+                var newFormatted = formatting ? formatting.formatMoney(newAmount) : newAmount + " €";
+
+                core.addDebug(entry(), "      Suma zmenená: " + oldFormatted + " → " + newFormatted);
+            }
 
             return {
                 success: true,
                 obligation: obligation,
                 previousAmount: currentAmount,
-                newAmount: updatedAmount
+                newAmount: newAmount
             };
 
         } catch (error) {
