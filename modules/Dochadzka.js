@@ -1,6 +1,6 @@
 // ==============================================
 // LIBRARY MODULE - Dochadzka (Attendance)
-// Verzia: 1.1.2 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 1.2.0 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // ==============================================
 // 📋 PURPOSE:
 //    - Reusable module for attendance calculations
@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.1.2",
+        version: "1.2.0",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -47,6 +47,12 @@ var Dochadzka = (function() {
         extractedLines: 528,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.2.0 (2026-03-20) - ENHANCEMENT: Detailed info with extras calculation:",
+            "  - NEW: Info shows extras when filled (príplatok, prémia, pokuta)",
+            "  - NEW: Info shows calculation formula when extras exist",
+            "  - NEW: Info shows 'Odpracované' hours per employee",
+            "  - HIDE: Extras not shown if zero (cleaner output)",
+            "  - RESULT: User sees exactly how wage was calculated!",
             "v1.1.2 (2026-03-20) - CRITICAL FIX: LinkToEntry has NO .e property!",
             "  - FIX: empLink IS the employee entry (has both .field() and .attr() methods)",
             "  - BEFORE (WRONG): var employee = empLink.e → undefined/null",
@@ -673,11 +679,50 @@ var Dochadzka = (function() {
                     // detail.employeeEntry is the entry object
                     var empName = detail.employee || "N/A";
                     infoMessage += "### 👤 " + empName + "\n";
-                    infoMessage += "- **Hodinovka:** " + (detail.hourlyRate || 0) + " €/h\n";
-                    if (detail.overtimeHours && detail.overtimeHours > 0) {
-                        infoMessage += "- **Nadčas:** " + detail.overtimeHours + " h\n";
+
+                    // Basic info
+                    infoMessage += "- **Odpracované:** " + (detail.hours || 0).toFixed(2) + " h\n";
+                    infoMessage += "- **Hodinovka:** " + (detail.hourlyRate || 0).toFixed(2) + " €/h\n";
+
+                    // Show extras only if they exist (non-zero)
+                    var hasExtras = false;
+                    if (detail.supplement && detail.supplement !== 0) {
+                        infoMessage += "- **Príplatok:** " + detail.supplement.toFixed(2) + " €/h\n";
+                        hasExtras = true;
                     }
-                    infoMessage += "- **Denná mzda:** " + (detail.wage || 0).toFixed(2) + " €\n\n";
+                    if (detail.bonus && detail.bonus !== 0) {
+                        infoMessage += "- **Prémia:** " + detail.bonus.toFixed(2) + " €\n";
+                        hasExtras = true;
+                    }
+                    if (detail.penalty && detail.penalty !== 0) {
+                        infoMessage += "- **Pokuta:** -" + detail.penalty.toFixed(2) + " €\n";
+                        hasExtras = true;
+                    }
+
+                    // Show calculation formula
+                    if (hasExtras) {
+                        var formula = "(" + (detail.hourlyRate || 0).toFixed(2);
+                        if (detail.supplement && detail.supplement !== 0) {
+                            formula += " + " + detail.supplement.toFixed(2);
+                        }
+                        formula += ") × " + (detail.hours || 0).toFixed(2);
+                        if (detail.bonus && detail.bonus !== 0) {
+                            formula += " + " + detail.bonus.toFixed(2);
+                        }
+                        if (detail.penalty && detail.penalty !== 0) {
+                            formula += " - " + detail.penalty.toFixed(2);
+                        }
+                        formula += " = " + (detail.wage || 0).toFixed(2) + " €";
+                        infoMessage += "- **Výpočet:** " + formula + "\n";
+                    }
+
+                    infoMessage += "- **Denná mzda:** " + (detail.wage || 0).toFixed(2) + " €\n";
+
+                    if (detail.overtimeHours && detail.overtimeHours > 0) {
+                        infoMessage += "- **Nadčas:** " + detail.overtimeHours.toFixed(2) + " h\n";
+                    }
+
+                    infoMessage += "\n";
                 }
             } else {
                 infoMessage += "⚠️ Žiadne detaily zamestnancov (spracovanie zlyhalo)\n\n";

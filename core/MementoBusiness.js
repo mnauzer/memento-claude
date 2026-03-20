@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO BUSINESS - High-Level Business Workflows
-// Verzia: 8.3.0 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 8.4.0 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // ==============================================
 // 📋 ÚČEL:
 //    - High-level business workflow orchestration
@@ -10,6 +10,14 @@
 //    - Obligation management workflows
 // ==============================================
 // 🔧 CHANGELOG:
+// v8.4.0 (2026-03-20) - CRITICAL FIX: Read "denná mzda" attribute instead of recalculating:
+//    - FIX: processEmployee() now READS "denná mzda" if already set by setEmployeeAttributes()
+//    - BEFORE: Always calculated wage, overwriting setEmployeeAttributes() result
+//    - AFTER: Checks if "denná mzda" attribute exists, reads it, uses for obligations
+//    - ONLY calculates if attribute not set (backward compatibility)
+//    - RESULT: When user edits attributes, changes ARE reflected in obligations and aggregations!
+//    - Flow: setEmployeeAttributes() sets → processEmployee() reads → uses for obligations
+//
 // v8.3.0 (2026-03-20) - CRITICAL FIX: LinkToEntry Attribute API:
 //    - FIX: processEmployee() now uses CORRECT Memento attribute API
 //      * BEFORE (WRONG): employeeLink.set(id, value) and .get(id)
@@ -99,7 +107,7 @@ var MementoBusiness = (function() {
 
     var MODULE_INFO = {
         name: "MementoBusiness",
-        version: "8.3.0",
+        version: "8.4.0",
         author: "ASISTANTO",
         description: "High-level business workflows (employee processing, reports, obligations, material prices)",
         dependencies: [
@@ -742,32 +750,56 @@ var MementoBusiness = (function() {
                 }
             }
 
-            // Calculate daily wage with manual extras
-            // Formula: (hourlyRate + supplement) × workHours + bonus - penalty
-            var dailyWage = (hourlyRate + supplement) * workHours + bonus - penalty;
+            // CRITICAL: If linkToEntry, prefer READING "denná mzda" attribute if already set
+            // This allows setEmployeeAttributes() to set it first, we just read and use it
+            var dailyWage = 0;
+            var wageAlreadySet = false;
 
-            if (core) {
-                core.addDebug(currentEntry, "  🧮 VÝPOČET DENNEJ MZDY:");
-                core.addDebug(currentEntry, "    • Vzorec: (" + hourlyRate + " + " + supplement + ") × " + workHours + " + " + bonus + " - " + penalty);
-                core.addDebug(currentEntry, "    • Výsledok: " + dailyWage + " €");
+            if (isLinkToEntry && employeeLink) {
+                try {
+                    var existingWage = employeeLink.attr("denná mzda");
+                    if (existingWage !== null && existingWage !== undefined && existingWage > 0) {
+                        dailyWage = existingWage;
+                        wageAlreadySet = true;
+                        if (core) {
+                            core.addDebug(currentEntry, "  📖 ČÍTAM denná mzda z atribútu = " + dailyWage + "€");
+                        }
+                    }
+                } catch (readWageError) {
+                    // Attribute doesn't exist or error reading, will calculate below
+                    wageAlreadySet = false;
+                }
             }
 
-            // CRITICAL: If linkToEntry, set daily wage attribute
-            if (isLinkToEntry && employeeLink) {
+            // If wage not already set, calculate it now
+            if (!wageAlreadySet) {
+                // Calculate daily wage with manual extras
+                // Formula: (hourlyRate + supplement) × workHours + bonus - penalty
+                dailyWage = (hourlyRate + supplement) * workHours + bonus - penalty;
+
                 if (core) {
-                    core.addDebug(currentEntry, "  📝 NASTAVUJEM denná mzda = " + dailyWage + "€");
+                    core.addDebug(currentEntry, "  🧮 VÝPOČET DENNEJ MZDY:");
+                    core.addDebug(currentEntry, "    • Vzorec: (" + hourlyRate + " + " + supplement + ") × " + workHours + " + " + bonus + " - " + penalty);
+                    core.addDebug(currentEntry, "    • Výsledok: " + dailyWage + " €");
                 }
 
-                try {
-                    // CRITICAL: Use .setAttr(name, value) NOT .set(id, value)!
-                    employeeLink.setAttr("denná mzda", dailyWage);
-
+                // Set daily wage attribute if linkToEntry
+                if (isLinkToEntry && employeeLink) {
                     if (core) {
-                        core.addDebug(currentEntry, "  ✅ Denná mzda NASTAVENÁ");
+                        core.addDebug(currentEntry, "  📝 NASTAVUJEM denná mzda = " + dailyWage + "€");
                     }
-                } catch (wageError) {
-                    if (core) {
-                        core.addError(currentEntry, "❌ CHYBA pri nastavovaní dennej mzdy: " + wageError.toString(), "processEmployee");
+
+                    try {
+                        // CRITICAL: Use .setAttr(name, value) NOT .set(id, value)!
+                        employeeLink.setAttr("denná mzda", dailyWage);
+
+                        if (core) {
+                            core.addDebug(currentEntry, "  ✅ Denná mzda NASTAVENÁ");
+                        }
+                    } catch (wageError) {
+                        if (core) {
+                            core.addError(currentEntry, "❌ CHYBA pri nastavovaní dennej mzdy: " + wageError.toString(), "processEmployee");
+                        }
                     }
                 }
             }
