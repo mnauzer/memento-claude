@@ -1,6 +1,6 @@
 // ==============================================
 // MEMENTO DATABASE - DENNÝ REPORT PREPOČET
-// Verzia: 1.9.1 | Dátum: október 2025 | Autor: ASISTANTO
+// Verzia: 1.10.0 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // Knižnica: Denný report | Trigger: Before Save
 // ==============================================
 // ✅ FUNKCIONALITA v1.9.1:
@@ -20,7 +20,16 @@
 //    - Validácia konzistencie zamestnancov s menami (počet + zhoda)
 //    - Kontrola prestojov (porovnanie hodín Dochádzka vs Práce)
 //    - Príprava na integráciu s MementoTelegram a MementoAI
-// 🔧 CHANGELOG v1.9.1:
+// 🔧 CHANGELOG:
+// v1.10.0 (2026-03-20) - PERFORMANCE OPTIMIZATION:
+//    - OPTIMIZATION: autoLinkRecords() now checks only last 100 records
+//      * Before: lib.entries() loaded ALL records (365+ per library!)
+//      * After: Checks only last 100 records (4x 100 = 400 instead of 4x 365 = 1460)
+//      * Result: 3-4x faster auto-linking for large databases
+//      * Note: entries() returns newest first, so last 100 covers recent dates
+//    - IMPROVED: Better debug logging shows "X of Y records checked"
+//
+// v1.9.1 (2025-10):
 //    - OPRAVA: 3 bugs (typo vo volaniach funkcií - ordIcon, n, removeRecordIcon)
 //    - REFAKTORING: Odstránená lokálna funkcia setDayOfWeek() - použitá utils.setDayOfWeekField()
 //    - REFAKTORING: Odstránená lokálna funkcia removeRecordIcon() - použitá utils.removeRecordIcon()
@@ -41,7 +50,7 @@ var currentEntry = entry();
 
 var CONFIG = {
     scriptName: "Denný report Prepočet",
-    version: "1.9.1",
+    version: "1.10.0",
 
     // Referencie na centrálny config
     fields: {
@@ -111,10 +120,13 @@ function autoLinkRecords(reportDate) {
 
         // 1. Dochádzka
         var attendanceLib = libByName(CONFIG.libraries.attendance);
+        // OPTIMIZATION: entries() returns newest first, limit search to recent records
         var attendanceEntries = attendanceLib.entries();
-        utils.addDebug(currentEntry, "  🔍 Kontrolujem Dochádzku: " + attendanceEntries.length + " záznamov");
+        var maxRecordsToCheck = 100; // Check only last 100 records (optimization)
+        var attendanceCount = Math.min(attendanceEntries.length, maxRecordsToCheck);
+        utils.addDebug(currentEntry, "  🔍 Kontrolujem Dochádzku: " + attendanceCount + " posledných záznamov (z " + attendanceEntries.length + ")");
 
-        for (var a = 0; a < attendanceEntries.length; a++) {
+        for (var a = 0; a < attendanceCount; a++) {
             var attEntry = attendanceEntries[a];
             var attDate = utils.safeGet(attEntry, CONFIG.fields.attendance.date);
             var attId = attEntry.field("ID");
@@ -139,9 +151,10 @@ function autoLinkRecords(reportDate) {
         // 2. Záznam prác
         var workRecordsLib = libByName(CONFIG.libraries.workRecords);
         var workEntries = workRecordsLib.entries();
-        utils.addDebug(currentEntry, "  🔍 Kontrolujem Záznam prác: " + workEntries.length + " záznamov");
+        var workCount = Math.min(workEntries.length, maxRecordsToCheck);
+        utils.addDebug(currentEntry, "  🔍 Kontrolujem Záznam prác: " + workCount + " posledných záznamov (z " + workEntries.length + ")");
 
-        for (var w = 0; w < workEntries.length; w++) {
+        for (var w = 0; w < workCount; w++) {
             var workEntry = workEntries[w];
             var workDate = utils.safeGet(workEntry, CONFIG.fields.workRecord.date);
             var workId = workEntry.field("ID");
@@ -164,9 +177,10 @@ function autoLinkRecords(reportDate) {
         // 3. Kniha jázd
         var rideLogLib = libByName(CONFIG.libraries.rideLog);
         var rideEntries = rideLogLib.entries();
-        utils.addDebug(currentEntry, "  🔍 Kontrolujem Knihu jázd: " + rideEntries.length + " záznamov");
+        var rideCount = Math.min(rideEntries.length, maxRecordsToCheck);
+        utils.addDebug(currentEntry, "  🔍 Kontrolujem Knihu jázd: " + rideCount + " posledných záznamov (z " + rideEntries.length + ")");
 
-        for (var r = 0; r < rideEntries.length; r++) {
+        for (var r = 0; r < rideCount; r++) {
             var rideEntry = rideEntries[r];
             var rideDate = utils.safeGet(rideEntry, CONFIG.fields.rideLog.date);
             var rideId = rideEntry.field("ID");
@@ -189,7 +203,10 @@ function autoLinkRecords(reportDate) {
         // 4. Pokladňa
         var cashBookLib = libByName(CONFIG.libraries.cashBook);
         var cashEntries = cashBookLib.entries();
-        for (var c = 0; c < cashEntries.length; c++) {
+        var cashCount = Math.min(cashEntries.length, maxRecordsToCheck);
+        utils.addDebug(currentEntry, "  🔍 Kontrolujem Pokladňa: " + cashCount + " posledných záznamov (z " + cashEntries.length + ")");
+
+        for (var c = 0; c < cashCount; c++) {
             var cashEntry = cashEntries[c];
             var cashDate = utils.safeGet(cashEntry, CONFIG.fields.cashBook.date);
             var cashId = cashEntry.field("ID");
