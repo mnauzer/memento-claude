@@ -38,7 +38,7 @@ var MementoBusiness = (function() {
 
     var MODULE_INFO = {
         name: "MementoBusiness",
-        version: "8.0.5",
+        version: "8.0.6",
         author: "ASISTANTO",
         description: "High-level business workflows (employee processing, reports, obligations, material prices)",
         dependencies: [
@@ -551,15 +551,15 @@ var MementoBusiness = (function() {
             // Format as "Nick (Priezvisko)"
             var employeeName = "N/A";
 
-            // Debug: Check employee entry fields
-            if (core && employee) {
-                var prezyvka = employee.field("Prezývka") || "";
-                var priezvisko = employee.field("Priezvisko") || "";
-                var menoAPriezvisko = employee.field("Meno a priezvisko") || "";
+            // Debug: Check employee entry fields using config
+            if (core && employee && config && config.fields && config.fields.employee) {
+                var prezyvka = core.safeGet(employee, config.fields.employee.nick, "");
+                var priezvisko = core.safeGet(employee, config.fields.employee.lastName, "");
+                var menoAPriezvisko = core.safeGet(employee, config.fields.employee.name, "");
                 core.addDebug(currentEntry, "    🔍 Employee fields:");
-                core.addDebug(currentEntry, "       • Prezývka: '" + prezyvka + "'");
-                core.addDebug(currentEntry, "       • Priezvisko: '" + priezvisko + "'");
-                core.addDebug(currentEntry, "       • Meno a priezvisko: '" + menoAPriezvisko + "'");
+                core.addDebug(currentEntry, "       • Nick (Prezývka): '" + prezyvka + "'");
+                core.addDebug(currentEntry, "       • LastName (Priezvisko): '" + priezvisko + "'");
+                core.addDebug(currentEntry, "       • Name (Meno a priezvisko): '" + menoAPriezvisko + "'");
             }
 
             if (formatting && formatting.formatEmployeeName) {
