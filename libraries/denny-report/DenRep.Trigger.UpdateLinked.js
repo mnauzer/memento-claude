@@ -26,13 +26,11 @@
  */
 
 // ==============================================
-// VALIDÁCIA ZÁVISLOSTÍ
+// VALIDÁCIA ZÁVISLOSTÍ A HLAVNÁ FUNKCIA
 // ==============================================
 
-if (typeof MementoUtils === 'undefined') {
-    // Silent fail - AfterSave nesmie zablokovať uloženie
-    return;
-}
+// Zabal celý kód do if bloku - žiadne return na top level!
+if (typeof MementoUtils !== 'undefined') {
 
 // ==============================================
 // INICIALIZÁCIA
@@ -119,3 +117,5 @@ try {
         utils.addError(currentEntry, "Chyba v " + SCRIPT_NAME + ": " + error.toString(), SCRIPT_NAME, error);
     }
 }
+
+} // Koniec if (typeof MementoUtils !== 'undefined')
