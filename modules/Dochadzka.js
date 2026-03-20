@@ -783,6 +783,33 @@ var Dochadzka = (function() {
                 config,
                 utils
             );
+            steps.step4.success = employeeResult.success;
+
+            // STEP 4.5: Display attribute setting results
+            addDebug(entry, " KROK 4.5: Výsledky nastavenia atribútov linkToEntry", "summary");
+            if (employeeResult.success && employeeResult.detaily && employeeResult.detaily.length > 0) {
+                addDebug(entry, "  📊 Zhrnutie atribútov pre " + employeeResult.pocetPracovnikov + " zamestnancov:");
+                for (var ei = 0; ei < employeeResult.detaily.length; ei++) {
+                    var empDetail = employeeResult.detaily[ei];
+                    var attrSummary = "    [" + (ei + 1) + "] " + empDetail.employee + ":";
+                    addDebug(entry, attrSummary);
+                    addDebug(entry, "        • odpracované: " + empDetail.hours + "h");
+                    addDebug(entry, "        • hodinovka: " + empDetail.hourlyRate + "€/h");
+                    if (empDetail.supplement) {
+                        addDebug(entry, "        • +príplatok: " + empDetail.supplement + "€/h");
+                    }
+                    if (empDetail.bonus) {
+                        addDebug(entry, "        • +prémia: " + empDetail.bonus + "€");
+                    }
+                    if (empDetail.penalty) {
+                        addDebug(entry, "        • -pokuta: " + empDetail.penalty + "€");
+                    }
+                    addDebug(entry, "        • denná mzda: " + empDetail.wage + "€");
+                }
+                addDebug(entry, "  ✅ Všetky atribúty nastavené");
+            } else {
+                addDebug(entry, "  ⚠️ Žiadne detaily zamestnancov dostupné");
+            }
 
             // Update entry status and icons based on obligations
             var entryStatus = utils.safeGet(entry, config.fields.entryStatus, []);
@@ -796,7 +823,6 @@ var Dochadzka = (function() {
                     entryIcons += config.icons.obligations;
                 }
             }
-            steps.step4.success = employeeResult.success;
 
             // STEP 5: Set entry fields
             addDebug(entry, " KROK 5: Celkové výpočty", "calculation");

@@ -599,6 +599,17 @@ var MementoBusiness = (function() {
             var employeeLink = isLinkToEntry ? employee : null;
             var employeeEntry = isLinkToEntry ? employee.e : employee;
 
+            // DEBUG: Show object type detection
+            if (core) {
+                var objType = isLinkToEntry ? "linkToEntry (má atribúty)" : "entry (bez atribútov)";
+                core.addDebug(currentEntry, "  🔍 Typ objektu: " + objType);
+                if (isLinkToEntry) {
+                    core.addDebug(currentEntry, "  ✅ Atribúty BUDÚ nastavené");
+                } else {
+                    core.addDebug(currentEntry, "  ⚠️ Atribúty NEBUDÚ nastavené (nie je linkToEntry)");
+                }
+            }
+
             // CRITICAL: Never hardcode field names - use formatting module or config
             // Format as "Nick (Priezvisko)"
             var employeeName = "N/A";
@@ -636,6 +647,10 @@ var MementoBusiness = (function() {
 
             // CRITICAL: If linkToEntry, set attributes
             if (isLinkToEntry && employeeLink) {
+                if (core) {
+                    core.addDebug(currentEntry, "  📝 NASTAVUJEM ATRIBÚTY linkToEntry:");
+                }
+
                 // Attribute IDs (from Dochádzka library field analysis):
                 // 0 = hodinovka (currency)
                 // 1 = +príplatok (€/h) (currency) - manual, keep as is
@@ -645,14 +660,30 @@ var MementoBusiness = (function() {
                 // 3 = denná mzda (currency)
                 // 5 = poznámka (text) - optional
 
-                // Set worked hours attribute (attr ID 6)
-                employeeLink.set(6, workHours);
+                try {
+                    // Set worked hours attribute (attr ID 6)
+                    if (core) {
+                        core.addDebug(currentEntry, "    • Nastavujem attr[6] odpracované = " + workHours + "h");
+                    }
+                    employeeLink.set(6, workHours);
 
-                // Set hourly rate attribute (attr ID 0)
-                employeeLink.set(0, hourlyRate);
+                    // Set hourly rate attribute (attr ID 0)
+                    if (core) {
+                        core.addDebug(currentEntry, "    • Nastavujem attr[0] hodinovka = " + hourlyRate + "€/h");
+                    }
+                    employeeLink.set(0, hourlyRate);
 
+                    if (core) {
+                        core.addDebug(currentEntry, "  ✅ Atribúty NASTAVENÉ: odpracované=" + workHours + "h, hodinovka=" + hourlyRate + "€/h");
+                    }
+                } catch (attrError) {
+                    if (core) {
+                        core.addError(currentEntry, "❌ CHYBA pri nastavovaní atribútov: " + attrError.toString(), "processEmployee");
+                    }
+                }
+            } else {
                 if (core) {
-                    core.addDebug(currentEntry, "    • Atribúty: odpracované=" + workHours + "h, hodinovka=" + hourlyRate + "€/h");
+                    core.addDebug(currentEntry, "  ⏭️ PRESKAKUJEM nastavenie atribútov (nie je linkToEntry)");
                 }
             }
 
@@ -662,17 +693,33 @@ var MementoBusiness = (function() {
             var penalty = 0;     // -pokuta (€) - attr ID 4
 
             if (isLinkToEntry && employeeLink) {
-                supplement = employeeLink.get(1) || 0;
-                bonus = employeeLink.get(2) || 0;
-                penalty = employeeLink.get(4) || 0;
+                if (core) {
+                    core.addDebug(currentEntry, "  📖 ČÍTAM MANUÁLNE ATRIBÚTY:");
+                }
 
-                if (supplement !== 0 || bonus !== 0 || penalty !== 0) {
+                try {
+                    supplement = employeeLink.get(1) || 0;
+                    bonus = employeeLink.get(2) || 0;
+                    penalty = employeeLink.get(4) || 0;
+
                     if (core) {
-                        var extrasStr = "";
-                        if (supplement !== 0) extrasStr += " príplatok=" + supplement + "€/h";
-                        if (bonus !== 0) extrasStr += " prémia=" + bonus + "€";
-                        if (penalty !== 0) extrasStr += " pokuta=" + penalty + "€";
-                        core.addDebug(currentEntry, "    • Extras:" + extrasStr);
+                        core.addDebug(currentEntry, "    • attr[1] +príplatok = " + supplement + "€/h");
+                        core.addDebug(currentEntry, "    • attr[2] +prémia = " + bonus + "€");
+                        core.addDebug(currentEntry, "    • attr[4] -pokuta = " + penalty + "€");
+                    }
+
+                    if (supplement !== 0 || bonus !== 0 || penalty !== 0) {
+                        if (core) {
+                            var extrasStr = "";
+                            if (supplement !== 0) extrasStr += " príplatok=" + supplement + "€/h";
+                            if (bonus !== 0) extrasStr += " prémia=" + bonus + "€";
+                            if (penalty !== 0) extrasStr += " pokuta=" + penalty + "€";
+                            core.addDebug(currentEntry, "  💰 Extras:" + extrasStr);
+                        }
+                    }
+                } catch (readError) {
+                    if (core) {
+                        core.addError(currentEntry, "❌ CHYBA pri čítaní atribútov: " + readError.toString(), "processEmployee");
                     }
                 }
             }
@@ -682,12 +729,28 @@ var MementoBusiness = (function() {
             var dailyWage = (hourlyRate + supplement) * workHours + bonus - penalty;
 
             if (core) {
-                core.addDebug(currentEntry, "    • Denná mzda: " + dailyWage + " €");
+                core.addDebug(currentEntry, "  🧮 VÝPOČET DENNEJ MZDY:");
+                core.addDebug(currentEntry, "    • Vzorec: (" + hourlyRate + " + " + supplement + ") × " + workHours + " + " + bonus + " - " + penalty);
+                core.addDebug(currentEntry, "    • Výsledok: " + dailyWage + " €");
             }
 
             // CRITICAL: If linkToEntry, set daily wage attribute (attr ID 3)
             if (isLinkToEntry && employeeLink) {
-                employeeLink.set(3, dailyWage);
+                if (core) {
+                    core.addDebug(currentEntry, "  📝 NASTAVUJEM attr[3] denná mzda = " + dailyWage + "€");
+                }
+
+                try {
+                    employeeLink.set(3, dailyWage);
+
+                    if (core) {
+                        core.addDebug(currentEntry, "  ✅ Denná mzda NASTAVENÁ");
+                    }
+                } catch (wageError) {
+                    if (core) {
+                        core.addError(currentEntry, "❌ CHYBA pri nastavovaní dennej mzdy: " + wageError.toString(), "processEmployee");
+                    }
+                }
             }
 
             // For backward compatibility, also calculate via MementoCalculations
