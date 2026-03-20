@@ -18,6 +18,10 @@
 //      * "Popis" (description) = auto-generated with employee name and date
 //      * "Dochádzka" (attendance) = link to source attendance entry
 //    - FIX: Use "state" field instead of "status" for obligation state
+//    - FIX: createObligation() now finds existing via attendance linkToEntry
+//      * Prevents duplicate obligations when recalculating attendance
+//      * Checks linksFrom attendance entry + employee match
+//      * Updates existing obligation instead of creating new one
 //
 // v8.0.0 (2026-03-19) - BREAKING CHANGES:
 //    - REFACTORED: Extracted utilities to focused modules
@@ -798,15 +802,23 @@ var MementoBusiness = (function() {
                 return { success: false, error: "Missing required parameters" };
             }
 
-            // Find existing obligation
-            var existing = findExistingObligations(creditor);
+            // CRITICAL: Find existing obligation via attendance linkToEntry (most specific)
             var existingForDate = null;
 
-            if (existing && existing.length > 0) {
-                for (var i = 0; i < existing.length; i++) {
-                    var obl = existing[i];
-                    var oblDate = core.safeGet(obl, config.fields.obligations.date);
-                    if (oblDate && moment(oblDate).isSame(date, 'day')) {
+            if (data.sourceEntry) {
+                // Get all obligations linked FROM this attendance entry
+                var linkedObligations = core.safeGetLinksFrom(
+                    data.sourceEntry,
+                    config.libraries.obligations,
+                    config.fields.obligations.attendance
+                ) || [];
+
+                // Find obligation for this specific employee
+                for (var i = 0; i < linkedObligations.length; i++) {
+                    var obl = linkedObligations[i];
+                    var oblEmployee = core.safeGetLinks(obl, config.fields.obligations.employee);
+
+                    if (oblEmployee && oblEmployee.length > 0 && oblEmployee[0].id === creditor.id) {
                         existingForDate = obl;
                         break;
                     }
@@ -814,8 +826,13 @@ var MementoBusiness = (function() {
             }
 
             if (existingForDate) {
-                // Update existing
+                // Update existing obligation
                 var updateResult = updateObligation(date, existingForDate, data.amount);
+
+                if (core && data.sourceEntry) {
+                    core.addDebug(data.sourceEntry, "    🔄 Záväzok aktualizovaný (existujúci)");
+                }
+
                 return {
                     success: updateResult.success,
                     obligation: existingForDate,

@@ -1,6 +1,6 @@
 // ==============================================
 // LIBRARY MODULE - Dochadzka (Attendance)
-// Verzia: 1.0.6 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 1.0.14 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // ==============================================
 // 📋 PURPOSE:
 //    - Reusable module for attendance calculations
@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.0.13",
+        version: "1.0.14",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -46,7 +46,13 @@ var Dochadzka = (function() {
         extractedFrom: "Doch.Calc.Main.js v8.2.0",
         extractedLines: 528,
         extractedDate: "2026-03-19",
-        changelog: "v1.0.6 - Added visual icons for created obligations (💸) and daily report (📅)"
+        changelog: [
+            "v1.0.14 (2026-03-20) - FIX: Removed duplicate obligation creation logic",
+            "  - Obligation creation now handled ONLY by utils.processEmployees()",
+            "  - Prevents duplicate obligations with 'N/A' in description",
+            "  - Count obligations from result.details instead of manual processing",
+            "v1.0.6 - Added visual icons for created obligations (💸) and daily report (📅)"
+        ].join("\n")
     };
 
     // ==============================================
@@ -310,50 +316,17 @@ var Dochadzka = (function() {
 
             var result = utils.processEmployees(employees, workHours, date, options);
 
-            // CRITICAL: Process obligations separately (utils.processEmployees doesn't use our callback)
+            // Count obligations created/updated from result.details
             var obligationsCreated = 0;
             var obligationsUpdated = 0;
 
-            if (result.success && result.details && result.details.length > 0) {
-                // Get linked obligations from this attendance entry
-                var linkedObligations = utils.findLinkedObligations ?
-                    (utils.findLinkedObligations(entry, config.fields.obligations) || []) : [];
-
+            if (result.details && result.details.length > 0) {
                 for (var i = 0; i < result.details.length; i++) {
-                    var empDetail = result.details[i];
-                    if (!empDetail.employeeEntry || !empDetail.wage) continue;
-
-                    // Find existing obligation for this employee
-                    var existingObligation = null;
-                    for (var j = 0; j < linkedObligations.length; j++) {
-                        var obl = linkedObligations[j];
-                        var oblEmployee = utils.safeGetLinks(obl, config.fields.obligations.employee);
-                        if (oblEmployee && oblEmployee.length > 0 &&
-                            oblEmployee[0].id === empDetail.employeeEntry.id) {
-                            existingObligation = obl;
-                            break;
-                        }
+                    if (result.details[i].obligationCreated) {
+                        obligationsCreated++;
                     }
-
-                    if (existingObligation) {
-                        // Update existing
-                        if (utils.updateObligation && utils.updateObligation(date, existingObligation, empDetail.wage)) {
-                            obligationsUpdated++;
-                        }
-                    } else {
-                        // Create new
-                        var oblData = {
-                            employee: empDetail.employeeEntry,
-                            amount: empDetail.wage,
-                            hours: empDetail.hours,
-                            hourlyRate: empDetail.hourlyRate,
-                            date: date,
-                            sourceEntry: entry
-                        };
-                        if (utils.createObligation && utils.createObligation(date, oblData, "attendance")) {
-                            obligationsCreated++;
-                        }
-                    }
+                    // Note: obligationUpdated info not currently tracked in processEmployee
+                    // Could add in future if needed
                 }
             }
 
