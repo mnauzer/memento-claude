@@ -1,6 +1,6 @@
 // ==============================================
 // LIBRARY MODULE - Dochadzka (Attendance)
-// Verzia: 1.1.1 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 1.1.2 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // ==============================================
 // 📋 PURPOSE:
 //    - Reusable module for attendance calculations
@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.1.1",
+        version: "1.1.2",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -47,6 +47,12 @@ var Dochadzka = (function() {
         extractedLines: 528,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.1.2 (2026-03-20) - CRITICAL FIX: LinkToEntry has NO .e property!",
+            "  - FIX: empLink IS the employee entry (has both .field() and .attr() methods)",
+            "  - BEFORE (WRONG): var employee = empLink.e → undefined/null",
+            "  - AFTER (CORRECT): var employee = empLink → works!",
+            "  - Reference: CenPon.Diely.Calculate.js uses item.field() directly",
+            "  - RESULT: Employee name now displays, attributes ARE set!",
             "v1.1.1 (2026-03-20) - CRITICAL FIX: Pass linkToEntry objects to processEmployees()",
             "  - FIX: processEmployees() now receives linkToEntry field directly from entry",
             "  - BEFORE: Passed validationResult.data.employees (plain entries from safeGetLinks)",
@@ -333,7 +339,9 @@ var Dochadzka = (function() {
             // Process each employee link DIRECTLY
             for (var i = 0; i < employeesLinks.length; i++) {
                 var empLink = employeesLinks[i];
-                var employee = empLink.e; // Get linked employee entry
+                // CRITICAL: empLink IS the employee entry object (no .e property!)
+                // LinkToEntry objects have both .field() and .attr()/.setAttr() methods
+                var employee = empLink;
 
                 // Get employee name
                 var employeeName = utils.formatEmployeeName ?
