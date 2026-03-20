@@ -1,6 +1,6 @@
 // ==============================================
 // LIBRARY MODULE - Dochadzka (Attendance)
-// Verzia: 1.0.3 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 1.0.4 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // ==============================================
 // 📋 PURPOSE:
 //    - Reusable module for attendance calculations
@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.0.3",
+        version: "1.0.4",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -46,7 +46,7 @@ var Dochadzka = (function() {
         extractedFrom: "Doch.Calc.Main.js v8.2.0",
         extractedLines: 528,
         extractedDate: "2026-03-19",
-        changelog: "v1.0.3 - Fixed processEmployees to transform result from utils.processEmployees to expected format (odpracovaneTotal, celkoveMzdy, etc.)"
+        changelog: "v1.0.4 - Added error property to all function returns; fixed 'Chyba: undefined' in beforeSave trigger"
     };
 
     // ==============================================
@@ -426,7 +426,7 @@ var Dochadzka = (function() {
 
         } catch (error) {
             addError(entry, error.toString(), "setEntryFields", error);
-            return { success: false };
+            return { success: false, error: error.toString() };
         }
     }
 
@@ -489,7 +489,7 @@ var Dochadzka = (function() {
 
         } catch (error) {
             addError(entry, error.toString(), "createInfoRecord", error);
-            return { success: false };
+            return { success: false, error: error.toString() };
         }
     }
 
@@ -512,7 +512,7 @@ var Dochadzka = (function() {
 
         } catch (error) {
             addError(entry, error.toString(), "applyDateColoring", error);
-            return { success: false };
+            return { success: false, error: error.toString() };
         }
     }
 
@@ -753,9 +753,13 @@ var Dochadzka = (function() {
 
             // Final summary
             addDebug(entry, "\n📊 === FINÁLNY SÚHRN ===");
+            var failedSteps = [];
             for (var stepKey in steps) {
                 var status = steps[stepKey].success ? "✅" : "❌";
                 addDebug(entry, status + " " + steps[stepKey].name);
+                if (!steps[stepKey].success) {
+                    failedSteps.push(steps[stepKey].name);
+                }
             }
 
             if (allSuccess) {
@@ -767,7 +771,8 @@ var Dochadzka = (function() {
             addDebug(entry, "⏱️ Čas ukončenia: " + moment().format("HH:mm:ss"));
             addDebug(entry, "📋 === KONIEC " + MODULE_INFO.name + " v" + MODULE_INFO.version + " ===");
 
-            return {
+            // Build result object
+            var result = {
                 success: allSuccess,
                 isDayOff: false,
                 data: {
@@ -781,6 +786,13 @@ var Dochadzka = (function() {
                 },
                 steps: steps
             };
+
+            // CRITICAL: Add error message if any step failed
+            if (!allSuccess) {
+                result.error = "Zlyhali kroky: " + failedSteps.join(", ");
+            }
+
+            return result;
 
         } catch (error) {
             addError(entry, "Kritická chyba v calculateAttendance", "calculateAttendance", error);
