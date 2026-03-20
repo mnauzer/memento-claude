@@ -41,7 +41,7 @@ if (typeof MementoUtils === 'undefined') {
 
 var utils = MementoUtils;
 var dennyReport = DennyReport;
-var config = utils.getConfig();
+var config = utils.config;  // Property getter - NOT getConfig() function
 var currentEntry = entry();
 
 var SCRIPT_VERSION = "1.0.0";
