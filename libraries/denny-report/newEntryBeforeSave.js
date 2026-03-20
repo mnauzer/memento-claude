@@ -112,7 +112,23 @@ try {
     }
 
 } catch (error) {
+    // Zobraz DETAILNÚ chybu v dialogu (lebo cancel() zruší uloženie Error_Log)
+    var errorDetails = "❌ KRITICKÁ CHYBA\n\n";
+    errorDetails += "Script: " + SCRIPT_NAME + " v" + SCRIPT_VERSION + "\n\n";
+    errorDetails += "Chyba: " + error.toString() + "\n\n";
+
+    // Pridaj stack trace ak existuje
+    if (error.stack) {
+        errorDetails += "Stack trace:\n" + error.stack.substring(0, 200);  // Prvých 200 znakov
+    }
+
+    // Pridaj line number ak existuje
+    if (error.lineNumber) {
+        errorDetails += "\n\nLine: " + error.lineNumber;
+    }
+
+    dialog("Kritická chyba - newEntryBeforeSave", errorDetails, "OK");
+
     utils.addError(currentEntry, "Kritická chyba v " + SCRIPT_NAME, SCRIPT_NAME, error);
-    message("❌ Kritická chyba!\n\n" + error.toString());
     cancel();
 }
