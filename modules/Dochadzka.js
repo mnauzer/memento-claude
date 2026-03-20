@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.0.10",
+        version: "1.0.11",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -568,11 +568,41 @@ var Dochadzka = (function() {
 
             infoMessage += "## 🔧 TECHNICKÉ INFORMÁCIE\n";
             infoMessage += "- **Module:** " + MODULE_INFO.name + " v" + MODULE_INFO.version + "\n";
-            infoMessage += "- **Čas spracovania:** " + moment().format("HH:mm:ss") + "\n";
+            infoMessage += "- **Čas spracovania:** " + moment().format("HH:mm:ss") + "\n\n";
+
+            infoMessage += "### 📦 Použité moduly:\n";
             infoMessage += "- **MementoUtils:** v" + (utils.version || "N/A") + "\n";
 
             if (typeof MementoConfig !== 'undefined') {
-                infoMessage += "- **MementoConfig:** v" + MementoConfig.version + "\n";
+                infoMessage += "- **MementoConfig:** v" + (MementoConfig.version || "N/A") + "\n";
+            }
+
+            if (typeof MementoCore !== 'undefined') {
+                infoMessage += "- **MementoCore:** v" + (MementoCore.version || "N/A") + "\n";
+            }
+
+            if (typeof MementoBusiness !== 'undefined') {
+                infoMessage += "- **MementoBusiness:** v" + (MementoBusiness.version || "N/A") + "\n";
+            }
+
+            if (typeof MementoFormatting !== 'undefined') {
+                infoMessage += "- **MementoFormatting:** v" + (MementoFormatting.version || "N/A") + "\n";
+            }
+
+            if (typeof MementoTime !== 'undefined') {
+                infoMessage += "- **MementoTime:** v" + (MementoTime.version || "N/A") + "\n";
+            }
+
+            if (typeof MementoDate !== 'undefined') {
+                infoMessage += "- **MementoDate:** v" + (MementoDate.version || "N/A") + "\n";
+            }
+
+            if (typeof MementoValidation !== 'undefined') {
+                infoMessage += "- **MementoValidation:** v" + (MementoValidation.version || "N/A") + "\n";
+            }
+
+            if (typeof MementoCalculations !== 'undefined') {
+                infoMessage += "- **MementoCalculations:** v" + (MementoCalculations.version || "N/A") + "\n";
             }
 
             infoMessage += "\n---\n**✅ PREPOČET DOKONČENÝ ÚSPEŠNE**";
