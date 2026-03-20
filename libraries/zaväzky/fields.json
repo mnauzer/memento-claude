@@ -1,0 +1,676 @@
+{
+  "library_name": "Záväzky",
+  "library_id": "pTNH6i6uM",
+  "last_updated": "2026-03-20T10:44:47.276625",
+  "fields": [
+    {
+      "id": 2,
+      "name": "--- Záväzok ---",
+      "type": "subheader",
+      "order": 0,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 16,
+      "name": "Dátum",
+      "type": "date",
+      "role": "name",
+      "order": 1,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 22,
+      "name": "Typ",
+      "type": "choice",
+      "order": 2,
+      "options": {
+        "2": {
+          "t": "Nákup materiálu ",
+          "c": 2,
+          "def": false
+        },
+        "3": {
+          "t": "Mzda",
+          "c": 3,
+          "def": false
+        },
+        "4": {
+          "t": "Podiely",
+          "c": 4,
+          "def": false
+        },
+        "5": {
+          "t": "Pôžička ",
+          "c": 5,
+          "def": false
+        },
+        "6": {
+          "t": "Poistné",
+          "c": 6,
+          "def": false
+        },
+        "7": {
+          "t": "Faktúra",
+          "c": 7,
+          "def": false
+        },
+        "8": {
+          "t": "Mzdy",
+          "c": 8,
+          "def": false
+        }
+      },
+      "properties": {},
+      "required": true
+    },
+    {
+      "id": 28,
+      "name": "Veriteľ",
+      "type": "radio",
+      "order": 3,
+      "options": {
+        "1": {
+          "t": "Dodávateľ ",
+          "c": 1,
+          "def": false
+        },
+        "2": {
+          "t": "Partner",
+          "c": 2,
+          "def": false
+        },
+        "3": {
+          "t": "Zamestnanec",
+          "c": 3,
+          "def": false
+        },
+        "4": {
+          "t": "Klient",
+          "c": 4,
+          "def": false
+        },
+        "5": {
+          "t": "[object Entry]",
+          "c": 5,
+          "def": false
+        },
+        "6": {
+          "t": "attendance",
+          "c": 6,
+          "def": false
+        }
+      },
+      "properties": {
+        "horizontaly": true
+      },
+      "required": false
+    },
+    {
+      "id": 23,
+      "name": "Zamestnanec",
+      "type": "entries",
+      "role": "name",
+      "order": 4,
+      "properties": {
+        "library": "NKWNzJgL:*tA*i88[tT2",
+        "multiple": false
+      },
+      "required": false,
+      "dependencies": {
+        "dependencies": [
+          {
+            "field": 28,
+            "type": 0,
+            "values": {
+              "visible": [
+                "Zamestnanec"
+              ]
+            }
+          }
+        ],
+        "groupType": 0
+      }
+    },
+    {
+      "id": 24,
+      "name": "Dodávateľ",
+      "type": "entries",
+      "role": "name",
+      "order": 5,
+      "properties": {
+        "library": "**@0k#A!3<-<Aas7q*:5",
+        "multiple": false
+      },
+      "required": false,
+      "dependencies": {
+        "dependencies": [
+          {
+            "field": 28,
+            "type": 0,
+            "values": {
+              "visible": [
+                "Dodávateľ "
+              ]
+            }
+          }
+        ],
+        "groupType": 0
+      }
+    },
+    {
+      "id": 26,
+      "name": "Klient",
+      "type": "entries",
+      "role": "name",
+      "order": 6,
+      "properties": {
+        "library": "WOoRfE]CJkVMtTzBc1@v",
+        "multiple": false
+      },
+      "required": false,
+      "dependencies": {
+        "dependencies": [
+          {
+            "field": 1,
+            "type": 0,
+            "values": {
+              "visible": [
+                "Debug"
+              ]
+            }
+          },
+          {
+            "field": 22,
+            "type": 0,
+            "values": {
+              "visible": [
+                "Podiely"
+              ]
+            }
+          }
+        ],
+        "groupType": 1
+      }
+    },
+    {
+      "id": 25,
+      "name": "Partner",
+      "type": "entries",
+      "role": "name",
+      "order": 7,
+      "properties": {
+        "library": "Qin8-]MorltnVdreuiGF",
+        "multiple": false
+      },
+      "required": false,
+      "dependencies": {
+        "dependencies": [
+          {
+            "field": 1,
+            "type": 0,
+            "values": {
+              "visible": [
+                "Debug"
+              ]
+            }
+          },
+          {
+            "field": 28,
+            "type": 0,
+            "values": {
+              "visible": [
+                "Partner"
+              ]
+            }
+          },
+          {
+            "field": 22,
+            "type": 0,
+            "values": {
+              "visible": [
+                "Pôžička "
+              ]
+            }
+          }
+        ],
+        "groupType": 1
+      }
+    },
+    {
+      "id": 30,
+      "name": "Dochádzka",
+      "type": "entries",
+      "order": 8,
+      "properties": {
+        "library": "EIL-cPe57cbZ;d:DK4vC",
+        "multiple": false
+      },
+      "required": false,
+      "dependencies": {
+        "dependencies": [
+          {
+            "field": 22,
+            "type": 0,
+            "values": {
+              "visible": [
+                "Mzda",
+                "Mzdy"
+              ]
+            }
+          }
+        ],
+        "groupType": 0
+      }
+    },
+    {
+      "id": 52,
+      "name": "Faktúry prijaté",
+      "type": "entries",
+      "order": 9,
+      "properties": {
+        "library": "Y8!T1Mww3!>OEQ)x[6zc",
+        "multiple": false
+      },
+      "required": false,
+      "dependencies": {
+        "dependencies": [
+          {
+            "field": 1,
+            "type": 0,
+            "values": {
+              "visible": [
+                "Debug"
+              ]
+            }
+          },
+          {
+            "field": 22,
+            "type": 0,
+            "values": {
+              "visible": [
+                "Mzda"
+              ]
+            }
+          }
+        ],
+        "groupType": 1
+      }
+    },
+    {
+      "id": 27,
+      "name": "Popis",
+      "type": "text",
+      "role": "desc",
+      "order": 10,
+      "properties": {
+        "hint": "Popis záväzku ",
+        "singleLine": true
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 19,
+      "name": "s DPH",
+      "type": "boolean",
+      "order": 11,
+      "properties": {},
+      "required": false,
+      "defaultValue": false,
+      "dependencies": {
+        "dependencies": [
+          {
+            "field": 22,
+            "type": 0,
+            "values": {
+              "visible": [
+                "Nákup materiálu ",
+                "Podiely",
+                "Pôžička "
+              ]
+            }
+          }
+        ],
+        "groupType": 1
+      }
+    },
+    {
+      "id": 29,
+      "name": "sadzba dph",
+      "type": "radio",
+      "order": 12,
+      "options": {
+        "1": {
+          "t": "Základná ",
+          "c": 1,
+          "def": true
+        },
+        "2": {
+          "t": "Znížená ",
+          "c": 2,
+          "def": false
+        },
+        "3": {
+          "t": "Nulová ",
+          "c": 3,
+          "def": false
+        }
+      },
+      "properties": {
+        "horizontaly": true
+      },
+      "required": false,
+      "defaultValue": "Základná ",
+      "dependencies": {
+        "dependencies": [
+          {
+            "field": 19,
+            "type": 0,
+            "values": {
+              "visible": [
+                "true"
+              ]
+            }
+          }
+        ],
+        "groupType": 1
+      }
+    },
+    {
+      "id": 36,
+      "name": "sadzba DPH",
+      "type": "double",
+      "order": 13,
+      "properties": {
+        "unit": "%",
+        "hint": ""
+      },
+      "required": false,
+      "dependencies": {
+        "dependencies": [
+          {
+            "field": 19,
+            "type": 0,
+            "values": {
+              "visible": [
+                "true"
+              ]
+            }
+          }
+        ],
+        "groupType": 0
+      }
+    },
+    {
+      "id": 47,
+      "name": "Suma",
+      "type": "currency",
+      "role": "status",
+      "order": 14,
+      "properties": {
+        "hint": "",
+        "currency": "EUR"
+      },
+      "required": false
+    },
+    {
+      "id": 51,
+      "name": "DPH",
+      "type": "currency",
+      "order": 15,
+      "properties": {
+        "hint": "",
+        "currency": "EUR"
+      },
+      "required": false
+    },
+    {
+      "id": 48,
+      "name": "Suma s DPH",
+      "type": "currency",
+      "role": "status",
+      "order": 16,
+      "properties": {
+        "hint": "",
+        "currency": "EUR"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 49,
+      "name": "Zaplatené",
+      "type": "currency",
+      "role": "status",
+      "order": 17,
+      "properties": {
+        "hint": "",
+        "currency": "EUR"
+      },
+      "required": false
+    },
+    {
+      "id": 50,
+      "name": "Zostatok",
+      "type": "currency",
+      "role": "status",
+      "order": 18,
+      "properties": {
+        "hint": "",
+        "currency": "EUR"
+      },
+      "required": false
+    },
+    {
+      "id": 41,
+      "name": "info",
+      "type": "text",
+      "order": 19,
+      "properties": {
+        "hint": "",
+        "singleLine": false
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 46,
+      "name": "info úhrada",
+      "type": "text",
+      "order": 20,
+      "properties": {
+        "hint": "",
+        "singleLine": false
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 14,
+      "name": "Stav",
+      "type": "choice",
+      "role": "desc",
+      "order": 21,
+      "options": {
+        "1": {
+          "t": "Neuhradené",
+          "c": 1,
+          "def": true
+        },
+        "2": {
+          "t": "Čiastočne uhradené",
+          "c": 2,
+          "def": false
+        },
+        "3": {
+          "t": "Uhradené ",
+          "c": 3,
+          "def": false
+        }
+      },
+      "properties": {},
+      "required": false,
+      "defaultValue": "Neuhradené"
+    },
+    {
+      "id": 44,
+      "name": "Debug_Log",
+      "type": "text",
+      "order": 22,
+      "properties": {
+        "hint": "",
+        "singleLine": false
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 45,
+      "name": "Error_Log",
+      "type": "text",
+      "order": 23,
+      "properties": {
+        "hint": "",
+        "singleLine": false
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 4,
+      "name": "ID",
+      "type": "int",
+      "role": "desc",
+      "order": 24,
+      "properties": {
+        "hint": ""
+      },
+      "required": false,
+      "defaultValue": 0
+    },
+    {
+      "id": 7,
+      "name": "farba záznamu",
+      "type": "color",
+      "order": 25,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 8,
+      "name": "farba pozadia",
+      "type": "color",
+      "order": 26,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 9,
+      "name": "zapísal",
+      "type": "user",
+      "order": 27,
+      "options": {
+        "0": {
+          "t": "krajinkamato",
+          "c": 0,
+          "def": false
+        },
+        "1": {
+          "t": "krajinkarasto",
+          "c": 1,
+          "def": false
+        },
+        "2": {
+          "t": "rasto",
+          "c": 2,
+          "def": false
+        }
+      },
+      "properties": {},
+      "required": false
+    },
+    {
+      "id": 11,
+      "name": "dátum zápisu",
+      "type": "datetime",
+      "order": 28,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 10,
+      "name": "upravil",
+      "type": "user",
+      "order": 29,
+      "options": {
+        "0": {
+          "t": "krajinkamato",
+          "c": 0,
+          "def": false
+        },
+        "1": {
+          "t": "krajinkarasto",
+          "c": 1,
+          "def": false
+        },
+        "2": {
+          "t": "rasto",
+          "c": 2,
+          "def": false
+        }
+      },
+      "properties": {},
+      "required": false
+    },
+    {
+      "id": 12,
+      "name": "dátum úpravy",
+      "type": "datetime",
+      "order": 30,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 1,
+      "name": "view",
+      "type": "radio",
+      "order": 31,
+      "options": {
+        "1": {
+          "t": "Editácia",
+          "c": 1,
+          "def": false
+        },
+        "2": {
+          "t": "Tlač",
+          "c": 2,
+          "def": true
+        },
+        "3": {
+          "t": "Debug",
+          "c": 3,
+          "def": false
+        }
+      },
+      "properties": {
+        "horizontaly": true
+      },
+      "required": true,
+      "defaultValue": "Tlač"
+    }
+  ]
+}

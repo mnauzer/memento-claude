@@ -132,6 +132,11 @@ playground.js
 !get_latest_entry_with_logs.py
 !verify_library_fields.py
 
+# Library dokumentácia a field cache (SYNCHRONIZOVANÉ)
+!libraries/**/README.md
+!libraries/**/QUICK_REFERENCE.md
+!libraries/**/fields.json
+
 # Bezpečnostné scripty (SYNCHRONIZOVANÉ)
 !cleanup-git-history.sh
 !install-hooks.sh

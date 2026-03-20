@@ -1,0 +1,695 @@
+{
+  "library_name": "Zamestnanci",
+  "library_id": "nWb00Nogf",
+  "last_updated": "2026-03-20T17:48:55.111467",
+  "fields": [
+    {
+      "id": 1,
+      "name": "Meno",
+      "type": "text",
+      "order": 0,
+      "properties": {
+        "hint": "",
+        "singleLine": true
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 2,
+      "name": "Priezvisko",
+      "type": "text",
+      "role": "desc",
+      "order": 1,
+      "properties": {
+        "hint": "",
+        "singleLine": true
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 22,
+      "name": "Nick",
+      "type": "text",
+      "role": "name",
+      "order": 2,
+      "properties": {
+        "hint": "",
+        "singleLine": true
+      },
+      "required": true,
+      "defaultValue": ""
+    },
+    {
+      "id": 28,
+      "name": "Pozícia",
+      "type": "radio",
+      "order": 3,
+      "options": {
+        "1": {
+          "t": "Brigádnik",
+          "c": 1,
+          "def": false
+        },
+        "2": {
+          "t": "Zamestnanec",
+          "c": 2,
+          "def": false
+        },
+        "3": {
+          "t": "Vedúcko",
+          "c": 3,
+          "def": false
+        },
+        "4": {
+          "t": "Externý ",
+          "c": 4,
+          "def": false
+        }
+      },
+      "properties": {
+        "horizontaly": true
+      },
+      "required": false
+    },
+    {
+      "id": 17,
+      "name": "Poznámka",
+      "type": "text",
+      "order": 4,
+      "properties": {
+        "hint": "",
+        "singleLine": false
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 4,
+      "name": "Mobil",
+      "type": "phone",
+      "order": 5,
+      "properties": {
+        "hint": "",
+        "singleLine": false
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 7,
+      "name": "Email",
+      "type": "email",
+      "order": 6,
+      "properties": {
+        "hint": "",
+        "singleLine": false
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 101,
+      "name": "Telegram ID",
+      "type": "text",
+      "order": 7,
+      "properties": {
+        "hint": "",
+        "singleLine": false
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 85,
+      "name": "--- Nastavenie prepočtu ---",
+      "type": "subheader",
+      "order": 8,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 90,
+      "name": "obdobie total",
+      "type": "choice",
+      "order": 9,
+      "options": {
+        "3": {
+          "t": "tento mesiac",
+          "c": 3,
+          "def": false
+        },
+        "4": {
+          "t": "tento rok",
+          "c": 4,
+          "def": false
+        },
+        "5": {
+          "t": "Total",
+          "c": 5,
+          "def": false
+        },
+        "7": {
+          "t": "minulý mesiac",
+          "c": 7,
+          "def": false
+        },
+        "8": {
+          "t": "minulý rok",
+          "c": 8,
+          "def": false
+        }
+      },
+      "properties": {},
+      "required": false
+    },
+    {
+      "id": 86,
+      "name": "obdobie",
+      "type": "choice",
+      "order": 10,
+      "options": {
+        "1": {
+          "t": "tento deň ",
+          "c": 1,
+          "def": false
+        },
+        "2": {
+          "t": "tento týždeň ",
+          "c": 2,
+          "def": true
+        },
+        "3": {
+          "t": "tento mesiac",
+          "c": 3,
+          "def": false
+        },
+        "4": {
+          "t": "tento rok",
+          "c": 4,
+          "def": false
+        },
+        "6": {
+          "t": "minulý týždeň ",
+          "c": 6,
+          "def": false
+        },
+        "7": {
+          "t": "minulý mesiac ",
+          "c": 7,
+          "def": false
+        },
+        "8": {
+          "t": "minulý rok",
+          "c": 8,
+          "def": false
+        },
+        "9": {
+          "t": "posledných 7 dní ",
+          "c": 9,
+          "def": false
+        },
+        "10": {
+          "t": "posledných 14 dní",
+          "c": 10,
+          "def": false
+        },
+        "11": {
+          "t": "posledných 30 dní",
+          "c": 11,
+          "def": false
+        },
+        "12": {
+          "t": "posledných 90 dní",
+          "c": 12,
+          "def": false
+        }
+      },
+      "properties": {},
+      "required": false,
+      "defaultValue": "tento týždeň "
+    },
+    {
+      "id": 77,
+      "name": "--- Odpracované ---",
+      "type": "subheader",
+      "order": 11,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 32,
+      "name": "Na zákazkách",
+      "type": "double",
+      "order": 12,
+      "properties": {
+        "unit": "h",
+        "hint": "hodiny odpracované na zákazkach"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 88,
+      "name": "Jazdy",
+      "type": "double",
+      "order": 13,
+      "properties": {
+        "unit": "h",
+        "hint": "hodiny odpracované na zákazkach"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 31,
+      "name": "Odpracované",
+      "type": "double",
+      "order": 14,
+      "properties": {
+        "unit": "h",
+        "hint": "odpracované hodiny"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 33,
+      "name": "Zarobené",
+      "type": "currency",
+      "order": 15,
+      "properties": {
+        "hint": "",
+        "currency": "EUR"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 94,
+      "name": "Prémie",
+      "type": "currency",
+      "role": "status",
+      "order": 16,
+      "properties": {
+        "hint": "Doplatiť",
+        "currency": "EUR"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 34,
+      "name": "Vyplatené",
+      "type": "currency",
+      "order": 17,
+      "properties": {
+        "hint": "vyplatené mzdy",
+        "currency": "EUR"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 100,
+      "name": "--- Odpracované total---",
+      "type": "subheader",
+      "order": 18,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 57,
+      "name": "Na zákazkách total",
+      "type": "double",
+      "order": 19,
+      "properties": {
+        "unit": "h",
+        "hint": "všetky hodiny odpracované na zákazkach"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 89,
+      "name": "Jazdy total",
+      "type": "double",
+      "order": 20,
+      "properties": {
+        "unit": "h",
+        "hint": "všetky hodiny odpracované na zákazkach"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 55,
+      "name": "Odpracované total",
+      "type": "double",
+      "order": 21,
+      "properties": {
+        "unit": "h",
+        "hint": "odpracované hodiny total"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 54,
+      "name": "Zarobené total",
+      "type": "currency",
+      "order": 22,
+      "properties": {
+        "hint": "",
+        "currency": "EUR"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 102,
+      "name": "Prémie total",
+      "type": "currency",
+      "role": "status",
+      "order": 23,
+      "properties": {
+        "hint": "Doplatiť",
+        "currency": "EUR"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 56,
+      "name": "Vyplatené total",
+      "type": "currency",
+      "order": 24,
+      "properties": {
+        "hint": "všetky doteraz vyplatené mzdy",
+        "currency": "EUR"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 78,
+      "name": "--- Mzdy ---",
+      "type": "subheader",
+      "order": 25,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 96,
+      "name": "Hrubá mzda",
+      "type": "currency",
+      "order": 26,
+      "properties": {
+        "hint": "Aktuálna hodinová sadzba",
+        "currency": "EUR"
+      },
+      "required": false
+    },
+    {
+      "id": 35,
+      "name": "Preplatok/Nedoplatok",
+      "type": "currency",
+      "role": "status",
+      "order": 27,
+      "properties": {
+        "hint": "Doplatiť",
+        "currency": "EUR"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 42,
+      "name": "Aktuálna hodinovka",
+      "type": "double",
+      "order": 28,
+      "properties": {
+        "unit": "€",
+        "hint": "Aktuálna hodinová sadzba"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 107,
+      "name": "--- Saldo ---",
+      "type": "subheader",
+      "order": 29,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 98,
+      "name": "Záväzky",
+      "type": "currency",
+      "order": 30,
+      "properties": {
+        "hint": "Doplatiť",
+        "currency": "EUR"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 99,
+      "name": "Pohľadávky",
+      "type": "currency",
+      "order": 31,
+      "properties": {
+        "hint": "Doplatiť",
+        "currency": "EUR"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 97,
+      "name": "Saldo",
+      "type": "currency",
+      "role": "status",
+      "order": 32,
+      "properties": {
+        "hint": "Doplatiť",
+        "currency": "EUR"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 93,
+      "name": "info",
+      "type": "text",
+      "order": 33,
+      "properties": {
+        "hint": "",
+        "singleLine": false
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 103,
+      "name": "--- Správy posielať ---",
+      "type": "subheader",
+      "order": 34,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 108,
+      "name": "notifikácia",
+      "type": "checkboxes",
+      "order": 35,
+      "options": {
+        "1": {
+          "t": "sms",
+          "c": 1,
+          "def": false
+        },
+        "2": {
+          "t": "telegram",
+          "c": 2,
+          "def": false
+        },
+        "3": {
+          "t": "email",
+          "c": 3,
+          "def": false
+        },
+        "4": {
+          "t": "whatsapp ",
+          "c": 4,
+          "def": false
+        }
+      },
+      "properties": {
+        "horizontaly": false
+      },
+      "required": false,
+      "defaultValue": []
+    },
+    {
+      "id": 80,
+      "name": "Debug_Log",
+      "type": "text",
+      "order": 36,
+      "properties": {
+        "hint": "",
+        "singleLine": false
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 81,
+      "name": "Error_Log",
+      "type": "text",
+      "order": 37,
+      "properties": {
+        "hint": "",
+        "singleLine": false
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 37,
+      "name": "Aktívny",
+      "type": "boolean",
+      "order": 38,
+      "properties": {},
+      "required": false,
+      "defaultValue": true
+    },
+    {
+      "id": 84,
+      "name": "Šofér",
+      "type": "boolean",
+      "order": 39,
+      "properties": {},
+      "required": false,
+      "defaultValue": false
+    },
+    {
+      "id": 63,
+      "name": "--- Hodnotenie ---",
+      "type": "subheader",
+      "order": 40,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 62,
+      "name": "Dochádzka",
+      "type": "int",
+      "order": 41,
+      "properties": {
+        "unit": "★",
+        "hint": "hodnotenie za dochádzku"
+      },
+      "required": false,
+      "defaultValue": 0
+    },
+    {
+      "id": 64,
+      "name": "Zákazky",
+      "type": "int",
+      "order": 42,
+      "properties": {
+        "unit": "★",
+        "hint": "hodnotenie za zákazky"
+      },
+      "required": false,
+      "defaultValue": 0
+    },
+    {
+      "id": 65,
+      "name": "Celkom",
+      "type": "int",
+      "order": 43,
+      "properties": {
+        "unit": "★",
+        "hint": "hodnotenie za zákazky"
+      },
+      "required": false,
+      "defaultValue": 0
+    },
+    {
+      "id": 95,
+      "name": "view",
+      "type": "choice",
+      "order": 44,
+      "options": {
+        "1": {
+          "t": "Tlač",
+          "c": 1,
+          "def": true
+        },
+        "2": {
+          "t": "Editácia",
+          "c": 2,
+          "def": false
+        },
+        "3": {
+          "t": "Debug",
+          "c": 3,
+          "def": false
+        }
+      },
+      "properties": {},
+      "required": false,
+      "defaultValue": "Tlač"
+    },
+    {
+      "id": 70,
+      "name": "ID",
+      "type": "int",
+      "order": 45,
+      "properties": {
+        "hint": ""
+      },
+      "required": false,
+      "defaultValue": 1
+    },
+    {
+      "id": 72,
+      "name": "farba záznamu",
+      "type": "color",
+      "order": 46,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 73,
+      "name": "farba pozadia",
+      "type": "color",
+      "order": 47,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    }
+  ]
+}
