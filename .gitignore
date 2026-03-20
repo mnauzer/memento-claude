@@ -127,6 +127,11 @@ playground.js
 # PostgreSQL sync API (SYNCHRONIZOVANÉ)
 !postgresql/sync-api/*.py
 
+# Utility scripty pre debugging (SYNCHRONIZOVANÉ)
+!get_latest_asistanto_log.py
+!get_latest_entry_with_logs.py
+!verify_library_fields.py
+
 # Bezpečnostné scripty (SYNCHRONIZOVANÉ)
 !cleanup-git-history.sh
 !install-hooks.sh
