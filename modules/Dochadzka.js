@@ -1,6 +1,6 @@
 // ==============================================
 // LIBRARY MODULE - Dochadzka (Attendance)
-// Verzia: 1.0.1 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// Verzia: 1.0.2 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // ==============================================
 // 📋 PURPOSE:
 //    - Reusable module for attendance calculations
@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.0.1",
+        version: "1.0.2",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -46,7 +46,7 @@ var Dochadzka = (function() {
         extractedFrom: "Doch.Calc.Main.js v8.2.0",
         extractedLines: 528,
         extractedDate: "2026-03-19",
-        changelog: "v1.0.1 - Fixed validation to use manual field checking instead of utils.validateInputData"
+        changelog: "v1.0.2 - Fixed createInfoRecord to check if employeeResult.detaily exists before iteration"
     };
 
     // ==============================================
@@ -431,14 +431,19 @@ var Dochadzka = (function() {
             infoMessage += "## 👥 ZAMESTNANCI (" + employeeResult.pocetPracovnikov + " " +
                           utils.selectOsobaForm(employeeResult.pocetPracovnikov) + ")\n\n";
 
-            for (var i = 0; i < employeeResult.detaily.length; i++) {
-                var detail = employeeResult.detaily[i];
-                infoMessage += "### 👤 " + utils.formatEmployeeName(detail.zamestnanec) + "\n";
-                infoMessage += "- **Hodinovka:** " + detail.hodinovka + " €/h\n";
-                if (detail.priplatok > 0) infoMessage += "- **Príplatok:** +" + detail.priplatok + " €/h\n";
-                if (detail.premia > 0) infoMessage += "- **Prémia:** +" + detail.premia + " €\n";
-                if (detail.pokuta > 0) infoMessage += "- **Pokuta:** -" + detail.pokuta + " €\n";
-                infoMessage += "- **Denná mzda:** " + detail.dennaMzda + " €\n\n";
+            // Check if employee details exist before iterating
+            if (employeeResult.detaily && employeeResult.detaily.length > 0) {
+                for (var i = 0; i < employeeResult.detaily.length; i++) {
+                    var detail = employeeResult.detaily[i];
+                    infoMessage += "### 👤 " + utils.formatEmployeeName(detail.zamestnanec) + "\n";
+                    infoMessage += "- **Hodinovka:** " + detail.hodinovka + " €/h\n";
+                    if (detail.priplatok > 0) infoMessage += "- **Príplatok:** +" + detail.priplatok + " €/h\n";
+                    if (detail.premia > 0) infoMessage += "- **Prémia:** +" + detail.premia + " €\n";
+                    if (detail.pokuta > 0) infoMessage += "- **Pokuta:** -" + detail.pokuta + " €\n";
+                    infoMessage += "- **Denná mzda:** " + detail.dennaMzda + " €\n\n";
+                }
+            } else {
+                infoMessage += "⚠️ Žiadne detaily zamestnancov (spracovanie zlyhalo)\n\n";
             }
 
             infoMessage += "## 💰 SÚHRN\n";

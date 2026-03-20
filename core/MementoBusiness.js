@@ -38,7 +38,7 @@ var MementoBusiness = (function() {
 
     var MODULE_INFO = {
         name: "MementoBusiness",
-        version: "8.0.0",
+        version: "8.0.1",
         author: "ASISTANTO",
         description: "High-level business workflows (employee processing, reports, obligations, material prices)",
         dependencies: [
@@ -547,9 +547,16 @@ var MementoBusiness = (function() {
         var currentEntry = options.entry || entry();
 
         try {
-            var employeeName = formatting ?
-                formatting.formatEmployeeName(employee) :
-                employee.field("Meno a priezvisko") || "N/A";
+            // CRITICAL: Never hardcode field names - use formatting module or config
+            var employeeName = "N/A";
+            if (formatting && formatting.formatEmployeeName) {
+                employeeName = formatting.formatEmployeeName(employee);
+            } else if (config && config.fields && config.fields.employee) {
+                // Fallback: construct name from firstName + lastName
+                var firstName = employee.field(config.fields.employee.firstName) || "";
+                var lastName = employee.field(config.fields.employee.lastName) || "";
+                employeeName = (firstName + " " + lastName).trim() || employee.field(config.fields.employee.nick) || "N/A";
+            }
 
             if (core) {
                 core.addDebug(currentEntry, "  [" + (index + 1) + "] Spracovávam: " + employeeName, "person");
@@ -913,6 +920,14 @@ var MementoBusiness = (function() {
         try {
             if (!sourceEntry || !reportType || !calculatedData) {
                 return { success: false, error: "Missing required parameters" };
+            }
+
+            // CRITICAL: Check if reportTypes exists in config first
+            if (!config || !config.reportTypes) {
+                if (core) {
+                    core.addDebug(entry(), "⚠️ Denný report preskočený - config.reportTypes neexistuje");
+                }
+                return { success: false, error: "Report types not configured", skipped: true };
             }
 
             // Get report configuration
