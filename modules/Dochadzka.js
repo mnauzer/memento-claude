@@ -1,6 +1,6 @@
 // ==============================================
 // LIBRARY MODULE - Dochadzka (Attendance)
-// Verzia: 1.1.0 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 1.1.1 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // ==============================================
 // 📋 PURPOSE:
 //    - Reusable module for attendance calculations
@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.1.0",
+        version: "1.1.1",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -47,6 +47,11 @@ var Dochadzka = (function() {
         extractedLines: 528,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.1.1 (2026-03-20) - CRITICAL FIX: Pass linkToEntry objects to processEmployees()",
+            "  - FIX: processEmployees() now receives linkToEntry field directly from entry",
+            "  - BEFORE: Passed validationResult.data.employees (plain entries from safeGetLinks)",
+            "  - AFTER: Pass entry.field(employees) (linkToEntry objects with .e property)",
+            "  - RESULT: MementoBusiness now correctly detects linkToEntry and sets attributes!",
             "v1.1.0 (2026-03-20) - CRITICAL FIX: LinkToEntry Attribute API",
             "  - NEW: setEmployeeAttributes() function sets attributes BEFORE processEmployees()",
             "  - FIX: Uses CORRECT Memento attribute API:",
@@ -931,10 +936,12 @@ var Dochadzka = (function() {
             }
 
             // STEP 4: Process employees (create obligations)
-            addDebug(entry, " KROK 4: Vytvorenie záväzkov", "group");
+            addDebug(entry, "👥   KROK 4: Vytvorenie záväzkov", "group");
+            // CRITICAL: Get linkToEntry field directly, NOT from validation (which extracts plain entries)
+            var employeesLinkToEntry = entry.field(config.fields.employees);
             var employeeResult = processEmployees(
                 entry,
-                validationResult.data.employees,
+                employeesLinkToEntry,  // Pass linkToEntry objects, not plain entries!
                 workTimeResult.pracovnaDobaHodiny,
                 validationResult.data.date,
                 config,
