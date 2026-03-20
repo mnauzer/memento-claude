@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.0.11",
+        version: "1.0.12",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -606,6 +606,9 @@ var Dochadzka = (function() {
             }
 
             infoMessage += "\n---\n**✅ PREPOČET DOKONČENÝ ÚSPEŠNE**";
+
+            addDebug(entry, "📝 Info message length: " + infoMessage.length + " chars");
+            addDebug(entry, "📝 Info field name: '" + config.fields.info + "'");
 
             entry.set(config.fields.info, infoMessage);
 

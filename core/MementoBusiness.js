@@ -38,7 +38,7 @@ var MementoBusiness = (function() {
 
     var MODULE_INFO = {
         name: "MementoBusiness",
-        version: "8.0.6",
+        version: "8.0.7",
         author: "ASISTANTO",
         description: "High-level business workflows (employee processing, reports, obligations, material prices)",
         dependencies: [
@@ -551,31 +551,14 @@ var MementoBusiness = (function() {
             // Format as "Nick (Priezvisko)"
             var employeeName = "N/A";
 
-            // Debug: Check employee entry fields using config
-            if (core && employee && config && config.fields && config.fields.employee) {
-                var prezyvka = core.safeGet(employee, config.fields.employee.nick, "");
-                var priezvisko = core.safeGet(employee, config.fields.employee.lastName, "");
-                var menoAPriezvisko = core.safeGet(employee, config.fields.employee.name, "");
-                core.addDebug(currentEntry, "    🔍 Employee fields:");
-                core.addDebug(currentEntry, "       • Nick (Prezývka): '" + prezyvka + "'");
-                core.addDebug(currentEntry, "       • LastName (Priezvisko): '" + priezvisko + "'");
-                core.addDebug(currentEntry, "       • Name (Meno a priezvisko): '" + menoAPriezvisko + "'");
-            }
-
             if (formatting && formatting.formatEmployeeName) {
                 employeeName = formatting.formatEmployeeName(employee, {nickFirst: true});
-                if (core) {
-                    core.addDebug(currentEntry, "    🔍 formatEmployeeName returned: '" + employeeName + "'");
-                }
             } else if (config && config.fields && config.fields.employee) {
                 // Fallback: construct name from firstName + lastName
                 var firstName = employee.field(config.fields.employee.firstName) || "";
                 var lastName = employee.field(config.fields.employee.lastName) || "";
                 var nick = employee.field(config.fields.employee.nick) || "";
                 employeeName = (firstName + " " + lastName).trim() || nick || "N/A";
-                if (core) {
-                    core.addDebug(currentEntry, "    🔍 Fallback: firstName='" + firstName + "', lastName='" + lastName + "', nick='" + nick + "'");
-                }
             }
 
             if (core) {
