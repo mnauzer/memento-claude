@@ -70,24 +70,22 @@ try {
 
     if (allReports.length === 0) {
         dialog("Prepočet", "ℹ️ Žiadne záznamy na prepočítanie.", "OK");
-        return;
-    }
+    } else {
+        // Potvrdenie pred spustením
+        var confirmMsg = "🔄 PREPOČET VŠETKÝCH ZÁZNAMOV\n\n";
+        confirmMsg += "Celkom záznamov: " + allReports.length + "\n\n";
+        confirmMsg += "Táto operácia:\n";
+        confirmMsg += "• Znovu nalinkuje záznamy z Dochádzky, Prác, Jázd, Pokladne\n";
+        confirmMsg += "• Validuje dátumy všetkých linkov\n";
+        confirmMsg += "• Môže trvať niekoľko minút\n\n";
+        confirmMsg += "Pokračovať?";
 
-    // Potvrdenie pred spustením
-    var confirmMsg = "🔄 PREPOČET VŠETKÝCH ZÁZNAMOV\n\n";
-    confirmMsg += "Celkom záznamov: " + allReports.length + "\n\n";
-    confirmMsg += "Táto operácia:\n";
-    confirmMsg += "• Znovu nalinkuje záznamy z Dochádzky, Prác, Jázd, Pokladne\n";
-    confirmMsg += "• Validuje dátumy všetkých linkov\n";
-    confirmMsg += "• Môže trvať niekoľko minút\n\n";
-    confirmMsg += "Pokračovať?";
+        var confirm = dialog("Prepočet záznamov", confirmMsg, "Áno", "Nie");
 
-    var confirm = dialog("Prepočet záznamov", confirmMsg, "Áno", "Nie");
-    if (confirm !== 0) {
-        utils.addDebug(entry(), "❌ Používateľ zrušil prepočet");
-        message("❌ Prepočet zrušený");
-        return;
-    }
+        if (confirm !== 0) {
+            utils.addDebug(entry(), "❌ Používateľ zrušil prepočet");
+            message("❌ Prepočet zrušený");
+        } else {
 
     // Prepočítaj všetky záznamy
     var stats = {
@@ -163,6 +161,9 @@ try {
     utils.addDebug(entry(), "  ⚠️ Unlinkované: " + stats.totalUnlinked);
 
     message("✅ Prepočítaných " + stats.success + " záznamov\n🔗 Nalinkované: " + stats.totalLinked);
+
+        } // Koniec else bloku (riadok 88 - používateľ potvrdil)
+    } // Koniec else bloku (riadok 73 - existujú záznamy)
 
 } catch (error) {
     utils.addError(entry(), "Kritická chyba v " + SCRIPT_NAME, SCRIPT_NAME, error);
