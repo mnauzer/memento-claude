@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.0.0
+ * Version:     1.1.0
  * Author:      ASISTANTO
  * Date:        2026-03-20
  *
@@ -28,6 +28,9 @@
  *   }
  *
  * Changelog:
+ *   v1.1.0 (2026-03-20) - Visual improvements in debug log
+ *     - Add visual separators between KROK 1 and KROK 2
+ *     - Better readability of debug output
  *   v1.0.0 (2026-03-20) - Complete implementation
  *     - Extract wage calculation logic from Zam.Calc.Universal.js
  *     - Implement reusable module pattern
@@ -45,7 +48,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.0.0",
+        version: "1.1.0",
         author: "ASISTANTO",
         date: "2026-03-20"
     };
@@ -281,7 +284,10 @@ var Zamestnanci = (function() {
                 var resultTotal = null;
 
                 // STEP 1: Calculate for "obdobie" (regular fields)
-                utils.addDebug(employeeEntry, "📊 KROK 1: Výpočet základných polí");
+                utils.addDebug(employeeEntry, "");
+                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
+                utils.addDebug(employeeEntry, "📊 KROK 1: VÝPOČET ZÁKLADNÝCH POLÍ");
+                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
                 var obdobie = employeeEntry.field(FIELDS.obdobie);
 
                 if (obdobie) {
@@ -301,7 +307,10 @@ var Zamestnanci = (function() {
                 }
 
                 // STEP 2: Calculate for "obdobie total" (total fields)
-                utils.addDebug(employeeEntry, "📊 KROK 2: Výpočet total polí");
+                utils.addDebug(employeeEntry, "");
+                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
+                utils.addDebug(employeeEntry, "📊 KROK 2: VÝPOČET TOTAL POLÍ");
+                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
                 var obdobieTotal = employeeEntry.field(FIELDS.obdobieTotal);
 
                 if (obdobieTotal) {
