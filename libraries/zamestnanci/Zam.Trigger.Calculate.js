@@ -1,8 +1,8 @@
 /**
  * Knižnica:    Zamestnanci
  * Názov:       Zam.Trigger.Calculate
- * Typ:         Trigger (After Save)
- * Verzia:      1.0.0
+ * Typ:         Trigger (After Save - Field Update)
+ * Verzia:      1.1.0
  * Autor:       ASISTANTO
  * Dátum:       2026-03-20
  *
@@ -10,53 +10,53 @@
  *   Ultra-thin wrapper pre prepočet miezd zamestnanca.
  *   Všetka logika je v modules/Zamestnanci.js module.
  *
+ *   Event: Field Update (obdobie, obdobie total) - After Save
+ *
  * Závislosti:
  *   - MementoUtils v8.1+
  *   - Zamestnanci module v1.0+
  *
  * Changelog:
+ *   v1.1.0 (2026-03-20) - Fixed trigger pattern
+ *     - Removed dialog() and cancel() (blocking in triggers)
+ *     - Silent fail with logging only
+ *     - Wrapped in if block (no return at top level)
  *   v1.0.0 (2026-03-20) - Initial implementation
- *     - Ultra-thin wrapper pattern
- *     - Calls Zamestnanci.calculateWages()
  */
 
 'use strict';
 
 // ==============================================
-// DEPENDENCY VALIDATION
+// VALIDÁCIA A HLAVNÁ FUNKCIA
 // ==============================================
 
-if (typeof MementoUtils === 'undefined') {
-    message("❌ Chýba MementoUtils modul!");
-    cancel();
-}
-
-if (typeof Zamestnanci === 'undefined') {
-    message("❌ Chýba Zamestnanci modul!");
-    cancel();
-}
+// Zabal celý kód do if bloku - žiadne return na top level!
+if (typeof MementoUtils !== 'undefined' && typeof Zamestnanci !== 'undefined') {
 
 var utils = MementoUtils;
+var currentEntry = entry();
+
+var SCRIPT_VERSION = "1.1.0";
+var SCRIPT_NAME = "Zam.Trigger.Calculate";
 
 // ==============================================
 // MAIN EXECUTION
 // ==============================================
 
 try {
-    var result = Zamestnanci.calculateWages(entry(), utils.config, utils);
+    utils.addDebug(currentEntry, "🔄 " + SCRIPT_NAME + " v" + SCRIPT_VERSION);
+
+    var result = Zamestnanci.calculateWages(currentEntry, utils.config, utils);
 
     if (!result.success) {
-        var errorDetails = "❌ CHYBA PRI VÝPOČTE\n\n";
-        errorDetails += "Chyba: " + (result.error || result.message) + "\n";
-        dialog("Chyba pri výpočte miezd", errorDetails, "OK");
-        cancel();
+        utils.addError(currentEntry, "Chyba pri výpočte: " + (result.error || result.message), SCRIPT_NAME);
+    } else {
+        utils.addDebug(currentEntry, "✅ Prepočet dokončený úspešne");
     }
 
 } catch (error) {
-    var errorDetails = "❌ KRITICKÁ CHYBA\n\n";
-    errorDetails += "Script: Zam.Trigger.Calculate v1.0.0\n\n";
-    errorDetails += "Chyba: " + error.toString() + "\n";
-
-    dialog("Kritická chyba", errorDetails, "OK");
-    cancel();
+    // Silent fail - trigger nesmie zablokovať uloženie
+    utils.addError(currentEntry, "KRITICKÁ CHYBA: " + error.toString(), SCRIPT_NAME, error);
 }
+
+} // Koniec if (typeof MementoUtils !== 'undefined' && typeof Zamestnanci !== 'undefined')
