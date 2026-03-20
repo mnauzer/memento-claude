@@ -30,7 +30,7 @@ var MementoFormatting = (function() {
 
     var MODULE_INFO = {
         name: "MementoFormatting",
-        version: "1.1.0",
+        version: "1.1.1",
         author: "ASISTANTO",
         description: "Formatting utilities for display (money, numbers, duration, markdown)",
         dependencies: [],  // Optional: MementoCore for enhanced features
@@ -379,6 +379,7 @@ var MementoFormatting = (function() {
 
         try {
             if (!employeeEntry) {
+                if (console && console.log) console.log("🔍 formatEmployeeName: employeeEntry is null/undefined");
                 return "N/A";
             }
 
@@ -391,6 +392,7 @@ var MementoFormatting = (function() {
             } else {
                 fullName = employeeEntry.field(nameField) || "N/A";
             }
+            if (console && console.log) console.log("🔍 formatEmployeeName: fullName='" + fullName + "'");
 
             // Get nickname if requested
             if (showNick) {
@@ -400,6 +402,7 @@ var MementoFormatting = (function() {
                 } else {
                     nick = employeeEntry.field(nickField);
                 }
+                if (console && console.log) console.log("🔍 formatEmployeeName: nick='" + (nick || "(empty)") + "', nickFirst=" + nickFirst);
 
                 if (nick) {
                     // If nickFirst is true, format as "Nick (Priezvisko)"
@@ -410,10 +413,14 @@ var MementoFormatting = (function() {
                         } else {
                             lastName = employeeEntry.field(lastNameField);
                         }
+                        if (console && console.log) console.log("🔍 formatEmployeeName: lastName='" + (lastName || "(empty)") + "'");
                         if (lastName) {
-                            return nick + " (" + lastName + ")";
+                            var result = nick + " (" + lastName + ")";
+                            if (console && console.log) console.log("🔍 formatEmployeeName: returning '" + result + "'");
+                            return result;
                         }
                         // Fallback if lastName not available
+                        if (console && console.log) console.log("🔍 formatEmployeeName: lastName empty, returning nick only");
                         return nick;
                     } else {
                         // Default format: "Meno Priezvisko (Nick)"
@@ -422,9 +429,11 @@ var MementoFormatting = (function() {
                 }
             }
 
+            if (console && console.log) console.log("🔍 formatEmployeeName: no nick, returning fullName");
             return fullName;
 
         } catch (error) {
+            if (console && console.log) console.log("🔍 formatEmployeeName ERROR: " + error.toString());
             return "N/A";
         }
     }
