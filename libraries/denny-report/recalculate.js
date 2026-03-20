@@ -76,12 +76,15 @@ try {
         confirmMsg += "• Môže trvať niekoľko minút\n\n";
         confirmMsg += "Pokračovať?";
 
+        utils.addDebug(entry(), "📊 Zobrazujem potvrdzovacie okno...");
         var confirm = dialog("Prepočet záznamov", confirmMsg, "Áno", "Nie");
+        utils.addDebug(entry(), "📊 Dialog vrátil: " + confirm + " (typ: " + typeof confirm + ")");
 
         if (confirm !== 0) {
-            utils.addDebug(entry(), "❌ Používateľ zrušil prepočet");
-            message("❌ Prepočet zrušený");
+            utils.addDebug(entry(), "❌ Dialog vrátil " + confirm + " (nie 0) - používateľ zrušil prepočet");
+            message("❌ Prepočet zrušený (klikli ste Nie alebo zavreli dialog)");
         } else {
+            utils.addDebug(entry(), "✅ Dialog vrátil 0 - používateľ potvrdil prepočet");
 
     // Prepočítaj všetky záznamy
     var stats = {
