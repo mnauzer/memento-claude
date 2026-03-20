@@ -1,6 +1,6 @@
 // ==============================================
 // LIBRARY MODULE - Dochadzka (Attendance)
-// Verzia: 1.0.4 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 1.0.5 | Dátum: 2026-03-20 | Autor: ASISTANTO
 // ==============================================
 // 📋 PURPOSE:
 //    - Reusable module for attendance calculations
@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.0.4",
+        version: "1.0.5",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -46,7 +46,7 @@ var Dochadzka = (function() {
         extractedFrom: "Doch.Calc.Main.js v8.2.0",
         extractedLines: 528,
         extractedDate: "2026-03-19",
-        changelog: "v1.0.4 - Added error property to all function returns; fixed 'Chyba: undefined' in beforeSave trigger"
+        changelog: "v1.0.5 - Fixed: rounded times, work time calculation, employee info display, obligations creation"
     };
 
     // ==============================================
@@ -310,6 +310,53 @@ var Dochadzka = (function() {
 
             var result = utils.processEmployees(employees, workHours, date, options);
 
+            // CRITICAL: Process obligations separately (utils.processEmployees doesn't use our callback)
+            var obligationsCreated = 0;
+            var obligationsUpdated = 0;
+
+            if (result.success && result.details && result.details.length > 0) {
+                // Get linked obligations from this attendance entry
+                var linkedObligations = utils.findLinkedObligations ?
+                    utils.findLinkedObligations(entry, config.fields.obligations) : [];
+
+                for (var i = 0; i < result.details.length; i++) {
+                    var empDetail = result.details[i];
+                    if (!empDetail.employeeEntry || !empDetail.wage) continue;
+
+                    // Find existing obligation for this employee
+                    var existingObligation = null;
+                    for (var j = 0; j < linkedObligations.length; j++) {
+                        var obl = linkedObligations[j];
+                        var oblEmployee = utils.safeGetLinks(obl, config.fields.obligations.employee);
+                        if (oblEmployee && oblEmployee.length > 0 &&
+                            oblEmployee[0].id === empDetail.employeeEntry.id) {
+                            existingObligation = obl;
+                            break;
+                        }
+                    }
+
+                    if (existingObligation) {
+                        // Update existing
+                        if (utils.updateObligation && utils.updateObligation(date, existingObligation, empDetail.wage)) {
+                            obligationsUpdated++;
+                        }
+                    } else {
+                        // Create new
+                        var oblData = {
+                            employee: empDetail.employeeEntry,
+                            amount: empDetail.wage,
+                            hours: empDetail.hours,
+                            hourlyRate: empDetail.hourlyRate,
+                            date: date,
+                            sourceEntry: entry
+                        };
+                        if (utils.createObligation && utils.createObligation(date, oblData, "attendance")) {
+                            obligationsCreated++;
+                        }
+                    }
+                }
+            }
+
             // CRITICAL: Transform result from utils.processEmployees() format to expected format
             // utils.processEmployees returns: {processed, failed, totalWage, details, success}
             // Expected format: {odpracovaneTotal, celkoveMzdy, pocetPracovnikov, detaily, pracovnaDoba, created, updated, success}
@@ -320,8 +367,8 @@ var Dochadzka = (function() {
                 celkoveMzdy: result.totalWage || 0,
                 detaily: result.details || [],
                 pracovnaDoba: workHours, // Work time per employee
-                created: 0, // Obligations created (would need to track separately)
-                updated: 0, // Obligations updated (would need to track separately)
+                created: obligationsCreated,
+                updated: obligationsUpdated,
                 error: result.error
             };
 
@@ -410,8 +457,16 @@ var Dochadzka = (function() {
      * Set calculated fields on entry
      * @private
      */
-    function setEntryFields(entry, employeeResult, entryIcons, entryStatus, config, utils) {
+    function setEntryFields(entry, workTimeResult, employeeResult, entryIcons, entryStatus, config, utils) {
         try {
+            // CRITICAL: Set rounded times and work time
+            if (workTimeResult && workTimeResult.success) {
+                utils.safeSet(entry, config.fields.arrival, workTimeResult.arrivalRounded);
+                utils.safeSet(entry, config.fields.departure, workTimeResult.departureRounded);
+                utils.safeSet(entry, config.fields.workTime, workTimeResult.pracovnaDobaHodiny);
+            }
+
+            // Set employee results
             utils.safeSet(entry, config.fields.workedHours, employeeResult.odpracovaneTotal);
             utils.safeSet(entry, config.fields.wageCosts, employeeResult.celkoveMzdy);
             utils.safeSet(entry, config.fields.entryIcons, entryIcons);
@@ -455,12 +510,15 @@ var Dochadzka = (function() {
             if (employeeResult.detaily && employeeResult.detaily.length > 0) {
                 for (var i = 0; i < employeeResult.detaily.length; i++) {
                     var detail = employeeResult.detaily[i];
-                    infoMessage += "### 👤 " + utils.formatEmployeeName(detail.zamestnanec) + "\n";
-                    infoMessage += "- **Hodinovka:** " + detail.hodinovka + " €/h\n";
-                    if (detail.priplatok > 0) infoMessage += "- **Príplatok:** +" + detail.priplatok + " €/h\n";
-                    if (detail.premia > 0) infoMessage += "- **Prémia:** +" + detail.premia + " €\n";
-                    if (detail.pokuta > 0) infoMessage += "- **Pokuta:** -" + detail.pokuta + " €\n";
-                    infoMessage += "- **Denná mzda:** " + detail.dennaMzda + " €\n\n";
+                    // CRITICAL: Use correct property names from utils.processEmployees result
+                    // detail.employeeEntry (not zamestnanec), detail.hourlyRate (not hodinovka), detail.wage (not dennaMzda)
+                    var empName = detail.employee || utils.formatEmployeeName(detail.employeeEntry) || "N/A";
+                    infoMessage += "### 👤 " + empName + "\n";
+                    infoMessage += "- **Hodinovka:** " + (detail.hourlyRate || 0) + " €/h\n";
+                    if (detail.overtimeHours && detail.overtimeHours > 0) {
+                        infoMessage += "- **Nadčas:** " + detail.overtimeHours + " h\n";
+                    }
+                    infoMessage += "- **Denná mzda:** " + (detail.wage || 0).toFixed(2) + " €\n\n";
                 }
             } else {
                 infoMessage += "⚠️ Žiadne detaily zamestnancov (spracovanie zlyhalo)\n\n";
@@ -705,7 +763,7 @@ var Dochadzka = (function() {
 
             // STEP 5: Set entry fields
             addDebug(entry, " KROK 5: Celkové výpočty", "calculation");
-            var totalsResult = setEntryFields(entry, employeeResult, entryIcons, entryStatus, config, utils);
+            var totalsResult = setEntryFields(entry, workTimeResult, employeeResult, entryIcons, entryStatus, config, utils);
             steps.step5.success = totalsResult.success;
 
             // STEP 6: Create info record
