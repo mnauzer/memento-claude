@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.9.0
+ * Version:     1.10.0
  * Author:      ASISTANTO
  * Date:        2026-03-21
  *
@@ -28,6 +28,11 @@
  *   }
  *
  * Changelog:
+ *   v1.10.0 (2026-03-21) - Improved info field formatting
+ *     - Smaller headings (### instead of # / ##)
+ *     - Nick without label (just name, plain text)
+ *     - Period heading shows actual date range (e.g. "Marec 2026", "1.3.2026 – 31.3.2026")
+ *     - Preplatok/Nedoplatok: label changes based on sign, colored with HTML span
  *   v1.9.0 (2026-03-21) - Add Vyplatené from Pokladňa + Preplatok/Nedoplatok
  *     - New: calculatePaidFromPokladna() — sums Pokladňa Výdavok/Mzda records per period
  *     - calculateWages() STEP 3: Vyplatené (Pokladňa), Na zákazkách=0, Jazdy=0, Preplatok/Nedoplatok
@@ -68,7 +73,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.9.0",
+        version: "1.10.0",
         author: "ASISTANTO",
         date: "2026-03-21",
         library: "zamestnanci",              // → libraries/zamestnanci/fields.json
@@ -517,24 +522,47 @@ var Zamestnanci = (function() {
                 // STEP 5: Create info message
                 utils.addDebug(employeeEntry, "📝 KROK 5: Vytvorenie info záznamu");
 
-                var infoMessage = "# 👤 ZAMESTNANEC - PREPOČET MIEZD\n\n";
-                infoMessage += "**Nick:** " + employeeName + "\n\n";
+                // Format period choice as readable heading (date range or month name)
+                var MONTHS_SK = ["Január","Február","Marec","Apríl","Máj","Jún",
+                                 "Júl","August","September","Október","November","December"];
+                var formatPeriodHeading = function(choice) {
+                    var dr = calculateDateRange(choice);
+                    var s = moment(dr.startDate);
+                    var e = moment(dr.endDate);
+                    var c = (choice || "").trim();
+                    if (c === "Total") {
+                        return "Total";
+                    } else if (c === "tento mesiac" || c === "minulý mesiac") {
+                        return MONTHS_SK[s.month()] + " " + s.year();
+                    } else if (c === "tento rok" || c === "minulý rok") {
+                        return "" + s.year();
+                    } else if (c === "tento deň") {
+                        return s.format("D.M.YYYY");
+                    } else {
+                        return s.format("D.M.YYYY") + " \u2013 " + e.format("D.M.YYYY");
+                    }
+                };
+
+                var infoMessage = "### 👤 Prepočet mzdy\n";
+                infoMessage += employeeName + "\n\n";
 
                 if (obdobie && resultObdobie && resultObdobie.success) {
                     var vyplHodnota = (resultPokladna && resultPokladna.success) ? resultPokladna.vyplatene : 0;
                     var prepHodnota = resultObdobie.zarobene - vyplHodnota;
-                    infoMessage += "## 📊 Obdobie (voľba " + obdobie + ")\n";
+                    var prepLabel = prepHodnota >= 0 ? "Preplatok" : "Nedoplatok";
+                    var prepColor = prepHodnota >= 0 ? "green" : "red";
+                    infoMessage += "### 📊 " + formatPeriodHeading(obdobie) + "\n";
                     infoMessage += "- **Odpracované:** " + resultObdobie.odpracovane.toFixed(2) + " h\n";
                     infoMessage += "- **Zarobené:** " + resultObdobie.zarobene.toFixed(2) + " €\n";
                     infoMessage += "- **Prémie:** " + resultObdobie.premie.toFixed(2) + " €\n";
                     infoMessage += "- **Vyplatené:** " + vyplHodnota.toFixed(2) + " €\n";
-                    infoMessage += "- **Preplatok/Nedoplatok:** " + prepHodnota.toFixed(2) + " €\n";
+                    infoMessage += "- **" + prepLabel + ":** <span style=\"color:" + prepColor + "\">" + prepHodnota.toFixed(2) + " €</span>\n";
                     infoMessage += "- **Záznamov (doch.):** " + resultObdobie.recordsCount + "\n\n";
                 }
 
                 if (obdobieTotal && resultTotal && resultTotal.success) {
                     var vyplTotalHodnota = (resultPokladnaTotal && resultPokladnaTotal.success) ? resultPokladnaTotal.vyplatene : 0;
-                    infoMessage += "## 📊 Obdobie Total (voľba " + obdobieTotal + ")\n";
+                    infoMessage += "### 📊 " + formatPeriodHeading(obdobieTotal) + "\n";
                     infoMessage += "- **Odpracované total:** " + resultTotal.odpracovane.toFixed(2) + " h\n";
                     infoMessage += "- **Zarobené total:** " + resultTotal.zarobene.toFixed(2) + " €\n";
                     infoMessage += "- **Prémie total:** " + resultTotal.premie.toFixed(2) + " €\n";
