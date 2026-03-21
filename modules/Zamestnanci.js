@@ -1,8 +1,8 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.5.0
+ * Version:     1.6.0
  * Author:      ASISTANTO
- * Date:        2026-03-20
+ * Date:        2026-03-21
  *
  * Purpose:
  *   Reusable module for employee wage calculations based on attendance records.
@@ -28,10 +28,15 @@
  *   }
  *
  * Changelog:
+ *   v1.6.0 (2026-03-21) - Fix field names from API verification
+ *     - CRITICAL FIX: Use "Platnosť od" (not "Platné od") - verified via API
+ *     - Remove fallback field names (use exact names only)
+ *     - Note: "Platné do" field doesn't exist (library has only 3 fields)
+ *     - Rates are valid indefinitely (no end date in data model)
  *   v1.5.0 (2026-03-20) - Add hourly rate lookup from historical data
  *     - New: getCurrentHourlyRate() - finds current rate from "sadzby zamestnancov"
  *     - New: updateCurrentHourlyRate() - updates "Aktuálna hodinovka" field
- *     - Supports date range validation (Platné od/Platné do)
+ *     - Supports date range validation (was incorrect, fixed in v1.6.0)
  *     - Takes latest valid rate if multiple found
  *   v1.4.0 (2026-03-20) - Add calculateWagesAction for button actions
  *     - New public API function with built-in dialogs
@@ -70,7 +75,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.5.0",
+        version: "1.6.0",
         author: "ASISTANTO",
         date: "2026-03-20"
     };
@@ -574,9 +579,9 @@ var Zamestnanci = (function() {
 
                 for (var i = 0; i < employeeRates.length; i++) {
                     var rateEntry = employeeRates[i];
-                    var validFrom = rateEntry.field("Platné od") || rateEntry.field("Dátum");
-                    var validTo = rateEntry.field("Platné do");
-                    var rate = rateEntry.field("Sadzba") || rateEntry.field("Hodinová sadzba");
+                    var validFrom = rateEntry.field("Platnosť od");  // CRITICAL: Exact field name from API
+                    var validTo = rateEntry.field("Platné do");  // May not exist (library has only 3 fields)
+                    var rate = rateEntry.field("Sadzba");  // Currency field
 
                     if (!validFrom || !rate) continue;
 
