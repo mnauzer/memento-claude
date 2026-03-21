@@ -1,8 +1,8 @@
 {
-  "library_name": "Sadzby zamestnancov",
-  "library_id": "UNKNOWN - needs verification",
+  "library_name": "sadzby zamestnancov",
+  "library_id": "CqXNnosKP",
   "last_updated": "2026-03-21T00:00:00",
-  "note": "TEMPLATE - Verify field names via Memento API",
+  "note": "TEMPLATE - Field names need verification via API (correct library found)",
   "expected_fields": [
     {
       "name": "Zamestnanec",

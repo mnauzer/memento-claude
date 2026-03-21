@@ -1,7 +1,9 @@
-# Sadzby zamestnancov
+# sadzby zamestnancov
 
 **Typ:** Historická knižnica sadzieb
 **Účel:** Uchovávanie historických hodinových sadzieb zamestnancov s platnosťou podľa dátumu
+**Library ID:** `CqXNnosKP`
+**CRITICAL:** Library name is lowercase "sadzby zamestnancov" in Memento!
 
 ---
 

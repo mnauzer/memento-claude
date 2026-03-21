@@ -44,6 +44,10 @@ wheels/
 # JSON súbory
 *.json
 
+# Library registry files (KEEP LOCAL ONLY)
+libraries_registry.json
+libraries/*/fields.json.cache
+
 # Cache a temporary súbory
 .cache/
 .backups/
@@ -132,11 +136,11 @@ playground.js
 !get_latest_entry_with_logs.py
 !verify_library_fields.py
 
-# Library dokumentácia a field cache (SYNCHRONIZOVANÉ)
+# Library dokumentácia (SYNCHRONIZOVANÉ)
 !libraries/**/README.md
 !libraries/**/QUICK_REFERENCE.md
 !libraries/**/FIELD_REFERENCE.md
-!libraries/**/fields.json
+# NOTE: fields.json files are LOCAL ONLY (not synchronized)
 
 # Bezpečnostné scripty (SYNCHRONIZOVANÉ)
 !cleanup-git-history.sh

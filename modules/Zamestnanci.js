@@ -29,7 +29,7 @@
  *
  * Changelog:
  *   v1.5.0 (2026-03-20) - Add hourly rate lookup from historical data
- *     - New: getCurrentHourlyRate() - finds current rate from "Sadzby zamestnancov"
+ *     - New: getCurrentHourlyRate() - finds current rate from "sadzby zamestnancov"
  *     - New: updateCurrentHourlyRate() - updates "Aktuálna hodinovka" field
  *     - Supports date range validation (Platné od/Platné do)
  *     - Takes latest valid rate if multiple found
@@ -512,7 +512,7 @@ var Zamestnanci = (function() {
         },
 
         /**
-         * Get current hourly rate from "Sadzby zamestnancov" library
+         * Get current hourly rate from "sadzby zamestnancov" library
          *
          * @param {Entry} employeeEntry - Current employee entry
          * @param {Object} utils - MementoUtils object (optional for logging)
@@ -528,12 +528,12 @@ var Zamestnanci = (function() {
                     utils.addDebug(employeeEntry, "🔍 Hľadám aktuálnu sadzbu pre: " + employeeName);
                 }
 
-                // Get "Sadzby zamestnancov" library
-                var ratesLibrary = libByName("Sadzby zamestnancov");
+                // Get "sadzby zamestnancov" library
+                var ratesLibrary = libByName("sadzby zamestnancov");
 
                 if (!ratesLibrary) {
                     if (utils) {
-                        utils.addError(employeeEntry, "Knižnica 'Sadzby zamestnancov' nenájdená!", "getCurrentHourlyRate");
+                        utils.addError(employeeEntry, "Knižnica 'sadzby zamestnancov' nenájdená!", "getCurrentHourlyRate");
                     }
                     return { success: false, error: "Knižnica nenájdená" };
                 }
