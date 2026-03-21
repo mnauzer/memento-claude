@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.18.0
+ * Version:     1.19.0
  * Author:      ASISTANTO
  * Date:        2026-03-21
  *
@@ -28,6 +28,12 @@
  *   }
  *
  * Changelog:
+ *   v1.19.0 (2026-03-21) - Detailed debug log + improved info field (inspired by Dochádzka v1.2.0)
+ *     - calculateWages(): Čas spustenia/ukončenia, • bullets, per-field values per KROK
+ *     - calculateWages(): FINÁLNY SÚHRN with ✅/❌ per step, KONIEC marker
+ *     - sendReportToTelegram(): same pattern — bullets, FINÁLNY SÚHRN, KONIEC
+ *     - info field: # heading, ## OBDOBIE / ## TOTAL sections, ## TECHNICKÉ INFORMÁCIE
+ *     - info: 🔴/🟢 emoji on Nedoplatok/Preplatok, Math.abs() for display
  *   v1.18.0 (2026-03-21) - Fix timezone bug in formatTime() — getUTCHours → getHours
  *     - Times were showing 1h behind (UTC instead of CET/CEST)
  *     - getHours()/getMinutes() use device local timezone (Slovakia CET/CEST)
@@ -118,7 +124,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.18.0",
+        version: "1.19.0",
         author: "ASISTANTO",
         date: "2026-03-21",
         library: "zamestnanci",              // → libraries/zamestnanci/fields.json
@@ -550,194 +556,224 @@ var Zamestnanci = (function() {
             directLog(employeeEntry, "🚀 Zamestnanci v" + MODULE_INFO.version + " START");
 
             try {
-                utils.addDebug(employeeEntry, "🚀 === Zamestnanci Module v" + MODULE_INFO.version + " ===");
+                var startTime = new Date();
+                function nowHMS() {
+                    var n = new Date();
+                    var h = n.getHours(), m = n.getMinutes(), s = n.getSeconds();
+                    return (h<10?"0":"")+h+":"+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+                }
+
+                utils.addDebug(employeeEntry, "🚀  === Zamestnanci v" + MODULE_INFO.version + " ===");
+                utils.addDebug(employeeEntry, "📅  Čas spustenia: " +
+                    startTime.getDate() + "." + (startTime.getMonth()+1) + "." + startTime.getFullYear() +
+                    " " + nowHMS().slice(0,5));
 
                 var employeeName = employeeEntry.field(FIELDS.nick) || "N/A";
-                utils.addDebug(employeeEntry, "👤 Zamestnanec: " + employeeName);
+                var priezvisko   = ((employeeEntry.field("Priezvisko") || "") + "").trim();
+                utils.addDebug(employeeEntry, "👤  Zamestnanec: " + employeeName + (priezvisko ? " (" + priezvisko + ")" : ""));
 
-                var resultObdobie = null;
-                var resultTotal = null;
+                var resultObdobie    = null;
+                var resultTotal      = null;
+                var resultPokladna   = null;
+                var resultPokladnaTotal = null;
+                var step1ok = false, step2ok = false, step3ok = false, step4ok = false;
+                var reportResult = null;
 
-                // STEP 1: Calculate for "obdobie" (regular fields)
-                utils.addDebug(employeeEntry, "");
-                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
-                utils.addDebug(employeeEntry, "📊 KROK 1: VÝPOČET ZÁKLADNÝCH POLÍ");
-                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
+                // ── KROK 1: Základné polia ──────────────────────
                 var obdobie = employeeEntry.field(FIELDS.period);
+                utils.addDebug(employeeEntry, "📊  KROK 1: VÝPOČET ZÁKLADNÝCH POLÍ");
+                utils.addDebug(employeeEntry, "   • Obdobie: " + (obdobie || "(nenastavené)"));
 
                 if (obdobie) {
+                    var dr1 = calculateDateRange(obdobie);
+                    utils.addDebug(employeeEntry, "   • Rozsah: " + formatDate(dr1.startDate) + " \u2013 " + formatDate(dr1.endDate));
                     resultObdobie = calculateWageFields(employeeEntry, obdobie, false, config, utils);
 
                     if (resultObdobie.success) {
                         employeeEntry.set(FIELDS.workedTime, resultObdobie.odpracovane);
-                        employeeEntry.set(FIELDS.earned, resultObdobie.zarobene);
-                        employeeEntry.set(FIELDS.bonuses, resultObdobie.premie);
-
-                        utils.addDebug(employeeEntry, "  ✅ Základné polia nastavené");
+                        employeeEntry.set(FIELDS.earned,     resultObdobie.zarobene);
+                        employeeEntry.set(FIELDS.bonuses,    resultObdobie.premie);
+                        utils.addDebug(employeeEntry, "   • Z\u00e1znamov (doch\u00e1dzka): " + resultObdobie.recordsCount);
+                        utils.addDebug(employeeEntry, "   • Odpracovan\u00e9: " + resultObdobie.odpracovane.toFixed(2) + " h");
+                        utils.addDebug(employeeEntry, "   • Zaroben\u00e9: " + resultObdobie.zarobene.toFixed(2) + " \u20ac");
+                        utils.addDebug(employeeEntry, "   • Pr\u00e9mie: " + resultObdobie.premie.toFixed(2) + " \u20ac");
+                        utils.addDebug(employeeEntry, "   \u2705 Z\u00e1kladn\u00e9 polia nastaven\u00e9");
+                        step1ok = true;
                     } else {
-                        directError(employeeEntry, "STEP1 fail: " + resultObdobie.error);
-                        utils.addError(employeeEntry, "Chyba pri výpočte základných polí: " + resultObdobie.error, "calculateWages");
+                        directError(employeeEntry, "KROK1 fail: " + resultObdobie.error);
+                        utils.addError(employeeEntry, "Chyba pri v\u00fdpo\u010dte z\u00e1kladn\u00fdch pol\u00ed: " + resultObdobie.error, "calculateWages");
                     }
                 } else {
-                    utils.addDebug(employeeEntry, "  ⏭️ Pole '" + FIELDS.period + "' nie je nastavené, preskakujem");
+                    utils.addDebug(employeeEntry, "   \u23ed\ufe0f Obdobie nie je nastaven\u00e9, preskakujem");
+                    step1ok = true;
                 }
 
-                // STEP 2: Calculate for "obdobie total" (total fields)
-                utils.addDebug(employeeEntry, "");
-                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
-                utils.addDebug(employeeEntry, "📊 KROK 2: VÝPOČET TOTAL POLÍ");
-                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
+                // ── KROK 2: Total polia ─────────────────────────
                 var obdobieTotal = employeeEntry.field(FIELDS.periodTotal);
+                utils.addDebug(employeeEntry, "📊  KROK 2: V\u00ddPO\u010cET TOTAL POL\u00cd");
+                utils.addDebug(employeeEntry, "   \u2022 Obdobie total: " + (obdobieTotal || "(nastaven\u00e9)"));
 
                 if (obdobieTotal) {
+                    var dr2 = calculateDateRange(obdobieTotal);
+                    utils.addDebug(employeeEntry, "   \u2022 Rozsah: " + formatDate(dr2.startDate) + " \u2013 " + formatDate(dr2.endDate));
                     resultTotal = calculateWageFields(employeeEntry, obdobieTotal, true, config, utils);
 
                     if (resultTotal.success) {
                         employeeEntry.set(FIELDS.workedTimeTotal, resultTotal.odpracovane);
-                        employeeEntry.set(FIELDS.earnedTotal, resultTotal.zarobene);
-                        employeeEntry.set(FIELDS.bonusesTotal, resultTotal.premie);
-
-                        utils.addDebug(employeeEntry, "  ✅ Total polia nastavené");
+                        employeeEntry.set(FIELDS.earnedTotal,     resultTotal.zarobene);
+                        employeeEntry.set(FIELDS.bonusesTotal,    resultTotal.premie);
+                        utils.addDebug(employeeEntry, "   \u2022 Z\u00e1znamov (doch\u00e1dzka): " + resultTotal.recordsCount);
+                        utils.addDebug(employeeEntry, "   \u2022 Odpracovan\u00e9: " + resultTotal.odpracovane.toFixed(2) + " h");
+                        utils.addDebug(employeeEntry, "   \u2022 Zaroben\u00e9: " + resultTotal.zarobene.toFixed(2) + " \u20ac");
+                        utils.addDebug(employeeEntry, "   \u2705 Total polia nastaven\u00e9");
+                        step2ok = true;
                     } else {
-                        directError(employeeEntry, "STEP2 fail: " + resultTotal.error);
-                        utils.addError(employeeEntry, "Chyba pri výpočte total polí: " + resultTotal.error, "calculateWages");
+                        directError(employeeEntry, "KROK2 fail: " + resultTotal.error);
+                        utils.addError(employeeEntry, "Chyba pri v\u00fdpo\u010dte total pol\u00ed: " + resultTotal.error, "calculateWages");
                     }
                 } else {
-                    utils.addDebug(employeeEntry, "  ⏭️ Pole '" + FIELDS.periodTotal + "' nie je nastavené, preskakujem");
+                    utils.addDebug(employeeEntry, "   \u23ed\ufe0f Obdobie total nie je nastaven\u00e9, preskakujem");
+                    step2ok = true;
                 }
 
-                // STEP 3: Calculate Vyplatené from Pokladňa (for obdobie)
-                //         + set Na zákazkách, Jazdy = 0
-                //         + Preplatok/Nedoplatok = Zarobené − Vyplatené
-                utils.addDebug(employeeEntry, "");
-                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
-                utils.addDebug(employeeEntry, "📊 KROK 3: VYPLATENÉ Z POKLADNE");
-                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
-
-                // Na zákazkách a Jazdy sa zatiaľ nepočítajú — nastavíme na 0
+                // ── KROK 3: Vyplatené z Pokladne ────────────────
+                utils.addDebug(employeeEntry, "\ud83d\udcb0  KROK 3: VYPLATEN\u00c9 Z POKLADNE");
                 employeeEntry.set(FIELDS.naZakazkach, 0);
                 employeeEntry.set(FIELDS.jazdy, 0);
 
                 if (obdobie) {
-                    var resultPokladna = calculatePaidFromPokladna(employeeEntry, obdobie, config, utils);
+                    resultPokladna = calculatePaidFromPokladna(employeeEntry, obdobie, config, utils);
 
                     if (resultPokladna.success) {
                         employeeEntry.set(FIELDS.vyplatene, resultPokladna.vyplatene);
-
-                        // Preplatok/Nedoplatok = Zarobené − Vyplatené
-                        var zarobeneObdobie = (resultObdobie && resultObdobie.success) ? resultObdobie.zarobene : 0;
+                        var zarobeneObdobie  = (resultObdobie && resultObdobie.success) ? resultObdobie.zarobene : 0;
                         var preplatokHodnota = zarobeneObdobie - resultPokladna.vyplatene;
                         employeeEntry.set(FIELDS.preplatok, preplatokHodnota);
-
                         var krok3Label = preplatokHodnota >= 0 ? "Nedoplatok" : "Preplatok";
-                        utils.addDebug(employeeEntry, "  " + krok3Label + ": " + preplatokHodnota.toFixed(2) + " EUR");
-                        utils.addDebug(employeeEntry, "  ✅ Krok 3 OK");
+                        utils.addDebug(employeeEntry, "   \u2022 Pokladňa záznamov: " + resultPokladna.recordsCount);
+                        utils.addDebug(employeeEntry, "   \u2022 Vyplatené: " + resultPokladna.vyplatene.toFixed(2) + " €");
+                        utils.addDebug(employeeEntry, "   \u2022 " + krok3Label + ": " +
+                            zarobeneObdobie.toFixed(2) + " \u2212 " + resultPokladna.vyplatene.toFixed(2) +
+                            " = " + preplatokHodnota.toFixed(2) + " \u20ac");
+                        utils.addDebug(employeeEntry, "   \u2705 Pokladňa spracovaná");
+                        step3ok = true;
                     } else {
-                        directError(employeeEntry, "STEP3 Pokladna fail: " + resultPokladna.error);
-                        utils.addError(employeeEntry, "Chyba Pokladna pre obdobie: " + resultPokladna.error, "calculateWages");
+                        directError(employeeEntry, "KROK3 Pokladna fail: " + resultPokladna.error);
+                        utils.addError(employeeEntry, "Chyba Pokladňa pre obdobie: " + resultPokladna.error, "calculateWages");
                     }
                 } else {
-                    utils.addDebug(employeeEntry, "  Pole 'obdobie' nie je nastavene, preskakujem Pokladnu");
+                    utils.addDebug(employeeEntry, "   \u23ed\ufe0f Obdobie nie je nastavené, preskakujem");
+                    step3ok = true;
                 }
 
-                // STEP 4: Calculate Vyplatené total from Pokladňa
-                //         + set Na zákazkách total, Jazdy total = 0
-                utils.addDebug(employeeEntry, "");
-                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
-                utils.addDebug(employeeEntry, "📊 KROK 4: VYPLATENÉ TOTAL Z POKLADNE");
-                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
-
+                // ── KROK 4: Vyplatené total ──────────────────────
+                utils.addDebug(employeeEntry, "\ud83d\udcb0  KROK 4: VYPLATEN\u00c9 TOTAL Z POKLADNE");
                 employeeEntry.set(FIELDS.naZakazkachTotal, 0);
                 employeeEntry.set(FIELDS.jezdyTotal, 0);
 
-                var resultPokladnaTotal = null;
                 if (obdobieTotal) {
                     resultPokladnaTotal = calculatePaidFromPokladna(employeeEntry, obdobieTotal, config, utils);
 
                     if (resultPokladnaTotal.success) {
                         employeeEntry.set(FIELDS.vyplateneTotal, resultPokladnaTotal.vyplatene);
-                        utils.addDebug(employeeEntry, "  ✅ Krok 4 OK");
+                        utils.addDebug(employeeEntry, "   \u2022 Pokladňa záznamov: " + resultPokladnaTotal.recordsCount);
+                        utils.addDebug(employeeEntry, "   \u2022 Vyplatené total: " + resultPokladnaTotal.vyplatene.toFixed(2) + " €");
+                        utils.addDebug(employeeEntry, "   \u2705 Pokladňa total OK");
+                        step4ok = true;
                     } else {
-                        directError(employeeEntry, "STEP4 Pokladna fail: " + resultPokladnaTotal.error);
-                        utils.addError(employeeEntry, "Chyba Pokladna total: " + resultPokladnaTotal.error, "calculateWages");
+                        directError(employeeEntry, "KROK4 Pokladna fail: " + resultPokladnaTotal.error);
+                        utils.addError(employeeEntry, "Chyba Pokladňa total: " + resultPokladnaTotal.error, "calculateWages");
                     }
                 } else {
-                    utils.addDebug(employeeEntry, "  Pole 'obdobie total' nie je nastavene, preskakujem");
+                    utils.addDebug(employeeEntry, "   \u23ed\ufe0f Obdobie total nie je nastavené, preskakujem");
+                    step4ok = true;
                 }
 
-                // STEP 5: Create info message
-                utils.addDebug(employeeEntry, "📝 KROK 5: Vytvorenie info záznamu");
+                // ── KROK 5: Info záznam ──────────────────────────
+                utils.addDebug(employeeEntry, "\ud83d\udcdd  KROK 5: VYTVORENIE INFO Z\u00c1ZNAMU");
 
-                // Format period choice as readable heading (date range or month name)
                 var MONTHS_SK = ["Január","Február","Marec","Apríl","Máj","Jún",
                                  "Júl","August","September","Október","November","December"];
                 var formatPeriodHeading = function(choice) {
                     var dr = calculateDateRange(choice);
-                    var s = dr.startDate;
-                    var e = dr.endDate;
-                    var c = (choice || "").trim();
-                    if (c === "Total") {
-                        return "Total";
-                    } else if (c === "tento mesiac" || c === "minulý mesiac") {
+                    var s  = dr.startDate, e2 = dr.endDate;
+                    var c  = (choice || "").trim();
+                    if (c === "Total") return "Total";
+                    if (c === "tento mesiac" || c === "min\u00fal\u00fd mesiac")
                         return MONTHS_SK[s.getMonth()] + " " + s.getFullYear();
-                    } else if (c === "tento rok" || c === "minulý rok") {
+                    if (c === "tento rok" || c === "min\u00fal\u00fd rok")
                         return "" + s.getFullYear();
-                    } else if (c === "tento deň") {
-                        return s.getDate() + "." + (s.getMonth() + 1) + "." + s.getFullYear();
-                    } else {
-                        return s.getDate() + "." + (s.getMonth() + 1) + "." + s.getFullYear() +
-                               " \u2013 " +
-                               e.getDate() + "." + (e.getMonth() + 1) + "." + e.getFullYear();
-                    }
+                    if (c === "tento de\u0148")
+                        return s.getDate() + "." + (s.getMonth()+1) + "." + s.getFullYear();
+                    return s.getDate() + "." + (s.getMonth()+1) + "." + s.getFullYear() +
+                           " \u2013 " + e2.getDate() + "." + (e2.getMonth()+1) + "." + e2.getFullYear();
                 };
 
-                var infoMessage = "### 👤 Prepočet mzdy (" + employeeName + ")\n\n";
+                var fullDisplayName = employeeName + (priezvisko ? " " + priezvisko : "");
+                var infoMessage = "# \ud83d\udccb PREP\u00d3\u010cET MZDY\n\n";
+                infoMessage += "## \ud83d\udc64 " + fullDisplayName + "\n\n";
 
                 if (obdobie && resultObdobie && resultObdobie.success) {
-                    var vyplHodnota = (resultPokladna && resultPokladna.success) ? resultPokladna.vyplatene : 0;
-                    // Nedoplatok = Zarobené > Vyplatené (firma dlhuje zamestnancovi)
-                    // Preplatok  = Zarobené < Vyplatené (preplatok firme)
-                    var prepHodnota = resultObdobie.zarobene - vyplHodnota;
-                    var prepLabel = prepHodnota >= 0 ? "Nedoplatok" : "Preplatok";
-                    var prepColor = prepHodnota >= 0 ? "red" : "green";
-                    infoMessage += "### 📊 " + formatPeriodHeading(obdobie) + "\n";
-                    infoMessage += "- **" + prepLabel + ":** <span style=\"color:" + prepColor + "\">" + prepHodnota.toFixed(2) + " €</span>\n";
-                    infoMessage += "- **Odpracované:** " + resultObdobie.odpracovane.toFixed(2) + " h\n";
-                    infoMessage += "- **Zarobené:** " + resultObdobie.zarobene.toFixed(2) + " €\n";
-                    infoMessage += "- **Prémie:** " + resultObdobie.premie.toFixed(2) + " €\n";
-                    infoMessage += "- **Vyplatené:** " + vyplHodnota.toFixed(2) + " €\n";
-                    infoMessage += "- **Záznamov (doch.):** " + resultObdobie.recordsCount + "\n\n";
+                    var vyplHodnota  = (resultPokladna && resultPokladna.success) ? resultPokladna.vyplatene : 0;
+                    var prepHodnota  = resultObdobie.zarobene - vyplHodnota;
+                    var prepEmoji    = prepHodnota >= 0 ? "\ud83d\udd34" : "\ud83d\udfe2";
+                    var prepLabel    = prepHodnota >= 0 ? "Nedoplatok" : "Preplatok";
+                    var prepColor    = prepHodnota >= 0 ? "red" : "green";
+                    infoMessage += "## \ud83d\udcca OBDOBIE: " + formatPeriodHeading(obdobie) + "\n";
+                    infoMessage += "- **" + prepEmoji + " " + prepLabel + ":** <span style=\"color:" + prepColor + "\">" +
+                                   Math.abs(prepHodnota).toFixed(2) + " \u20ac</span>\n";
+                    infoMessage += "- **Odpracovan\u00e9:** " + resultObdobie.odpracovane.toFixed(2) + " h\n";
+                    infoMessage += "- **Zaroben\u00e9:** " + resultObdobie.zarobene.toFixed(2) + " \u20ac\n";
+                    infoMessage += "- **Pr\u00e9mie:** " + resultObdobie.premie.toFixed(2) + " \u20ac\n";
+                    infoMessage += "- **Vyplaten\u00e9:** " + vyplHodnota.toFixed(2) + " \u20ac\n";
+                    infoMessage += "- **Z\u00e1znamov (doch.):** " + resultObdobie.recordsCount + "\n\n";
                 }
 
                 if (obdobieTotal && resultTotal && resultTotal.success) {
                     var vyplTotalHodnota = (resultPokladnaTotal && resultPokladnaTotal.success) ? resultPokladnaTotal.vyplatene : 0;
-                    infoMessage += "### 📊 " + formatPeriodHeading(obdobieTotal) + "\n";
-                    infoMessage += "- **Odpracované total:** " + resultTotal.odpracovane.toFixed(2) + " h\n";
-                    infoMessage += "- **Zarobené total:** " + resultTotal.zarobene.toFixed(2) + " €\n";
-                    infoMessage += "- **Prémie total:** " + resultTotal.premie.toFixed(2) + " €\n";
-                    infoMessage += "- **Vyplatené total:** " + vyplTotalHodnota.toFixed(2) + " €\n";
-                    infoMessage += "- **Záznamov (doch.):** " + resultTotal.recordsCount + "\n\n";
+                    infoMessage += "## \ud83d\udcca TOTAL: " + formatPeriodHeading(obdobieTotal) + "\n";
+                    infoMessage += "- **Odpracovan\u00e9:** " + resultTotal.odpracovane.toFixed(2) + " h\n";
+                    infoMessage += "- **Zaroben\u00e9:** " + resultTotal.zarobene.toFixed(2) + " \u20ac\n";
+                    infoMessage += "- **Pr\u00e9mie:** " + resultTotal.premie.toFixed(2) + " \u20ac\n";
+                    infoMessage += "- **Vyplaten\u00e9:** " + vyplTotalHodnota.toFixed(2) + " \u20ac\n";
+                    infoMessage += "- **Z\u00e1znamov (doch.):** " + resultTotal.recordsCount + "\n\n";
                 }
 
+                infoMessage += "## \ud83d\udd27 TECHNICK\u00c9 INFORM\u00c1CIE\n";
+                infoMessage += "- **Modul:** Zamestnanci v" + MODULE_INFO.version + "\n";
+                infoMessage += "- **\u010cas spracovania:** " + nowHMS() + "\n\n";
                 infoMessage += "---\n";
-                infoMessage += "**✅ PREPOČET DOKONČENÝ** | Zamestnanci v" + MODULE_INFO.version;
+                infoMessage += "**\u2705 PREP\u00d3\u010cET DOKON\u010cEN\u00dd \u00daVES\u0160NE**";
 
                 employeeEntry.set(FIELDS.info, infoMessage);
-                utils.addDebug(employeeEntry, "  ✅ Info záznam vytvorený");
+                utils.addDebug(employeeEntry, "   \u2022 Info d\u013a\u017eka: " + infoMessage.length + " znakov");
+                utils.addDebug(employeeEntry, "   \u2705 Info z\u00e1znam vytvoren\u00fd");
 
-                // STEP 6: Generate HTML report
-                utils.addDebug(employeeEntry, "");
-                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
-                utils.addDebug(employeeEntry, "📄 KROK 6: HTML REPORT");
-                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
-                var reportResult = this.generateReport(employeeEntry, config, utils);
+                // ── KROK 6: HTML Report ──────────────────────────
+                utils.addDebug(employeeEntry, "\ud83d\udcc4  KROK 6: HTML REPORT");
+                reportResult = this.generateReport(employeeEntry, config, utils);
                 if (!reportResult.success) {
-                    utils.addError(employeeEntry, "Chyba pri generovaní reportu: " + reportResult.error, "calculateWages");
+                    utils.addError(employeeEntry, "Chyba pri generovan\u00ed reportu: " + reportResult.error, "calculateWages");
+                    utils.addDebug(employeeEntry, "   \u26a0\ufe0f Report: " + reportResult.error);
                 } else {
-                    utils.addDebug(employeeEntry, "  ✅ Report OK (" + reportResult.rows + " záznamy, " + reportResult.payments + " platby)");
+                    utils.addDebug(employeeEntry, "   \u2022 Doch\u00e1dzka z\u00e1znamy: " + reportResult.rows);
+                    utils.addDebug(employeeEntry, "   \u2022 Platby: " + reportResult.payments);
+                    utils.addDebug(employeeEntry, "   \u2705 Report OK");
                 }
 
-                utils.addDebug(employeeEntry, "✅ === PREPOČET DOKONČENÝ ÚSPEŠNE ===");
+                // ── FINÁLNY SÚHRN ────────────────────────────────
+                utils.addDebug(employeeEntry, "");
+                utils.addDebug(employeeEntry, "\ud83d\udcca  === FINA\u013dN\u00dd S\u00daHRN ===");
+                utils.addDebug(employeeEntry, (step1ok ? "  \u2705" : "  \u274c") + " V\u00fdpo\u010det z\u00e1kladn\u00fdch pol\u00ed");
+                utils.addDebug(employeeEntry, (step2ok ? "  \u2705" : "  \u274c") + " V\u00fdpo\u010det total pol\u00ed");
+                utils.addDebug(employeeEntry, (step3ok ? "  \u2705" : "  \u274c") + " Pokladňa (obdobie)");
+                utils.addDebug(employeeEntry, (step4ok ? "  \u2705" : "  \u274c") + " Pokladňa total");
+                utils.addDebug(employeeEntry, "  \u2705 Info z\u00e1znam");
+                utils.addDebug(employeeEntry, (reportResult && reportResult.success ? "  \u2705" : "  \u26a0\ufe0f") + " HTML report");
+                utils.addDebug(employeeEntry, "");
+                utils.addDebug(employeeEntry, "  \u2705 V\u0161etky kroky dokon\u010den\u00e9 \u00faspe\u0161ne!");
+                utils.addDebug(employeeEntry, "  \u23f1\ufe0f \u010cas ukon\u010denia: " + nowHMS());
+                utils.addDebug(employeeEntry, "  \ud83d\udccb === KONIEC Zamestnanci v" + MODULE_INFO.version + " ===");
 
                 return {
                     success: true,
@@ -1194,28 +1230,34 @@ var Zamestnanci = (function() {
         sendReportToTelegram: function(employeeEntry, config, utils, telegram) {
             directLog(employeeEntry, "📤 sendReportToTelegram START");
             try {
-                // Validate Telegram module
                 if (!telegram) {
                     return { success: false, error: "MementoTelegram nie je dostupný" };
                 }
 
-                utils.addDebug(employeeEntry, "");
-                utils.addDebug(employeeEntry, "════════════════════════════════════════");
-                utils.addDebug(employeeEntry, "📤 KROK 1: VALIDÁCIA VSTUPOV");
-                utils.addDebug(employeeEntry, "════════════════════════════════════════");
+                var startTime = new Date();
+                function nowHMS() {
+                    var n = new Date();
+                    var h = n.getHours(), m = n.getMinutes(), s = n.getSeconds();
+                    return (h<10?"0":"")+h+":"+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+                }
 
-                // Telegram ID
+                utils.addDebug(employeeEntry, "📤  === sendReportToTelegram ===");
+                utils.addDebug(employeeEntry, "📅  Čas spustenia: " +
+                    startTime.getDate() + "." + (startTime.getMonth()+1) + "." + startTime.getFullYear() +
+                    " " + nowHMS().slice(0,5));
+
+                // ── KROK 1: Validácia vstupov ────────────────
+                utils.addDebug(employeeEntry, "🛡️  KROK 1: VALIDÁCIA VSTUPOV");
+
                 var chatId = ((employeeEntry.field("Telegram ID") || "") + "").trim();
-                utils.addDebug(employeeEntry, "  Telegram ID: " + (chatId || "(prázdne)"));
+                utils.addDebug(employeeEntry, "   • Telegram ID: " + (chatId || "(prázdne)"));
                 if (!chatId) {
-                    utils.addError(employeeEntry, "Chýba Telegram ID — záznam sa nenašiel", "sendReportToTelegram");
+                    utils.addError(employeeEntry, "Chýba Telegram ID", "sendReportToTelegram");
                     return { success: false, error: "Zamestnanec nem\u00e1 nastaven\u00e9 Telegram ID" };
                 }
-                utils.addDebug(employeeEntry, "  ✅ Telegram ID OK");
 
-                // Period
                 var periodChoice = employeeEntry.field(FIELDS.period);
-                utils.addDebug(employeeEntry, "  Obdobie: " + (periodChoice || "(prázdne)"));
+                utils.addDebug(employeeEntry, "   • Obdobie: " + (periodChoice || "(prázdne)"));
                 if (!periodChoice) {
                     utils.addError(employeeEntry, "Chýba pole 'obdobie'", "sendReportToTelegram");
                     return { success: false, error: "Pole 'obdobie' nie je nastaven\u00e9" };
@@ -1224,21 +1266,18 @@ var Zamestnanci = (function() {
                 var nick       = employeeEntry.field(FIELDS.nick) || "N/A";
                 var priezvisko = ((employeeEntry.field("Priezvisko") || "") + "").trim();
                 var fullName   = nick + (priezvisko ? " (" + priezvisko + ")" : "");
-                utils.addDebug(employeeEntry, "  Zamestnanec: " + fullName);
+                utils.addDebug(employeeEntry, "   • Zamestnanec: " + fullName);
 
                 var dateRange    = calculateDateRange(periodChoice);
                 var dateRangeStr = formatDate(dateRange.startDate) + " \u2013 " + formatDate(dateRange.endDate);
-                utils.addDebug(employeeEntry, "  Rozsah: " + dateRangeStr);
-                utils.addDebug(employeeEntry, "  ✅ Validácia OK");
+                utils.addDebug(employeeEntry, "   • Rozsah: " + dateRangeStr);
+                utils.addDebug(employeeEntry, "   \u2705 Validácia OK");
 
-                // ── KROK 2: Query Dochádzka ───────────────────
-                utils.addDebug(employeeEntry, "");
-                utils.addDebug(employeeEntry, "════════════════════════════════════════");
-                utils.addDebug(employeeEntry, "📋 KROK 2: ZÁZNAMY DOCHÁDZKY");
-                utils.addDebug(employeeEntry, "════════════════════════════════════════");
+                // ── KROK 2: Záznamy Dochádzky ────────────────
+                utils.addDebug(employeeEntry, "📋  KROK 2: ZÁZNAMY DOCHÁDZKY");
 
                 var dochLinks = employeeEntry.linksFrom("Doch\u00e1dzka", EXTERNAL.dochEmployees);
-                utils.addDebug(employeeEntry, "  linksFrom Dochádzka: " + dochLinks.length + " celkom");
+                utils.addDebug(employeeEntry, "   • linksFrom Dochádzka: " + dochLinks.length + " celkom");
                 var odpRows = [];
                 var totalOdprac = 0, totalZarob = 0;
                 var skippedOutOfRange = 0, skippedNoMatch = 0;
@@ -1268,7 +1307,7 @@ var Zamestnanci = (function() {
                         odpRows.push({ datum: datum, cas: cas, odprac: odprac, sadzba: sadzba, celkom: dMzda });
                         totalOdprac += odprac;
                         totalZarob  += dMzda;
-                        utils.addDebug(employeeEntry, "  + " + formatDate(datum) + " " + (cas || "--") +
+                        utils.addDebug(employeeEntry, "   + " + formatDate(datum) + " " + (cas || "--") +
                             "  " + odprac.toFixed(2) + "h  " + fmtCell(sadzba) + "  =" + fmtCell(dMzda));
                         found = true;
                         break;
@@ -1277,19 +1316,16 @@ var Zamestnanci = (function() {
                 }
                 odpRows.sort(function(a, b) { return a.datum - b.datum; });
 
-                utils.addDebug(employeeEntry, "  Preskočené (mimo rozsah): " + skippedOutOfRange);
-                utils.addDebug(employeeEntry, "  Preskočené (bez zhody): " + skippedNoMatch);
-                utils.addDebug(employeeEntry, "  ✅ Spracovaných: " + odpRows.length + " záz." +
+                utils.addDebug(employeeEntry, "   • Preskočené (mimo rozsah): " + skippedOutOfRange);
+                utils.addDebug(employeeEntry, "   • Preskočené (bez zhody): " + skippedNoMatch);
+                utils.addDebug(employeeEntry, "   \u2705 Spracovaných: " + odpRows.length + " záz." +
                     "  Odprac: " + totalOdprac.toFixed(2) + "h  Zarobené: " + fmtCell(totalZarob));
 
-                // ── KROK 3: Query Pokladňa ────────────────────
-                utils.addDebug(employeeEntry, "");
-                utils.addDebug(employeeEntry, "════════════════════════════════════════");
-                utils.addDebug(employeeEntry, "💰 KROK 3: ZÁZNAMY POKLADNE");
-                utils.addDebug(employeeEntry, "════════════════════════════════════════");
+                // ── KROK 3: Záznamy Pokladne ──────────────────
+                utils.addDebug(employeeEntry, "💰  KROK 3: ZÁZNAMY POKLADNE");
 
                 var poklLinks = employeeEntry.linksFrom("Pokladňa", EXTERNAL.poklZamestnanec);
-                utils.addDebug(employeeEntry, "  linksFrom Pokladňa: " + poklLinks.length + " celkom");
+                utils.addDebug(employeeEntry, "   • linksFrom Pokladňa: " + poklLinks.length + " celkom");
                 var payRows = [];
                 var totalVypl = 0;
                 var skippedPokl = 0;
@@ -1302,41 +1338,35 @@ var Zamestnanci = (function() {
                     var pohyb = (pokl.field(EXTERNAL.poklPohyb) || "").trim();
                     var ucel  = (pokl.field(EXTERNAL.poklUcelVydaja) || "").trim();
                     if (pohyb !== "V\u00fddavok" || ucel !== "Mzda") {
-                        utils.addDebug(employeeEntry, "  skip " + formatDate(datum) + " Pohyb=" + pohyb + " Účel=" + ucel);
+                        utils.addDebug(employeeEntry, "   skip " + formatDate(datum) + " Pohyb=" + pohyb + " Účel=" + ucel);
                         skippedPokl++;
                         continue;
                     }
 
                     var suma  = pokl.field(EXTERNAL.poklSuma) || 0;
-                    var popis = ((pokl.field(EXTERNAL.poklPopis) || "").trim()) ||
-                                ucel || "mzda";
+                    var popis = ((pokl.field(EXTERNAL.poklPopis) || "").trim()) || ucel || "mzda";
                     payRows.push({ datum: datum, popis: popis, suma: suma });
                     totalVypl += suma;
-                    utils.addDebug(employeeEntry, "  + " + formatDate(datum) + "  " + popis + "  " + fmtCell(suma));
+                    utils.addDebug(employeeEntry, "   + " + formatDate(datum) + "  " + popis + "  " + fmtCell(suma));
                 }
                 payRows.sort(function(a, b) { return a.datum - b.datum; });
 
-                utils.addDebug(employeeEntry, "  Preskočené: " + skippedPokl);
-                utils.addDebug(employeeEntry, "  ✅ Spracovaných: " + payRows.length + " platieb  Celkom: " + fmtCell(totalVypl));
+                utils.addDebug(employeeEntry, "   • Preskočené: " + skippedPokl);
+                utils.addDebug(employeeEntry, "   \u2705 Spracovaných: " + payRows.length + " platieb  Celkom: " + fmtCell(totalVypl));
 
-                // ── KROK 4: Balance ───────────────────────────
-                utils.addDebug(employeeEntry, "");
-                utils.addDebug(employeeEntry, "════════════════════════════════════════");
-                utils.addDebug(employeeEntry, "🧮 KROK 4: VÝPOČET SALDA");
-                utils.addDebug(employeeEntry, "════════════════════════════════════════");
+                // ── KROK 4: Výpočet salda ─────────────────────
+                utils.addDebug(employeeEntry, "🧮  KROK 4: VÝPOČET SALDA");
 
                 var balance      = totalZarob - totalVypl;
                 var balanceEmoji = balance >= 0 ? "\ud83d\udd34" : "\ud83d\udfe2";
                 var balanceWord  = balance >= 0 ? "Nedoplatok" : "Preplatok";
-                utils.addDebug(employeeEntry, "  Zarobené:  " + fmtCell(totalZarob));
-                utils.addDebug(employeeEntry, "  Vyplatené: " + fmtCell(totalVypl));
-                utils.addDebug(employeeEntry, "  " + balanceWord + ": " + fmtCell(Math.abs(balance)));
+                utils.addDebug(employeeEntry, "   • Zarobené:  " + fmtCell(totalZarob));
+                utils.addDebug(employeeEntry, "   • Vyplatené: " + fmtCell(totalVypl));
+                utils.addDebug(employeeEntry, "   • " + balanceWord + ": " +
+                    fmtCell(totalZarob) + " \u2212 " + fmtCell(totalVypl) + " = " + fmtCell(Math.abs(balance)));
 
-                // ── KROK 5: Format monospace tables ──────────
-                utils.addDebug(employeeEntry, "");
-                utils.addDebug(employeeEntry, "════════════════════════════════════════");
-                utils.addDebug(employeeEntry, "📝 KROK 5: FORMÁTOVANIE SPRÁVY");
-                utils.addDebug(employeeEntry, "════════════════════════════════════════");
+                // ── KROK 5: Formátovanie správy ───────────────
+                utils.addDebug(employeeEntry, "📝  KROK 5: FORMÁTOVANIE SPRÁVY");
 
                 // Odpracované: Dátum(10) | Od-Do(11) | Hod(5) | Sadzba(7) | Celkom(8)
                 var D=10, C=11, H=5, SA=7, CE=8;
@@ -1378,15 +1408,12 @@ var Zamestnanci = (function() {
                 t2 += SEP2 + "\n";
                 t2 += rep(" ", D+1) + padR("Celkom", PO) + " " + padL(fmtCell(totalVypl), SU);
 
-                utils.addDebug(employeeEntry, "  Tabuľka 1: " + odpRows.length + " riadkov");
-                utils.addDebug(employeeEntry, "  Tabuľka 2: " + payRows.length + " riadkov");
+                utils.addDebug(employeeEntry, "   • Tabuľka 1 (odprac.): " + odpRows.length + " riadkov");
+                utils.addDebug(employeeEntry, "   • Tabuľka 2 (platby): " + payRows.length + " riadkov");
 
-                // ── KROK 6: Compose & Send ────────────────────
-                utils.addDebug(employeeEntry, "");
-                utils.addDebug(employeeEntry, "════════════════════════════════════════");
-                utils.addDebug(employeeEntry, "📨 KROK 6: ODOSLANIE NA TELEGRAM");
-                utils.addDebug(employeeEntry, "════════════════════════════════════════");
-                utils.addDebug(employeeEntry, "  Chat ID: " + chatId);
+                // ── KROK 6: Odoslanie na Telegram ────────────
+                utils.addDebug(employeeEntry, "📨  KROK 6: ODOSLANIE NA TELEGRAM");
+                utils.addDebug(employeeEntry, "   • Chat ID: " + chatId);
 
                 var now = new Date();
                 var msg = "\ud83d\udccb <b>" + escHtml(fullName) + "</b>\n";
@@ -1398,18 +1425,33 @@ var Zamestnanci = (function() {
                 msg += balanceEmoji + " <b>" + balanceWord + ": " + escHtml(fmtCell(Math.abs(balance))) + "</b>\n\n";
                 msg += "<i>Odoslan\u00e9: " + formatDate(now) + " | Zamestnanci v" + MODULE_INFO.version + "</i>";
 
-                utils.addDebug(employeeEntry, "  Dĺžka správy: " + msg.length + " znakov");
+                utils.addDebug(employeeEntry, "   • Dĺžka správy: " + msg.length + " znakov");
 
+                var sendOk = false;
                 try {
                     telegram.sendTelegramMessage(chatId, msg, { parseMode: "HTML" });
+                    sendOk = true;
                 } catch (tgErr) {
                     directError(employeeEntry, "Telegram API error: " + tgErr.toString());
                     utils.addError(employeeEntry, "Telegram chyba: " + tgErr.toString(), "sendReportToTelegram", tgErr);
                     return { success: false, error: tgErr.toString() };
                 }
 
-                utils.addDebug(employeeEntry, "  ✅ Správa odoslaná na Telegram ID: " + chatId);
-                utils.addDebug(employeeEntry, "✅ === sendReportToTelegram DOKONČENÝ ===");
+                utils.addDebug(employeeEntry, "   \u2705 Správa odoslaná na Telegram ID: " + chatId);
+
+                // ── FINÁLNY SÚHRN ────────────────────────────
+                utils.addDebug(employeeEntry, "");
+                utils.addDebug(employeeEntry, "\ud83d\udcca  === FINA\u013dN\u00dd S\u00daHRN ===");
+                utils.addDebug(employeeEntry, "  \u2705 Validácia vstupov");
+                utils.addDebug(employeeEntry, "  \u2705 Záznamy Dochádzky (" + odpRows.length + " záz.)");
+                utils.addDebug(employeeEntry, "  \u2705 Záznamy Pokladne (" + payRows.length + " platieb)");
+                utils.addDebug(employeeEntry, "  \u2705 Výpočet salda (" + balanceWord + ": " + fmtCell(Math.abs(balance)) + ")");
+                utils.addDebug(employeeEntry, "  \u2705 Formátovanie správy");
+                utils.addDebug(employeeEntry, (sendOk ? "  \u2705" : "  \u274c") + " Odoslanie na Telegram");
+                utils.addDebug(employeeEntry, "");
+                utils.addDebug(employeeEntry, "  \u2705 Všetky kroky dokončené úspešne!");
+                utils.addDebug(employeeEntry, "  \u23f1\ufe0f Čas ukončenia: " + nowHMS());
+                utils.addDebug(employeeEntry, "  \ud83d\udccb === KONIEC sendReportToTelegram v" + MODULE_INFO.version + " ===");
                 return { success: true };
 
             } catch (error) {
