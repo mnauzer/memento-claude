@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.8.0
+ * Version:     1.9.0
  * Author:      ASISTANTO
  * Date:        2026-03-21
  *
@@ -28,6 +28,11 @@
  *   }
  *
  * Changelog:
+ *   v1.9.0 (2026-03-21) - Add Vyplatené from Pokladňa + Preplatok/Nedoplatok
+ *     - New: calculatePaidFromPokladna() — sums Pokladňa Výdavok/Mzda records per period
+ *     - calculateWages() STEP 3: Vyplatené (Pokladňa), Na zákazkách=0, Jazdy=0, Preplatok/Nedoplatok
+ *     - calculateWages() STEP 4: Vyplatené total (Pokladňa), Na zákazkách total=0, Jazdy total=0
+ *     - Preplatok/Nedoplatok = Zarobené − Vyplatené
  *   v1.8.0 (2026-03-21) - Module-level FIELDS constant (single source of truth)
  *     - Add module-level FIELDS constant with all field names verified from fields.json
  *     - Remove local FIELDS object from calculateWages() - use module FIELDS
@@ -63,11 +68,11 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.8.0",
+        version: "1.9.0",
         author: "ASISTANTO",
         date: "2026-03-21",
         library: "zamestnanci",              // → libraries/zamestnanci/fields.json
-        externalLibraries: ["sadzby-zamestnancov", "dochadzka"]  // → libraries/*/fields.json
+        externalLibraries: ["sadzby-zamestnancov", "dochadzka", "pokladna"]  // → libraries/*/fields.json
     };
 
     // ==============================================
@@ -83,9 +88,16 @@ var Zamestnanci = (function() {
         workedTime: "Odpracované",              // ID:31, double, h
         earned: "Zarobené",                     // ID:33, currency
         bonuses: "Prémie",                      // ID:94, currency
+        vyplatene: "Vyplatené",                 // ID:34, currency (from Pokladňa)
+        preplatok: "Preplatok/Nedoplatok",      // ID:35, currency = Zarobené - Vyplatené
+        naZakazkach: "Na zákazkách",            // ID:32, double, h (set to 0, future)
+        jazdy: "Jazdy",                         // ID:88, double, h (set to 0, future)
         workedTimeTotal: "Odpracované total",   // ID:55, double, h
         earnedTotal: "Zarobené total",          // ID:54, currency
         bonusesTotal: "Prémie total",           // ID:102, currency
+        vyplateneTotal: "Vyplatené total",      // ID:56, currency (from Pokladňa)
+        naZakazkachTotal: "Na zákazkách total", // ID:57, double, h (set to 0, future)
+        jezdyTotal: "Jazdy total",              // ID:89, double, h (set to 0, future)
         period: "obdobie",                      // ID:86, choice
         periodTotal: "obdobie total",           // ID:90, choice
         info: "info",                           // ID:93, text
@@ -101,7 +113,13 @@ var Zamestnanci = (function() {
 
         // Dochádzka fields (used in linksFrom queries)
         dochDate: "Dátum",
-        dochEmployees: "Zamestnanci"
+        dochEmployees: "Zamestnanci",
+
+        // Pokladňa fields (used in linksFrom queries)
+        poklZamestnanec: "Zamestnanec",         // ID:17, linkToEntry → Zamestnanci
+        poklPohyb: "Pohyb",                     // ID:119, choice: "Výdavok" pre mzdy
+        poklUcelVydaja: "Účel výdaja",          // ID:12, choice: "Mzda"
+        poklSuma: "Suma"                        // ID:100, double, vyplatená suma
     };
 
     // LinkToEntry attributes — NOT validated (not in fields.json)
@@ -320,6 +338,55 @@ var Zamestnanci = (function() {
         }
     }
 
+    /**
+     * Calculate paid wages from Pokladňa records for a given period
+     * Filters: Pohyb = "Výdavok", Účel výdaja = "Mzda"
+     */
+    function calculatePaidFromPokladna(employeeEntry, periodChoice, config, utils) {
+        try {
+            var dateRange = calculateDateRange(periodChoice);
+
+            // Reverse lookup: Pokladňa records linking to this employee
+            var pokladnaLinks = employeeEntry.linksFrom("Pokladňa", EXTERNAL.poklZamestnanec);
+            utils.addDebug(employeeEntry, "  Pokladna celkom zaznamov: " + pokladnaLinks.length);
+
+            var totalVyplatene = 0;
+            var recordsProcessed = 0;
+
+            for (var i = 0; i < pokladnaLinks.length; i++) {
+                var pokl = pokladnaLinks[i];
+
+                // Filter by date range
+                var datum = pokl.field(EXTERNAL.dochDate);
+                if (!datum || datum < dateRange.startDate || datum > dateRange.endDate) continue;
+
+                // Filter: Pohyb must be "Výdavok"
+                var pohyb = (pokl.field(EXTERNAL.poklPohyb) || "").trim();
+                if (pohyb !== "Výdavok") continue;
+
+                // Filter: Účel výdaja must be "Mzda"
+                var ucel = (pokl.field(EXTERNAL.poklUcelVydaja) || "").trim();
+                if (ucel !== "Mzda") continue;
+
+                var suma = pokl.field(EXTERNAL.poklSuma) || 0;
+                totalVyplatene += suma;
+                recordsProcessed++;
+            }
+
+            utils.addDebug(employeeEntry, "  Vyplatene: " + totalVyplatene.toFixed(2) + " EUR (" + recordsProcessed + " zaznamov)");
+
+            return {
+                success: true,
+                vyplatene: totalVyplatene,
+                recordsCount: recordsProcessed
+            };
+
+        } catch (error) {
+            utils.addError(employeeEntry, "Chyba Pokladna: " + error.toString(), "calculatePaidFromPokladna", error);
+            return { success: false, error: error.toString(), vyplatene: 0, recordsCount: 0 };
+        }
+    }
+
     // ==============================================
     // PUBLIC API
     // ==============================================
@@ -391,26 +458,88 @@ var Zamestnanci = (function() {
                     utils.addDebug(employeeEntry, "  ⏭️ Pole '" + FIELDS.periodTotal + "' nie je nastavené, preskakujem");
                 }
 
-                // STEP 3: Create info message
-                utils.addDebug(employeeEntry, "📝 KROK 3: Vytvorenie info záznamu");
+                // STEP 3: Calculate Vyplatené from Pokladňa (for obdobie)
+                //         + set Na zákazkách, Jazdy = 0
+                //         + Preplatok/Nedoplatok = Zarobené − Vyplatené
+                utils.addDebug(employeeEntry, "");
+                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
+                utils.addDebug(employeeEntry, "📊 KROK 3: VYPLATENÉ Z POKLADNE");
+                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
+
+                // Na zákazkách a Jazdy sa zatiaľ nepočítajú — nastavíme na 0
+                employeeEntry.set(FIELDS.naZakazkach, 0);
+                employeeEntry.set(FIELDS.jazdy, 0);
+
+                if (obdobie) {
+                    var resultPokladna = calculatePaidFromPokladna(employeeEntry, obdobie, config, utils);
+
+                    if (resultPokladna.success) {
+                        employeeEntry.set(FIELDS.vyplatene, resultPokladna.vyplatene);
+
+                        // Preplatok/Nedoplatok = Zarobené − Vyplatené
+                        var zarobeneObdobie = (resultObdobie && resultObdobie.success) ? resultObdobie.zarobene : 0;
+                        var preplatokHodnota = zarobeneObdobie - resultPokladna.vyplatene;
+                        employeeEntry.set(FIELDS.preplatok, preplatokHodnota);
+
+                        utils.addDebug(employeeEntry, "  Preplatok/Nedoplatok: " + preplatokHodnota.toFixed(2) + " EUR");
+                        utils.addDebug(employeeEntry, "  ✅ Krok 3 OK");
+                    } else {
+                        utils.addError(employeeEntry, "Chyba Pokladna pre obdobie: " + resultPokladna.error, "calculateWages");
+                    }
+                } else {
+                    utils.addDebug(employeeEntry, "  Pole 'obdobie' nie je nastavene, preskakujem Pokladnu");
+                }
+
+                // STEP 4: Calculate Vyplatené total from Pokladňa
+                //         + set Na zákazkách total, Jazdy total = 0
+                utils.addDebug(employeeEntry, "");
+                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
+                utils.addDebug(employeeEntry, "📊 KROK 4: VYPLATENÉ TOTAL Z POKLADNE");
+                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
+
+                employeeEntry.set(FIELDS.naZakazkachTotal, 0);
+                employeeEntry.set(FIELDS.jezdyTotal, 0);
+
+                var resultPokladnaTotal = null;
+                if (obdobieTotal) {
+                    resultPokladnaTotal = calculatePaidFromPokladna(employeeEntry, obdobieTotal, config, utils);
+
+                    if (resultPokladnaTotal.success) {
+                        employeeEntry.set(FIELDS.vyplateneTotal, resultPokladnaTotal.vyplatene);
+                        utils.addDebug(employeeEntry, "  ✅ Krok 4 OK");
+                    } else {
+                        utils.addError(employeeEntry, "Chyba Pokladna total: " + resultPokladnaTotal.error, "calculateWages");
+                    }
+                } else {
+                    utils.addDebug(employeeEntry, "  Pole 'obdobie total' nie je nastavene, preskakujem");
+                }
+
+                // STEP 5: Create info message
+                utils.addDebug(employeeEntry, "📝 KROK 5: Vytvorenie info záznamu");
 
                 var infoMessage = "# 👤 ZAMESTNANEC - PREPOČET MIEZD\n\n";
                 infoMessage += "**Nick:** " + employeeName + "\n\n";
 
                 if (obdobie && resultObdobie && resultObdobie.success) {
+                    var vyplHodnota = (resultPokladna && resultPokladna.success) ? resultPokladna.vyplatene : 0;
+                    var prepHodnota = resultObdobie.zarobene - vyplHodnota;
                     infoMessage += "## 📊 Obdobie (voľba " + obdobie + ")\n";
                     infoMessage += "- **Odpracované:** " + resultObdobie.odpracovane.toFixed(2) + " h\n";
                     infoMessage += "- **Zarobené:** " + resultObdobie.zarobene.toFixed(2) + " €\n";
                     infoMessage += "- **Prémie:** " + resultObdobie.premie.toFixed(2) + " €\n";
-                    infoMessage += "- **Záznamov:** " + resultObdobie.recordsCount + "\n\n";
+                    infoMessage += "- **Vyplatené:** " + vyplHodnota.toFixed(2) + " €\n";
+                    infoMessage += "- **Preplatok/Nedoplatok:** " + prepHodnota.toFixed(2) + " €\n";
+                    infoMessage += "- **Záznamov (doch.):** " + resultObdobie.recordsCount + "\n\n";
                 }
 
                 if (obdobieTotal && resultTotal && resultTotal.success) {
+                    var vyplTotalHodnota = (resultPokladnaTotal && resultPokladnaTotal.success) ? resultPokladnaTotal.vyplatene : 0;
                     infoMessage += "## 📊 Obdobie Total (voľba " + obdobieTotal + ")\n";
                     infoMessage += "- **Odpracované total:** " + resultTotal.odpracovane.toFixed(2) + " h\n";
                     infoMessage += "- **Zarobené total:** " + resultTotal.zarobene.toFixed(2) + " €\n";
                     infoMessage += "- **Prémie total:** " + resultTotal.premie.toFixed(2) + " €\n";
-                    infoMessage += "- **Záznamov:** " + resultTotal.recordsCount + "\n\n";
+                    infoMessage += "- **Vyplatené total:** " + vyplTotalHodnota.toFixed(2) + " €\n";
+                    infoMessage += "- **Záznamov (doch.):** " + resultTotal.recordsCount + "\n\n";
                 }
 
                 infoMessage += "---\n";
@@ -486,22 +615,28 @@ var Zamestnanci = (function() {
                 var odpracovane = employeeEntry.field(FIELDS.workedTime) || 0;
                 var zarobene = employeeEntry.field(FIELDS.earned) || 0;
                 var premie = employeeEntry.field(FIELDS.bonuses) || 0;
+                var vyplatene = employeeEntry.field(FIELDS.vyplatene) || 0;
+                var preplatok = employeeEntry.field(FIELDS.preplatok) || 0;
 
                 var odpracovaneTotal = employeeEntry.field(FIELDS.workedTimeTotal) || 0;
                 var zarobeneTotal = employeeEntry.field(FIELDS.earnedTotal) || 0;
                 var premieTotal = employeeEntry.field(FIELDS.bonusesTotal) || 0;
+                var vyplateneTotal = employeeEntry.field(FIELDS.vyplateneTotal) || 0;
 
                 // Success dialog
-                var successMsg = "✅ PREPOČET DOKONČENÝ\n\n";
-                successMsg += "👤 Zamestnanec: " + employeeName + "\n\n";
-                successMsg += "📊 ZÁKLADNÉ POLIA:\n";
-                successMsg += "• Odpracované: " + odpracovane.toFixed(2) + " h\n";
-                successMsg += "• Zarobené: " + zarobene.toFixed(2) + " €\n";
-                successMsg += "• Prémie: " + premie.toFixed(2) + " €\n\n";
-                successMsg += "📊 TOTAL POLIA:\n";
-                successMsg += "• Odpracované total: " + odpracovaneTotal.toFixed(2) + " h\n";
-                successMsg += "• Zarobené total: " + zarobeneTotal.toFixed(2) + " €\n";
-                successMsg += "• Prémie total: " + premieTotal.toFixed(2) + " €\n\n";
+                var successMsg = "PREPOCET DOKONCENY\n\n";
+                successMsg += "Zamestnanec: " + employeeName + "\n\n";
+                successMsg += "ZAKLADNE POLIA:\n";
+                successMsg += "• Odpracovane: " + odpracovane.toFixed(2) + " h\n";
+                successMsg += "• Zarobene: " + zarobene.toFixed(2) + " EUR\n";
+                successMsg += "• Premie: " + premie.toFixed(2) + " EUR\n";
+                successMsg += "• Vyplatene: " + vyplatene.toFixed(2) + " EUR\n";
+                successMsg += "• Preplatok/Nedoplatok: " + preplatok.toFixed(2) + " EUR\n\n";
+                successMsg += "TOTAL POLIA:\n";
+                successMsg += "• Odpracovane total: " + odpracovaneTotal.toFixed(2) + " h\n";
+                successMsg += "• Zarobene total: " + zarobeneTotal.toFixed(2) + " EUR\n";
+                successMsg += "• Premie total: " + premieTotal.toFixed(2) + " EUR\n";
+                successMsg += "• Vyplatene total: " + vyplateneTotal.toFixed(2) + " EUR\n\n";
                 successMsg += "Skontrolujte Debug_Log a info pole pre detaily.";
 
                 dialog("Prepočet dokončený", successMsg, "OK");
