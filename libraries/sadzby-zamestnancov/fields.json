@@ -1,0 +1,40 @@
+{
+  "library_name": "Sadzby zamestnancov",
+  "library_id": "UNKNOWN - needs verification",
+  "last_updated": "2026-03-21T00:00:00",
+  "note": "TEMPLATE - Verify field names via Memento API",
+  "expected_fields": [
+    {
+      "name": "Zamestnanec",
+      "type": "linkToEntry",
+      "description": "Link to employee in Zamestnanci library",
+      "required": true,
+      "note": "Used to match rates to employees"
+    },
+    {
+      "name": "Sadzba",
+      "type": "double/currency",
+      "description": "Hourly rate amount (€/h)",
+      "alternative_names": ["Hodinová sadzba"],
+      "required": true,
+      "note": "The actual hourly rate value"
+    },
+    {
+      "name": "Platné od",
+      "type": "date",
+      "description": "Valid from date",
+      "alternative_names": ["Dátum"],
+      "required": true,
+      "note": "Start date for this rate"
+    },
+    {
+      "name": "Platné do",
+      "type": "date",
+      "description": "Valid to date (optional)",
+      "required": false,
+      "note": "End date for this rate. If empty, rate is valid indefinitely"
+    }
+  ],
+  "verification_needed": true,
+  "instructions": "Run API query to get actual field names and update this file"
+}
