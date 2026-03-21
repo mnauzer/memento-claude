@@ -119,9 +119,22 @@ playground.js
 !.env.example
 !CLAUDE.md
 
-# Log Capture Pattern dokumentácia (SYNCHRONIZOVANÉ)
+# TODO/Planning System (SYNCHRONIZOVANÉ)
+!TODO.md
+!BACKLOG.md
+!docs/TODO_SYSTEM_GUIDE.md
+!docs/INDEX.md
+!docs/planning/*.md
+!libraries/*/TODO.md
+!core/TODO.md
+!modules/TODO.md
+
+# Core dokumentácia (SYNCHRONIZOVANÉ)
 !docs/LOG_CAPTURE_PATTERN.md
 !docs/LIBRARY_SCRIPT_ORGANIZATION.md
+!docs/CORE_MODULES_DOCUMENTATION.md
+!docs/CORE_MODULES_QUICK_REFERENCE.md
+!docs/CORE_MODULES_AGGREGATION.md
 !utils/mcp-helpers/*.md
 
 # PostgreSQL dokumentácia (SYNCHRONIZOVANÉ)
@@ -135,6 +148,13 @@ playground.js
 !get_latest_asistanto_log.py
 !get_latest_entry_with_logs.py
 !verify_library_fields.py
+
+# Project dokumentácia (SYNCHRONIZOVANÉ)
+!PROJECT_MAP.md
+!MEMENTO_PROJECT_STRUCTURE.md
+!MEMENTO_NAMING_CONVENTION.md
+!MEMENTO_API_ACCESS.md
+!README.md
 
 # Library dokumentácia (SYNCHRONIZOVANÉ)
 !libraries/**/README.md
@@ -178,6 +198,10 @@ playground.js
 !.claude/agents/**/*.md
 !.claude/agents/**/*.json
 !.claude/agents/**/*.js
+
+# Skills files (SYNCHRONIZOVANÉ) - in user .claude directory
+# Note: Skills are in C:\Users\rasto\.claude\projects\...\skills\
+# Pattern needs to match full path in C:\Users\rasto\.claude\ directory
 
 # ========================================
 # POZNÁMKA:
