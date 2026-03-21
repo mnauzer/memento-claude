@@ -1,62 +1,29 @@
 /**
- * Knižnica:    Zamestnanci
- * Názov:       Zam.Action.Recalculate
- * Typ:         Action (Button) - Ultra-Thin Wrapper
- * Verzia:      2.0.0
- * Autor:       ASISTANTO
- * Dátum:       2026-03-20
- *
- * Účel:
- *   Ultra-thin wrapper pre button action prepočtu miezd.
- *   Všetka logika je v modules/Zamestnanci.js module.
- *
- * Použitie:
- *   1. Pridaj Button widget do formulára
- *   2. Nastav script na tento súbor
- *   3. Klikni na button → spustí sa prepočet
- *
- * Závislosti:
- *   - MementoUtils v8.1+
- *   - Zamestnanci module v1.4+
- *
- * Changelog:
- *   v2.0.0 (2026-03-20) - Refactor to ultra-thin wrapper
- *     - Move all logic to Zamestnanci.calculateWagesAction()
- *     - Only 25 lines of wrapper code
- *     - Follows reusable module architecture pattern
- *   v1.0.0 (2026-03-20) - Initial implementation (deprecated - too much code)
+ * Zam.Action.Recalculate v2.2.0 - DIAGNOSTIC
+ * Testuje: entry(), set(), message(), dialog(), moduly
  */
 
-'use strict';
+var e = entry();
 
-// ==============================================
-// DEPENDENCY VALIDATION
-// ==============================================
+// TEST 1: Funguje entry()?
+if (!e) {
+    message("FAIL: entry() je null - script nema pristup k zaznamu");
+} else {
 
-if (typeof MementoUtils === 'undefined') {
-    dialog("Chyba závislostí", "❌ Chýba MementoUtils modul!\n\nSkontrolujte load order v Nastavenia → Skripty.", "OK");
-    cancel();
+    // TEST 2: Funguje entry.set() priamo?
+    e.set("Debug_Log", "DIAGNOSTIC: script spusteny " + new Date().toISOString());
+
+    // TEST 3: Funguje message()?
+    message("TEST OK: entry=" + (e ? "OK" : "NULL") + " MementoUtils=" + (typeof MementoUtils) + " Zamestnanci=" + (typeof Zamestnanci));
+
+    // TEST 4: Ak su moduly OK, spusti calculateWages BEZ confirmation dialogu
+    if (typeof Zamestnanci !== 'undefined' && typeof MementoUtils !== 'undefined') {
+        try {
+            var result = Zamestnanci.calculateWages(e, MementoUtils.config, MementoUtils);
+            message("calculateWages: " + (result.success ? "OK" : "FAIL: " + result.error));
+        } catch (ex) {
+            e.set("Error_Log", "EXCEPTION: " + ex.toString());
+            message("EXCEPTION: " + ex.toString());
+        }
+    }
 }
-
-if (typeof Zamestnanci === 'undefined') {
-    dialog("Chyba závislostí", "❌ Chýba Zamestnanci modul!\n\nSkontrolujte load order v Nastavenia → Skripty.", "OK");
-    cancel();
-}
-
-// ==============================================
-// MAIN EXECUTION
-// ==============================================
-
-var result = Zamestnanci.calculateWagesAction(entry(), MementoUtils.config, MementoUtils);
-
-if (result.cancelled) {
-    // User cancelled - just exit
-    cancel();
-}
-
-if (!result.success) {
-    // Error already shown in dialog by module
-    cancel();
-}
-
-// Success - dialog already shown by module
