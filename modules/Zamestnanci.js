@@ -469,6 +469,7 @@ var Zamestnanci = (function() {
 
                         utils.addDebug(employeeEntry, "  ✅ Základné polia nastavené");
                     } else {
+                        directError(employeeEntry, "STEP1 fail: " + resultObdobie.error);
                         utils.addError(employeeEntry, "Chyba pri výpočte základných polí: " + resultObdobie.error, "calculateWages");
                     }
                 } else {
@@ -492,6 +493,7 @@ var Zamestnanci = (function() {
 
                         utils.addDebug(employeeEntry, "  ✅ Total polia nastavené");
                     } else {
+                        directError(employeeEntry, "STEP2 fail: " + resultTotal.error);
                         utils.addError(employeeEntry, "Chyba pri výpočte total polí: " + resultTotal.error, "calculateWages");
                     }
                 } else {
@@ -524,6 +526,7 @@ var Zamestnanci = (function() {
                         utils.addDebug(employeeEntry, "  Preplatok/Nedoplatok: " + preplatokHodnota.toFixed(2) + " EUR");
                         utils.addDebug(employeeEntry, "  ✅ Krok 3 OK");
                     } else {
+                        directError(employeeEntry, "STEP3 Pokladna fail: " + resultPokladna.error);
                         utils.addError(employeeEntry, "Chyba Pokladna pre obdobie: " + resultPokladna.error, "calculateWages");
                     }
                 } else {
@@ -548,6 +551,7 @@ var Zamestnanci = (function() {
                         employeeEntry.set(FIELDS.vyplateneTotal, resultPokladnaTotal.vyplatene);
                         utils.addDebug(employeeEntry, "  ✅ Krok 4 OK");
                     } else {
+                        directError(employeeEntry, "STEP4 Pokladna fail: " + resultPokladnaTotal.error);
                         utils.addError(employeeEntry, "Chyba Pokladna total: " + resultPokladnaTotal.error, "calculateWages");
                     }
                 } else {
@@ -745,6 +749,7 @@ var Zamestnanci = (function() {
                 var ratesLibrary = libByName("sadzby zamestnancov");
 
                 if (!ratesLibrary) {
+                    directError(employeeEntry, "getCurrentHourlyRate: Kniznica 'sadzby zamestnancov' nenajdena!");
                     if (utils) {
                         utils.addError(employeeEntry, "Knižnica 'sadzby zamestnancov' nenájdená!", "getCurrentHourlyRate");
                     }
@@ -819,6 +824,7 @@ var Zamestnanci = (function() {
                 };
 
             } catch (error) {
+                directError(employeeEntry, "getCurrentHourlyRate: " + error.toString());
                 if (utils) {
                     utils.addError(employeeEntry, "Chyba pri získavaní sadzby: " + error.toString(), "getCurrentHourlyRate", error);
                 }
@@ -849,6 +855,7 @@ var Zamestnanci = (function() {
                 }
 
             } catch (error) {
+                directError(employeeEntry, "updateCurrentHourlyRate: " + error.toString());
                 if (utils) {
                     utils.addError(employeeEntry, "Chyba pri aktualizácii hodinovky: " + error.toString(), "updateCurrentHourlyRate", error);
                 }
