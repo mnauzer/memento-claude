@@ -49,37 +49,30 @@ var CONFIG = (function() {
     defaultsLibrary: "ASISTANTO Defaults",
     notificationsLibrary: "Notifications",
     
-    // Názvy polí v Defaults
+    // Názvy polí v Dochádzke (verified from libraries/dochadzka/fields.json)
+    fields: {
+        zamestnanci: "Zamestnanci",       // ID:98, entries
+        datum: "Dátum",                   // ID:0, date
+        prichod: "Príchod",               // ID:1, time
+        odchod: "Odchod",                 // ID:87, time (verified)
+        pracovnaDoba: "Pracovná doba",    // ID:247, double
+        mzdoveNaklady: "Mzdové náklady",  // ID:273, currency
+        pocetPracovnikov: "Počet pracovníkov", // ID:235, int
+        odpracovane: "Odpracované",       // ID:260, double
+        poznamka: "Poznámka",             // ID:188, text
+        id: "ID"                          // ID:340, int
+    },
+
+    // Názvy polí v ASISTANTO Defaults (verified from MementoConfig.fields.defaults)
     defaultsFields: {
         dochadzkaIndividualEnabled: "Dochádzka individuálne notifikácie",
-        notificationDelay: "Oneskorenie notifikácie (min)",
-        includeStats: "Zahrnúť štatistiky"
-    },
-    
-    // Názvy polí v Dochádzke
-    fields: {
-        zamestnanci: "Zamestnanci",
-        datum: "Dátum",
-        prichod: "Príchod",
-        odchod: "Odchod",
-        pracovnaDoba: "Pracovná doba",
-        mzdoveNaklady: "Mzdové náklady",
-        pocetPracovnikov: "Počet pracovníkov",
-        odpracovane: "Odpracované",
-        poznamka: "Poznámka",
-        id: "ID"
-
-    },
-    
-    // Názvy polí v Defaults - UPRAVENÉ PODĽA TVOJICH SCREENSHOTOV
-    defaultsFields: {
-        dochadzkaIndividualEnabled: "Dochádzka individuálne notifikácie",  // Upravené
+        notificationDelay: "Oneskorenie notifikácie (min)", // ID:54
         nazovFirmy: "Názov firmy",
         includeFinancials: "Zahrnúť finančné údaje",
-        includeStats: "Zahrnúť štatistiky",
+        includeStats: "Zahrnúť štatistiky"
     },
 
-    // Názvy atribútov
+    // Atribúty v linkToEntry Zamestnanci (verified from fields.json linkToEntry attributes)
     attributes: {
         odpracovane: "odpracované",
         hodinovka: "hodinovka",
@@ -87,7 +80,6 @@ var CONFIG = (function() {
         premia: "+prémia (€)",
         pokuta: "-pokuta (€)",
         dennaMzda: "denná mzda",
-        hodinovka: "hodinovka",
         poznamka: "poznámka"
     }
     };

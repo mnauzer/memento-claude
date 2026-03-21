@@ -39,13 +39,27 @@ var MementoTelegram = (function() {
         version: "8.2.0",
         author: "ASISTANTO",
         description: "Telegram Bot API integration with group chat and thread support",
-        dependencies: ["MementoCore", "MementoConfig"],  // Changed from MementoUtils to avoid circular dependency
+        dependencies: ["MementoCore", "MementoConfig"],
         provides: ["sendMessage", "editMessage", "deleteMessage", "sendGroupSummary", "formatMarkdown"],
         status: "stable",
-        note: "Phase 2: No longer depends on MementoUtils (circular dependency fixed)"
+        note: "Phase 2: No longer depends on MementoUtils (circular dependency fixed)",
+        library: null,                              // Tento modul nemá vlastnú knižnicu
+        externalLibraries: ["asistanto-defaults"]  // → libraries/asistanto-defaults/fields.json (ak existuje)
     };
 
     var version = MODULE_INFO.version;
+
+    // ==============================================
+    // EXTERNAL LIBRARY/FIELD CONSTANTS
+    // ==============================================
+    // Libraries and fields accessed by this module (single source of truth).
+    // Verified from MementoConfig.js (fields.defaults section).
+    // If a name is wrong here → getSettings() fails → getBotToken() returns null → caller logs error.
+
+    var EXTERNAL = {
+        defaultsLibrary: "ASISTANTO Defaults",          // config.libraries.defaults
+        telegramBotApiKey: "Telegram Bot API Key"       // config.fields.defaults.telegramBotApiKey (ID:16)
+    };
 
     // Lazy loading pre závislosti
     var _config = null;
@@ -85,13 +99,13 @@ var MementoTelegram = (function() {
     function getBotToken() {
         try {
             var core = getCore();
-            var config = getConfig();
-
-            var defaultsLib = config ? config.libraries.defaults : "ASISTANTO Defaults";
-            var tokenField = config ? config.fields.defaults.telegramApiKey : "Telegram Bot API Key";
-            
-            return core.getSettings(defaultsLib, tokenField);
+            // Use EXTERNAL constants — single source of truth, no config fallback.
+            // Wrong name → getSettings() returns null → caller handles missing token.
+            return core.getSettings(EXTERNAL.defaultsLibrary, EXTERNAL.telegramBotApiKey);
         } catch (error) {
+            if (getCore()) {
+                getCore().addError(null, "getBotToken zlyhalo: " + error.toString(), "MementoTelegram.getBotToken", error);
+            }
             return null;
         }
     }

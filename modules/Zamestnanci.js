@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.6.0
+ * Version:     1.8.0
  * Author:      ASISTANTO
  * Date:        2026-03-21
  *
@@ -28,6 +28,15 @@
  *   }
  *
  * Changelog:
+ *   v1.8.0 (2026-03-21) - Module-level FIELDS constant (single source of truth)
+ *     - Add module-level FIELDS constant with all field names verified from fields.json
+ *     - Remove local FIELDS object from calculateWages() - use module FIELDS
+ *     - Remove config fallback from updateCurrentHourlyRate() - use FIELDS.hourlyRate directly
+ *     - All hardcoded field strings replaced with FIELDS.xxx references
+ *     - Wrong field name now surfaces as exception → catch → addError → Error_Log
+ *   v1.7.0 (2026-03-21) - Use config for hourlyRate field name
+ *     - updateCurrentHourlyRate() uses config.fields.employee.hourlyRate with fallback
+ *     - MementoConfig fixed: "Hodinovka" → "Aktuálna hodinovka" (verified from fields.json ID:42)
  *   v1.6.0 (2026-03-21) - Fix field names from API verification
  *     - CRITICAL FIX: Use "Platnosť od" (not "Platné od") - verified via API
  *     - Remove fallback field names (use exact names only)
@@ -36,33 +45,12 @@
  *   v1.5.0 (2026-03-20) - Add hourly rate lookup from historical data
  *     - New: getCurrentHourlyRate() - finds current rate from "sadzby zamestnancov"
  *     - New: updateCurrentHourlyRate() - updates "Aktuálna hodinovka" field
- *     - Supports date range validation (was incorrect, fixed in v1.6.0)
- *     - Takes latest valid rate if multiple found
  *   v1.4.0 (2026-03-20) - Add calculateWagesAction for button actions
- *     - New public API function with built-in dialogs
- *     - Confirmation dialog before calculation
- *     - Success dialog with results summary
- *     - Error dialogs with user-friendly messages
- *     - Follows reusable module architecture pattern
  *   v1.3.1 (2026-03-20) - Trim choice labels (Memento adds trailing spaces!)
- *     - "minulý mesiac " (with space) didn't match "minulý mesiac" in map
- *     - Trim choice before lookup: choice.toString().trim()
- *   v1.3.0 (2026-03-20) - Fix period filter AGAIN (choice returns LABEL!)
- *     - Choice field returns LABEL text ("posledných 14 dní"), not value!
- *     - Create choiceMap to convert Slovak labels to numeric values
- *     - Fallback to parseInt and default value (3 = tento mesiac)
+ *   v1.3.0 (2026-03-20) - Fix period filter (choice returns LABEL!)
  *   v1.2.0 (2026-03-20) - Fix period filter (choice field returns string!)
- *     - Convert choice value to number with parseInt()
- *     - Add debug log showing choice type (string vs number)
- *     - Fixes issue where all periods defaulted to "tento mesiac"
  *   v1.1.0 (2026-03-20) - Visual improvements in debug log
- *     - Add visual separators between KROK 1 and KROK 2
- *     - Better readability of debug output
  *   v1.0.0 (2026-03-20) - Complete implementation
- *     - Extract wage calculation logic from Zam.Calc.Universal.js
- *     - Implement reusable module pattern
- *     - Support "obdobie" and "obdobie total" period filters
- *     - Calculate from Dochádzka linkToEntry attributes
  */
 
 'use strict';
@@ -75,9 +63,54 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.6.0",
+        version: "1.8.0",
         author: "ASISTANTO",
-        date: "2026-03-20"
+        date: "2026-03-21",
+        library: "zamestnanci",              // → libraries/zamestnanci/fields.json
+        externalLibraries: ["sadzby-zamestnancov", "dochadzka"]  // → libraries/*/fields.json
+    };
+
+    // ==============================================
+    // FIELD NAME CONSTANTS (single source of truth)
+    // ==============================================
+    // FIELDS  = primary library (zamestnanci) only
+    // EXTERNAL = external libraries (sadzby-zamestnancov, dochadzka)
+    // All names verified from libraries/*/fields.json
+
+    var FIELDS = {
+        nick: "Nick",                           // ID:22, text, role:name
+        hourlyRate: "Aktuálna hodinovka",       // ID:42, double, €
+        workedTime: "Odpracované",              // ID:31, double, h
+        earned: "Zarobené",                     // ID:33, currency
+        bonuses: "Prémie",                      // ID:94, currency
+        workedTimeTotal: "Odpracované total",   // ID:55, double, h
+        earnedTotal: "Zarobené total",          // ID:54, currency
+        bonusesTotal: "Prémie total",           // ID:102, currency
+        period: "obdobie",                      // ID:86, choice
+        periodTotal: "obdobie total",           // ID:90, choice
+        info: "info",                           // ID:93, text
+        debugLog: "Debug_Log"                   // ID:80, text
+    };
+
+    var EXTERNAL = {
+        // sadzby-zamestnancov library fields
+        rateEmployee: "Zamestnanec",            // ID:2, entries (linkToEntry)
+        rateValidFrom: "Platnosť od",           // ID:3, date, required
+        rateValue: "Sadzba",                    // ID:4, currency, required
+        // NOTE: "Platné do" does NOT exist - verified from fields.json (only 3 fields)
+
+        // Dochádzka fields (used in linksFrom queries)
+        dochDate: "Dátum",
+        dochEmployees: "Zamestnanci"
+    };
+
+    // LinkToEntry attributes — NOT validated (not in fields.json)
+    var ATTRS = {
+        attrWorked: "odpracované",
+        attrDailyWage: "denná mzda",
+        attrBonus: "+príplatok (€/h)",
+        attrPremium: "+prémia (€)",
+        attrPenalty: "-pokuta (€)"
     };
 
     // ==============================================
@@ -202,14 +235,14 @@ var Zamestnanci = (function() {
                 moment(dateRange.endDate).format("DD.MM.YYYY"));
 
             // Get all Dochádzka records linking to this employee
-            var dochadzkaLinks = employeeEntry.linksFrom("Dochádzka", "Zamestnanci");
+            var dochadzkaLinks = employeeEntry.linksFrom("Dochádzka", EXTERNAL.dochEmployees);
             utils.addDebug(employeeEntry, "  📋 Celkom záznamov Dochádzky: " + dochadzkaLinks.length);
 
             // Filter by date range
             var filteredRecords = [];
             for (var i = 0; i < dochadzkaLinks.length; i++) {
                 var dochadza = dochadzkaLinks[i];
-                var datum = dochadza.field("Dátum");
+                var datum = dochadza.field(EXTERNAL.dochDate);
 
                 if (datum && datum >= dateRange.startDate && datum <= dateRange.endDate) {
                     filteredRecords.push(dochadza);
@@ -226,7 +259,7 @@ var Zamestnanci = (function() {
 
             for (var i = 0; i < filteredRecords.length; i++) {
                 var dochadza = filteredRecords[i];
-                var zamestnanci = dochadza.field("Zamestnanci");
+                var zamestnanci = dochadza.field(EXTERNAL.dochEmployees);
 
                 if (!zamestnanci || zamestnanci.length === 0) {
                     continue;
@@ -241,17 +274,17 @@ var Zamestnanci = (function() {
                         recordsProcessed++;
 
                         // Odpracované
-                        var odpracovane = empLink.attr("odpracované") || 0;
+                        var odpracovane = empLink.attr(ATTRS.attrWorked) || 0;
                         totalOdpracovane += odpracovane;
 
                         // Zarobené (denná mzda)
-                        var dennaMzda = empLink.attr("denná mzda") || 0;
+                        var dennaMzda = empLink.attr(ATTRS.attrDailyWage) || 0;
                         totalZarobene += dennaMzda;
 
                         // Prémie = (odpracované × príplatok) + prémia - pokuta
-                        var priplatok = empLink.attr("+príplatok (€/h)") || 0;
-                        var premia = empLink.attr("+prémia (€)") || 0;
-                        var pokuta = empLink.attr("-pokuta (€)") || 0;
+                        var priplatok = empLink.attr(ATTRS.attrBonus) || 0;
+                        var premia = empLink.attr(ATTRS.attrPremium) || 0;
+                        var pokuta = empLink.attr(ATTRS.attrPenalty) || 0;
 
                         var premieZaznamu = (odpracovane * priplatok) + premia - pokuta;
                         totalPremie += premieZaznamu;
@@ -306,28 +339,8 @@ var Zamestnanci = (function() {
             try {
                 utils.addDebug(employeeEntry, "🚀 === Zamestnanci Module v" + MODULE_INFO.version + " ===");
 
-                // Get employee name
-                var employeeName = employeeEntry.field("Nick") || "N/A";
+                var employeeName = employeeEntry.field(FIELDS.nick) || "N/A";
                 utils.addDebug(employeeEntry, "👤 Zamestnanec: " + employeeName);
-
-                var FIELDS = {
-                    // Period selection
-                    obdobie: "obdobie",
-                    obdobieTotal: "obdobie total",
-
-                    // Regular fields (obdobie)
-                    odpracovane: "Odpracované",
-                    zarobene: "Zarobené",
-                    premie: "Prémie",
-
-                    // Total fields (obdobie total)
-                    odpracovaneTotal: "Odpracované total",
-                    zarobeneTotal: "Zarobené total",
-                    premieTotal: "Prémie total",
-
-                    // Info
-                    info: "info"
-                };
 
                 var resultObdobie = null;
                 var resultTotal = null;
@@ -337,22 +350,22 @@ var Zamestnanci = (function() {
                 utils.addDebug(employeeEntry, "═══════════════════════════════════════");
                 utils.addDebug(employeeEntry, "📊 KROK 1: VÝPOČET ZÁKLADNÝCH POLÍ");
                 utils.addDebug(employeeEntry, "═══════════════════════════════════════");
-                var obdobie = employeeEntry.field(FIELDS.obdobie);
+                var obdobie = employeeEntry.field(FIELDS.period);
 
                 if (obdobie) {
                     resultObdobie = calculateWageFields(employeeEntry, obdobie, false, config, utils);
 
                     if (resultObdobie.success) {
-                        employeeEntry.set(FIELDS.odpracovane, resultObdobie.odpracovane);
-                        employeeEntry.set(FIELDS.zarobene, resultObdobie.zarobene);
-                        employeeEntry.set(FIELDS.premie, resultObdobie.premie);
+                        employeeEntry.set(FIELDS.workedTime, resultObdobie.odpracovane);
+                        employeeEntry.set(FIELDS.earned, resultObdobie.zarobene);
+                        employeeEntry.set(FIELDS.bonuses, resultObdobie.premie);
 
                         utils.addDebug(employeeEntry, "  ✅ Základné polia nastavené");
                     } else {
                         utils.addError(employeeEntry, "Chyba pri výpočte základných polí: " + resultObdobie.error, "calculateWages");
                     }
                 } else {
-                    utils.addDebug(employeeEntry, "  ⏭️ Pole 'obdobie' nie je nastavené, preskakujem");
+                    utils.addDebug(employeeEntry, "  ⏭️ Pole '" + FIELDS.period + "' nie je nastavené, preskakujem");
                 }
 
                 // STEP 2: Calculate for "obdobie total" (total fields)
@@ -360,22 +373,22 @@ var Zamestnanci = (function() {
                 utils.addDebug(employeeEntry, "═══════════════════════════════════════");
                 utils.addDebug(employeeEntry, "📊 KROK 2: VÝPOČET TOTAL POLÍ");
                 utils.addDebug(employeeEntry, "═══════════════════════════════════════");
-                var obdobieTotal = employeeEntry.field(FIELDS.obdobieTotal);
+                var obdobieTotal = employeeEntry.field(FIELDS.periodTotal);
 
                 if (obdobieTotal) {
                     resultTotal = calculateWageFields(employeeEntry, obdobieTotal, true, config, utils);
 
                     if (resultTotal.success) {
-                        employeeEntry.set(FIELDS.odpracovaneTotal, resultTotal.odpracovane);
-                        employeeEntry.set(FIELDS.zarobeneTotal, resultTotal.zarobene);
-                        employeeEntry.set(FIELDS.premieTotal, resultTotal.premie);
+                        employeeEntry.set(FIELDS.workedTimeTotal, resultTotal.odpracovane);
+                        employeeEntry.set(FIELDS.earnedTotal, resultTotal.zarobene);
+                        employeeEntry.set(FIELDS.bonusesTotal, resultTotal.premie);
 
                         utils.addDebug(employeeEntry, "  ✅ Total polia nastavené");
                     } else {
                         utils.addError(employeeEntry, "Chyba pri výpočte total polí: " + resultTotal.error, "calculateWages");
                     }
                 } else {
-                    utils.addDebug(employeeEntry, "  ⏭️ Pole 'obdobie total' nie je nastavené, preskakujem");
+                    utils.addDebug(employeeEntry, "  ⏭️ Pole '" + FIELDS.periodTotal + "' nie je nastavené, preskakujem");
                 }
 
                 // STEP 3: Create info message
@@ -434,8 +447,7 @@ var Zamestnanci = (function() {
          */
         calculateWagesAction: function(employeeEntry, config, utils) {
             try {
-                // Get employee name
-                var employeeName = employeeEntry.field("Nick") || "N/A";
+                var employeeName = employeeEntry.field(FIELDS.nick) || "N/A";
 
                 // Confirmation dialog
                 var confirm = dialog(
@@ -451,18 +463,16 @@ var Zamestnanci = (function() {
                 );
 
                 if (confirm !== 0) {
-                    // User cancelled
                     return { success: false, cancelled: true };
                 }
 
                 // Clear Debug_Log for fresh calculation
-                employeeEntry.set("Debug_Log", "");
+                employeeEntry.set(FIELDS.debugLog, "");
 
                 // Call main calculation
                 var result = this.calculateWages(employeeEntry, config, utils);
 
                 if (!result.success) {
-                    // Error dialog
                     var errorMsg = "❌ CHYBA PRI PREPOČTE\n\n";
                     errorMsg += "Zamestnanec: " + employeeName + "\n\n";
                     errorMsg += "Chyba: " + (result.error || result.message) + "\n\n";
@@ -473,13 +483,13 @@ var Zamestnanci = (function() {
                 }
 
                 // Get calculated values for success dialog
-                var odpracovane = employeeEntry.field("Odpracované") || 0;
-                var zarobene = employeeEntry.field("Zarobené") || 0;
-                var premie = employeeEntry.field("Prémie") || 0;
+                var odpracovane = employeeEntry.field(FIELDS.workedTime) || 0;
+                var zarobene = employeeEntry.field(FIELDS.earned) || 0;
+                var premie = employeeEntry.field(FIELDS.bonuses) || 0;
 
-                var odpracovaneTotal = employeeEntry.field("Odpracované total") || 0;
-                var zarobeneTotal = employeeEntry.field("Zarobené total") || 0;
-                var premieTotal = employeeEntry.field("Prémie total") || 0;
+                var odpracovaneTotal = employeeEntry.field(FIELDS.workedTimeTotal) || 0;
+                var zarobeneTotal = employeeEntry.field(FIELDS.earnedTotal) || 0;
+                var premieTotal = employeeEntry.field(FIELDS.bonusesTotal) || 0;
 
                 // Success dialog
                 var successMsg = "✅ PREPOČET DOKONČENÝ\n\n";
@@ -499,7 +509,6 @@ var Zamestnanci = (function() {
                 return { success: true };
 
             } catch (error) {
-                // Critical error dialog
                 var criticalMsg = "❌ KRITICKÁ CHYBA\n\n";
                 criticalMsg += "Module: Zamestnanci v" + MODULE_INFO.version + "\n\n";
                 criticalMsg += "Chyba: " + error.toString() + "\n\n";
@@ -527,7 +536,7 @@ var Zamestnanci = (function() {
             try {
                 var currentDate = new Date();
                 var employeeId = employeeEntry.id;
-                var employeeName = employeeEntry.field("Nick") || employeeEntry.field("Meno") || "N/A";
+                var employeeName = employeeEntry.field(FIELDS.nick) || employeeEntry.field("Meno") || "N/A";
 
                 if (utils) {
                     utils.addDebug(employeeEntry, "🔍 Hľadám aktuálnu sadzbu pre: " + employeeName);
@@ -547,14 +556,11 @@ var Zamestnanci = (function() {
                 var allRates = ratesLibrary.entries();
                 var employeeRates = [];
 
-                // Filter rates for this employee
                 for (var i = 0; i < allRates.length; i++) {
                     var rateEntry = allRates[i];
-                    var linkedEmployee = rateEntry.field("Zamestnanec");
+                    var linkedEmployee = rateEntry.field(EXTERNAL.rateEmployee);
 
-                    // Check if this rate belongs to our employee
                     if (linkedEmployee && linkedEmployee.length > 0) {
-                        // linkToEntry field returns array
                         var empLink = linkedEmployee[0];
                         if (empLink && empLink.id === employeeId) {
                             employeeRates.push(rateEntry);
@@ -574,30 +580,20 @@ var Zamestnanci = (function() {
                 }
 
                 // Find the rate valid for current date
+                // NOTE: "Platné do" does NOT exist in sadzby zamestnancov (only 3 fields)
+                // Rates are valid from validFrom indefinitely - take latest validFrom <= today
                 var currentRate = null;
                 var currentValidFrom = null;
 
                 for (var i = 0; i < employeeRates.length; i++) {
                     var rateEntry = employeeRates[i];
-                    var validFrom = rateEntry.field("Platnosť od");  // CRITICAL: Exact field name from API
-                    var validTo = rateEntry.field("Platné do");  // May not exist (library has only 3 fields)
-                    var rate = rateEntry.field("Sadzba");  // Currency field
+                    var validFrom = rateEntry.field(EXTERNAL.rateValidFrom);
+                    var rate = rateEntry.field(EXTERNAL.rateValue);
 
                     if (!validFrom || !rate) continue;
 
-                    // Check if rate is valid for current date
-                    var isValid = false;
-
-                    if (validTo) {
-                        // Range: validFrom <= currentDate <= validTo
-                        isValid = validFrom <= currentDate && currentDate <= validTo;
-                    } else {
-                        // No end date: validFrom <= currentDate
-                        isValid = validFrom <= currentDate;
-                    }
-
-                    if (isValid) {
-                        // If multiple valid rates, take the one with latest validFrom
+                    // Valid if validFrom <= currentDate, take the latest validFrom
+                    if (validFrom <= currentDate) {
                         if (!currentRate || validFrom > currentValidFrom) {
                             currentRate = rate;
                             currentValidFrom = validFrom;
@@ -632,7 +628,10 @@ var Zamestnanci = (function() {
         },
 
         /**
-         * Update "Aktuálna hodinovka" field with current rate
+         * Update "Aktuálna hodinovka" field with current rate from "sadzby zamestnancov"
+         *
+         * Field name comes from FIELDS.hourlyRate (single source of truth).
+         * If field doesn't exist → entry.set() throws → catch → addError → Error_Log.
          *
          * @param {Entry} employeeEntry - Current employee entry
          * @param {Object} utils - MementoUtils object (optional)
@@ -643,10 +642,10 @@ var Zamestnanci = (function() {
                 var result = this.getCurrentHourlyRate(employeeEntry, utils);
 
                 if (result.success) {
-                    employeeEntry.set("Aktuálna hodinovka", result.rate);
+                    // FIELDS.hourlyRate is the single source of truth (verified from fields.json ID:42)
+                    employeeEntry.set(FIELDS.hourlyRate, result.rate);
                     return { success: true, rate: result.rate };
                 } else {
-                    // Don't set field if no valid rate found
                     return { success: false, error: result.error };
                 }
 

@@ -955,7 +955,7 @@ var MementoConfig = (function() {
                 position: "Pozícia", // radio: Brigádnik, Stály zamestnanec, Vedúcko
 
                 // Hodinová sadzba
-                hourlyRate: "Hodinovka", // double - aktuálna hodinová sadzba pre výpočty
+                hourlyRate: "Aktuálna hodinovka", // double (ID:42) - DOKUMENTÁCIA; runtime používa FIELDS.hourlyRate v modules/Zamestnanci.js
 
                 // Odpracované hodiny - aktuálne obdobie
                 workedTime: "Odpracované", // double - odpracované hodiny (filter obdobie)
