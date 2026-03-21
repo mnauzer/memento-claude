@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.14.0
+ * Version:     1.15.0
  * Author:      ASISTANTO
  * Date:        2026-03-21
  *
@@ -28,6 +28,9 @@
  *   }
  *
  * Changelog:
+ *   v1.15.0 (2026-03-21) - Integrate generateReport() into calculateWages() as STEP 6
+ *     - HTML report generated automatically on every recalculation
+ *     - Report error is logged but does not block wage calculation result
  *   v1.14.0 (2026-03-21) - Add generateReport() — HTML report in "report" field
  *     - Period from "obdobie" field (no parameter needed)
  *     - Table 1: Odpracované — date, Príchod–Odchod, hours, hodinovka attr, denná mzda
@@ -97,7 +100,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.14.0",
+        version: "1.15.0",
         author: "ASISTANTO",
         date: "2026-03-21",
         library: "zamestnanci",              // → libraries/zamestnanci/fields.json
@@ -669,6 +672,18 @@ var Zamestnanci = (function() {
 
                 employeeEntry.set(FIELDS.info, infoMessage);
                 utils.addDebug(employeeEntry, "  ✅ Info záznam vytvorený");
+
+                // STEP 6: Generate HTML report
+                utils.addDebug(employeeEntry, "");
+                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
+                utils.addDebug(employeeEntry, "📄 KROK 6: HTML REPORT");
+                utils.addDebug(employeeEntry, "═══════════════════════════════════════");
+                var reportResult = this.generateReport(employeeEntry, config, utils);
+                if (!reportResult.success) {
+                    utils.addError(employeeEntry, "Chyba pri generovaní reportu: " + reportResult.error, "calculateWages");
+                } else {
+                    utils.addDebug(employeeEntry, "  ✅ Report OK (" + reportResult.rows + " záznamy, " + reportResult.payments + " platby)");
+                }
 
                 utils.addDebug(employeeEntry, "✅ === PREPOČET DOKONČENÝ ÚSPEŠNE ===");
 
