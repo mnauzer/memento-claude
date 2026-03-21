@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.4.0
+ * Version:     1.5.0
  * Author:      ASISTANTO
  * Date:        2026-03-20
  *
@@ -28,6 +28,11 @@
  *   }
  *
  * Changelog:
+ *   v1.5.0 (2026-03-20) - Add hourly rate lookup from historical data
+ *     - New: getCurrentHourlyRate() - finds current rate from "Sadzby zamestnancov"
+ *     - New: updateCurrentHourlyRate() - updates "Aktuálna hodinovka" field
+ *     - Supports date range validation (Platné od/Platné do)
+ *     - Takes latest valid rate if multiple found
  *   v1.4.0 (2026-03-20) - Add calculateWagesAction for button actions
  *     - New public API function with built-in dialogs
  *     - Confirmation dialog before calculation
@@ -65,7 +70,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.4.0",
+        version: "1.5.0",
         author: "ASISTANTO",
         date: "2026-03-20"
     };
@@ -502,6 +507,148 @@ var Zamestnanci = (function() {
 
                 dialog("Kritická chyba", criticalMsg, "OK");
 
+                return { success: false, error: error.toString() };
+            }
+        },
+
+        /**
+         * Get current hourly rate from "Sadzby zamestnancov" library
+         *
+         * @param {Entry} employeeEntry - Current employee entry
+         * @param {Object} utils - MementoUtils object (optional for logging)
+         * @returns {Object} - { success: boolean, rate: number, validFrom: Date }
+         */
+        getCurrentHourlyRate: function(employeeEntry, utils) {
+            try {
+                var currentDate = new Date();
+                var employeeId = employeeEntry.id;
+                var employeeName = employeeEntry.field("Nick") || employeeEntry.field("Meno") || "N/A";
+
+                if (utils) {
+                    utils.addDebug(employeeEntry, "🔍 Hľadám aktuálnu sadzbu pre: " + employeeName);
+                }
+
+                // Get "Sadzby zamestnancov" library
+                var ratesLibrary = libByName("Sadzby zamestnancov");
+
+                if (!ratesLibrary) {
+                    if (utils) {
+                        utils.addError(employeeEntry, "Knižnica 'Sadzby zamestnancov' nenájdená!", "getCurrentHourlyRate");
+                    }
+                    return { success: false, error: "Knižnica nenájdená" };
+                }
+
+                // Get all rate entries for this employee
+                var allRates = ratesLibrary.entries();
+                var employeeRates = [];
+
+                // Filter rates for this employee
+                for (var i = 0; i < allRates.length; i++) {
+                    var rateEntry = allRates[i];
+                    var linkedEmployee = rateEntry.field("Zamestnanec");
+
+                    // Check if this rate belongs to our employee
+                    if (linkedEmployee && linkedEmployee.length > 0) {
+                        // linkToEntry field returns array
+                        var empLink = linkedEmployee[0];
+                        if (empLink && empLink.id === employeeId) {
+                            employeeRates.push(rateEntry);
+                        }
+                    }
+                }
+
+                if (employeeRates.length === 0) {
+                    if (utils) {
+                        utils.addDebug(employeeEntry, "  ⚠️ Žiadne sadzby nenájdené pre " + employeeName);
+                    }
+                    return { success: false, error: "Žiadne sadzby" };
+                }
+
+                if (utils) {
+                    utils.addDebug(employeeEntry, "  📋 Nájdených " + employeeRates.length + " sadzieb");
+                }
+
+                // Find the rate valid for current date
+                var currentRate = null;
+                var currentValidFrom = null;
+
+                for (var i = 0; i < employeeRates.length; i++) {
+                    var rateEntry = employeeRates[i];
+                    var validFrom = rateEntry.field("Platné od") || rateEntry.field("Dátum");
+                    var validTo = rateEntry.field("Platné do");
+                    var rate = rateEntry.field("Sadzba") || rateEntry.field("Hodinová sadzba");
+
+                    if (!validFrom || !rate) continue;
+
+                    // Check if rate is valid for current date
+                    var isValid = false;
+
+                    if (validTo) {
+                        // Range: validFrom <= currentDate <= validTo
+                        isValid = validFrom <= currentDate && currentDate <= validTo;
+                    } else {
+                        // No end date: validFrom <= currentDate
+                        isValid = validFrom <= currentDate;
+                    }
+
+                    if (isValid) {
+                        // If multiple valid rates, take the one with latest validFrom
+                        if (!currentRate || validFrom > currentValidFrom) {
+                            currentRate = rate;
+                            currentValidFrom = validFrom;
+                        }
+                    }
+                }
+
+                if (!currentRate) {
+                    if (utils) {
+                        utils.addDebug(employeeEntry, "  ⚠️ Žiadna platná sadzba k " + currentDate.toLocaleDateString('sk-SK'));
+                    }
+                    return { success: false, error: "Žiadna platná sadzba" };
+                }
+
+                if (utils) {
+                    utils.addDebug(employeeEntry, "  ✅ Aktuálna sadzba: " + currentRate + " €/h (platné od " +
+                        (currentValidFrom ? currentValidFrom.toLocaleDateString('sk-SK') : "N/A") + ")");
+                }
+
+                return {
+                    success: true,
+                    rate: currentRate,
+                    validFrom: currentValidFrom
+                };
+
+            } catch (error) {
+                if (utils) {
+                    utils.addError(employeeEntry, "Chyba pri získavaní sadzby: " + error.toString(), "getCurrentHourlyRate", error);
+                }
+                return { success: false, error: error.toString() };
+            }
+        },
+
+        /**
+         * Update "Aktuálna hodinovka" field with current rate
+         *
+         * @param {Entry} employeeEntry - Current employee entry
+         * @param {Object} utils - MementoUtils object (optional)
+         * @returns {Object} - { success: boolean }
+         */
+        updateCurrentHourlyRate: function(employeeEntry, utils) {
+            try {
+                var result = this.getCurrentHourlyRate(employeeEntry, utils);
+
+                if (result.success) {
+                    employeeEntry.set("Aktuálna hodinovka", result.rate);
+                    return { success: true, rate: result.rate };
+                } else {
+                    // Don't set field if no valid rate found
+                    return { success: false, error: result.error };
+                }
+
+            } catch (error) {
+                if (utils) {
+                    utils.addError(employeeEntry, "Chyba pri aktualizácii hodinovky: " + error.toString(), "updateCurrentHourlyRate", error);
+                }
                 return { success: false, error: error.toString() };
             }
         }
