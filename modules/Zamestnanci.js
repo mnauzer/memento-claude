@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.12.0
+ * Version:     1.13.0
  * Author:      ASISTANTO
  * Date:        2026-03-21
  *
@@ -28,6 +28,11 @@
  *   }
  *
  * Changelog:
+ *   v1.13.0 (2026-03-21) - Info formatting + Nedoplatok/Preplatok logic fix
+ *     - Header: "Prepočet mzdy (Nick)" — name inline in heading, no separate line
+ *     - Nedoplatok/Preplatok reversed: positive = Nedoplatok (red, firma dlhuje), negative = Preplatok (green)
+ *     - Nedoplatok/Preplatok moved to first item in period section (before Odpracované)
+ *     - Debug log: removed directLog duplicates (utils.addDebug works after moment() fix)
  *   v1.12.0 (2026-03-21) - Remove all moment() dependencies — use native JS Date
  *     - ROOT CAUSE FIX: moment not available in Memento action/trigger execution context
  *     - calculateDateRange() fully rewritten with native Date arithmetic
@@ -84,7 +89,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.12.0",
+        version: "1.13.0",
         author: "ASISTANTO",
         date: "2026-03-21",
         library: "zamestnanci",              // → libraries/zamestnanci/fields.json
@@ -291,8 +296,7 @@ var Zamestnanci = (function() {
     function calculateWageFields(employeeEntry, periodChoice, isPeriodTotal, config, utils) {
         try {
             var periodName = isPeriodTotal ? "obdobie total" : "obdobie";
-            directLog(employeeEntry, "  → calcWageFields(" + periodChoice + ")");
-            utils.addDebug(employeeEntry, "🔄 Počítam pre: " + periodName + " (voľba " + periodChoice + ", typ: " + typeof periodChoice + ")");
+            utils.addDebug(employeeEntry, "🔄 Počítam pre: " + periodName + " (voľba: \"" + periodChoice + "\")");
 
             // Get date range for period
             var dateRange = calculateDateRange(periodChoice);
@@ -302,7 +306,6 @@ var Zamestnanci = (function() {
 
             // Get all Dochádzka records linking to this employee
             var dochadzkaLinks = employeeEntry.linksFrom("Dochádzka", EXTERNAL.dochEmployees);
-            directLog(employeeEntry, "  → linksFrom Dochadzka: " + dochadzkaLinks.length);
             utils.addDebug(employeeEntry, "  📋 Celkom záznamov Dochádzky: " + dochadzkaLinks.length);
 
             // Filter by date range
@@ -455,14 +458,13 @@ var Zamestnanci = (function() {
          * @returns {Object} - { success: boolean, message: string }
          */
         calculateWages: function(employeeEntry, config, utils) {
-            // Direct diagnostic write — confirms module is running even if utils broken
+            // Canary write — confirms module is executing before any utils calls
             directLog(employeeEntry, "🚀 Zamestnanci v" + MODULE_INFO.version + " START");
 
             try {
                 utils.addDebug(employeeEntry, "🚀 === Zamestnanci Module v" + MODULE_INFO.version + " ===");
 
                 var employeeName = employeeEntry.field(FIELDS.nick) || "N/A";
-                directLog(employeeEntry, "👤 " + employeeName);
                 utils.addDebug(employeeEntry, "👤 Zamestnanec: " + employeeName);
 
                 var resultObdobie = null;
@@ -539,7 +541,8 @@ var Zamestnanci = (function() {
                         var preplatokHodnota = zarobeneObdobie - resultPokladna.vyplatene;
                         employeeEntry.set(FIELDS.preplatok, preplatokHodnota);
 
-                        utils.addDebug(employeeEntry, "  Preplatok/Nedoplatok: " + preplatokHodnota.toFixed(2) + " EUR");
+                        var krok3Label = preplatokHodnota >= 0 ? "Nedoplatok" : "Preplatok";
+                        utils.addDebug(employeeEntry, "  " + krok3Label + ": " + preplatokHodnota.toFixed(2) + " EUR");
                         utils.addDebug(employeeEntry, "  ✅ Krok 3 OK");
                     } else {
                         directError(employeeEntry, "STEP3 Pokladna fail: " + resultPokladna.error);
@@ -600,20 +603,21 @@ var Zamestnanci = (function() {
                     }
                 };
 
-                var infoMessage = "### 👤 Prepočet mzdy\n";
-                infoMessage += employeeName + "\n\n";
+                var infoMessage = "### 👤 Prepočet mzdy (" + employeeName + ")\n\n";
 
                 if (obdobie && resultObdobie && resultObdobie.success) {
                     var vyplHodnota = (resultPokladna && resultPokladna.success) ? resultPokladna.vyplatene : 0;
+                    // Nedoplatok = Zarobené > Vyplatené (firma dlhuje zamestnancovi)
+                    // Preplatok  = Zarobené < Vyplatené (preplatok firme)
                     var prepHodnota = resultObdobie.zarobene - vyplHodnota;
-                    var prepLabel = prepHodnota >= 0 ? "Preplatok" : "Nedoplatok";
-                    var prepColor = prepHodnota >= 0 ? "green" : "red";
+                    var prepLabel = prepHodnota >= 0 ? "Nedoplatok" : "Preplatok";
+                    var prepColor = prepHodnota >= 0 ? "red" : "green";
                     infoMessage += "### 📊 " + formatPeriodHeading(obdobie) + "\n";
+                    infoMessage += "- **" + prepLabel + ":** <span style=\"color:" + prepColor + "\">" + prepHodnota.toFixed(2) + " €</span>\n";
                     infoMessage += "- **Odpracované:** " + resultObdobie.odpracovane.toFixed(2) + " h\n";
                     infoMessage += "- **Zarobené:** " + resultObdobie.zarobene.toFixed(2) + " €\n";
                     infoMessage += "- **Prémie:** " + resultObdobie.premie.toFixed(2) + " €\n";
                     infoMessage += "- **Vyplatené:** " + vyplHodnota.toFixed(2) + " €\n";
-                    infoMessage += "- **" + prepLabel + ":** <span style=\"color:" + prepColor + "\">" + prepHodnota.toFixed(2) + " €</span>\n";
                     infoMessage += "- **Záznamov (doch.):** " + resultObdobie.recordsCount + "\n\n";
                 }
 
