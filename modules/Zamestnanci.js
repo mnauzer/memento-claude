@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.16.0
+ * Version:     1.17.0
  * Author:      ASISTANTO
  * Date:        2026-03-21
  *
@@ -28,6 +28,14 @@
  *   }
  *
  * Changelog:
+ *   v1.17.0 (2026-03-21) - Detailed step-by-step debug logging in sendReportToTelegram()
+ *     - 6 labeled KROK sections with ═══ separator lines
+ *     - KROK 1: input validation (chatId, obdobie, fullName, dateRangeStr)
+ *     - KROK 2: per-record Dochádzka logging (date, time, hours, rate, total)
+ *     - KROK 3: per-record Pokladňa logging with skip reasons (Pohyb/Účel mismatch)
+ *     - KROK 4: balance calculation (Zarobené, Vyplatené, Nedoplatok/Preplatok)
+ *     - KROK 5: table formatting (row counts)
+ *     - KROK 6: send (chatId, message length, result or error)
  *   v1.16.0 (2026-03-21) - Add sendReportToTelegram() — monospace table via Telegram HTML
  *     - telegram param passed from outside (MementoTelegram circular dep. workaround)
  *     - Reads Dochádzka + Pokladňa same as generateReport() — per-day detail
@@ -106,7 +114,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.16.0",
+        version: "1.17.0",
         author: "ASISTANTO",
         date: "2026-03-21",
         library: "zamestnanci",              // → libraries/zamestnanci/fields.json
@@ -1187,40 +1195,62 @@ var Zamestnanci = (function() {
                     return { success: false, error: "MementoTelegram nie je dostupný" };
                 }
 
+                utils.addDebug(employeeEntry, "");
+                utils.addDebug(employeeEntry, "════════════════════════════════════════");
+                utils.addDebug(employeeEntry, "📤 KROK 1: VALIDÁCIA VSTUPOV");
+                utils.addDebug(employeeEntry, "════════════════════════════════════════");
+
                 // Telegram ID
                 var chatId = ((employeeEntry.field("Telegram ID") || "") + "").trim();
+                utils.addDebug(employeeEntry, "  Telegram ID: " + (chatId || "(prázdne)"));
                 if (!chatId) {
+                    utils.addError(employeeEntry, "Chýba Telegram ID — záznam sa nenašiel", "sendReportToTelegram");
                     return { success: false, error: "Zamestnanec nem\u00e1 nastaven\u00e9 Telegram ID" };
                 }
+                utils.addDebug(employeeEntry, "  ✅ Telegram ID OK");
 
                 // Period
                 var periodChoice = employeeEntry.field(FIELDS.period);
+                utils.addDebug(employeeEntry, "  Obdobie: " + (periodChoice || "(prázdne)"));
                 if (!periodChoice) {
+                    utils.addError(employeeEntry, "Chýba pole 'obdobie'", "sendReportToTelegram");
                     return { success: false, error: "Pole 'obdobie' nie je nastaven\u00e9" };
                 }
 
                 var nick       = employeeEntry.field(FIELDS.nick) || "N/A";
                 var priezvisko = ((employeeEntry.field("Priezvisko") || "") + "").trim();
                 var fullName   = nick + (priezvisko ? " (" + priezvisko + ")" : "");
+                utils.addDebug(employeeEntry, "  Zamestnanec: " + fullName);
 
                 var dateRange    = calculateDateRange(periodChoice);
                 var dateRangeStr = formatDate(dateRange.startDate) + " \u2013 " + formatDate(dateRange.endDate);
+                utils.addDebug(employeeEntry, "  Rozsah: " + dateRangeStr);
+                utils.addDebug(employeeEntry, "  ✅ Validácia OK");
 
-                utils.addDebug(employeeEntry, "📤 Telegram report: " + fullName + ", " + dateRangeStr);
+                // ── KROK 2: Query Dochádzka ───────────────────
+                utils.addDebug(employeeEntry, "");
+                utils.addDebug(employeeEntry, "════════════════════════════════════════");
+                utils.addDebug(employeeEntry, "📋 KROK 2: ZÁZNAMY DOCHÁDZKY");
+                utils.addDebug(employeeEntry, "════════════════════════════════════════");
 
-                // ── Query Dochádzka ───────────────────────────
                 var dochLinks = employeeEntry.linksFrom("Doch\u00e1dzka", EXTERNAL.dochEmployees);
+                utils.addDebug(employeeEntry, "  linksFrom Dochádzka: " + dochLinks.length + " celkom");
                 var odpRows = [];
                 var totalOdprac = 0, totalZarob = 0;
+                var skippedOutOfRange = 0, skippedNoMatch = 0;
 
                 for (var i = 0; i < dochLinks.length; i++) {
                     var doc  = dochLinks[i];
                     var datum = doc.field(EXTERNAL.dochDate);
-                    if (!datum || datum < dateRange.startDate || datum > dateRange.endDate) continue;
+                    if (!datum || datum < dateRange.startDate || datum > dateRange.endDate) {
+                        skippedOutOfRange++;
+                        continue;
+                    }
 
                     var zams = doc.field(EXTERNAL.dochEmployees);
-                    if (!zams || !zams.length) continue;
+                    if (!zams || !zams.length) { skippedNoMatch++; continue; }
 
+                    var found = false;
                     for (var j = 0; j < zams.length; j++) {
                         var emp = zams[j];
                         if (!emp || emp.id !== employeeEntry.id) continue;
@@ -1234,39 +1264,76 @@ var Zamestnanci = (function() {
                         odpRows.push({ datum: datum, cas: cas, odprac: odprac, sadzba: sadzba, celkom: dMzda });
                         totalOdprac += odprac;
                         totalZarob  += dMzda;
+                        utils.addDebug(employeeEntry, "  + " + formatDate(datum) + " " + (cas || "--") +
+                            "  " + odprac.toFixed(2) + "h  " + fmtCell(sadzba) + "  =" + fmtCell(dMzda));
+                        found = true;
                         break;
                     }
+                    if (!found) skippedNoMatch++;
                 }
                 odpRows.sort(function(a, b) { return a.datum - b.datum; });
 
-                // ── Query Pokladňa ────────────────────────────
+                utils.addDebug(employeeEntry, "  Preskočené (mimo rozsah): " + skippedOutOfRange);
+                utils.addDebug(employeeEntry, "  Preskočené (bez zhody): " + skippedNoMatch);
+                utils.addDebug(employeeEntry, "  ✅ Spracovaných: " + odpRows.length + " záz." +
+                    "  Odprac: " + totalOdprac.toFixed(2) + "h  Zarobené: " + fmtCell(totalZarob));
+
+                // ── KROK 3: Query Pokladňa ────────────────────
+                utils.addDebug(employeeEntry, "");
+                utils.addDebug(employeeEntry, "════════════════════════════════════════");
+                utils.addDebug(employeeEntry, "💰 KROK 3: ZÁZNAMY POKLADNE");
+                utils.addDebug(employeeEntry, "════════════════════════════════════════");
+
                 var poklLinks = employeeEntry.linksFrom("Pokladňa", EXTERNAL.poklZamestnanec);
+                utils.addDebug(employeeEntry, "  linksFrom Pokladňa: " + poklLinks.length + " celkom");
                 var payRows = [];
                 var totalVypl = 0;
+                var skippedPokl = 0;
 
                 for (var i = 0; i < poklLinks.length; i++) {
                     var pokl  = poklLinks[i];
                     var datum = pokl.field(EXTERNAL.dochDate);
-                    if (!datum || datum < dateRange.startDate || datum > dateRange.endDate) continue;
-                    if ((pokl.field(EXTERNAL.poklPohyb) || "").trim()      !== "V\u00fddavok") continue;
-                    if ((pokl.field(EXTERNAL.poklUcelVydaja) || "").trim() !== "Mzda")         continue;
+                    if (!datum || datum < dateRange.startDate || datum > dateRange.endDate) { skippedPokl++; continue; }
+
+                    var pohyb = (pokl.field(EXTERNAL.poklPohyb) || "").trim();
+                    var ucel  = (pokl.field(EXTERNAL.poklUcelVydaja) || "").trim();
+                    if (pohyb !== "V\u00fddavok" || ucel !== "Mzda") {
+                        utils.addDebug(employeeEntry, "  skip " + formatDate(datum) + " Pohyb=" + pohyb + " Účel=" + ucel);
+                        skippedPokl++;
+                        continue;
+                    }
 
                     var suma  = pokl.field(EXTERNAL.poklSuma) || 0;
                     var popis = ((pokl.field(EXTERNAL.poklPopis) || "").trim()) ||
-                                ((pokl.field(EXTERNAL.poklUcelVydaja) || "") + "").trim() || "mzda";
+                                ucel || "mzda";
                     payRows.push({ datum: datum, popis: popis, suma: suma });
                     totalVypl += suma;
+                    utils.addDebug(employeeEntry, "  + " + formatDate(datum) + "  " + popis + "  " + fmtCell(suma));
                 }
                 payRows.sort(function(a, b) { return a.datum - b.datum; });
 
-                utils.addDebug(employeeEntry, "  Doch: " + odpRows.length + " záz., Pokladňa: " + payRows.length + " platieb");
+                utils.addDebug(employeeEntry, "  Preskočené: " + skippedPokl);
+                utils.addDebug(employeeEntry, "  ✅ Spracovaných: " + payRows.length + " platieb  Celkom: " + fmtCell(totalVypl));
 
-                // ── Balance ───────────────────────────────────
+                // ── KROK 4: Balance ───────────────────────────
+                utils.addDebug(employeeEntry, "");
+                utils.addDebug(employeeEntry, "════════════════════════════════════════");
+                utils.addDebug(employeeEntry, "🧮 KROK 4: VÝPOČET SALDA");
+                utils.addDebug(employeeEntry, "════════════════════════════════════════");
+
                 var balance      = totalZarob - totalVypl;
                 var balanceEmoji = balance >= 0 ? "\ud83d\udd34" : "\ud83d\udfe2";
                 var balanceWord  = balance >= 0 ? "Nedoplatok" : "Preplatok";
+                utils.addDebug(employeeEntry, "  Zarobené:  " + fmtCell(totalZarob));
+                utils.addDebug(employeeEntry, "  Vyplatené: " + fmtCell(totalVypl));
+                utils.addDebug(employeeEntry, "  " + balanceWord + ": " + fmtCell(Math.abs(balance)));
 
-                // ── Format monospace tables ───────────────────
+                // ── KROK 5: Format monospace tables ──────────
+                utils.addDebug(employeeEntry, "");
+                utils.addDebug(employeeEntry, "════════════════════════════════════════");
+                utils.addDebug(employeeEntry, "📝 KROK 5: FORMÁTOVANIE SPRÁVY");
+                utils.addDebug(employeeEntry, "════════════════════════════════════════");
+
                 // Odpracované: Dátum(10) | Od-Do(11) | Hod(5) | Sadzba(7) | Celkom(8)
                 var D=10, C=11, H=5, SA=7, CE=8;
                 var SEP1 = rep("\u2500", D+1+C+1+H+1+SA+1+CE);
@@ -1307,7 +1374,16 @@ var Zamestnanci = (function() {
                 t2 += SEP2 + "\n";
                 t2 += rep(" ", D+1) + padR("Celkom", PO) + " " + padL(fmtCell(totalVypl), SU);
 
-                // ── Compose message ───────────────────────────
+                utils.addDebug(employeeEntry, "  Tabuľka 1: " + odpRows.length + " riadkov");
+                utils.addDebug(employeeEntry, "  Tabuľka 2: " + payRows.length + " riadkov");
+
+                // ── KROK 6: Compose & Send ────────────────────
+                utils.addDebug(employeeEntry, "");
+                utils.addDebug(employeeEntry, "════════════════════════════════════════");
+                utils.addDebug(employeeEntry, "📨 KROK 6: ODOSLANIE NA TELEGRAM");
+                utils.addDebug(employeeEntry, "════════════════════════════════════════");
+                utils.addDebug(employeeEntry, "  Chat ID: " + chatId);
+
                 var now = new Date();
                 var msg = "\ud83d\udccb <b>" + escHtml(fullName) + "</b>\n";
                 msg += "\ud83d\udcc5 " + escHtml(dateRangeStr) + "\n\n";
@@ -1318,7 +1394,8 @@ var Zamestnanci = (function() {
                 msg += balanceEmoji + " <b>" + balanceWord + ": " + escHtml(fmtCell(Math.abs(balance))) + "</b>\n\n";
                 msg += "<i>Odoslan\u00e9: " + formatDate(now) + " | Zamestnanci v" + MODULE_INFO.version + "</i>";
 
-                // ── Send ──────────────────────────────────────
+                utils.addDebug(employeeEntry, "  Dĺžka správy: " + msg.length + " znakov");
+
                 try {
                     telegram.sendTelegramMessage(chatId, msg, { parseMode: "HTML" });
                 } catch (tgErr) {
@@ -1327,7 +1404,8 @@ var Zamestnanci = (function() {
                     return { success: false, error: tgErr.toString() };
                 }
 
-                utils.addDebug(employeeEntry, "  \u2705 Report odoslan\u00fd na Telegram ID: " + chatId);
+                utils.addDebug(employeeEntry, "  ✅ Správa odoslaná na Telegram ID: " + chatId);
+                utils.addDebug(employeeEntry, "✅ === sendReportToTelegram DOKONČENÝ ===");
                 return { success: true };
 
             } catch (error) {
