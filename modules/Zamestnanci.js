@@ -28,6 +28,11 @@
  *   }
  *
  * Changelog:
+ *   v1.11.0 (2026-03-21) - Add directLog() helper for reliable Debug_Log writes
+ *     - utils.addDebug() silently fails when MementoConfig not loaded in Memento context
+ *     - directLog() writes to entry directly (no MementoCore/Config dependency)
+ *     - Used in calculateWages(), calculateWageFields(), calculatePaidFromPokladna()
+ *     - catch blocks now log errors directly (visible even if utils broken)
  *   v1.10.0 (2026-03-21) - Improved info field formatting
  *     - Smaller headings (### instead of # / ##)
  *     - Nick without label (just name, plain text)
@@ -73,7 +78,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.10.0",
+        version: "1.11.0",
         author: "ASISTANTO",
         date: "2026-03-21",
         library: "zamestnanci",              // → libraries/zamestnanci/fields.json
@@ -139,6 +144,27 @@ var Zamestnanci = (function() {
     // ==============================================
     // PRIVATE HELPER FUNCTIONS
     // ==============================================
+
+    /**
+     * Direct write to Debug_Log — no dependency on MementoUtils/MementoCore/MementoConfig.
+     * Falls back gracefully if entry.set() fails.
+     */
+    function directLog(entry, msg) {
+        try {
+            var cur = entry.field(FIELDS.debugLog) || "";
+            entry.set(FIELDS.debugLog, cur + msg + "\n");
+        } catch(e) {}
+    }
+
+    /**
+     * Direct write to Error_Log — same approach as directLog.
+     */
+    function directError(entry, msg) {
+        try {
+            var cur = entry.field("Error_Log") || "";
+            entry.set("Error_Log", cur + "[ERR] " + msg + "\n");
+        } catch(e) {}
+    }
 
     /**
      * Convert "obdobie" choice to date range
@@ -249,6 +275,7 @@ var Zamestnanci = (function() {
     function calculateWageFields(employeeEntry, periodChoice, isPeriodTotal, config, utils) {
         try {
             var periodName = isPeriodTotal ? "obdobie total" : "obdobie";
+            directLog(employeeEntry, "  → calcWageFields(" + periodChoice + ")");
             utils.addDebug(employeeEntry, "🔄 Počítam pre: " + periodName + " (voľba " + periodChoice + ", typ: " + typeof periodChoice + ")");
 
             // Get date range for period
@@ -259,6 +286,7 @@ var Zamestnanci = (function() {
 
             // Get all Dochádzka records linking to this employee
             var dochadzkaLinks = employeeEntry.linksFrom("Dochádzka", EXTERNAL.dochEmployees);
+            directLog(employeeEntry, "  → linksFrom Dochadzka: " + dochadzkaLinks.length);
             utils.addDebug(employeeEntry, "  📋 Celkom záznamov Dochádzky: " + dochadzkaLinks.length);
 
             // Filter by date range
@@ -331,6 +359,7 @@ var Zamestnanci = (function() {
             };
 
         } catch (error) {
+            directError(employeeEntry, "calcWageFields: " + error.toString());
             utils.addError(employeeEntry, "Chyba pri výpočte: " + error.toString(), "calculateWageFields", error);
             return {
                 success: false,
@@ -353,6 +382,7 @@ var Zamestnanci = (function() {
 
             // Reverse lookup: Pokladňa records linking to this employee
             var pokladnaLinks = employeeEntry.linksFrom("Pokladňa", EXTERNAL.poklZamestnanec);
+            directLog(employeeEntry, "  → linksFrom Pokladna: " + pokladnaLinks.length);
             utils.addDebug(employeeEntry, "  Pokladna celkom zaznamov: " + pokladnaLinks.length);
 
             var totalVyplatene = 0;
@@ -387,6 +417,7 @@ var Zamestnanci = (function() {
             };
 
         } catch (error) {
+            directError(employeeEntry, "calcPokladna: " + error.toString());
             utils.addError(employeeEntry, "Chyba Pokladna: " + error.toString(), "calculatePaidFromPokladna", error);
             return { success: false, error: error.toString(), vyplatene: 0, recordsCount: 0 };
         }
@@ -408,10 +439,14 @@ var Zamestnanci = (function() {
          * @returns {Object} - { success: boolean, message: string }
          */
         calculateWages: function(employeeEntry, config, utils) {
+            // Direct diagnostic write — confirms module is running even if utils broken
+            directLog(employeeEntry, "🚀 Zamestnanci v" + MODULE_INFO.version + " START");
+
             try {
                 utils.addDebug(employeeEntry, "🚀 === Zamestnanci Module v" + MODULE_INFO.version + " ===");
 
                 var employeeName = employeeEntry.field(FIELDS.nick) || "N/A";
+                directLog(employeeEntry, "👤 " + employeeName);
                 utils.addDebug(employeeEntry, "👤 Zamestnanec: " + employeeName);
 
                 var resultObdobie = null;
@@ -584,6 +619,7 @@ var Zamestnanci = (function() {
                 };
 
             } catch (error) {
+                directError(employeeEntry, "calculateWages FATAL: " + error.toString());
                 utils.addError(employeeEntry, "KRITICKÁ CHYBA: " + error.toString(), "Zamestnanci.calculateWages", error);
 
                 return {
