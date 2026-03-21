@@ -8,7 +8,7 @@
 # IGNOROVANÉ ADRESÁRE
 # ========================================
 telegram-integration/
-python-utilities/
+python-utilities/*
 workflows/
 logs-temp/
 kb-docs/
@@ -135,7 +135,11 @@ playground.js
 !docs/CORE_MODULES_DOCUMENTATION.md
 !docs/CORE_MODULES_QUICK_REFERENCE.md
 !docs/CORE_MODULES_AGGREGATION.md
+!docs/plans/*.md
 !utils/mcp-helpers/*.md
+
+# Python vývojové nástroje (SYNCHRONIZOVANÉ)
+!python-utilities/validate_fields.py
 
 # PostgreSQL dokumentácia (SYNCHRONIZOVANÉ)
 !postgresql/memento-scripts/*.md
