@@ -1,98 +1,49 @@
-# Daily Plan - Ivy Lee Method
+# Denný plán — 2026-03-21 (Sobota)
 
-**Date:** YYYY-MM-DD (Friday)
-**Created:** Evening before / Morning of
-
----
-
-## Top 6 Tasks Today
-
-**Rule:** Select 6 most important tasks. Work on them in order. Don't start #2 until #1 is complete.
-
-### 1. 🔴 [P1] TODO-ID: [Task title]
-**Library:** [library]
-**Estimate:** [hours]
-**Time Block:** 09:00-11:00
-
-**Why first:**
-<!-- Why is this the most important task today? -->
+**Vytvorený:** 2026-03-21
+**Metóda:** Ivy Lee (6 taskov, sekvenčne)
 
 ---
 
-### 2. 🔴 [P1] TODO-ID: [Task title]
-**Library:** [library]
-**Estimate:** [hours]
-**Time Block:** 11:00-13:00
+## Top 6 taskov (v poradí dôležitosti)
 
-**Why second:**
-<!-- Why is this the second most important? -->
+> ℹ️ Projekt má momentálne len 1 otvorený task — väčšina knižníc je čistá.
+> Plán obsahuje dostupné tasky + odporúčané oblasti pre nové zachytenie.
 
----
+### 1. 🔴 [P2] Otestovať TODO systém
+**TODO:** TODO-20260321-001 | **Knižnica:** Global | **Odhad:** 1h
+**Čas:** podľa dostupnosti
 
-### 3. 🔴 [P1/P2] TODO-ID: [Task title]
-**Library:** [library]
-**Estimate:** [hours]
-**Time Block:** 14:00-16:00
-
----
-
-### 4. 🔴 [P2] TODO-ID: [Task title]
-**Library:** [library]
-**Estimate:** [hours]
-**Time Block:** 16:00-17:30
+Overiť že všetky nové slash commands fungujú správne:
+- `/capture` — zachytávanie s auto-ID
+- `/todo-list` — filtrovanie taskov
+- `/todo-update` — zmena polí
+- `/complete` — archivácia do COMPLETED.md
+- `/review` — prehľad per-library
+- `/weekly-review` — GTD review
+- `/daily-plan` — tento plán ✅ (práve prebieha)
 
 ---
 
-### 5. 🔴 [P2/P3] TODO-ID: [Task title]
-**Library:** [library]
-**Estimate:** [hours]
-**Time Block:** If time allows
+### 2–6. Zachyť nové tasky počas práce
+
+Použi `/capture` na zachytenie úloh keď vzniknú. Odporúčané oblasti:
+
+| Oblast | Možné tasky |
+|--------|-------------|
+| `memento-programming` agent | Testovanie generovania skriptov |
+| Memento scripty | Nové skripty pre knižnice podľa potrieb |
+| Dokumentácia | Aktualizácia PROJECT_MAP.md |
+| Core moduly | Prípadné aktualizácie MementoConfig |
 
 ---
 
-### 6. 🔴 [P3] TODO-ID: [Task title]
-**Library:** [library]
-**Estimate:** [hours]
-**Time Block:** If time allows
+## Pravidlá (Ivy Lee)
+1. Pracuj na úlohe #1 kým nie je hotová
+2. Potom prejdi na #2, #3, ...
+3. Nedokončené prenesie do zajtrajška
 
----
+## End-of-day review
+- [ ] TODO-20260321-001 — Otestovať TODO systém
 
-## Schedule
-
-| Time | Task | Notes |
-|------|------|-------|
-| 09:00-11:00 | Task #1 | Deep work - no interruptions |
-| 11:00-11:15 | Break | |
-| 11:15-13:00 | Task #2 | |
-| 13:00-14:00 | Lunch | |
-| 14:00-16:00 | Task #3 | |
-| 16:00-16:15 | Break | |
-| 16:15-17:30 | Task #4 | |
-| 17:30-18:00 | Tasks #5-6 | If energy remains |
-
----
-
-## End of Day Review
-
-**Completed:**
-- [ ] Task #1
-- [ ] Task #2
-- [ ] Task #3
-- [ ] Task #4
-- [ ] Task #5
-- [ ] Task #6
-
-**Actual Time Spent:**
-- Task #1: [hours]
-- Task #2: [hours]
-- ...
-
-**Carry Over to Tomorrow:**
-<!-- Which tasks didn't get done? Why? -->
-
-**Learnings:**
-<!-- What went well? What could be improved? -->
-
----
-
-**Tomorrow's Top Priority:** [What should be #1 tomorrow?]
+**Zajtra:** Nedokončené tasky pridaj na začiatok zajtrajšieho plánu.
