@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.17.0
+ * Version:     1.18.0
  * Author:      ASISTANTO
  * Date:        2026-03-21
  *
@@ -28,6 +28,10 @@
  *   }
  *
  * Changelog:
+ *   v1.18.0 (2026-03-21) - Fix timezone bug in formatTime() — getUTCHours → getHours
+ *     - Times were showing 1h behind (UTC instead of CET/CEST)
+ *     - getHours()/getMinutes() use device local timezone (Slovakia CET/CEST)
+ *     - Affects generateReport() HTML report and sendReportToTelegram() Telegram table
  *   v1.17.0 (2026-03-21) - Detailed step-by-step debug logging in sendReportToTelegram()
  *     - 6 labeled KROK sections with ═══ separator lines
  *     - KROK 1: input validation (chatId, obdobie, fullName, dateRangeStr)
@@ -51,7 +55,7 @@
  *     - Table 2: Vyplatené — date, Popis platby, suma (filter: Výdavok + Mzda)
  *     - Summary: Nedoplatok (red) / Preplatok (green) with underline
  *     - Alternating row colors, footer row totals, generation timestamp
- *     - New helpers: formatTime() (UTC), formatMoney() (Slovak comma format)
+ *     - New helpers: formatTime() (local TZ), formatMoney() (Slovak comma format)
  *     - ATTRS.attrHodinovka, EXTERNAL.dochPrichod/dochOdchod/poklPopis, FIELDS.report added
  *   v1.13.0 (2026-03-21) - Info formatting + Nedoplatok/Preplatok logic fix
  *     - Header: "Prepočet mzdy (Nick)" — name inline in heading, no separate line
@@ -114,7 +118,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.17.0",
+        version: "1.18.0",
         author: "ASISTANTO",
         date: "2026-03-21",
         library: "zamestnanci",              // → libraries/zamestnanci/fields.json
@@ -221,7 +225,7 @@ var Zamestnanci = (function() {
      */
     function formatTime(t) {
         if (!t) return "";
-        var h = t.getUTCHours(), m = t.getUTCMinutes();
+        var h = t.getHours(), m = t.getMinutes();
         return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
     }
 
