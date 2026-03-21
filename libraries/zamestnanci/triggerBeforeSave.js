@@ -2,7 +2,7 @@
  * Knižnica:    Zamestnanci
  * Názov:       Zam.Trigger.Calculate
  * Typ:         Trigger (After Save - Field Update)
- * Verzia:      1.3.0
+ * Verzia:      1.4.0
  * Autor:       ASISTANTO
  * Dátum:       2026-03-20
  *
@@ -17,6 +17,7 @@
  *   - Zamestnanci module v1.0+
  *
  * Changelog:
+ *   v1.4.0 (2026-03-21) - Removed 'use strict' (risk of silent failures in Memento triggers)
  *   v1.3.0 (2026-03-20) - Add diagnostics for Field Update event
  *     - Log when modules are missing (diagnostic message)
  *     - Show script execution in Debug_Log field
@@ -29,13 +30,11 @@
  *   v1.0.0 (2026-03-20) - Initial implementation
  */
 
-'use strict';
-
 // ==============================================
 // DIAGNOSTIC CHECK (outside if block)
 // ==============================================
 
-var SCRIPT_VERSION = "1.3.0";
+var SCRIPT_VERSION = "1.4.0";
 var SCRIPT_NAME = "Zam.Trigger.Calculate";
 
 // Check if modules are available
