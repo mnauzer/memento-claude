@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.13.0
+ * Version:     1.14.0
  * Author:      ASISTANTO
  * Date:        2026-03-21
  *
@@ -28,6 +28,14 @@
  *   }
  *
  * Changelog:
+ *   v1.14.0 (2026-03-21) - Add generateReport() — HTML report in "report" field
+ *     - Period from "obdobie" field (no parameter needed)
+ *     - Table 1: Odpracované — date, Príchod–Odchod, hours, hodinovka attr, denná mzda
+ *     - Table 2: Vyplatené — date, Popis platby, suma (filter: Výdavok + Mzda)
+ *     - Summary: Nedoplatok (red) / Preplatok (green) with underline
+ *     - Alternating row colors, footer row totals, generation timestamp
+ *     - New helpers: formatTime() (UTC), formatMoney() (Slovak comma format)
+ *     - ATTRS.attrHodinovka, EXTERNAL.dochPrichod/dochOdchod/poklPopis, FIELDS.report added
  *   v1.13.0 (2026-03-21) - Info formatting + Nedoplatok/Preplatok logic fix
  *     - Header: "Prepočet mzdy (Nick)" — name inline in heading, no separate line
  *     - Nedoplatok/Preplatok reversed: positive = Nedoplatok (red, firma dlhuje), negative = Preplatok (green)
@@ -89,7 +97,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.13.0",
+        version: "1.14.0",
         author: "ASISTANTO",
         date: "2026-03-21",
         library: "zamestnanci",              // → libraries/zamestnanci/fields.json
@@ -122,6 +130,7 @@ var Zamestnanci = (function() {
         period: "obdobie",                      // ID:86, choice
         periodTotal: "obdobie total",           // ID:90, choice
         info: "info",                           // ID:93, text
+        report: "report",                       // HTML report field (richtext)
         debugLog: "Debug_Log"                   // ID:80, text
     };
 
@@ -135,17 +144,21 @@ var Zamestnanci = (function() {
         // Dochádzka fields (used in linksFrom queries)
         dochDate: "Dátum",
         dochEmployees: "Zamestnanci",
+        dochPrichod: "Príchod",                 // ID:1, time — start of shift
+        dochOdchod: "Odchod",                   // ID:2, time — end of shift
 
         // Pokladňa fields (used in linksFrom queries)
         poklZamestnanec: "Zamestnanec",         // ID:17, linkToEntry → Zamestnanci
         poklPohyb: "Pohyb",                     // ID:119, choice: "Výdavok" pre mzdy
         poklUcelVydaja: "Účel výdaja",          // ID:12, choice: "Mzda"
-        poklSuma: "Suma"                        // ID:100, double, vyplatená suma
+        poklSuma: "Suma",                       // ID:100, double, vyplatená suma
+        poklPopis: "Popis platby"               // ID:5, text, description for report
     };
 
     // LinkToEntry attributes — NOT validated (not in fields.json)
     var ATTRS = {
         attrWorked: "odpracované",
+        attrHodinovka: "hodinovka",             // effective hourly rate for that shift
         attrDailyWage: "denná mzda",
         attrBonus: "+príplatok (€/h)",
         attrPremium: "+prémia (€)",
@@ -183,6 +196,26 @@ var Zamestnanci = (function() {
     function formatDate(d) {
         var dd = d.getDate(), mm = d.getMonth() + 1, yyyy = d.getFullYear();
         return (dd < 10 ? "0" : "") + dd + "." + (mm < 10 ? "0" : "") + mm + "." + yyyy;
+    }
+
+    /**
+     * Format a time field value as "HH:MM".
+     * Memento time fields return Date objects — use UTC to avoid timezone shift.
+     */
+    function formatTime(t) {
+        if (!t) return "";
+        var h = t.getUTCHours(), m = t.getUTCMinutes();
+        return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
+    }
+
+    /**
+     * Format a number as Slovak currency string "1 234,56 €".
+     */
+    function formatMoney(v) {
+        if (!v) return "0,00 \u20ac";
+        var parts = Math.abs(v).toFixed(2).split(".");
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0");
+        return (v < 0 ? "-" : "") + parts[0] + "," + parts[1] + "\u00a0\u20ac";
     }
 
     /**
@@ -881,6 +914,196 @@ var Zamestnanci = (function() {
                 if (utils) {
                     utils.addError(employeeEntry, "Chyba pri aktualizácii hodinovky: " + error.toString(), "updateCurrentHourlyRate", error);
                 }
+                return { success: false, error: error.toString() };
+            }
+        },
+
+        /**
+         * Generate HTML report in the "report" field.
+         * Date range is read from the "obdobie" field on employeeEntry.
+         *
+         * Report structure:
+         *   Section 1 — Odpracované: date, time (Príchod–Odchod), hours, rate, total
+         *   Section 2 — Vyplatené: date, description, amount
+         *   Summary   — Nedoplatok / Preplatok
+         *
+         * @param {Entry} employeeEntry - Current employee entry
+         * @param {Object} config - MementoConfig object
+         * @param {Object} utils - MementoUtils object
+         * @returns {Object} - { success: boolean, rows: number, payments: number }
+         */
+        generateReport: function(employeeEntry, config, utils) {
+            directLog(employeeEntry, "📄 generateReport START");
+            try {
+                // Read period from the "obdobie" field
+                var periodChoice = employeeEntry.field(FIELDS.period);
+                if (!periodChoice) {
+                    return { success: false, error: "Pole 'obdobie' nie je nastavené" };
+                }
+
+                var nick = employeeEntry.field(FIELDS.nick) || "N/A";
+                var priezvisko = employeeEntry.field("Priezvisko") || "";
+                var fullName = nick + (priezvisko ? " (" + priezvisko + ")" : "");
+
+                var dateRange = calculateDateRange(periodChoice);
+                var dateRangeStr = formatDate(dateRange.startDate) + " \u2013 " + formatDate(dateRange.endDate);
+
+                utils.addDebug(employeeEntry, "📄 Report: " + fullName + ", " + dateRangeStr);
+
+                // ── ODPRACOVANÉ ──────────────────────────────
+                var dochLinks = employeeEntry.linksFrom("Doch\u00e1dzka", EXTERNAL.dochEmployees);
+                var odpRows = [];
+                var totalOdprac = 0, totalZarob = 0;
+
+                for (var i = 0; i < dochLinks.length; i++) {
+                    var doc = dochLinks[i];
+                    var datum = doc.field(EXTERNAL.dochDate);
+                    if (!datum || datum < dateRange.startDate || datum > dateRange.endDate) continue;
+
+                    var zams = doc.field(EXTERNAL.dochEmployees);
+                    if (!zams || !zams.length) continue;
+
+                    for (var j = 0; j < zams.length; j++) {
+                        var emp = zams[j];
+                        if (!emp || emp.id !== employeeEntry.id) continue;
+
+                        var odprac  = emp.attr(ATTRS.attrWorked)    || 0;
+                        var sadzba  = emp.attr(ATTRS.attrHodinovka) || 0;
+                        var dMzda   = emp.attr(ATTRS.attrDailyWage) || 0;
+                        var prichod = doc.field(EXTERNAL.dochPrichod);
+                        var odchod  = doc.field(EXTERNAL.dochOdchod);
+                        var cas = formatTime(prichod) + (odchod ? "\u2013" + formatTime(odchod) : "");
+
+                        odpRows.push({ datum: datum, cas: cas, odprac: odprac, sadzba: sadzba, celkom: dMzda });
+                        totalOdprac += odprac;
+                        totalZarob  += dMzda;
+                        break;
+                    }
+                }
+                odpRows.sort(function(a, b) { return a.datum - b.datum; });
+
+                // ── VYPLATENÉ ────────────────────────────────
+                var poklLinks = employeeEntry.linksFrom("Pokladňa", EXTERNAL.poklZamestnanec);
+                var payRows = [];
+                var totalVypl = 0;
+
+                for (var i = 0; i < poklLinks.length; i++) {
+                    var pokl = poklLinks[i];
+                    var datum = pokl.field(EXTERNAL.dochDate);
+                    if (!datum || datum < dateRange.startDate || datum > dateRange.endDate) continue;
+                    if ((pokl.field(EXTERNAL.poklPohyb) || "").trim()     !== "V\u00fddavok") continue;
+                    if ((pokl.field(EXTERNAL.poklUcelVydaja) || "").trim() !== "Mzda")        continue;
+
+                    var suma  = pokl.field(EXTERNAL.poklSuma)  || 0;
+                    var popis = (pokl.field(EXTERNAL.poklPopis) || "").trim() ||
+                                (pokl.field(EXTERNAL.poklUcelVydaja) || "mzda");
+                    payRows.push({ datum: datum, popis: popis, suma: suma });
+                    totalVypl += suma;
+                }
+                payRows.sort(function(a, b) { return a.datum - b.datum; });
+
+                utils.addDebug(employeeEntry, "  📋 Doch: " + odpRows.length + " záznamov, Pokladňa: " + payRows.length + " platieb");
+
+                // ── BALANCE ──────────────────────────────────
+                var balance      = totalZarob - totalVypl;
+                var balanceLabel = balance >= 0 ? "🔴 Nedoplatok" : "🟢 Preplatok";
+                var balanceColor = balance >= 0 ? "#c0392b"       : "#27ae60";
+
+                // ── HTML ─────────────────────────────────────
+                var S  = "border-collapse:collapse;width:100%;font-size:13px;margin-bottom:20px;";
+                var TH = "padding:7px 10px;background:#f0f0f0;font-weight:bold;border-bottom:2px solid #bbb;white-space:nowrap;";
+                var TD = "padding:5px 10px;border-bottom:1px solid #eee;";
+                var TR = "padding:5px 10px;border-bottom:1px solid #eee;text-align:right;white-space:nowrap;";
+                var TF = "padding:8px 10px;font-weight:bold;border-top:2px solid #888;background:#f5f5f5;text-align:right;white-space:nowrap;";
+                var TL = "padding:8px 10px;font-weight:bold;border-top:2px solid #888;background:#f5f5f5;";
+
+                var h = "<div style=\"font-family:Arial,sans-serif;padding:12px;max-width:720px;\">";
+
+                // Header
+                h += "<h2 style=\"margin:0 0 2px 0;font-size:19px;\">📋 Výkaz práce " + fullName + "</h2>";
+                h += "<p style=\"margin:0 0 18px 0;font-weight:bold;color:#444;\">" + dateRangeStr + "</p>";
+
+                // ── Table 1: Odpracované ──
+                h += "<h3 style=\"margin:0 0 6px 0;font-size:14px;border-bottom:2px solid #555;padding-bottom:3px;\">💼 Odpracované / Zarobené</h3>";
+                h += "<table style=\"" + S + "\">";
+                h += "<thead><tr>";
+                h += "<th style=\"" + TH + "text-align:left;\">📅 Dátum</th>";
+                h += "<th style=\"" + TH + "text-align:center;\">⏰ Od\u2013Do</th>";
+                h += "<th style=\"" + TH + "text-align:right;\">Odprac.</th>";
+                h += "<th style=\"" + TH + "text-align:right;\">Sadzba</th>";
+                h += "<th style=\"" + TH + "text-align:right;\">Celkom</th>";
+                h += "</tr></thead><tbody>";
+
+                if (odpRows.length === 0) {
+                    h += "<tr><td colspan=\"5\" style=\"" + TD + "color:#999;font-style:italic;\">Žiadne záznamy v tomto období</td></tr>";
+                } else {
+                    for (var i = 0; i < odpRows.length; i++) {
+                        var r = odpRows[i];
+                        var bg = (i % 2 === 0) ? "" : "background:#fafafa;";
+                        h += "<tr style=\"" + bg + "\">";
+                        h += "<td style=\"" + TD + "\">" + formatDate(r.datum) + "</td>";
+                        h += "<td style=\"" + TD + "text-align:center;\">" + (r.cas || "\u2013") + "</td>";
+                        h += "<td style=\"" + TR + "\">" + r.odprac.toFixed(2).replace(".", ",") + " h</td>";
+                        h += "<td style=\"" + TR + "\">" + formatMoney(r.sadzba) + "</td>";
+                        h += "<td style=\"" + TR + "\">" + formatMoney(r.celkom) + "</td>";
+                        h += "</tr>";
+                    }
+                }
+
+                h += "</tbody><tfoot><tr>";
+                h += "<td colspan=\"4\" style=\"" + TF + "\">✅ Celkom</td>";
+                h += "<td style=\"" + TF + "\">" + formatMoney(totalZarob) + "</td>";
+                h += "</tr></tfoot></table>";
+
+                // ── Table 2: Vyplatené ──
+                h += "<h3 style=\"margin:0 0 6px 0;font-size:14px;border-bottom:2px solid #555;padding-bottom:3px;\">💰 Vyplatené</h3>";
+                h += "<table style=\"" + S + "\">";
+                h += "<thead><tr>";
+                h += "<th style=\"" + TH + "text-align:left;\">📅 Dátum</th>";
+                h += "<th style=\"" + TH + "text-align:left;\">Popis</th>";
+                h += "<th style=\"" + TH + "text-align:right;\">Suma</th>";
+                h += "</tr></thead><tbody>";
+
+                if (payRows.length === 0) {
+                    h += "<tr><td colspan=\"3\" style=\"" + TD + "color:#999;font-style:italic;\">Žiadne platby v tomto období</td></tr>";
+                } else {
+                    for (var i = 0; i < payRows.length; i++) {
+                        var pr = payRows[i];
+                        var bg = (i % 2 === 0) ? "" : "background:#fafafa;";
+                        h += "<tr style=\"" + bg + "\">";
+                        h += "<td style=\"" + TD + "\">" + formatDate(pr.datum) + "</td>";
+                        h += "<td style=\"" + TD + "\">" + pr.popis + "</td>";
+                        h += "<td style=\"" + TR + "\">" + formatMoney(pr.suma) + "</td>";
+                        h += "</tr>";
+                    }
+                }
+
+                h += "</tbody><tfoot><tr>";
+                h += "<td colspan=\"2\" style=\"" + TF + "\">✅ Celkom</td>";
+                h += "<td style=\"" + TF + "\">" + formatMoney(totalVypl) + "</td>";
+                h += "</tr></tfoot></table>";
+
+                // ── Balance row ──
+                h += "<table style=\"width:100%;border-collapse:collapse;margin-top:4px;\">";
+                h += "<tr style=\"background:#fdf0f0;\">";
+                h += "<td style=\"padding:10px 12px;font-weight:bold;font-size:15px;color:" + balanceColor + ";\">" + balanceLabel + "</td>";
+                h += "<td style=\"padding:10px 12px;font-weight:bold;font-size:15px;color:" + balanceColor + ";text-align:right;text-decoration:underline;\">" + formatMoney(Math.abs(balance)) + "</td>";
+                h += "</tr></table>";
+
+                // ── Footer ──
+                var now = new Date();
+                h += "<p style=\"margin:10px 0 0 0;font-size:11px;color:#bbb;\">Vygenerovan\u00e9: " +
+                     formatDate(now) + " | Zamestnanci v" + MODULE_INFO.version + "</p>";
+                h += "</div>";
+
+                employeeEntry.set(FIELDS.report, h);
+                utils.addDebug(employeeEntry, "  ✅ Report zapisan\u00fd");
+
+                return { success: true, rows: odpRows.length, payments: payRows.length };
+
+            } catch (error) {
+                directError(employeeEntry, "generateReport: " + error.toString());
+                utils.addError(employeeEntry, "Chyba report: " + error.toString(), "generateReport", error);
                 return { success: false, error: error.toString() };
             }
         }
