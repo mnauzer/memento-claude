@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.15.0
+ * Version:     1.16.0
  * Author:      ASISTANTO
  * Date:        2026-03-21
  *
@@ -28,6 +28,12 @@
  *   }
  *
  * Changelog:
+ *   v1.16.0 (2026-03-21) - Add sendReportToTelegram() — monospace table via Telegram HTML
+ *     - telegram param passed from outside (MementoTelegram circular dep. workaround)
+ *     - Reads Dochádzka + Pokladňa same as generateReport() — per-day detail
+ *     - Formats with <pre> blocks + padL/padR for column alignment
+ *     - Private helpers added: padL(), padR(), rep(), escHtml(), fmtCell()
+ *     - Sends via telegram.sendTelegramMessage(chatId, msg, {parseMode:"HTML"})
  *   v1.15.0 (2026-03-21) - Integrate generateReport() into calculateWages() as STEP 6
  *     - HTML report generated automatically on every recalculation
  *     - Report error is logged but does not block wage calculation result
@@ -100,7 +106,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.15.0",
+        version: "1.16.0",
         author: "ASISTANTO",
         date: "2026-03-21",
         library: "zamestnanci",              // → libraries/zamestnanci/fields.json
@@ -219,6 +225,40 @@ var Zamestnanci = (function() {
         var parts = Math.abs(v).toFixed(2).split(".");
         parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0");
         return (v < 0 ? "-" : "") + parts[0] + "," + parts[1] + "\u00a0\u20ac";
+    }
+
+    /** Pad string on the RIGHT to fixed width (left-align). Truncates if too long. */
+    function padR(s, len) {
+        s = String(s == null ? "" : s);
+        while (s.length < len) s += " ";
+        return s.length > len ? s.substring(0, len) : s;
+    }
+
+    /** Pad string on the LEFT to fixed width (right-align). */
+    function padL(s, len) {
+        s = String(s == null ? "" : s);
+        while (s.length < len) s = " " + s;
+        return s.length > len ? s.substring(s.length - len) : s;
+    }
+
+    /** Repeat character n times. */
+    function rep(ch, n) {
+        var s = "";
+        for (var i = 0; i < n; i++) s += ch;
+        return s;
+    }
+
+    /** Escape HTML special characters for Telegram HTML parseMode. */
+    function escHtml(s) {
+        return String(s == null ? "" : s)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+    }
+
+    /** Format a number compactly for monospace table (e.g. "246,00€"). */
+    function fmtCell(v) {
+        return (v || 0).toFixed(2).replace(".", ",") + "\u20ac";
     }
 
     /**
@@ -1119,6 +1159,180 @@ var Zamestnanci = (function() {
             } catch (error) {
                 directError(employeeEntry, "generateReport: " + error.toString());
                 utils.addError(employeeEntry, "Chyba report: " + error.toString(), "generateReport", error);
+                return { success: false, error: error.toString() };
+            }
+        },
+
+        /**
+         * Send wage report to employee's Telegram as a monospace-table message.
+         *
+         * ⚠️ telegram parameter MUST be passed from outside the IIFE
+         *    (MementoTelegram cannot be imported inside due to circular dependency).
+         *    Call: Zamestnanci.sendReportToTelegram(entry(), config, utils, MementoTelegram)
+         *
+         * Date range is read from "obdobie" field on employeeEntry.
+         * Employee's Telegram chat ID is read from "Telegram ID" field.
+         *
+         * @param {Entry}  employeeEntry
+         * @param {Object} config   - MementoConfig object
+         * @param {Object} utils    - MementoUtils object
+         * @param {Object} telegram - MementoTelegram object (direct import)
+         * @returns {Object} { success: boolean, error?: string }
+         */
+        sendReportToTelegram: function(employeeEntry, config, utils, telegram) {
+            directLog(employeeEntry, "📤 sendReportToTelegram START");
+            try {
+                // Validate Telegram module
+                if (!telegram) {
+                    return { success: false, error: "MementoTelegram nie je dostupný" };
+                }
+
+                // Telegram ID
+                var chatId = ((employeeEntry.field("Telegram ID") || "") + "").trim();
+                if (!chatId) {
+                    return { success: false, error: "Zamestnanec nem\u00e1 nastaven\u00e9 Telegram ID" };
+                }
+
+                // Period
+                var periodChoice = employeeEntry.field(FIELDS.period);
+                if (!periodChoice) {
+                    return { success: false, error: "Pole 'obdobie' nie je nastaven\u00e9" };
+                }
+
+                var nick       = employeeEntry.field(FIELDS.nick) || "N/A";
+                var priezvisko = ((employeeEntry.field("Priezvisko") || "") + "").trim();
+                var fullName   = nick + (priezvisko ? " (" + priezvisko + ")" : "");
+
+                var dateRange    = calculateDateRange(periodChoice);
+                var dateRangeStr = formatDate(dateRange.startDate) + " \u2013 " + formatDate(dateRange.endDate);
+
+                utils.addDebug(employeeEntry, "📤 Telegram report: " + fullName + ", " + dateRangeStr);
+
+                // ── Query Dochádzka ───────────────────────────
+                var dochLinks = employeeEntry.linksFrom("Doch\u00e1dzka", EXTERNAL.dochEmployees);
+                var odpRows = [];
+                var totalOdprac = 0, totalZarob = 0;
+
+                for (var i = 0; i < dochLinks.length; i++) {
+                    var doc  = dochLinks[i];
+                    var datum = doc.field(EXTERNAL.dochDate);
+                    if (!datum || datum < dateRange.startDate || datum > dateRange.endDate) continue;
+
+                    var zams = doc.field(EXTERNAL.dochEmployees);
+                    if (!zams || !zams.length) continue;
+
+                    for (var j = 0; j < zams.length; j++) {
+                        var emp = zams[j];
+                        if (!emp || emp.id !== employeeEntry.id) continue;
+
+                        var odprac = emp.attr(ATTRS.attrWorked)    || 0;
+                        var sadzba = emp.attr(ATTRS.attrHodinovka) || 0;
+                        var dMzda  = emp.attr(ATTRS.attrDailyWage) || 0;
+                        var cas    = formatTime(doc.field(EXTERNAL.dochPrichod)) +
+                                     (doc.field(EXTERNAL.dochOdchod) ? "\u2013" + formatTime(doc.field(EXTERNAL.dochOdchod)) : "");
+
+                        odpRows.push({ datum: datum, cas: cas, odprac: odprac, sadzba: sadzba, celkom: dMzda });
+                        totalOdprac += odprac;
+                        totalZarob  += dMzda;
+                        break;
+                    }
+                }
+                odpRows.sort(function(a, b) { return a.datum - b.datum; });
+
+                // ── Query Pokladňa ────────────────────────────
+                var poklLinks = employeeEntry.linksFrom("Pokladňa", EXTERNAL.poklZamestnanec);
+                var payRows = [];
+                var totalVypl = 0;
+
+                for (var i = 0; i < poklLinks.length; i++) {
+                    var pokl  = poklLinks[i];
+                    var datum = pokl.field(EXTERNAL.dochDate);
+                    if (!datum || datum < dateRange.startDate || datum > dateRange.endDate) continue;
+                    if ((pokl.field(EXTERNAL.poklPohyb) || "").trim()      !== "V\u00fddavok") continue;
+                    if ((pokl.field(EXTERNAL.poklUcelVydaja) || "").trim() !== "Mzda")         continue;
+
+                    var suma  = pokl.field(EXTERNAL.poklSuma) || 0;
+                    var popis = ((pokl.field(EXTERNAL.poklPopis) || "").trim()) ||
+                                ((pokl.field(EXTERNAL.poklUcelVydaja) || "") + "").trim() || "mzda";
+                    payRows.push({ datum: datum, popis: popis, suma: suma });
+                    totalVypl += suma;
+                }
+                payRows.sort(function(a, b) { return a.datum - b.datum; });
+
+                utils.addDebug(employeeEntry, "  Doch: " + odpRows.length + " záz., Pokladňa: " + payRows.length + " platieb");
+
+                // ── Balance ───────────────────────────────────
+                var balance      = totalZarob - totalVypl;
+                var balanceEmoji = balance >= 0 ? "\ud83d\udd34" : "\ud83d\udfe2";
+                var balanceWord  = balance >= 0 ? "Nedoplatok" : "Preplatok";
+
+                // ── Format monospace tables ───────────────────
+                // Odpracované: Dátum(10) | Od-Do(11) | Hod(5) | Sadzba(7) | Celkom(8)
+                var D=10, C=11, H=5, SA=7, CE=8;
+                var SEP1 = rep("\u2500", D+1+C+1+H+1+SA+1+CE);
+
+                var t1 = padR("D\u00e1tum",D)+" "+padR("Od\u2013Do",C)+" "+padL("Hod",H)+" "+padL("Sadzba",SA)+" "+padL("Celkom",CE)+"\n";
+                t1 += SEP1 + "\n";
+                if (odpRows.length === 0) {
+                    t1 += "(\u017diadne z\u00e1znamy)\n";
+                } else {
+                    for (var i = 0; i < odpRows.length; i++) {
+                        var r = odpRows[i];
+                        t1 += padR(formatDate(r.datum), D) + " " +
+                              padR(r.cas || "\u2013", C)   + " " +
+                              padL(r.odprac.toFixed(2).replace(".",","), H) + " " +
+                              padL(fmtCell(r.sadzba), SA)  + " " +
+                              padL(fmtCell(r.celkom), CE)  + "\n";
+                    }
+                }
+                t1 += SEP1 + "\n";
+                t1 += rep(" ", D+1+C+1+H+1+SA) + " " + padL(fmtCell(totalZarob), CE);
+
+                // Vyplatené: Dátum(10) | Popis(14) | Suma(8)
+                var PO=14, SU=8;
+                var SEP2 = rep("\u2500", D+1+PO+1+SU);
+
+                var t2 = padR("D\u00e1tum",D)+" "+padR("Popis",PO)+" "+padL("Suma",SU)+"\n";
+                t2 += SEP2 + "\n";
+                if (payRows.length === 0) {
+                    t2 += "(\u017diadne platby)\n";
+                } else {
+                    for (var i = 0; i < payRows.length; i++) {
+                        var pr = payRows[i];
+                        t2 += padR(formatDate(pr.datum), D) + " " +
+                              padR(pr.popis, PO)            + " " +
+                              padL(fmtCell(pr.suma), SU)    + "\n";
+                    }
+                }
+                t2 += SEP2 + "\n";
+                t2 += rep(" ", D+1) + padR("Celkom", PO) + " " + padL(fmtCell(totalVypl), SU);
+
+                // ── Compose message ───────────────────────────
+                var now = new Date();
+                var msg = "\ud83d\udccb <b>" + escHtml(fullName) + "</b>\n";
+                msg += "\ud83d\udcc5 " + escHtml(dateRangeStr) + "\n\n";
+                msg += "\ud83d\udcbc <b>Odpracovan\u00e9 / Zaroben\u00e9</b>\n";
+                msg += "<pre>" + t1 + "</pre>\n";
+                msg += "\ud83d\udcb0 <b>Vyplaten\u00e9</b>\n";
+                msg += "<pre>" + t2 + "</pre>\n";
+                msg += balanceEmoji + " <b>" + balanceWord + ": " + escHtml(fmtCell(Math.abs(balance))) + "</b>\n\n";
+                msg += "<i>Odoslan\u00e9: " + formatDate(now) + " | Zamestnanci v" + MODULE_INFO.version + "</i>";
+
+                // ── Send ──────────────────────────────────────
+                try {
+                    telegram.sendTelegramMessage(chatId, msg, { parseMode: "HTML" });
+                } catch (tgErr) {
+                    directError(employeeEntry, "Telegram API error: " + tgErr.toString());
+                    utils.addError(employeeEntry, "Telegram chyba: " + tgErr.toString(), "sendReportToTelegram", tgErr);
+                    return { success: false, error: tgErr.toString() };
+                }
+
+                utils.addDebug(employeeEntry, "  \u2705 Report odoslan\u00fd na Telegram ID: " + chatId);
+                return { success: true };
+
+            } catch (error) {
+                directError(employeeEntry, "sendReportToTelegram: " + error.toString());
+                utils.addError(employeeEntry, "Chyba send report: " + error.toString(), "sendReportToTelegram", error);
                 return { success: false, error: error.toString() };
             }
         }
