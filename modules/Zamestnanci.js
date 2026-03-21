@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.3.1
+ * Version:     1.4.0
  * Author:      ASISTANTO
  * Date:        2026-03-20
  *
@@ -28,6 +28,12 @@
  *   }
  *
  * Changelog:
+ *   v1.4.0 (2026-03-20) - Add calculateWagesAction for button actions
+ *     - New public API function with built-in dialogs
+ *     - Confirmation dialog before calculation
+ *     - Success dialog with results summary
+ *     - Error dialogs with user-friendly messages
+ *     - Follows reusable module architecture pattern
  *   v1.3.1 (2026-03-20) - Trim choice labels (Memento adds trailing spaces!)
  *     - "minulý mesiac " (with space) didn't match "minulý mesiac" in map
  *     - Trim choice before lookup: choice.toString().trim()
@@ -59,7 +65,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.3.1",
+        version: "1.4.0",
         author: "ASISTANTO",
         date: "2026-03-20"
     };
@@ -405,6 +411,98 @@ var Zamestnanci = (function() {
                     error: error.toString(),
                     message: "Kritická chyba pri výpočte"
                 };
+            }
+        },
+
+        /**
+         * Action function for button click - includes dialogs
+         *
+         * @param {Entry} employeeEntry - Current employee entry
+         * @param {Object} config - MementoConfig object
+         * @param {Object} utils - MementoUtils object
+         * @returns {Object} - { success: boolean, cancelled: boolean }
+         */
+        calculateWagesAction: function(employeeEntry, config, utils) {
+            try {
+                // Get employee name
+                var employeeName = employeeEntry.field("Nick") || "N/A";
+
+                // Confirmation dialog
+                var confirm = dialog(
+                    "Prepočet miezd",
+                    "🔄 Prepočítať mzdy pre: " + employeeName + "?\n\n" +
+                    "Prepočítajú sa polia:\n" +
+                    "• Odpracované / Odpracované total\n" +
+                    "• Zarobené / Zarobené total\n" +
+                    "• Prémie / Prémie total\n\n" +
+                    "Pokračovať?",
+                    "Áno",
+                    "Zrušiť"
+                );
+
+                if (confirm !== 0) {
+                    // User cancelled
+                    return { success: false, cancelled: true };
+                }
+
+                // Clear Debug_Log for fresh calculation
+                employeeEntry.set("Debug_Log", "");
+
+                // Call main calculation
+                var result = this.calculateWages(employeeEntry, config, utils);
+
+                if (!result.success) {
+                    // Error dialog
+                    var errorMsg = "❌ CHYBA PRI PREPOČTE\n\n";
+                    errorMsg += "Zamestnanec: " + employeeName + "\n\n";
+                    errorMsg += "Chyba: " + (result.error || result.message) + "\n\n";
+                    errorMsg += "Skontrolujte Debug_Log pre viac informácií.";
+
+                    dialog("Chyba prepočtu", errorMsg, "OK");
+                    return { success: false, error: result.error };
+                }
+
+                // Get calculated values for success dialog
+                var odpracovane = employeeEntry.field("Odpracované") || 0;
+                var zarobene = employeeEntry.field("Zarobené") || 0;
+                var premie = employeeEntry.field("Prémie") || 0;
+
+                var odpracovaneTotal = employeeEntry.field("Odpracované total") || 0;
+                var zarobeneTotal = employeeEntry.field("Zarobené total") || 0;
+                var premieTotal = employeeEntry.field("Prémie total") || 0;
+
+                // Success dialog
+                var successMsg = "✅ PREPOČET DOKONČENÝ\n\n";
+                successMsg += "👤 Zamestnanec: " + employeeName + "\n\n";
+                successMsg += "📊 ZÁKLADNÉ POLIA:\n";
+                successMsg += "• Odpracované: " + odpracovane.toFixed(2) + " h\n";
+                successMsg += "• Zarobené: " + zarobene.toFixed(2) + " €\n";
+                successMsg += "• Prémie: " + premie.toFixed(2) + " €\n\n";
+                successMsg += "📊 TOTAL POLIA:\n";
+                successMsg += "• Odpracované total: " + odpracovaneTotal.toFixed(2) + " h\n";
+                successMsg += "• Zarobené total: " + zarobeneTotal.toFixed(2) + " €\n";
+                successMsg += "• Prémie total: " + premieTotal.toFixed(2) + " €\n\n";
+                successMsg += "Skontrolujte Debug_Log a info pole pre detaily.";
+
+                dialog("Prepočet dokončený", successMsg, "OK");
+
+                return { success: true };
+
+            } catch (error) {
+                // Critical error dialog
+                var criticalMsg = "❌ KRITICKÁ CHYBA\n\n";
+                criticalMsg += "Module: Zamestnanci v" + MODULE_INFO.version + "\n\n";
+                criticalMsg += "Chyba: " + error.toString() + "\n\n";
+
+                if (error.stack) {
+                    criticalMsg += "Stack trace:\n" + error.stack.substring(0, 200);
+                }
+
+                utils.addError(employeeEntry, "KRITICKÁ CHYBA v Action: " + error.toString(), "Zamestnanci.calculateWagesAction", error);
+
+                dialog("Kritická chyba", criticalMsg, "OK");
+
+                return { success: false, error: error.toString() };
             }
         }
     };
