@@ -65,6 +65,7 @@ screenshots/
 .backup*/
 .claude/*          # Ignore everything in .claude/
 !.claude/agents/   # Except agents directory
+!.claude/commands/ # Except custom slash commands (skills)
 .conversations/
 .doc/
 .docs/
@@ -198,6 +199,9 @@ playground.js
 !.claude/agents/**/*.md
 !.claude/agents/**/*.json
 !.claude/agents/**/*.js
+
+# Custom slash commands / skills (SYNCHRONIZOVANÉ)
+!.claude/commands/*.md
 
 # Skills files (SYNCHRONIZOVANÉ) - in user .claude directory
 # Note: Skills are in C:\Users\rasto\.claude\projects\...\skills\
