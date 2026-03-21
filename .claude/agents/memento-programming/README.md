@@ -1,3 +1,7 @@
+---
+name: "Memento Programming Agent - README"
+---
+
 # Memento Database Programming Agent
 
 **Version:** 1.0.0

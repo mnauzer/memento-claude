@@ -1,3 +1,7 @@
+---
+name: "Script Generation Prompt"
+---
+
 # Script Generation Prompt Template
 
 ## Context

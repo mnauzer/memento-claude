@@ -1,3 +1,7 @@
+---
+name: "Code Review Prompt"
+---
+
 # Code Review Prompt Template
 
 ## Review Checklist

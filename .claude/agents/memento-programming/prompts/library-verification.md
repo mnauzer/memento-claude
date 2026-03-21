@@ -1,3 +1,7 @@
+---
+name: "Library Verification Prompt"
+---
+
 # Library Verification Prompt Template
 
 ## Purpose

@@ -1,3 +1,7 @@
+---
+name: "Core Modules Reference"
+---
+
 # Core Modules Reference
 
 ## Architecture Overview

@@ -1,3 +1,7 @@
+---
+name: "Library Script Patterns"
+---
+
 # Library Script Patterns
 
 ## Script Structure Template

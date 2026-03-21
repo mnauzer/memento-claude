@@ -1,3 +1,7 @@
+---
+name: "MCP Tools Integration Guide"
+---
+
 # MCP Tools Integration Guide
 
 ## Available MCP Tools (13 tools)

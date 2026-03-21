@@ -1,3 +1,7 @@
+---
+name: "Common Pitfalls and Solutions"
+---
+
 # Common Pitfalls and Solutions
 
 ## 1. Entry ID Confusion
