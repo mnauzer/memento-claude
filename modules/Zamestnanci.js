@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.20.0
+ * Version:     1.21.0
  * Author:      ASISTANTO
  * Date:        2026-03-21
  *
@@ -129,7 +129,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.20.0",
+        version: "1.21.0",
         author: "ASISTANTO",
         date: "2026-03-21",
         library: "zamestnanci",              // → libraries/zamestnanci/fields.json
@@ -1452,14 +1452,21 @@ var Zamestnanci = (function() {
                 debugLog(employeeEntry, "   • Dĺžka správy: " + msg.length + " znakov");
 
                 var sendOk = false;
+                var tgResult = null;
                 try {
-                    telegram.sendTelegramMessage(chatId, msg, { parseMode: "HTML" });
-                    sendOk = true;
+                    tgResult = telegram.sendTelegramMessage(chatId, msg, { parseMode: "HTML" });
                 } catch (tgErr) {
-                    directError(employeeEntry, "Telegram API error: " + tgErr.toString());
-                    directError(employeeEntry, "Telegram chyba: " + tgErr.toString(), "sendReportToTelegram", tgErr);
+                    directError(employeeEntry, "Telegram API exception: " + tgErr.toString());
                     return { success: false, error: tgErr.toString() };
                 }
+
+                // sendTelegramMessage vracia {success, error} — nekidne exception pri chybe
+                if (!tgResult || tgResult.success === false) {
+                    var tgErr2 = (tgResult && tgResult.error) ? tgResult.error : "Neznáma chyba (tgResult=" + JSON.stringify(tgResult) + ")";
+                    directError(employeeEntry, "Telegram send failed: " + tgErr2);
+                    return { success: false, error: tgErr2 };
+                }
+                sendOk = true;
 
                 debugLog(employeeEntry, "   \u2705 Správa odoslaná na Telegram ID: " + chatId);
 
