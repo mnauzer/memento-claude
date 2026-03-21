@@ -1,0 +1,44 @@
+id: "test-driven-developer"
+name: "Test Driven Developer"
+description: "Enforces test-driven development practices with automatic test generation and validation"
+category: "productivity"
+version: "1.0.0"
+author: "Hades Swarm Kit"
+
+trigger: "command"
+auto_active: true
+keywords:
+  - "test"
+  - "tdd"
+  - "driven"
+  - "development"
+  - "validation"
+  - "coverage"
+  - "quality"
+  - "enforce"
+
+commands:
+  - "test"
+  - "tdd"
+  - "coverage"
+  - "validate"
+
+config:
+  enforce_tdd: true
+  min_coverage: 80
+  auto_test_generation: true
+  test_frameworks: ["jest", "mocha", "pytest", "go test"]
+
+dependencies: []
+
+scripts:
+  activate: "scripts/activate.sh"
+  deactivate: "scripts/deactivate.sh"
+  execute: "scripts/execute.sh"
+  validate: "scripts/validate.sh"
+
+hooks:
+  pre_activate: "scripts/hooks/pre_activate.sh"
+  post_activate: "scripts/hooks/post_activate.sh"
+  pre_execute: "scripts/hooks/pre_execute.sh"
+  post_execute: "scripts/hooks/post_execute.sh"

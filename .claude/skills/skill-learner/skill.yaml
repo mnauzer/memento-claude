@@ -1,0 +1,44 @@
+id: "skill-learner"
+name: "Skill Learner"
+description: "Adaptive learning system that analyzes patterns and creates new skills automatically based on user behavior"
+category: "productivity"
+version: "1.0.0"
+author: "Hades Swarm Kit"
+
+trigger: "context"
+auto_active: true
+keywords:
+  - "learn"
+  - "pattern"
+  - "adaptive"
+  - "behavior"
+  - "analyze"
+  - "create"
+  - "automatic"
+  - "intelligence"
+
+commands:
+  - "learn"
+  - "analyze"
+  - "adapt"
+  - "pattern"
+
+config:
+  learning_mode: "active"
+  pattern_threshold: 3
+  auto_skill_creation: false
+  confidence_threshold: 0.8
+
+dependencies: []
+
+scripts:
+  activate: "scripts/activate.sh"
+  deactivate: "scripts/deactivate.sh"
+  execute: "scripts/execute.sh"
+  validate: "scripts/validate.sh"
+
+hooks:
+  pre_activate: "scripts/hooks/pre_activate.sh"
+  post_activate: "scripts/hooks/post_activate.sh"
+  pre_execute: "scripts/hooks/pre_execute.sh"
+  post_execute: "scripts/hooks/post_execute.sh"

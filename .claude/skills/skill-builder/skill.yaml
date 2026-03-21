@@ -1,0 +1,44 @@
+id: "skill-builder"
+name: "Skill Builder"
+description: "Interactive skill creation framework for developing custom automation skills with templates and validation"
+category: "productivity"
+version: "1.0.0"
+author: "Hades Swarm Kit"
+
+trigger: "manual"
+auto_active: false
+keywords:
+  - "skill"
+  - "builder"
+  - "create"
+  - "template"
+  - "framework"
+  - "generate"
+  - "wizard"
+  - "customize"
+
+commands:
+  - "skill"
+  - "create"
+  - "build"
+  - "generate"
+
+config:
+  available_templates: ["wallet", "trading", "security", "automation"]
+  wizard_mode: true
+  validation_enabled: true
+  auto_integration: false
+
+dependencies: []
+
+scripts:
+  activate: "scripts/activate.sh"
+  deactivate: "scripts/deactivate.sh"
+  execute: "scripts/execute.sh"
+  validate: "scripts/validate.sh"
+
+hooks:
+  pre_activate: "scripts/hooks/pre_activate.sh"
+  post_activate: "scripts/hooks/post_activate.sh"
+  pre_execute: "scripts/hooks/pre_execute.sh"
+  post_execute: "scripts/hooks/post_execute.sh"

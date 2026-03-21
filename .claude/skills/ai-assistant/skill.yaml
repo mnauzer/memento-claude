@@ -1,0 +1,25 @@
+id: "ai-assistant"
+name: "AI Assistant Helper"
+description: "A skill for automating repetitive tasks"
+category: "automation"
+version: "1.0.0"
+author: "Hades CLI"
+
+trigger: "command"
+auto_active: false
+keywords:
+  - "automate"
+  - "schedule"
+  - "batch"
+
+commands:
+  - "automate"
+  - "schedule"
+
+config:
+  max_concurrent_tasks: 5
+
+dependencies: []
+
+scripts:
+  execute: "scripts/execute.sh"

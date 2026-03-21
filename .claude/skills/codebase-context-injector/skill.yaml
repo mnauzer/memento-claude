@@ -1,0 +1,43 @@
+id: "codebase-context-injector"
+name: "Codebase Context Injector"
+description: "Automatically injects relevant codebase context and architectural guidelines from project CLAUDE.md files"
+category: "productivity"
+version: "1.0.0"
+author: "Hades Swarm Kit"
+
+trigger: "context"
+auto_active: true
+keywords:
+  - "context"
+  - "codebase"
+  - "inject"
+  - "architecture"
+  - "guidelines"
+  - "project"
+  - "claude.md"
+  - "consistency"
+
+commands:
+  - "context"
+  - "inject"
+  - "guidelines"
+  - "architecture"
+
+config:
+  context_files: ["CLAUDE.md", ".clauderc", "README.md"]
+  max_context_size: 2000
+  injection_points: ["pre_command", "pre_edit"]
+
+dependencies: []
+
+scripts:
+  activate: "scripts/activate.sh"
+  deactivate: "scripts/deactivate.sh"
+  execute: "scripts/execute.sh"
+  validate: "scripts/validate.sh"
+
+hooks:
+  pre_activate: "scripts/hooks/pre_activate.sh"
+  post_activate: "scripts/hooks/post_activate.sh"
+  pre_execute: "scripts/hooks/pre_execute.sh"
+  post_execute: "scripts/hooks/post_execute.sh"

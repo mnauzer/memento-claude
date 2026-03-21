@@ -1,0 +1,49 @@
+id: "performance-monitor"
+name: "Performance Monitor"
+description: "Real-time performance tracking for swarms, agents, and tasks with automatic bottleneck detection and optimization recommendations"
+category: "productivity"
+version: "1.0.0"
+author: "Hades Swarm Kit"
+
+trigger: "command"
+auto_active: true
+keywords:
+  - "performance"
+  - "monitor"
+  - "metrics"
+  - "bottleneck"
+  - "optimize"
+  - "benchmark"
+  - "track"
+  - "analyze"
+
+commands:
+  - "performance"
+  - "monitor"
+  - "metrics"
+  - "benchmark"
+
+config:
+  alert_thresholds:
+    success_rate_min: 0.90
+    response_time_max: 10.0
+    queue_depth_max: 10
+    idle_agent_ratio_max: 0.30
+  retention:
+    realtime_metrics: "1h"
+    aggregated_hourly: "7d"
+    aggregated_daily: "30d"
+
+dependencies: []
+
+scripts:
+  activate: "scripts/activate.sh"
+  deactivate: "scripts/deactivate.sh"
+  execute: "scripts/execute.sh"
+  validate: "scripts/validate.sh"
+
+hooks:
+  pre_activate: "scripts/hooks/pre_activate.sh"
+  post_activate: "scripts/hooks/post_activate.sh"
+  pre_execute: "scripts/hooks/pre_execute.sh"
+  post_execute: "scripts/hooks/post_execute.sh"

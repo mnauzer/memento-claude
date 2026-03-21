@@ -1,0 +1,74 @@
+name: "mcp-knowledge-retriever"
+version: "1.0.0"
+description: "Model Context Protocol server for retrieving and searching knowledge from the swarm knowledge graph"
+
+author: "Hades Swarm Kit"
+license: "MIT"
+
+# Skill activation triggers
+triggers:
+  - "mcp-knowledge"
+  - "search-knowledge"
+  - "query-graph"
+
+# Public API this skill exposes
+public_api:
+  protocol: "HTTP/REST"
+  port: 9200
+  endpoints:
+    - "GET /search?query=..."
+    - "POST /store"
+    - "GET /patterns/{task_type}"
+    - "POST /learn/{task_id}"
+
+# What this skill can import
+can_import_from:
+  - "backend"
+  - "services"
+
+# What this skill cannot import
+cannot_import:
+  - "frontend"
+
+# Performance characteristics
+performance:
+  avg_latency_ms: 500
+  max_latency_ms: 5000
+  memory_mb: 256
+  cpu_percent: 20
+
+# Hooks for skill lifecycle
+hooks:
+  pre_command: "./hooks/pre-command.sh"
+  post_response: "./hooks/post-response.sh"
+
+# Dependencies
+dependencies:
+  runtime:
+    - "python3.11"
+    - "neo4j"
+    - "postgresql"
+  python:
+    - "fastapi==0.104.1"
+    - "httpx==0.25.2"
+    - "neo4j==5.14.1"
+    - "psycopg2-binary==2.9.9"
+
+# Configuration
+config:
+  neo4j_uri: "${NEO4J_URI:-bolt://localhost:7687}"
+  postgres_dsn: "${POSTGRES_DSN:-postgresql://user:pass@localhost:5432/hades}"
+  max_results: 10
+  timeout_seconds: 30
+
+# Metadata
+metadata:
+  category: "knowledge-management"
+  complexity: "medium"
+  maturity: "beta"
+  production_ready: false
+  tags:
+    - "mcp"
+    - "knowledge-graph"
+    - "rag"
+    - "vector-search"

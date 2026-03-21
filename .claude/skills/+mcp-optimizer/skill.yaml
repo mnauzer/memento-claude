@@ -1,0 +1,44 @@
+id: "mcp-optimizer"
+name: "MCP Optimizer"
+description: "Dynamically selects relevant tools/agents to optimize system prompts, reducing token usage by 70-80%. Activates automatically on all commands."
+category: "productivity"
+version: "1.0.0"
+author: "Hades Swarm Kit"
+
+trigger: "command"
+auto_active: true
+keywords:
+  - "optimize"
+  - "mcp"
+  - "tools"
+  - "tokens"
+  - "context"
+  - "router"
+  - "capabilities"
+  - "efficiency"
+
+commands:
+  - "optimize"
+  - "route"
+  - "capabilities"
+  - "context"
+
+config:
+  cache_ttl: 3600
+  max_capabilities: 5
+  router_model: "haiku"
+  token_threshold: 1500
+
+dependencies: []
+
+scripts:
+  activate: "scripts/activate.sh"
+  deactivate: "scripts/deactivate.sh"
+  execute: "scripts/execute.sh"
+  validate: "scripts/validate.sh"
+
+hooks:
+  pre_activate: "scripts/hooks/pre_activate.sh"
+  post_activate: "scripts/hooks/post_activate.sh"
+  pre_execute: "scripts/hooks/pre_execute.sh"
+  post_execute: "scripts/hooks/post_execute.sh"

@@ -1,0 +1,41 @@
+id: "speckit-workflow"
+name: "Spec-Kit Workflow"
+description: "Spec-Driven Development assistant using GitHub's spec-kit methodology. Prevents vibe coding by ensuring clear specifications before implementation."
+category: "productivity"
+version: "1.0.0"
+author: "Hades Swarm Kit"
+
+trigger: "command"
+auto_active: true
+keywords:
+  - "spec"
+  - "specification"
+  - "specify"
+  - "requirement"
+  - "design"
+  - "architecture"
+  - "plan"
+  - "implement"
+
+commands:
+  - "spec"
+  - "specify"
+  - "architecture"
+  - "design"
+  - "plan"
+
+config:
+  enabled: true
+  min_complexity_for_spec: 3
+  auto_suggest_commands: true
+  track_workflow_state: true
+  require_constitution: true
+  suggest_clarify_threshold: 0.6
+
+dependencies: []
+
+scripts:
+  validate: "scripts/validate.sh"
+
+hooks:
+  pre_command: "hooks/pre-command.sh"
