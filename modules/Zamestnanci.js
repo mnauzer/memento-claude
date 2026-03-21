@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.10.0
+ * Version:     1.12.0
  * Author:      ASISTANTO
  * Date:        2026-03-21
  *
@@ -28,6 +28,12 @@
  *   }
  *
  * Changelog:
+ *   v1.12.0 (2026-03-21) - Remove all moment() dependencies — use native JS Date
+ *     - ROOT CAUSE FIX: moment not available in Memento action/trigger execution context
+ *     - calculateDateRange() fully rewritten with native Date arithmetic
+ *     - formatDate() helper added (replaces moment().format("DD.MM.YYYY"))
+ *     - formatPeriodHeading() rewritten with Date.getMonth()/getFullYear()/getDate()
+ *     - Debug message in calculateWageFields() uses formatDate() instead of moment()
  *   v1.11.0 (2026-03-21) - Add directLog() helper for reliable Debug_Log writes
  *     - utils.addDebug() silently fails when MementoConfig not loaded in Memento context
  *     - directLog() writes to entry directly (no MementoCore/Config dependency)
@@ -78,7 +84,7 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.11.0",
+        version: "1.12.0",
         author: "ASISTANTO",
         date: "2026-03-21",
         library: "zamestnanci",              // → libraries/zamestnanci/fields.json
@@ -167,10 +173,20 @@ var Zamestnanci = (function() {
     }
 
     /**
-     * Convert "obdobie" choice to date range
+     * Format a Date as "DD.MM.YYYY" — no moment dependency.
+     */
+    function formatDate(d) {
+        var dd = d.getDate(), mm = d.getMonth() + 1, yyyy = d.getFullYear();
+        return (dd < 10 ? "0" : "") + dd + "." + (mm < 10 ? "0" : "") + mm + "." + yyyy;
+    }
+
+    /**
+     * Convert "obdobie" choice to date range — no moment dependency.
+     * Uses native JS Date (handles month/day overflow correctly).
      */
     function calculateDateRange(choice, referenceDate) {
         var now = referenceDate || new Date();
+        var y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
         var start, end;
 
         // Map choice labels to numbers (Memento returns label text, not values!)
@@ -191,80 +207,80 @@ var Zamestnanci = (function() {
 
         // CRITICAL: Trim choice (Memento adds trailing spaces!)
         var choiceTrimmed = choice ? choice.toString().trim() : "";
+        var choiceNum = choiceMap[choiceTrimmed] || parseInt(choiceTrimmed, 10) || 3;
 
-        // Convert choice to number
-        var choiceNum = choiceMap[choiceTrimmed] || parseInt(choiceTrimmed, 10) || 3; // default: tento mesiac
+        // Monday-based week offset (0=Mon … 6=Sun)
+        var dow = (now.getDay() + 6) % 7;
 
         switch (choiceNum) {
             case 1: // tento deň
-                start = moment(now).startOf('day');
-                end = moment(now).endOf('day');
+                start = new Date(y, m, d, 0, 0, 0, 0);
+                end   = new Date(y, m, d, 23, 59, 59, 999);
                 break;
 
-            case 2: // tento týždeň
-                start = moment(now).startOf('week');
-                end = moment(now).endOf('week');
+            case 2: // tento týždeň (Po–Ne)
+                start = new Date(y, m, d - dow, 0, 0, 0, 0);
+                end   = new Date(y, m, d - dow + 6, 23, 59, 59, 999);
                 break;
 
             case 3: // tento mesiac
-                start = moment(now).startOf('month');
-                end = moment(now).endOf('month');
+                start = new Date(y, m, 1, 0, 0, 0, 0);
+                end   = new Date(y, m + 1, 0, 23, 59, 59, 999);
                 break;
 
             case 4: // tento rok
-                start = moment(now).startOf('year');
-                end = moment(now).endOf('year');
+                start = new Date(y, 0, 1, 0, 0, 0, 0);
+                end   = new Date(y, 11, 31, 23, 59, 59, 999);
                 break;
 
-            case 5: // Total (all time) - for obdobie total only
-                start = moment('2000-01-01');
-                end = moment(now).endOf('day');
+            case 5: // Total (all time)
+                start = new Date(2000, 0, 1, 0, 0, 0, 0);
+                end   = new Date(y, m, d, 23, 59, 59, 999);
                 break;
 
             case 6: // minulý týždeň
-                start = moment(now).subtract(1, 'week').startOf('week');
-                end = moment(now).subtract(1, 'week').endOf('week');
+                start = new Date(y, m, d - dow - 7, 0, 0, 0, 0);
+                end   = new Date(y, m, d - dow - 1, 23, 59, 59, 999);
                 break;
 
             case 7: // minulý mesiac
-                start = moment(now).subtract(1, 'month').startOf('month');
-                end = moment(now).subtract(1, 'month').endOf('month');
+                start = new Date(y, m - 1, 1, 0, 0, 0, 0);
+                end   = new Date(y, m, 0, 23, 59, 59, 999);
                 break;
 
             case 8: // minulý rok
-                start = moment(now).subtract(1, 'year').startOf('year');
-                end = moment(now).subtract(1, 'year').endOf('year');
+                start = new Date(y - 1, 0, 1, 0, 0, 0, 0);
+                end   = new Date(y - 1, 11, 31, 23, 59, 59, 999);
                 break;
 
-            case 9: // posledných 7 dní
-                start = moment(now).subtract(7, 'days').startOf('day');
-                end = moment(now).endOf('day');
+            case 9:  // posledných 7 dní
+                start = new Date(y, m, d - 7, 0, 0, 0, 0);
+                end   = new Date(y, m, d, 23, 59, 59, 999);
                 break;
 
             case 10: // posledných 14 dní
-                start = moment(now).subtract(14, 'days').startOf('day');
-                end = moment(now).endOf('day');
+                start = new Date(y, m, d - 14, 0, 0, 0, 0);
+                end   = new Date(y, m, d, 23, 59, 59, 999);
                 break;
 
             case 11: // posledných 30 dní
-                start = moment(now).subtract(30, 'days').startOf('day');
-                end = moment(now).endOf('day');
+                start = new Date(y, m, d - 30, 0, 0, 0, 0);
+                end   = new Date(y, m, d, 23, 59, 59, 999);
                 break;
 
             case 12: // posledných 90 dní
-                start = moment(now).subtract(90, 'days').startOf('day');
-                end = moment(now).endOf('day');
+                start = new Date(y, m, d - 90, 0, 0, 0, 0);
+                end   = new Date(y, m, d, 23, 59, 59, 999);
                 break;
 
-            default:
-                // Default: tento mesiac
-                start = moment(now).startOf('month');
-                end = moment(now).endOf('month');
+            default: // tento mesiac
+                start = new Date(y, m, 1, 0, 0, 0, 0);
+                end   = new Date(y, m + 1, 0, 23, 59, 59, 999);
         }
 
         return {
-            startDate: start.toDate(),
-            endDate: end.toDate(),
+            startDate: start,
+            endDate: end,
             choiceValue: choice
         };
     }
@@ -281,8 +297,8 @@ var Zamestnanci = (function() {
             // Get date range for period
             var dateRange = calculateDateRange(periodChoice);
             utils.addDebug(employeeEntry, "  📅 Obdobie: " +
-                moment(dateRange.startDate).format("DD.MM.YYYY") + " - " +
-                moment(dateRange.endDate).format("DD.MM.YYYY"));
+                formatDate(dateRange.startDate) + " - " +
+                formatDate(dateRange.endDate));
 
             // Get all Dochádzka records linking to this employee
             var dochadzkaLinks = employeeEntry.linksFrom("Dochádzka", EXTERNAL.dochEmployees);
@@ -566,19 +582,21 @@ var Zamestnanci = (function() {
                                  "Júl","August","September","Október","November","December"];
                 var formatPeriodHeading = function(choice) {
                     var dr = calculateDateRange(choice);
-                    var s = moment(dr.startDate);
-                    var e = moment(dr.endDate);
+                    var s = dr.startDate;
+                    var e = dr.endDate;
                     var c = (choice || "").trim();
                     if (c === "Total") {
                         return "Total";
                     } else if (c === "tento mesiac" || c === "minulý mesiac") {
-                        return MONTHS_SK[s.month()] + " " + s.year();
+                        return MONTHS_SK[s.getMonth()] + " " + s.getFullYear();
                     } else if (c === "tento rok" || c === "minulý rok") {
-                        return "" + s.year();
+                        return "" + s.getFullYear();
                     } else if (c === "tento deň") {
-                        return s.format("D.M.YYYY");
+                        return s.getDate() + "." + (s.getMonth() + 1) + "." + s.getFullYear();
                     } else {
-                        return s.format("D.M.YYYY") + " \u2013 " + e.format("D.M.YYYY");
+                        return s.getDate() + "." + (s.getMonth() + 1) + "." + s.getFullYear() +
+                               " \u2013 " +
+                               e.getDate() + "." + (e.getMonth() + 1) + "." + e.getFullYear();
                     }
                 };
 
