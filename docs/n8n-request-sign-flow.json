@@ -64,7 +64,8 @@
         "method": "POST",
         "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
         "sendBody": true,
-        "specifyBody": "string",
+        "contentType": "raw",
+        "rawContentType": "application/json",
         "body": "={{ $json.tgBody }}",
         "options": {
           "response": {
@@ -72,12 +73,6 @@
               "neverError": true
             }
           }
-        },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {"name": "Content-Type", "value": "application/json"}
-          ]
         }
       }
     },
