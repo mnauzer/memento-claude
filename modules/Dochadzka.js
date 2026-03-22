@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.3.7",
+        version: "1.3.8",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -47,6 +47,7 @@ var Dochadzka = (function() {
         extractedLines: 528,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.3.8 (2026-03-22) - FIX: requestSign() - add libCode:'D' to N8N payload; N8N confirm flow v4 uses sign_{sourceId}_D_{action} in callback_data and PATCHes Dochádzka directly (no podpis GET needed - avoids cloud sync delay)",
             "v1.3.7 (2026-03-22) - FIX: requestSign() - send sourceId (entryId) to N8N instead of podpisId; N8N confirm flow v2 searches podpisy by Zdroj ID + fromChatId to avoid local/cloud ID mismatch",
             "v1.3.6 (2026-03-22) - FIX: requestSign() - create Podpisy via libByName().create() (not Cloud API); set Zamestnanec as linkToEntry; link Dochadzka→Podpisy in-memory; fix addDebug→_log bug (sent++ never fired); fix 'Čaká ' trailing space",
             "v1.3.5 (2026-03-22) - FIX: requestSign() - remove PATCH Dochádzka→Podpisy (Memento API PATCH may use replace semantics causing date field erasure)",
@@ -1365,12 +1366,13 @@ var Dochadzka = (function() {
                 createdPodpisy.push(podpisEntry);
 
                 // --- Odošli do N8N ---
-                // DÔLEŽITÉ: N8N request_sign flow musí použiť sourceId (nie podpisId) v callback_data
-                // Format callback_data: "sign_{entryId}_{action}" kde entryId = Dochádzka entry ID
+                // N8N request_sign flow: callback_data = "sign_{sourceId}_{libCode}_{action}"
+                // libCode "D" = Dochádzka → N8N PATCHuje priamo bez GET podpisu (vyhýba cloud sync delay)
                 var n8nPayload = JSON.stringify({
                     type:     "request_sign",
-                    sourceId: entryId,    // ← N8N použije toto pre callback_data (sign_{sourceId}_confirm)
-                    podpisId: podpisId,   // ← ponechané pre informáciu, ale N8N to nepoužíva
+                    sourceId: entryId,    // ← Dochádzka entry cloud ID (pre PATCH Source Status)
+                    libCode:  "D",        // ← D = Dochádzka (pre N8N confirm flow mapovanie knižnice)
+                    podpisId: podpisId,   // ← lokálny ID podpisu (info only, nespoľahlivý pre cloud PATCH)
                     chatId:   chatId,
                     message:  msg
                 });

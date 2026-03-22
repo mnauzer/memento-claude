@@ -34,7 +34,7 @@ var Pokladna = (function() {
 
     var MODULE_INFO = {
         name: "Pokladna",
-        version: "1.1.5",
+        version: "1.1.6",
         author: "ASISTANTO",
         description: "Cash book and payment management module",
         library: "Pokladňa",
@@ -43,6 +43,7 @@ var Pokladna = (function() {
         extractedLines: 1114,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.1.6 (2026-03-22) - FIX: requestSign() - add libCode:'P' to N8N payload; N8N confirm flow v4 uses sign_{sourceId}_P_{action} in callback_data and PATCHes Pokladňa directly (no podpis GET needed)",
             "v1.1.5 (2026-03-22) - FIX: requestSign() - send sourceId (entryId) to N8N for callback_data; N8N confirm flow v2 searches by Zdroj ID + fromChatId",
             "v1.1.4 (2026-03-22) - FIX: requestSign() - create Podpisy via libByName().create() (not Cloud API); set Zamestnanec as linkToEntry; link Pokladňa→Podpisy in-memory; fix 'Čaká ' trailing space",
             "v1.1.3 (2026-03-22) - FIX: requestSign() - remove PATCH Pokladňa→Podpisy (Memento API PATCH may use replace semantics causing field erasure)",
@@ -1246,12 +1247,13 @@ var Pokladna = (function() {
             entry.set("Podpis", existPodpis.concat([podpisEntry]));
 
             // --- Odošli do N8N ---
-            // DÔLEŽITÉ: N8N request_sign flow musí použiť sourceId v callback_data
-            // Format: "sign_{entryId}_{action}" kde entryId = Pokladňa entry ID
+            // N8N request_sign flow: callback_data = "sign_{sourceId}_{libCode}_{action}"
+            // libCode "P" = Pokladňa → N8N PATCHuje priamo bez GET podpisu (vyhýba cloud sync delay)
             var n8nPayload = JSON.stringify({
                 type:     "request_sign",
-                sourceId: entryId,    // ← N8N použije toto pre callback_data
-                podpisId: podpisId,   // ← ponechané pre informáciu
+                sourceId: entryId,    // ← Pokladňa entry cloud ID (pre PATCH Source Status)
+                libCode:  "P",        // ← P = Pokladňa (pre N8N confirm flow mapovanie knižnice)
+                podpisId: podpisId,   // ← lokálny ID podpisu (info only, nespoľahlivý pre cloud PATCH)
                 chatId:   chatId,
                 message:  msg
             });
