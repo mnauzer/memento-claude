@@ -34,7 +34,7 @@ var Pokladna = (function() {
 
     var MODULE_INFO = {
         name: "Pokladna",
-        version: "1.1.2",
+        version: "1.1.3",
         author: "ASISTANTO",
         description: "Cash book and payment management module",
         library: "Pokladňa",
@@ -43,6 +43,7 @@ var Pokladna = (function() {
         extractedLines: 1114,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.1.3 (2026-03-22) - FIX: requestSign() - remove PATCH Pokladňa→Podpisy (Memento API PATCH may use replace semantics causing field erasure)",
             "v1.1.2 (2026-03-22) - FIX: requestSign() - duplicate check on Stav podpisu; add Zamestnanec+Dátum odoslania to podpisPayload; PATCH link Pokladňa→Podpisy after creation",
             "v1.1.1 (2026-03-22) - FIX: requestSign() - String.fromCharCode() pre ď/ú",
             "v1.1.0 (2026-03-22) - NEW: requestSign() - send payment record for employee confirmation via N8N+Telegram"
@@ -1255,12 +1256,9 @@ var Pokladna = (function() {
                 return { success: false, error: "Memento API nevr\u00e1tilo ID podpisu" };
             }
 
-            // --- Linkni Pokladňa → Podpisy ---
-            var lhObj = http();
-            lhObj.headers({ "Content-Type": "application/json" });
-            var linkPayload = JSON.stringify({ fields: [{ name: "Podpis", value: podpisId }] });
-            var linkUrl = MEMENTO_API_BASE + "/libraries/" + POKLADNA_LIB_ID + "/entries/" + entryId + "?token=" + MEMENTO_TOKEN;
-            lhObj.patch(linkUrl, linkPayload);
+            // NOTE: Nerobíme PATCH Pokladňa→Podpisy cez API.
+            // Memento API PATCH môže mať "replace" semantiku a vymazať iné polia.
+            // Link je riešený cez Zdroj ID na Podpisy zázname (text pole = entryId).
 
             // --- Odošli do N8N ---
             var n8nPayload = JSON.stringify({

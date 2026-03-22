@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.3.4",
+        version: "1.3.5",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -47,6 +47,7 @@ var Dochadzka = (function() {
         extractedLines: 528,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.3.5 (2026-03-22) - FIX: requestSign() - remove PATCH Dochádzka→Podpisy (Memento API PATCH may use replace semantics causing date field erasure)",
             "v1.3.4 (2026-03-22) - FIX: requestSign() - direct local debug logging (bypass utils chain); Zamestnanec PATCH separately; log API response codes+bodies; fix Stav='Čaká' (no space)",
             "v1.3.3 (2026-03-22) - FIX: requestSign() - duplicate check on Stav podpisov; add Zamestnanec+Dátum odoslania to podpisPayload; PATCH link Dochádzka→Podpisy after creation",
             "v1.3.2 (2026-03-22) - FIX: requestSign() - getHours() instead of getUTCHours() for local Slovakia time; add príplatok/prémia/pokuta to message",
@@ -1382,13 +1383,10 @@ var Dochadzka = (function() {
                 var zamResp = zamObj.patch(zamUrl, zamPayload);
                 _log("  PATCH Zamestnanec code=" + (zamResp ? zamResp.code : "no resp") + " body=" + (zamResp ? (zamResp.body || "").substring(0, 100) : ""));
 
-                // --- PATCH link Dochádzka → Podpisy ---
-                var lhObj = http();
-                lhObj.headers({ "Content-Type": "application/json" });
-                var linkPayload = JSON.stringify({ fields: [{ name: "Podpisy", value: podpisId }] });
-                var linkUrl = MEMENTO_API_BASE + "/libraries/" + DOCHADZKA_LIB_ID + "/entries/" + entryId + "?token=" + MEMENTO_TOKEN;
-                var linkResp = lhObj.patch(linkUrl, linkPayload);
-                _log("  PATCH Doch->Podpisy code=" + (linkResp ? linkResp.code : "no resp") + " body=" + (linkResp ? (linkResp.body || "").substring(0, 100) : ""));
+                // NOTE: Nerobíme PATCH Dochádzka→Podpisy cez API.
+                // Memento API PATCH môže mať "replace" semantiku (nie merge) a vymazať iné polia (napr. Dátum).
+                // Link je riešený cez Zdroj ID na Podpisy zázname (text pole = entryId).
+                _log("  (skip PATCH Doch->Podpisy - avoidance of field-clear risk)");
 
                 // --- Odošli do N8N ---
                 var n8nPayload = JSON.stringify({
