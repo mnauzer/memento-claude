@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.3.3",
+        version: "1.3.4",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -47,6 +47,7 @@ var Dochadzka = (function() {
         extractedLines: 528,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.3.4 (2026-03-22) - FIX: requestSign() - direct local debug logging (bypass utils chain); Zamestnanec PATCH separately; log API response codes+bodies; fix Stav='Čaká' (no space)",
             "v1.3.3 (2026-03-22) - FIX: requestSign() - duplicate check on Stav podpisov; add Zamestnanec+Dátum odoslania to podpisPayload; PATCH link Dochádzka→Podpisy after creation",
             "v1.3.2 (2026-03-22) - FIX: requestSign() - getHours() instead of getUTCHours() for local Slovakia time; add príplatok/prémia/pokuta to message",
             "v1.3.1 (2026-03-22) - FIX: requestSign() - use String.fromCharCode() for ď/á to avoid Memento JS engine Unicode literal bug",
@@ -1210,24 +1211,40 @@ var Dochadzka = (function() {
         var MEMENTO_API_BASE = "https://api.mementodatabase.com/v1";
         var MEMENTO_TOKEN    = "YobxmgbnZ1DTwxyJUIzCLgoAf2Qk0w";
         var PODPISY_LIB_ID   = "2fNM2Za4G";
+        var DOCHADZKA_LIB_ID = "zNoMvrv8U";
         var N8N_SIGN_URL     = "https://n8n.asistanto.sk/webhook/krajinka-sign";
 
-        addDebug(entry, "📤 requestSign štartuje");
+        // Direct debug accumulator — bypasses utils/MementoCore chain (silently fails if config missing)
+        var _dbg = ["[Dochadzka.requestSign v1.3.4]"];
+        function _log(msg) {
+            _dbg.push(msg);
+            try { entry.set("Debug_Log", _dbg.join("\n")); } catch(e) {}
+        }
+        function _errLog(msg) {
+            try {
+                var ex = entry.field("Error_Log") || "";
+                entry.set("Error_Log", ex + msg + "\n");
+            } catch(e) {}
+        }
+
+        _log("start");
 
         try {
             // --- Duplicate check ---
             var stavPodpisov = (entry.field("Stav podpisov") || "").trim();
+            _log("stavPodpisov='" + stavPodpisov + "'");
             if (stavPodpisov === "Čaká" || stavPodpisov === "Čaká " || stavPodpisov === "Hotovo") {
+                _log("SKIP: duplicate");
                 return { success: false, error: "Podpis u\u017e bol odoslan\u00fd (Stav: " + stavPodpisov + ")" };
             }
 
-            var DOCHADZKA_LIB_ID = "zNoMvrv8U";
             var _now = new Date();
             var todayStr = _now.getFullYear() + "-" +
                 ("0" + (_now.getMonth() + 1)).slice(-2) + "-" +
                 ("0" + _now.getDate()).slice(-2);
 
             var entryId = entry.id;
+            _log("entryId=" + entryId + " today=" + todayStr);
             if (!entryId) {
                 return { success: false, error: "Chýba entry ID záznamu" };
             }
@@ -1238,6 +1255,7 @@ var Dochadzka = (function() {
             var odchodField  = entry.field("Odchod");
             var zamestnanci  = entry.field("Zamestnanci");
 
+            _log("zamestnanci=" + (zamestnanci ? zamestnanci.length : 0));
             if (!zamestnanci || !zamestnanci.length) {
                 return { success: false, error: "Záznam nemá priradených zamestnancov" };
             }
@@ -1270,7 +1288,7 @@ var Dochadzka = (function() {
             var prichodStr = fmtTime(prichodField);
             var odchodStr  = fmtTime(odchodField);
 
-            addDebug(entry, "   • Dátum: " + datumStr + " | Príchod: " + prichodStr + " | Odchod: " + odchodStr);
+            _log("datum=" + datumStr + " prichod=" + prichodStr + " odchod=" + odchodStr);
 
             var sent = 0;
             var skipped = 0;
@@ -1287,8 +1305,10 @@ var Dochadzka = (function() {
                 var chatId = empLink.field ? empLink.field("Telegram ID") : null;
                 chatId = chatId ? String(chatId).trim() : "";
 
+                _log("emp[" + i + "] " + empName + " id=" + empId + " chatId=" + chatId);
+
                 if (!chatId) {
-                    addDebug(entry, "   ⚠️ " + empName + ": chýba Telegram ID → preskakujem");
+                    _log("  SKIP: no Telegram ID");
                     skipped++;
                     continue;
                 }
@@ -1300,8 +1320,6 @@ var Dochadzka = (function() {
                 var premie      = empLink.attr ? (empLink.attr("+prémia (€)") || 0) : 0;
                 var pokuta      = empLink.attr ? (empLink.attr("-pokuta (€)") || 0) : 0;
                 var dennaMzda   = empLink.attr ? (empLink.attr("denná mzda") || 0) : 0;
-
-                addDebug(entry, "   → " + empName + " chatId=" + chatId);
 
                 // --- Zostav správu ---
                 var NL = String.fromCharCode(10);
@@ -1316,55 +1334,61 @@ var Dochadzka = (function() {
                     + "\uD83D\uDCB8 Denn\u00e1 mzda: <b>" + fmtMoney(dennaMzda) + "</b>" + NL + NL
                     + "<i>Potvr" + String.fromCharCode(271) + " alebo odmietni tento z" + String.fromCharCode(225) + "znam:</i>";
 
-                // --- Vytvor podpisy záznam cez Memento API ---
+                // --- Vytvor podpisy záznam (bez Zamestnanec - linkToEntry sa patchuje osobitne) ---
                 var podpisPayload = JSON.stringify({
                     fields: [
-                        { name: "Zamestnanec",     value: empId },
-                        { name: "Kni\u017enica",   value: "Doch\u00e1dzka" },
-                        { name: "Zdroj ID",        value: entryId },
-                        { name: "TG Chat ID",      value: parseFloat(chatId) },
-                        { name: "Stav",            value: "Čaká " },
+                        { name: "Kni\u017enica",        value: "Doch\u00e1dzka" },
+                        { name: "Zdroj ID",             value: entryId },
+                        { name: "TG Chat ID",           value: parseFloat(chatId) },
+                        { name: "Stav",                 value: "Čaká" },
                         { name: "D\u00e1tum odoslania", value: todayStr }
                     ]
                 });
 
+                _log("  POST /entries payload=" + podpisPayload.substring(0, 150));
                 var httpObj = http();
                 httpObj.headers({ "Content-Type": "application/json" });
                 var apiUrl = MEMENTO_API_BASE + "/libraries/" + PODPISY_LIB_ID + "/entries?token=" + MEMENTO_TOKEN;
                 var apiResp = httpObj.post(apiUrl, podpisPayload);
 
-                if (!apiResp || apiResp.code < 200 || apiResp.code >= 300) {
-                    var err = "Memento API chyba " + (apiResp ? apiResp.code : "no response");
-                    addError(entry, err + " pre " + empName);
-                    errors.push(err);
+                var apiCode = apiResp ? apiResp.code : 0;
+                var apiBodyStr = apiResp ? (apiResp.body || "") : "";
+                _log("  POST resp code=" + apiCode + " body=" + apiBodyStr.substring(0, 200));
+
+                if (!apiResp || apiCode < 200 || apiCode >= 300) {
+                    _errLog("Memento API chyba " + apiCode + " pre " + empName + ": " + apiBodyStr);
+                    errors.push("API error " + apiCode);
                     skipped++;
                     continue;
                 }
 
                 var apiBody = {};
-                try { apiBody = JSON.parse(apiResp.body); } catch(e) {}
+                try { apiBody = JSON.parse(apiBodyStr); } catch(e) { _log("  JSON parse err: " + e); }
                 var podpisId = apiBody.id || "";
+                _log("  podpisId=" + podpisId);
 
                 if (!podpisId) {
-                    addError(entry, "Memento API nevrátilo ID podpisu pre " + empName);
+                    _errLog("Memento API nevrátilo ID podpisu pre " + empName);
                     errors.push("Chýba podpisId pre " + empName);
                     skipped++;
                     continue;
                 }
 
-                addDebug(entry, "   ✅ Podpisy z\u00e1znam vytvoren\u00fd: " + podpisId);
+                // --- PATCH Zamestnanec (linkToEntry - osobitne po vytvorení) ---
+                var zamObj = http();
+                zamObj.headers({ "Content-Type": "application/json" });
+                var zamPayload = JSON.stringify({ fields: [{ name: "Zamestnanec", value: empId }] });
+                var zamUrl = MEMENTO_API_BASE + "/libraries/" + PODPISY_LIB_ID + "/entries/" + podpisId + "?token=" + MEMENTO_TOKEN;
+                var zamResp = zamObj.patch(zamUrl, zamPayload);
+                _log("  PATCH Zamestnanec code=" + (zamResp ? zamResp.code : "no resp") + " body=" + (zamResp ? (zamResp.body || "").substring(0, 100) : ""));
 
-                // --- Linkni Dochádzka → Podpisy ---
+                // --- PATCH link Dochádzka → Podpisy ---
                 var lhObj = http();
                 lhObj.headers({ "Content-Type": "application/json" });
                 var linkPayload = JSON.stringify({ fields: [{ name: "Podpisy", value: podpisId }] });
                 var linkUrl = MEMENTO_API_BASE + "/libraries/" + DOCHADZKA_LIB_ID + "/entries/" + entryId + "?token=" + MEMENTO_TOKEN;
                 var linkResp = lhObj.patch(linkUrl, linkPayload);
-                if (linkResp && linkResp.code >= 200 && linkResp.code < 300) {
-                    addDebug(entry, "   \u2705 Doch\u00e1dzka\u2192Podpisy linkovan\u00e9");
-                } else {
-                    addDebug(entry, "   \u26A0\uFE0F Link PATCH zlyhal: " + (linkResp ? linkResp.code : "no response"));
-                }
+                _log("  PATCH Doch->Podpisy code=" + (linkResp ? linkResp.code : "no resp") + " body=" + (linkResp ? (linkResp.body || "").substring(0, 100) : ""));
 
                 // --- Odošli do N8N ---
                 var n8nPayload = JSON.stringify({
@@ -1377,11 +1401,12 @@ var Dochadzka = (function() {
                 var n8nHttpObj = http();
                 n8nHttpObj.headers({ "Content-Type": "application/json" });
                 var n8nResp = n8nHttpObj.post(N8N_SIGN_URL, n8nPayload);
+                var n8nCode = n8nResp ? n8nResp.code : 0;
+                _log("  N8N code=" + n8nCode);
 
-                if (!n8nResp || n8nResp.code < 200 || n8nResp.code >= 300) {
-                    var n8nErr = "N8N webhook error " + (n8nResp ? n8nResp.code : "no response");
-                    addError(entry, n8nErr + " pre " + empName);
-                    errors.push(n8nErr);
+                if (!n8nResp || n8nCode < 200 || n8nCode >= 300) {
+                    _errLog("N8N webhook error " + n8nCode + " pre " + empName);
+                    errors.push("N8N error " + n8nCode);
                     skipped++;
                     continue;
                 }
@@ -1390,12 +1415,11 @@ var Dochadzka = (function() {
                 sent++;
             }
 
-            // Aktualizuj stav záznamu
             if (sent > 0) {
                 entry.set("Stav podpisov", "Čaká ");
             }
 
-            addDebug(entry, "📤 requestSign hotovo: odoslané=" + sent + " preskočené=" + skipped);
+            _log("DONE sent=" + sent + " skipped=" + skipped + " errors=" + errors.join("|"));
 
             return {
                 success: sent > 0,
@@ -1405,7 +1429,8 @@ var Dochadzka = (function() {
             };
 
         } catch (error) {
-            addError(entry, "Kritická chyba v requestSign", "requestSign", error);
+            _log("CRITICAL ERROR: " + error.toString());
+            _errLog("Kritická chyba: " + error.toString());
             return { success: false, error: error.toString() };
         }
     }
