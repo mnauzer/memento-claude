@@ -1,6 +1,6 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.21.0
+ * Version:     1.22.0
  * Author:      ASISTANTO
  * Date:        2026-03-21
  *
@@ -28,6 +28,12 @@
  *   }
  *
  * Changelog:
+ *   v1.22.0 (2026-03-21) - sendReportToTelegram: bypass MementoAI, call http() directly
+ *     - Root cause: MementoAI often not loaded in action context → sendTelegramMessage silently failed
+ *     - New KROK 6: reads bot token via MementoCore.getSettings(), calls http().post() directly
+ *     - Logs HTTP status code — shows exact Telegram API response
+ *     - telegram param still accepted but no longer used for actual send
+ *   v1.21.0 (2026-03-21) - Fix: check sendTelegramMessage() return value (was always sendOk=true)
  *   v1.20.0 (2026-03-21) - Replace utils.addDebug/addError with direct field writes
  *     - New debugLog(entry, msg) — writes [DD.MM.YY HH:MM] timestamp directly to Debug_Log
  *     - All utils.addDebug() replaced by debugLog() — no MementoCore/Config dependency
@@ -1451,22 +1457,43 @@ var Zamestnanci = (function() {
 
                 debugLog(employeeEntry, "   • Dĺžka správy: " + msg.length + " znakov");
 
-                var sendOk = false;
-                var tgResult = null;
+                // ── Získaj bot token priamo z ASISTANTO Defaults (bypass MementoAI) ──
+                var botToken = null;
                 try {
-                    tgResult = telegram.sendTelegramMessage(chatId, msg, { parseMode: "HTML" });
-                } catch (tgErr) {
-                    directError(employeeEntry, "Telegram API exception: " + tgErr.toString());
-                    return { success: false, error: tgErr.toString() };
+                    var tgCore = typeof MementoCore !== 'undefined' ? MementoCore : null;
+                    if (tgCore) {
+                        botToken = tgCore.getSettings("ASISTANTO Defaults", "Telegram Bot API Key");
+                    }
+                } catch (tokenErr) {
+                    debugLog(employeeEntry, "   ⚠️ getSettings error: " + tokenErr.toString());
+                }
+                debugLog(employeeEntry, "   • Bot token: " + (botToken ? "OK (" + botToken.substring(0,10) + "...)" : "CHÝBA!"));
+
+                if (!botToken) {
+                    directError(employeeEntry, "Telegram Bot API token nebol nájdený v ASISTANTO Defaults");
+                    return { success: false, error: "Telegram Bot API token nie je nastavený" };
                 }
 
-                // sendTelegramMessage vracia {success, error} — nekidne exception pri chybe
-                if (!tgResult || tgResult.success === false) {
-                    var tgErr2 = (tgResult && tgResult.error) ? tgResult.error : "Neznáma chyba (tgResult=" + JSON.stringify(tgResult) + ")";
-                    directError(employeeEntry, "Telegram send failed: " + tgErr2);
-                    return { success: false, error: tgErr2 };
+                // ── Odošli priamo cez http() — bez MementoAI dependency ──
+                var sendOk = false;
+                try {
+                    var httpObj = http();
+                    httpObj.headers({ "Content-Type": "application/json" });
+                    var tgUrl = "https://api.telegram.org/bot" + botToken + "/sendMessage";
+                    var tgData = JSON.stringify({ chat_id: chatId, text: msg, parse_mode: "HTML" });
+                    var tgResp = httpObj.post(tgUrl, tgData);
+                    debugLog(employeeEntry, "   • HTTP status: " + tgResp.code);
+                    if (tgResp.code === 200) {
+                        sendOk = true;
+                    } else {
+                        var errBody = (tgResp.body || "").toString().substring(0, 300);
+                        directError(employeeEntry, "Telegram API error " + tgResp.code + ": " + errBody);
+                        return { success: false, error: "Telegram API " + tgResp.code + ": " + errBody };
+                    }
+                } catch (tgErr) {
+                    directError(employeeEntry, "HTTP request exception: " + tgErr.toString());
+                    return { success: false, error: tgErr.toString() };
                 }
-                sendOk = true;
 
                 debugLog(employeeEntry, "   \u2705 Správa odoslaná na Telegram ID: " + chatId);
 
