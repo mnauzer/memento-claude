@@ -1,6 +1,6 @@
 // ==============================================
 // LIBRARY MODULE - Dochadzka (Attendance)
-// Verzia: 1.2.0 | Dátum: 2026-03-20 | Autor: ASISTANTO
+// Verzia: 1.5.0 | Dátum: 2026-03-22 | Autor: ASISTANTO
 // ==============================================
 // 📋 PURPOSE:
 //    - Reusable module for attendance calculations
@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.4.0",
+        version: "1.5.0",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -1386,7 +1386,8 @@ var Dochadzka = (function() {
                     sourceFieldId:   96,             // Stav podpisov field ID (id:96)
                     stavPotvrdene:   "Hotovo",
                     stavOdmietnutie: "Odmietnut\u00e1 ", // trailing space = choice label
-                    kniznicaLabel:   "Doch\u00e1dzka "
+                    kniznicaLabel:   "Doch\u00e1dzka ",
+                    messageTemplate: "TG Template" // voliteľné pole so šablónou správy
                 };
 
                 var signResult = MementoSign.createPodpisAndSend(entry, empLink, msg, chatId, signConfig);

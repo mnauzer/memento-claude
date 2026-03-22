@@ -1,7 +1,7 @@
 {
   "library_name": "Pokladňa",
   "library_id": "g9eS5Ny2E",
-  "last_updated": "2026-03-22T08:15:00.000000",
+  "last_updated": "2026-03-22T22:00:00.000000",
   "note": "Generated from Memento API",
   "fields": [
     {
@@ -362,6 +362,18 @@
       "name": "dátum úpravy",
       "type": "datetime",
       "required": false
+    },
+    {
+      "id": 134,
+      "name": "TG Template",
+      "type": "text",
+      "order": 54,
+      "properties": {
+        "hint": "",
+        "singleLine": false
+      },
+      "required": false,
+      "defaultValue": ""
     }
   ]
 }

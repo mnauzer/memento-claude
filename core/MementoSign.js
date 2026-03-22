@@ -57,7 +57,29 @@
  *   Pri callbacku N8N číta Podpis záznam a extrahuje metadata — žiadny hardcoded libMap.
  *   Callback formát: sign_{podpisId}_{action}
  *
+ * Šablóna správy (voliteľné):
+ *   Ak signConfig obsahuje messageTemplate (názov poľa v zdrojovom zázname),
+ *   MementoSign prečíta šablónu a nahradí {FieldName|format} hodnotami zo zdrojového záznamu.
+ *   Fallback: ak pole je prázdne alebo messageTemplate nie je nastavený, použije sa message parameter.
+ *
+ *   Formátovacie modifikátory (voliteľné, oddelené |):
+ *     {Dátum|date}   → "22.03.2026"
+ *     {Príchod|time} → "07:30"
+ *     {Suma|money}   → "150,00 €"
+ *     {Suma|number}  → "150,00"
+ *     {Suma}         → "150" (bez formátu — raw String)
+ *
+ *   Príklad šablóny v Memento zázname (pole "TG Template"):
+ *     💸 {Pohyb} — {Suma|money}
+ *     📅 {Dátum|date}
+ *     📋 {Popis platby}
+ *
+ *   signConfig rozšírený:
+ *     messageTemplate: 'TG Template'   // názov poľa kde je šablóna
+ *
  * CHANGELOG:
+ * v1.2.0 (2026-03-22) - NEW: formátovacie modifikátory {Field|date|time|money|number} v _resolveMessage()
+ * v1.1.0 (2026-03-22) - NEW: _resolveMessage() — template s {FieldName} placeholdermi zo zdrojového záznamu
  * v1.0.0 (2026-03-22) - INIT: Generic signing protocol replacing hardcoded libMap in N8N
  */
 
@@ -66,7 +88,7 @@ var MementoSign = (function() {
 
     var MODULE_INFO = {
         name: "MementoSign",
-        version: "1.0.0",
+        version: "1.2.0",
         date: "2026-03-22",
         description: "Generic Telegram signing protocol — N8N flow is library-agnostic"
     };
@@ -87,7 +109,8 @@ var MementoSign = (function() {
      *     sourceFieldId:   number,   // Field ID stavu na zdrojovom zázname (napr. 133)
      *     stavPotvrdene:   string,   // Hodnota pri potvrdení (napr. 'Hotovo')
      *     stavOdmietnutie: string,   // Hodnota pri odmietnutí (napr. 'Odmietnutá ')
-     *     kniznicaLabel:   string    // Label pre Knižnica choice (napr. 'Pokladňa ')
+     *     kniznicaLabel:   string,   // Label pre Knižnica choice (napr. 'Pokladňa ')
+     *     messageTemplate: string    // (voliteľné) Názov poľa so šablónou správy v zdrojovom zázname
      *   }
      * @returns {{ success: boolean, podpisEntry: Object|null, podpisId: string|null, error: string|null }}
      */
@@ -134,12 +157,15 @@ var MementoSign = (function() {
                 return _err("Memento nepridelilo ID podpisu");
             }
 
+            // Vyriešenie správy — šablóna má prioritu nad fallback message
+            var resolvedMessage = _resolveMessage(sourceEntry, message, signConfig);
+
             // Odošli N8N webhook — minimálny payload (metadata sú v Podpis zázname)
             var payload = JSON.stringify({
                 type:     "request_sign",
                 podpisId: podpisId,
                 chatId:   chatIdStr,
-                message:  message
+                message:  resolvedMessage
             });
 
             var httpObj = http();
@@ -156,6 +182,80 @@ var MementoSign = (function() {
 
         } catch (e) {
             return { success: false, podpisEntry: null, podpisId: null, error: e.toString() };
+        }
+    }
+
+    /**
+     * Formátuje hodnotu poľa podľa modifikátora.
+     * Podporované: date, time, money, number
+     */
+    function _formatValue(val, fmt) {
+        if (val === null || val === undefined) return "";
+        if (!fmt) return String(val);
+
+        if (fmt === "date") {
+            try {
+                var d = (val instanceof Date) ? val : new Date(val);
+                if (isNaN(d.getTime())) return String(val);
+                return ("0" + d.getDate()).slice(-2) + "." +
+                       ("0" + (d.getMonth() + 1)).slice(-2) + "." +
+                       d.getFullYear();
+            } catch(e) { return String(val); }
+        }
+
+        if (fmt === "time") {
+            try {
+                // Memento time field môže byť Date alebo sekundy od polnoci
+                var d;
+                if (val instanceof Date) {
+                    d = val;
+                } else if (typeof val === "number") {
+                    // sekundy od polnoci → Date (UTC)
+                    var h = Math.floor(val / 3600);
+                    var m = Math.floor((val % 3600) / 60);
+                    return ("0" + h).slice(-2) + ":" + ("0" + m).slice(-2);
+                } else {
+                    d = new Date(val);
+                }
+                if (isNaN(d.getTime())) return String(val);
+                return ("0" + d.getHours()).slice(-2) + ":" +
+                       ("0" + d.getMinutes()).slice(-2);
+            } catch(e) { return String(val); }
+        }
+
+        if (fmt === "money") {
+            var n = parseFloat(val) || 0;
+            return n.toFixed(2).replace(".", ",") + "\u00a0\u20ac";
+        }
+
+        if (fmt === "number") {
+            var n = parseFloat(val) || 0;
+            return n.toFixed(2).replace(".", ",");
+        }
+
+        return String(val);
+    }
+
+    /**
+     * Vyrieši text správy: šablóna s {FieldName|format} placeholdermi má prioritu.
+     * Fallback: pôvodný message parameter.
+     */
+    function _resolveMessage(sourceEntry, fallbackMessage, signConfig) {
+        if (!signConfig.messageTemplate) return fallbackMessage;
+        try {
+            var template = sourceEntry.field(signConfig.messageTemplate);
+            if (!template || String(template).trim() === "") return fallbackMessage;
+            // Regex: {FieldName} alebo {FieldName|format}
+            return String(template).replace(/\{([^|}]+)(?:\|([^}]+))?\}/g, function(match, fieldName, fmt) {
+                try {
+                    var val = sourceEntry.field(fieldName.trim());
+                    return _formatValue(val, fmt ? fmt.trim() : null);
+                } catch(e) {
+                    return "";
+                }
+            });
+        } catch(e) {
+            return fallbackMessage;
         }
     }
 

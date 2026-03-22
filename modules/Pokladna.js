@@ -1,6 +1,6 @@
 // ==============================================
 // LIBRARY MODULE - Pokladňa (Cash Book)
-// Verzia: 1.2.2 | Dátum: 2026-03-22 | Autor: ASISTANTO
+// Verzia: 1.4.0 | Dátum: 2026-03-22 | Autor: ASISTANTO
 // ==============================================
 // 📋 PURPOSE:
 //    - Reusable module for Cash Book operations
@@ -34,7 +34,7 @@ var Pokladna = (function() {
 
     var MODULE_INFO = {
         name: "Pokladna",
-        version: "1.2.2",
+        version: "1.4.0",
         author: "ASISTANTO",
         description: "Cash book and payment management module",
         library: "Pokladňa",
@@ -1266,7 +1266,8 @@ var Pokladna = (function() {
                 sourceFieldId:   133,            // Stav podpisu field ID (id:133)
                 stavPotvrdene:   "Hotovo",       // confirmed → write this to Pokladňa
                 stavOdmietnutie: "Odmietnut\u00e1 ", // rejected → trailing space = choice label
-                kniznicaLabel:   "Pokladňa "    // Knižnica choice field in podpisy
+                kniznicaLabel:   "Pokladňa ",   // Knižnica choice field in podpisy
+                messageTemplate: "TG Template" // voliteľné pole so šablónou správy
             };
 
             var result = MementoSign.createPodpisAndSend(entry, zam, msg, chatId, signConfig);

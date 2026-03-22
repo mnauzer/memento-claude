@@ -1,7 +1,7 @@
 {
   "library_name": "Dochádzka",
   "library_id": "zNoMvrv8U",
-  "last_updated": "2026-03-22T08:15:00.000000",
+  "last_updated": "2026-03-22T22:00:00.000000",
   "fields": [
     {
       "id": 0,
@@ -508,6 +508,18 @@
       },
       "required": false,
       "defaultValue": "2026-03-20T17:42:26Z"
+    },
+    {
+      "id": 98,
+      "name": "TG Template",
+      "type": "text",
+      "order": 30,
+      "properties": {
+        "hint": "",
+        "singleLine": false
+      },
+      "required": false,
+      "defaultValue": ""
     }
   ]
 }

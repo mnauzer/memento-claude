@@ -164,6 +164,7 @@ playground.js
 !libraries/**/README.md
 !libraries/**/QUICK_REFERENCE.md
 !libraries/**/FIELD_REFERENCE.md
+!libraries/**/TG-Template.md
 # NOTE: fields.json files are LOCAL ONLY (not synchronized)
 
 # Bezpečnostné scripty (SYNCHRONIZOVANÉ)
