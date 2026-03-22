@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.3.1",
+        version: "1.3.2",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -47,6 +47,7 @@ var Dochadzka = (function() {
         extractedLines: 528,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.3.2 (2026-03-22) - FIX: requestSign() - getHours() instead of getUTCHours() for local Slovakia time; add príplatok/prémia/pokuta to message",
             "v1.3.1 (2026-03-22) - FIX: requestSign() - use String.fromCharCode() for ď/á to avoid Memento JS engine Unicode literal bug",
             "v1.3.0 (2026-03-22) - NEW: requestSign() - send attendance record for employee confirmation via N8N+Telegram",
             "v1.2.0 (2026-03-20) - ENHANCEMENT: Detailed info with extras calculation:",
@@ -1239,9 +1240,9 @@ var Dochadzka = (function() {
             function fmtTime(t) {
                 if (!t) return "N/A";
                 var dt = t instanceof Date ? t : new Date(t);
-                // Memento time fields sú v UTC — bez korekcie
-                return ("0" + dt.getUTCHours()).slice(-2) + ":" +
-                       ("0" + dt.getUTCMinutes()).slice(-2);
+                // Memento time fields — getHours() uses device local timezone (Slovakia CET/CEST)
+                return ("0" + dt.getHours()).slice(-2) + ":" +
+                       ("0" + dt.getMinutes()).slice(-2);
             }
             function fmtMoney(v) {
                 var n = parseFloat(v) || 0;
@@ -1282,6 +1283,9 @@ var Dochadzka = (function() {
                 // Atribúty linkToEntry
                 var odpracovane = empLink.attr ? (empLink.attr("odpracované") || 0) : 0;
                 var hodinovka   = empLink.attr ? (empLink.attr("hodinovka") || 0) : 0;
+                var priiplatok  = empLink.attr ? (empLink.attr("+príplatok (€/h)") || 0) : 0;
+                var premie      = empLink.attr ? (empLink.attr("+prémia (€)") || 0) : 0;
+                var pokuta      = empLink.attr ? (empLink.attr("-pokuta (€)") || 0) : 0;
                 var dennaMzda   = empLink.attr ? (empLink.attr("denná mzda") || 0) : 0;
 
                 addDebug(entry, "   → " + empName + " chatId=" + chatId);
@@ -1292,7 +1296,10 @@ var Dochadzka = (function() {
                     + "\uD83D\uDC64 <b>" + empName + "</b>" + NL
                     + "\u23F1\uFE0F Pr\u00edchod: " + prichodStr + " \u2014 Odchod: " + odchodStr + NL
                     + "\u23F0 Odpracovan\u00e9: <b>" + fmtHours(odpracovane) + "</b>" + NL
-                    + "\uD83D\uDCB5 Hodinov\u00e1 sadzba: " + fmtMoney(hodinovka) + NL
+                    + "\uD83D\uDCB5 Hodinov\u00e1 sadzba: " + fmtMoney(hodinovka)
+                    + (priiplatok !== 0 ? " (+" + fmtMoney(priiplatok) + "/h)" : "") + NL
+                    + (premie !== 0 ? "\u2B50 Pr\u00e9mia: <b>+" + fmtMoney(premie) + "</b>" + NL : "")
+                    + (pokuta !== 0 ? "\u26A0\uFE0F Pokuta: <b>-" + fmtMoney(pokuta) + "</b>" + NL : "")
                     + "\uD83D\uDCB8 Denn\u00e1 mzda: <b>" + fmtMoney(dennaMzda) + "</b>" + NL + NL
                     + "<i>Potvr" + String.fromCharCode(271) + " alebo odmietni tento z" + String.fromCharCode(225) + "znam:</i>";
 
