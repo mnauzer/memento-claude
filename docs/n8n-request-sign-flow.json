@@ -1,0 +1,126 @@
+{
+  "name": "📨 Greta Krajinka — Request Signature",
+  "nodes": [
+    {
+      "id": "webhook-sign",
+      "name": "Webhook Sign",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "krajinka-sign-hook",
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "krajinka-sign",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "is-request-sign",
+      "name": "Is Request Sign?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [460, 300],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {"caseSensitive": true},
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.type }}",
+                    "rightValue": "request_sign",
+                    "operator": {"type": "string", "operation": "equals"}
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "request_sign"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "flatten-body",
+      "name": "Flatten Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 200],
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst podpisId = body.podpisId || '';\nconst replyMarkup = JSON.stringify({\n  inline_keyboard: [[\n    { text: '\\u2705 Potvrdzujem', callback_data: 'sign_' + podpisId + '_confirm' },\n    { text: '\\u274C Nes\\u00FAhlas\\u00EDm', callback_data: 'sign_' + podpisId + '_reject' }\n  ]]\n});\nreturn [{ json: {\n  podpisId: podpisId,\n  chatId:   String(body.chatId || ''),\n  message:  body.message || '',\n  replyMarkup: replyMarkup\n} }];"
+      }
+    },
+    {
+      "id": "send-telegram-sign",
+      "name": "Send Telegram Sign",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [900, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "fkblljVSfyq4Yjah",
+          "name": "Greta (@KrajinkaAsistantoBot)"
+        }
+      },
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "reply_markup": "={{ $json.replyMarkup }}"
+        }
+      }
+    },
+    {
+      "id": "patch-podpis-tg",
+      "name": "PATCH Podpis TG ID",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 200],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.mementodatabase.com/v1/libraries/2fNM2Za4G/entries/{{ $('Flatten Body').first().json.podpisId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "queryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {"name": "token", "value": "YobxmgbnZ1DTwxyJUIzCLgoAf2Qk0w"}
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\n  \"fields\": [\n    { \"name\": \"TG Spr\\u00e1va ID\", \"value\": {{ $json.result.message_id }} },\n    { \"name\": \"TG Chat ID\", \"value\": {{ $('Flatten Body').first().json.chatId }} }\n  ]\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Sign": {
+      "main": [[{"node": "Is Request Sign?", "type": "main", "index": 0}]]
+    },
+    "Is Request Sign?": {
+      "main": [
+        [{"node": "Flatten Body", "type": "main", "index": 0}],
+        []
+      ]
+    },
+    "Flatten Body": {
+      "main": [[{"node": "Send Telegram Sign", "type": "main", "index": 0}]]
+    },
+    "Send Telegram Sign": {
+      "main": [[{"node": "PATCH Podpis TG ID", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {"executionOrder": "v1"}
+}

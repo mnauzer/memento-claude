@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.3.0",
+        version: "1.3.1",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -47,6 +47,7 @@ var Dochadzka = (function() {
         extractedLines: 528,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.3.1 (2026-03-22) - FIX: requestSign() - use String.fromCharCode() for ď/á to avoid Memento JS engine Unicode literal bug",
             "v1.3.0 (2026-03-22) - NEW: requestSign() - send attendance record for employee confirmation via N8N+Telegram",
             "v1.2.0 (2026-03-20) - ENHANCEMENT: Detailed info with extras calculation:",
             "  - NEW: Info shows extras when filled (príplatok, prémia, pokuta)",
@@ -1293,7 +1294,7 @@ var Dochadzka = (function() {
                     + "\u23F0 Odpracovan\u00e9: <b>" + fmtHours(odpracovane) + "</b>" + NL
                     + "\uD83D\uDCB5 Hodinov\u00e1 sadzba: " + fmtMoney(hodinovka) + NL
                     + "\uD83D\uDCB8 Denn\u00e1 mzda: <b>" + fmtMoney(dennaMzda) + "</b>" + NL + NL
-                    + "<i>Potvrď alebo odmietni tento záznam:</i>";
+                    + "<i>Potvr" + String.fromCharCode(271) + " alebo odmietni tento z" + String.fromCharCode(225) + "znam:</i>";
 
                 // --- Vytvor podpisy záznam cez Memento API ---
                 var podpisPayload = JSON.stringify({

@@ -34,7 +34,7 @@ var Pokladna = (function() {
 
     var MODULE_INFO = {
         name: "Pokladna",
-        version: "1.1.0",
+        version: "1.1.1",
         author: "ASISTANTO",
         description: "Cash book and payment management module",
         library: "Pokladňa",
@@ -43,6 +43,7 @@ var Pokladna = (function() {
         extractedLines: 1114,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.1.1 (2026-03-22) - FIX: requestSign() - String.fromCharCode() pre ď/ú",
             "v1.1.0 (2026-03-22) - NEW: requestSign() - send payment record for employee confirmation via N8N+Telegram"
         ].join("\n")
     };
@@ -1210,7 +1211,7 @@ var Pokladna = (function() {
                 + "\uD83D\uDC64 <b>" + empName + "</b>" + NL
                 + "\uD83D\uDCB5 " + (pohybField || "Pohyb") + ": <b>" + sumaStr + "</b>" + NL
                 + "\uD83D\uDCDD " + popisStr + NL + NL
-                + "<i>Potvrď alebo odmietni túto platbu:</i>";
+                + "<i>Potvr" + String.fromCharCode(271) + " alebo odmietni t" + String.fromCharCode(250) + "to platbu:</i>";
 
             // --- Vytvor podpisy záznam cez Memento API ---
             var podpisPayload = JSON.stringify({

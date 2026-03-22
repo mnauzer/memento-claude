@@ -1,0 +1,187 @@
+{
+  "name": "✅ Greta Krajinka — Signature Confirm Handler",
+  "nodes": [
+    {
+      "id": "tg-trigger",
+      "name": "Telegram Bot",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "fkblljVSfyq4Yjah",
+          "name": "Greta (@KrajinkaAsistantoBot)"
+        }
+      },
+      "parameters": {
+        "updates": ["callback_query", "message"],
+        "additionalFields": {}
+      }
+    },
+    {
+      "id": "is-callback",
+      "name": "Is Callback Query?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [460, 300],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {"caseSensitive": true},
+                "conditions": [
+                  {
+                    "leftValue": "={{ !!$json.callback_query }}",
+                    "rightValue": true,
+                    "operator": {"type": "boolean", "operation": "equals"}
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "callback_query"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "parse-callback",
+      "name": "Parse Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 200],
+      "parameters": {
+        "jsCode": "const update = $input.first().json;\nconst query = update.callback_query;\nconst data = query.data || '';\n\n// Expected format: \"sign_{podpisId}_confirm\" or \"sign_{podpisId}_reject\"\nif (!data.startsWith('sign_')) {\n  return [{ json: { skip: true, data } }];\n}\n\n// action is the last segment, podpisId is everything between \"sign_\" and last \"_\"\nconst lastIdx = data.lastIndexOf('_');\nconst action = data.substring(lastIdx + 1);       // 'confirm' or 'reject'\nconst podpisId = data.substring(5, lastIdx);      // after 'sign_', before last '_'\n\nif ((action !== 'confirm' && action !== 'reject') || !podpisId) {\n  return [{ json: { skip: true, data } }];\n}\n\nconst confirmed = action === 'confirm';\nconst callbackQueryId = query.id;\nconst chatId = String(query.message.chat.id);\nconst messageId = query.message.message_id;\nconst fromFirst = query.from.first_name || '';\nconst fromLast = query.from.last_name || '';\nconst fromName = (fromFirst + ' ' + fromLast).trim();\nconst confirmText = confirmed\n  ? String.fromCharCode(10004) + ' Potvrdené'\n  : String.fromCharCode(10060) + ' Odmietnuté';\n\nreturn [{ json: { action, podpisId, confirmed, callbackQueryId, chatId, messageId, fromName, confirmText, skip: false } }];"
+      }
+    },
+    {
+      "id": "is-sign-callback",
+      "name": "Is Sign Callback?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [900, 200],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {"caseSensitive": true},
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.skip }}",
+                    "rightValue": false,
+                    "operator": {"type": "boolean", "operation": "equals"}
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "sign_callback"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "patch-podpis",
+      "name": "PATCH Podpis Stav",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 100],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.mementodatabase.com/v1/libraries/2fNM2Za4G/entries/{{ $json.podpisId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "queryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {"name": "token", "value": "YobxmgbnZ1DTwxyJUIzCLgoAf2Qk0w"}
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\n  \"fields\": [\n    { \"name\": \"Stav\", \"value\": \"{{ $json.confirmed ? 'Potvrdil' : 'Odmietol' }}\" },\n    { \"name\": \"D\\u00e1tum potvrdenia\", \"value\": \"{{ $now.format('yyyy-MM-dd') }}\" }\n  ]\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "answer-callback",
+      "name": "Answer Callback Query",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1120, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "fkblljVSfyq4Yjah",
+          "name": "Greta (@KrajinkaAsistantoBot)"
+        }
+      },
+      "parameters": {
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $('Parse Callback').first().json.callbackQueryId }}",
+        "additionalFields": {
+          "text": "={{ $('Parse Callback').first().json.confirmText }}",
+          "showAlert": false
+        }
+      }
+    },
+    {
+      "id": "remove-buttons",
+      "name": "Remove Inline Keyboard",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1120, 500],
+      "credentials": {
+        "telegramApi": {
+          "id": "fkblljVSfyq4Yjah",
+          "name": "Greta (@KrajinkaAsistantoBot)"
+        }
+      },
+      "parameters": {
+        "resource": "message",
+        "operation": "editMessageReplyMarkup",
+        "chatId": "={{ $('Parse Callback').first().json.chatId }}",
+        "messageId": "={{ $('Parse Callback').first().json.messageId }}",
+        "replyMarkup": "replyKeyboardRemove",
+        "additionalFields": {}
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Bot": {
+      "main": [[{"node": "Is Callback Query?", "type": "main", "index": 0}]]
+    },
+    "Is Callback Query?": {
+      "main": [
+        [{"node": "Parse Callback", "type": "main", "index": 0}],
+        []
+      ]
+    },
+    "Parse Callback": {
+      "main": [[{"node": "Is Sign Callback?", "type": "main", "index": 0}]]
+    },
+    "Is Sign Callback?": {
+      "main": [
+        [
+          {"node": "PATCH Podpis Stav", "type": "main", "index": 0},
+          {"node": "Answer Callback Query", "type": "main", "index": 0},
+          {"node": "Remove Inline Keyboard", "type": "main", "index": 0}
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {"executionOrder": "v1"}
+}
