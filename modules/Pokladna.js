@@ -1164,7 +1164,7 @@ var Pokladna = (function() {
         var N8N_SIGN_URL = "https://n8n.asistanto.sk/webhook/krajinka-sign";
 
         // Direct debug accumulator — rovnaký pattern ako Dochadzka.requestSign
-        var _dbg = ["[Pokladna.requestSign v1.2.1]"];
+        var _dbg = ["[Pokladna.requestSign v1.2.2]"];
         function _log(msg) {
             _dbg.push(msg);
             try { entry.set("Debug_Log", _dbg.join("\n")); } catch(e) {}
