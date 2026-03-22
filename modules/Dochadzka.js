@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.3.8",
+        version: "1.3.9",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -47,6 +47,7 @@ var Dochadzka = (function() {
         extractedLines: 528,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.3.9 (2026-03-22) - FIX: requestSign() - delete+recreate Podpis per employee (not update) for fresh cloud ID; remove global duplicate check; replace concat with replace on Podpisy field",
             "v1.3.8 (2026-03-22) - FIX: requestSign() - add libCode:'D' to N8N payload; N8N confirm flow v4 uses sign_{sourceId}_D_{action} in callback_data and PATCHes Dochádzka directly (no podpis GET needed - avoids cloud sync delay)",
             "v1.3.7 (2026-03-22) - FIX: requestSign() - send sourceId (entryId) to N8N instead of podpisId; N8N confirm flow v2 searches podpisy by Zdroj ID + fromChatId to avoid local/cloud ID mismatch",
             "v1.3.6 (2026-03-22) - FIX: requestSign() - create Podpisy via libByName().create() (not Cloud API); set Zamestnanec as linkToEntry; link Dochadzka→Podpisy in-memory; fix addDebug→_log bug (sent++ never fired); fix 'Čaká ' trailing space",
@@ -1215,7 +1216,7 @@ var Dochadzka = (function() {
         var N8N_SIGN_URL = "https://n8n.asistanto.sk/webhook/krajinka-sign";
 
         // Direct debug accumulator — bypasses utils/MementoCore chain (silently fails if config missing)
-        var _dbg = ["[Dochadzka.requestSign v1.3.7]"];
+        var _dbg = ["[Dochadzka.requestSign v1.3.9]"];
         function _log(msg) {
             _dbg.push(msg);
             try { entry.set("Debug_Log", _dbg.join("\n")); } catch(e) {}
@@ -1230,13 +1231,9 @@ var Dochadzka = (function() {
         _log("start");
 
         try {
-            // --- Duplicate check ---
+            // --- Log aktuálny stav (duplicate check odstránený — staré Podpisy sa vymažú a znovu vytvoria) ---
             var stavPodpisov = (entry.field("Stav podpisov") || "").trim();
-            _log("stavPodpisov='" + stavPodpisov + "'");
-            if (stavPodpisov === "Čaká" || stavPodpisov === "Čaká " || stavPodpisov === "Hotovo") {
-                _log("SKIP: duplicate");
-                return { success: false, error: "Podpis u\u017e bol odoslan\u00fd (Stav: " + stavPodpisov + ")" };
-            }
+            _log("stavPodpisov='" + stavPodpisov + "' (pokračujem)");
 
             var _now = new Date();
             var todayStr = _now.getFullYear() + "-" +
@@ -1295,6 +1292,11 @@ var Dochadzka = (function() {
             var errors = [];
             var createdPodpisy = [];
 
+            // Načítaj existujúce Podpisy záznamy nalinkované na tento Dochádzka záznam
+            var existingPodpisy = entry.field("Podpisy") || [];
+            if (!Array.isArray(existingPodpisy)) { existingPodpisy = []; }
+            _log("existingPodpisy=" + existingPodpisy.length);
+
             for (var i = 0; i < zamestnanci.length; i++) {
                 var empLink = zamestnanci[i];
                 // empLink IS the employee entry (linkToEntry object)
@@ -1346,6 +1348,23 @@ var Dochadzka = (function() {
                     skipped++;
                     continue;
                 }
+
+                // Vymaž existujúce Podpis záznamy pre tohto zamestnanca (delete+recreate = fresh cloud ID)
+                for (var k = 0; k < existingPodpisy.length; k++) {
+                    var ep = existingPodpisy[k];
+                    if (!ep || !ep.field) { continue; }
+                    var epZam = ep.field("Zamestnanec") || [];
+                    if (!Array.isArray(epZam)) { epZam = []; }
+                    var foundEmp = false;
+                    for (var m = 0; m < epZam.length; m++) {
+                        if (epZam[m] && epZam[m].id === empId) { foundEmp = true; break; }
+                    }
+                    if (foundEmp) {
+                        _log("  mazem old podpis id=" + ep.id + " pre " + empName);
+                        try { podpisLib.trash(ep); } catch(e) { _log("  trash err=" + e.toString()); }
+                    }
+                }
+
                 var podpisEntry = podpisLib.create({});
                 podpisEntry.set("Kni\u017enica", "Doch\u00e1dzka");
                 podpisEntry.set("Zdroj ID", entryId);
@@ -1396,10 +1415,8 @@ var Dochadzka = (function() {
 
             if (sent > 0) {
                 entry.set("Stav podpisov", "Čaká");
-                // Prepoj vytvorené podpisy záznamy na tento Dochádzka záznam (in-memory, bez API PATCH)
-                var existPodpisy = entry.field("Podpisy") || [];
-                if (!Array.isArray(existPodpisy)) { existPodpisy = []; }
-                entry.set("Podpisy", existPodpisy.concat(createdPodpisy));
+                // Nastav Podpisy na NOVÉ záznamy (replace — staré boli vymazané vyššie)
+                entry.set("Podpisy", createdPodpisy);
             }
 
             _log("DONE sent=" + sent + " skipped=" + skipped + " errors=" + errors.join("|"));
