@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.3.9",
+        version: "1.4.0",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -47,6 +47,7 @@ var Dochadzka = (function() {
         extractedLines: 528,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.4.0 (2026-03-22) - CHANGE: requestSign() - new message format: plain separators, day name, emoji layout, poznamka attribute shown if non-empty",
             "v1.3.9 (2026-03-22) - FIX: requestSign() - delete+recreate Podpis per employee (not update) for fresh cloud ID; remove global duplicate check; replace concat with replace on Podpisy field",
             "v1.3.8 (2026-03-22) - FIX: requestSign() - add libCode:'D' to N8N payload; N8N confirm flow v4 uses sign_{sourceId}_D_{action} in callback_data and PATCHes Dochádzka directly (no podpis GET needed - avoids cloud sync delay)",
             "v1.3.7 (2026-03-22) - FIX: requestSign() - send sourceId (entryId) to N8N instead of podpisId; N8N confirm flow v2 searches podpisy by Zdroj ID + fromChatId to avoid local/cloud ID mismatch",
@@ -1247,9 +1248,10 @@ var Dochadzka = (function() {
             }
 
             // --- Čítaj polia záznamu ---
-            var datumField  = entry.field("Dátum");
+            var datumField   = entry.field("Dátum");
             var prichodField = entry.field("Príchod");
             var odchodField  = entry.field("Odchod");
+            var denField     = entry.field("De\u0148") || "";
             var zamestnanci  = entry.field("Zamestnanci");
 
             _log("zamestnanci=" + (zamestnanci ? zamestnanci.length : 0));
@@ -1281,9 +1283,10 @@ var Dochadzka = (function() {
                 return n.toFixed(2).replace(".", ",") + "\u00a0h";
             }
 
-            var datumStr  = fmtDate(datumField);
+            var datumStr   = fmtDate(datumField);
             var prichodStr = fmtTime(prichodField);
             var odchodStr  = fmtTime(odchodField);
+            var denStr     = denField ? denField.toUpperCase() : "";
 
             _log("datum=" + datumStr + " prichod=" + prichodStr + " odchod=" + odchodStr);
 
@@ -1322,20 +1325,24 @@ var Dochadzka = (function() {
                 var priiplatok  = empLink.attr ? (empLink.attr("+príplatok (€/h)") || 0) : 0;
                 var premie      = empLink.attr ? (empLink.attr("+prémia (€)") || 0) : 0;
                 var pokuta      = empLink.attr ? (empLink.attr("-pokuta (€)") || 0) : 0;
-                var dennaMzda   = empLink.attr ? (empLink.attr("denná mzda") || 0) : 0;
+                var dennaMzda   = empLink.attr ? (empLink.attr("denn\u00e1 mzda") || 0) : 0;
+                var poznamka    = empLink.attr ? (empLink.attr("pozn\u00e1mka") || "") : "";
 
                 // --- Zostav správu ---
                 var NL = String.fromCharCode(10);
-                var msg = "\uD83D\uDCC5 <b>Doch\u00e1dzka \u2014 " + datumStr + "</b>" + NL
-                    + "\uD83D\uDC64 <b>" + empName + "</b>" + NL
-                    + "\u23F1\uFE0F Pr\u00edchod: " + prichodStr + " \u2014 Odchod: " + odchodStr + NL
-                    + "\u23F0 Odpracovan\u00e9: <b>" + fmtHours(odpracovane) + "</b>" + NL
-                    + "\uD83D\uDCB5 Hodinov\u00e1 sadzba: " + fmtMoney(hodinovka)
-                    + (priiplatok !== 0 ? " (+" + fmtMoney(priiplatok) + "/h)" : "") + NL
-                    + (premie !== 0 ? "\u2B50 Pr\u00e9mia: <b>+" + fmtMoney(premie) + "</b>" + NL : "")
-                    + (pokuta !== 0 ? "\u26A0\uFE0F Pokuta: <b>-" + fmtMoney(pokuta) + "</b>" + NL : "")
-                    + "\uD83D\uDCB8 Denn\u00e1 mzda: <b>" + fmtMoney(dennaMzda) + "</b>" + NL + NL
-                    + "<i>Potvr" + String.fromCharCode(271) + " alebo odmietni tento z" + String.fromCharCode(225) + "znam:</i>";
+                var msg = "Doch\u00e1dzka" + NL
+                    + "========================" + NL
+                    + "\uD83D\uDCC5 " + datumStr + (denStr ? " (" + denStr + ")" : "") + NL
+                    + "\uD83D\uDC64 " + empName + NL
+                    + "\u23F0 " + prichodStr + " - " + odchodStr + NL
+                    + "\uD83D\uDEE0\uFE0F " + fmtHours(odpracovane) + NL
+                    + "\uD83D\uDCB6 " + fmtMoney(hodinovka) + "/h"
+                    + (priiplatok !== 0 ? NL + "  \u2B50\uFE0F Pr\u00edplatok: +" + fmtMoney(priiplatok) + "/h" : "")
+                    + (premie !== 0    ? NL + "  \u2B50\uFE0F Pr\u00e9mia: +" + fmtMoney(premie) : "")
+                    + (pokuta !== 0    ? NL + "  \u26A0\uFE0F Pokuta: -" + fmtMoney(pokuta) : "")
+                    + NL + "------------------------" + NL
+                    + "\uD83D\uDCB0 Denn\u00e1 mzda: " + fmtMoney(dennaMzda)
+                    + (poznamka ? NL + NL + "Pozn\u00e1mka: " + poznamka : "");
 
                 // --- Vytvor podpisy záznam cez Memento JS API ---
                 // libByName().create() vytvára entry priamo v lokálnom DB (sync do cloudu automaticky).
