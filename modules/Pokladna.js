@@ -43,6 +43,7 @@ var Pokladna = (function() {
         extractedLines: 1114,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.3.0 (2026-03-22) - REFACTOR: requestSign() - delegates to MementoSign.createPodpisAndSend() (generic protocol v2); Podpis record stores metadata for N8N generic flow",
             "v1.2.2 (2026-03-22) - FIX: requestSign() - always use zamestnanec[0] (Memento entries field returns Kotlin array-like, Array.isArray()=false; was reading raw collection instead of entry object)",
             "v1.2.1 (2026-03-22) - FIX: requestSign() - add _log/_errLog debug; handle zamestnanec array/null defensively; fix 'Čaká ' trailing space in Stav; replace concat with replace on Podpis field",
             "v1.2.0 (2026-03-22) - CHANGE: requestSign() - new message format: plain separators, pohyb icon, popis+ucel, suma after separator, no HTML tags",
@@ -1161,10 +1162,10 @@ var Pokladna = (function() {
      * @returns {Object} { success, error }
      */
     function requestSign(entry, config, utils) {
-        var N8N_SIGN_URL = "https://n8n.asistanto.sk/webhook/krajinka-sign";
+        // v1.3.0: delegates to MementoSign (generic protocol v2)
+        // MementoSign stores metadata in Podpis record — N8N flow has no hardcoded libMap.
 
-        // Direct debug accumulator — rovnaký pattern ako Dochadzka.requestSign
-        var _dbg = ["[Pokladna.requestSign v1.2.2]"];
+        var _dbg = ["[Pokladna.requestSign v1.3.0]"];
         function _log(msg) {
             _dbg.push(msg);
             try { entry.set("Debug_Log", _dbg.join("\n")); } catch(e) {}
@@ -1179,6 +1180,10 @@ var Pokladna = (function() {
         _log("start");
 
         try {
+            if (typeof MementoSign === 'undefined') {
+                return { success: false, error: "MementoSign modul nie je na\u010d\u00edtan\u00fd" };
+            }
+
             // --- Duplicate check ---
             var stavPodpisu = (entry.field("Stav podpisu") || "").trim();
             _log("stavPodpisu='" + stavPodpisu + "'");
@@ -1198,11 +1203,10 @@ var Pokladna = (function() {
             var ucelField   = entry.field("\u00da\u010del v\u00fddaja") || entry.field("\u00da\u010del pr\u00edjmu") || "";
             var zamestnanec = entry.field("Zamestnanec");
 
-            _log("pohyb=" + pohybField + " suma=" + sumaField + " popis=" + popisField);
+            _log("pohyb=" + pohybField + " suma=" + sumaField);
             _log("zamestnanec=" + (zamestnanec ? ("type=" + typeof zamestnanec + " [0]=" + (zamestnanec[0] ? "entry" : "undef")) : "NULL"));
 
-            // Memento entries field returns Java/Kotlin array-like - Array.isArray() is unreliable.
-            // Always use [0] index (works for native array, Kotlin list, and single entry object).
+            // Memento entries field returns Java/Kotlin array-like — always use [0]
             if (!zamestnanec) {
                 return { success: false, error: "Z\u00e1znam nem\u00e1 priraden\u00fd 'Zamestnanec'" };
             }
@@ -1256,54 +1260,28 @@ var Pokladna = (function() {
                 + NL + "------------------------" + NL
                 + "\uD83D\uDCB6 " + sumaStr;
 
-            // --- Vytvor Podpis záznam ---
-            var podpisLib = libByName("podpisy");
-            _log("podpisLib=" + (podpisLib ? "found" : "NULL"));
-            if (!podpisLib) {
-                return { success: false, error: "Kni\u017enica podpisy nenájdená" };
+            // --- Deleguj na MementoSign (generic protocol v2) ---
+            var signConfig = {
+                libId:           "g9eS5Ny2E",   // Pokladňa library ID
+                sourceFieldId:   133,            // Stav podpisu field ID (id:133)
+                stavPotvrdene:   "Hotovo",       // confirmed → write this to Pokladňa
+                stavOdmietnutie: "Odmietnut\u00e1 ", // rejected → trailing space = choice label
+                kniznicaLabel:   "Pokladňa "    // Knižnica choice field in podpisy
+            };
+
+            var result = MementoSign.createPodpisAndSend(entry, zam, msg, chatId, signConfig);
+            _log("MementoSign result: success=" + result.success + " podpisId=" + result.podpisId);
+
+            if (!result.success) {
+                _errLog("MementoSign error: " + result.error);
+                return { success: false, error: result.error };
             }
 
-            var podpisEntry = podpisLib.create({});
-            podpisEntry.set("Zamestnanec", [zam]);
-            podpisEntry.set("Kni\u017enica", "Pokladňa");
-            podpisEntry.set("Zdroj ID", entryId);
-            podpisEntry.set("TG Chat ID", parseFloat(chatId));
-            podpisEntry.set("Stav", "Čaká");
-            podpisEntry.set("D\u00e1tum odoslania", new Date());
-            var podpisId = podpisEntry.id;
-
-            _log("podpisId=" + podpisId);
-
-            if (!podpisId) {
-                _errLog("Memento nepridelilo ID podpisu");
-                return { success: false, error: "Memento nepridelilo ID podpisu" };
+            // Prepoj Podpis → Pokladňa a nastav stav
+            if (result.podpisEntry) {
+                entry.set("Podpis", [result.podpisEntry]);
             }
-
-            // Prepoj Podpis → Pokladňa (replace, nie concat — ako Dochádzka v1.3.9)
-            entry.set("Podpis", [podpisEntry]);
-
-            // --- Odošli do N8N ---
-            var n8nPayload = JSON.stringify({
-                type:     "request_sign",
-                sourceId: entryId,
-                libCode:  "P",
-                podpisId: podpisId,
-                chatId:   chatId,
-                message:  msg
-            });
-
-            var n8nHttpObj = http();
-            n8nHttpObj.headers({ "Content-Type": "application/json" });
-            var n8nResp = n8nHttpObj.post(N8N_SIGN_URL, n8nPayload);
-            var n8nCode = n8nResp ? n8nResp.code : 0;
-            _log("N8N code=" + n8nCode);
-
-            if (!n8nResp || n8nCode < 200 || n8nCode >= 300) {
-                _errLog("N8N webhook error " + n8nCode);
-                return { success: false, error: "N8N webhook error " + n8nCode };
-            }
-
-            // "Čaká " — trailing space je súčasťou choice labelu v Pokladňa (id:133, option "Čaká ")
+            // "Čaká " — trailing space je súčasťou choice labelu (id:133)
             entry.set("Stav podpisu", "Čaká ");
             _log("DONE");
 

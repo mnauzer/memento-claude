@@ -47,6 +47,7 @@ var Dochadzka = (function() {
         extractedLines: 528,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.4.1 (2026-03-22) - REFACTOR: requestSign() - delegates to MementoSign.createPodpisAndSend() (generic protocol v2); no more libCode/sourceId in N8N payload",
             "v1.4.0 (2026-03-22) - CHANGE: requestSign() - new message format: plain separators, day name, emoji layout, poznamka attribute shown if non-empty",
             "v1.3.9 (2026-03-22) - FIX: requestSign() - delete+recreate Podpis per employee (not update) for fresh cloud ID; remove global duplicate check; replace concat with replace on Podpisy field",
             "v1.3.8 (2026-03-22) - FIX: requestSign() - add libCode:'D' to N8N payload; N8N confirm flow v4 uses sign_{sourceId}_D_{action} in callback_data and PATCHes Dochádzka directly (no podpis GET needed - avoids cloud sync delay)",
@@ -1217,7 +1218,7 @@ var Dochadzka = (function() {
         var N8N_SIGN_URL = "https://n8n.asistanto.sk/webhook/krajinka-sign";
 
         // Direct debug accumulator — bypasses utils/MementoCore chain (silently fails if config missing)
-        var _dbg = ["[Dochadzka.requestSign v1.3.9]"];
+        var _dbg = ["[Dochadzka.requestSign v1.4.1]"];
         function _log(msg) {
             _dbg.push(msg);
             try { entry.set("Debug_Log", _dbg.join("\n")); } catch(e) {}
@@ -1372,50 +1373,35 @@ var Dochadzka = (function() {
                     }
                 }
 
-                var podpisEntry = podpisLib.create({});
-                podpisEntry.set("Kni\u017enica", "Doch\u00e1dzka");
-                podpisEntry.set("Zdroj ID", entryId);
-                podpisEntry.set("TG Chat ID", parseFloat(chatId));
-                podpisEntry.set("Stav", "Čaká");
-                podpisEntry.set("D\u00e1tum odoslania", new Date());
-                podpisEntry.set("Zamestnanec", [empLink]);
-                var podpisId = podpisEntry.id;
-                _log("  podpisId=" + podpisId);
-
-                if (!podpisId) {
-                    _errLog("Memento nepridelilo ID podpisu pre " + empName);
-                    errors.push("Chýba podpisId pre " + empName);
+                // --- Deleguj na MementoSign (generic protocol v2) ---
+                if (typeof MementoSign === 'undefined') {
+                    _errLog("MementoSign modul nie je na\u010d\u00edtan\u00fd");
+                    errors.push("MementoSign chyba");
                     skipped++;
                     continue;
                 }
 
-                createdPodpisy.push(podpisEntry);
+                var signConfig = {
+                    libId:           "zNoMvrv8U",   // Dochádzka library ID
+                    sourceFieldId:   96,             // Stav podpisov field ID (id:96)
+                    stavPotvrdene:   "Hotovo",
+                    stavOdmietnutie: "Odmietnut\u00e1 ", // trailing space = choice label
+                    kniznicaLabel:   "Doch\u00e1dzka "
+                };
 
-                // --- Odošli do N8N ---
-                // N8N request_sign flow: callback_data = "sign_{sourceId}_{libCode}_{action}"
-                // libCode "D" = Dochádzka → N8N PATCHuje priamo bez GET podpisu (vyhýba cloud sync delay)
-                var n8nPayload = JSON.stringify({
-                    type:     "request_sign",
-                    sourceId: entryId,    // ← Dochádzka entry cloud ID (pre PATCH Source Status)
-                    libCode:  "D",        // ← D = Dochádzka (pre N8N confirm flow mapovanie knižnice)
-                    podpisId: podpisId,   // ← lokálny ID podpisu (info only, nespoľahlivý pre cloud PATCH)
-                    chatId:   chatId,
-                    message:  msg
-                });
+                var signResult = MementoSign.createPodpisAndSend(entry, empLink, msg, chatId, signConfig);
+                _log("  MementoSign: success=" + signResult.success + " podpisId=" + signResult.podpisId);
 
-                var n8nHttpObj = http();
-                n8nHttpObj.headers({ "Content-Type": "application/json" });
-                var n8nResp = n8nHttpObj.post(N8N_SIGN_URL, n8nPayload);
-                var n8nCode = n8nResp ? n8nResp.code : 0;
-                _log("  N8N code=" + n8nCode);
-
-                if (!n8nResp || n8nCode < 200 || n8nCode >= 300) {
-                    _errLog("N8N webhook error " + n8nCode + " pre " + empName);
-                    errors.push("N8N error " + n8nCode);
+                if (!signResult.success) {
+                    _errLog("MementoSign error pre " + empName + ": " + signResult.error);
+                    errors.push(signResult.error);
                     skipped++;
                     continue;
                 }
 
+                if (signResult.podpisEntry) {
+                    createdPodpisy.push(signResult.podpisEntry);
+                }
                 _log("  \u2705 N8N notifikovan\u00fd pre " + empName);
                 sent++;
             }
