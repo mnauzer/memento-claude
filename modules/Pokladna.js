@@ -34,14 +34,17 @@ var Pokladna = (function() {
 
     var MODULE_INFO = {
         name: "Pokladna",
-        version: "1.0.0",
+        version: "1.1.0",
         author: "ASISTANTO",
         description: "Cash book and payment management module",
         library: "Pokladňa",
         status: "active",
         extractedFrom: "Pokl.Action.PayObligations.js v8.0.2",
         extractedLines: 1114,
-        extractedDate: "2026-03-19"
+        extractedDate: "2026-03-19",
+        changelog: [
+            "v1.1.0 (2026-03-22) - NEW: requestSign() - send payment record for employee confirmation via N8N+Telegram"
+        ].join("\n")
     };
 
     // ==============================================
@@ -1136,6 +1139,133 @@ var Pokladna = (function() {
     }
 
     // ==============================================
+    // REQUEST SIGN (Pokladňa)
+    // ==============================================
+
+    /**
+     * Odošle platobný záznam na potvrdenie (podpis) zamestnancovi cez Telegram.
+     * Pokladňa má vždy max jedného zamestnanca (pole "Zamestnanec").
+     *
+     * @param {Entry} entry - Pokladňa entry object
+     * @param {Object} config - MementoConfig
+     * @param {Object} utils  - MementoUtils
+     * @returns {Object} { success, error }
+     */
+    function requestSign(entry, config, utils) {
+        var MEMENTO_API_BASE = "https://api.mementodatabase.com/v1";
+        var MEMENTO_TOKEN    = "YobxmgbnZ1DTwxyJUIzCLgoAf2Qk0w";
+        var PODPISY_LIB_ID   = "2fNM2Za4G";
+        var N8N_SIGN_URL     = "https://n8n.asistanto.sk/webhook/krajinka-sign";
+
+        try {
+            var entryId = entry.id;
+            if (!entryId) return { success: false, error: "Chýba entry ID záznamu" };
+
+            // --- Čítaj polia záznamu ---
+            var datumField    = entry.field("Dátum");
+            var pohybField    = entry.field("Pohyb");      // "Výdavok", "Príjem", ...
+            var sumaField     = entry.field("Suma");
+            var popisField    = entry.field("Popis platby");
+            var ucelField     = entry.field("Účel výdaja") || entry.field("Účel príjmu") || "";
+            var zamestnanec   = entry.field("Zamestnanec");
+
+            if (!zamestnanec) {
+                return { success: false, error: "Záznam nemá priradený 'Zamestnanec'" };
+            }
+
+            // zamestnanec je linkToEntry objekt
+            var empId  = zamestnanec.id || "";
+            var nick   = zamestnanec.field ? (zamestnanec.field("Nick") || "") : "";
+            var priezv = zamestnanec.field ? (zamestnanec.field("Priezvisko") || "") : "";
+            var empName = (nick + " " + priezv).trim() || "Zamestnanec";
+
+            var chatId = zamestnanec.field ? zamestnanec.field("Telegram ID") : null;
+            chatId = chatId ? String(chatId).trim() : "";
+
+            if (!chatId) {
+                return { success: false, error: "Zamestnanec " + empName + " nemá Telegram ID" };
+            }
+
+            // --- Formátovanie ---
+            function fmtDate(d) {
+                if (!d) return "N/A";
+                var dd = d instanceof Date ? d : new Date(d);
+                return ("0" + dd.getDate()).slice(-2) + "." +
+                       ("0" + (dd.getMonth() + 1)).slice(-2) + "." +
+                       dd.getFullYear();
+            }
+            function fmtMoney(v) {
+                var n = parseFloat(v) || 0;
+                return n.toFixed(2).replace(".", ",") + "\u00a0\u20ac";
+            }
+
+            var datumStr = fmtDate(datumField);
+            var sumaStr  = fmtMoney(sumaField);
+            var popisStr = popisField || ucelField || pohybField || "platba";
+
+            // --- Zostav správu ---
+            var NL  = String.fromCharCode(10);
+            var ico = pohybField === "Výdavok" ? "\uD83D\uDCB8" : "\uD83D\uDCB0";
+            var msg = ico + " <b>Pokladňa \u2014 " + datumStr + "</b>" + NL
+                + "\uD83D\uDC64 <b>" + empName + "</b>" + NL
+                + "\uD83D\uDCB5 " + (pohybField || "Pohyb") + ": <b>" + sumaStr + "</b>" + NL
+                + "\uD83D\uDCDD " + popisStr + NL + NL
+                + "<i>Potvrď alebo odmietni túto platbu:</i>";
+
+            // --- Vytvor podpisy záznam cez Memento API ---
+            var podpisPayload = JSON.stringify({
+                fields: [
+                    { name: "Knižnica",   value: "Pokladňa" },
+                    { name: "Zdroj ID",   value: entryId },
+                    { name: "TG Chat ID", value: parseFloat(chatId) },
+                    { name: "Stav",       value: "Čaká " }
+                ]
+            });
+
+            var httpObj = http();
+            httpObj.headers({ "Content-Type": "application/json" });
+            var apiUrl = MEMENTO_API_BASE + "/libraries/" + PODPISY_LIB_ID + "/entries?token=" + MEMENTO_TOKEN;
+            var apiResp = httpObj.post(apiUrl, podpisPayload);
+
+            if (!apiResp || apiResp.code < 200 || apiResp.code >= 300) {
+                return { success: false, error: "Memento API chyba " + (apiResp ? apiResp.code : "no response") };
+            }
+
+            var apiBody = {};
+            try { apiBody = JSON.parse(apiResp.body); } catch(e) {}
+            var podpisId = apiBody.id || "";
+
+            if (!podpisId) {
+                return { success: false, error: "Memento API nevrátilo ID podpisu" };
+            }
+
+            // --- Odošli do N8N ---
+            var n8nPayload = JSON.stringify({
+                type:     "request_sign",
+                podpisId: podpisId,
+                chatId:   chatId,
+                message:  msg
+            });
+
+            var n8nHttpObj = http();
+            n8nHttpObj.headers({ "Content-Type": "application/json" });
+            var n8nResp = n8nHttpObj.post(N8N_SIGN_URL, n8nPayload);
+
+            if (!n8nResp || n8nResp.code < 200 || n8nResp.code >= 300) {
+                return { success: false, error: "N8N webhook error " + (n8nResp ? n8nResp.code : "no response") };
+            }
+
+            // Aktualizuj stav záznamu
+            entry.set("Stav podpisu", "Čaká");
+
+            return { success: true };
+
+        } catch (error) {
+            return { success: false, error: error.toString() };
+        }
+    }
+
+    // ==============================================
     // PUBLIC API EXPORT
     // ==============================================
 
@@ -1144,13 +1274,9 @@ var Pokladna = (function() {
         info: MODULE_INFO,
         version: MODULE_INFO.version,
 
-        // Main function
-        payObligations: payObligations
-
-        // Future functions:
-        // - calculateVAT
-        // - calculateBalance
-        // - validateEntry
+        // Main functions
+        payObligations: payObligations,
+        requestSign: requestSign
     };
 
 })();

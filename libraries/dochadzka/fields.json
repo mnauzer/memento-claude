@@ -1,0 +1,513 @@
+{
+  "library_name": "Dochádzka",
+  "library_id": "zNoMvrv8U",
+  "last_updated": "2026-03-22T08:15:00.000000",
+  "fields": [
+    {
+      "id": 0,
+      "name": "Dátum",
+      "type": "date",
+      "role": "name",
+      "order": 0,
+      "properties": {
+        "hint": ""
+      },
+      "required": false,
+      "defaultValue": "2026-03-20T17:42:26Z"
+    },
+    {
+      "id": 92,
+      "name": "Deň",
+      "type": "choice",
+      "role": "desc",
+      "order": 1,
+      "options": {
+        "1": {
+          "t": "Pondelok",
+          "c": 1,
+          "def": false
+        },
+        "2": {
+          "t": "Utorok",
+          "c": 2,
+          "def": false
+        },
+        "3": {
+          "t": "Streda",
+          "c": 3,
+          "def": false
+        },
+        "4": {
+          "t": "Štvrtok",
+          "c": 4,
+          "def": false
+        },
+        "5": {
+          "t": "Piatok",
+          "c": 5,
+          "def": false
+        },
+        "6": {
+          "t": "Sobota",
+          "c": 6,
+          "def": false
+        },
+        "7": {
+          "t": "Nedeľa",
+          "c": 7,
+          "def": false
+        }
+      },
+      "properties": {},
+      "required": false
+    },
+    {
+      "id": 61,
+      "name": "--- Dochádzka ---",
+      "type": "subheader",
+      "order": 2,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 1,
+      "name": "Príchod",
+      "type": "time",
+      "role": "desc",
+      "order": 3,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 2,
+      "name": "Odchod",
+      "type": "time",
+      "role": "desc",
+      "order": 4,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 5,
+      "name": "Zamestnanci",
+      "type": "entries",
+      "role": "name",
+      "order": 5,
+      "options": {
+        "attributes": [
+          {
+            "uuid": "!gRIVjO:<e)XvHOoi3Y-",
+            "converter": {},
+            "id": 6,
+            "name": "odpracované",
+            "type": "double",
+            "order": 0,
+            "required": false
+          },
+          {
+            "uuid": "Xtt&oYmRTiIb#C]s+3Sz",
+            "converter": {},
+            "id": 0,
+            "name": "hodinovka",
+            "type": "currency",
+            "order": 1,
+            "required": false
+          },
+          {
+            "uuid": "M9q3Rz7<A@5TKDQBy2;L",
+            "converter": {},
+            "id": 1,
+            "name": "+príplatok (€/h)",
+            "type": "currency",
+            "order": 2,
+            "required": false
+          },
+          {
+            "uuid": "IU>pw9WdXyQVxZ(6><O3",
+            "converter": {},
+            "id": 2,
+            "name": "+prémia (€)",
+            "type": "currency",
+            "order": 3,
+            "required": false
+          },
+          {
+            "uuid": "*&u8QSifzjpkGJ!ApRC#",
+            "converter": {},
+            "id": 4,
+            "name": "-pokuta (€)",
+            "type": "currency",
+            "order": 4,
+            "required": false
+          },
+          {
+            "uuid": "+v!zjykGbp6vCUNTPDvI",
+            "converter": {},
+            "id": 3,
+            "name": "denná mzda",
+            "type": "currency",
+            "order": 5,
+            "required": false
+          },
+          {
+            "uuid": ")oLLCg1ZrbhxSFwCuBwW",
+            "converter": {},
+            "id": 5,
+            "name": "poznámka",
+            "type": "text",
+            "order": 6,
+            "required": false
+          }
+        ]
+      },
+      "properties": {
+        "library": "NKWNzJgL:*tA*i88[tT2",
+        "multiple": true
+      },
+      "required": false
+    },
+    {
+      "id": 86,
+      "name": "Notifikácie",
+      "type": "entries",
+      "order": 11,
+      "properties": {
+        "library": "*-*lt>[QN(bc+@UDSVRm",
+        "multiple": true
+      },
+      "required": false
+    },
+    {
+      "id": 38,
+      "name": "Poznámka",
+      "type": "text",
+      "role": "desc",
+      "order": 7,
+      "properties": {
+        "hint": "poznámka",
+        "singleLine": true
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 88,
+      "name": "ikony záznamu",
+      "type": "text",
+      "role": "name",
+      "order": 8,
+      "properties": {
+        "hint": "",
+        "singleLine": true
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 91,
+      "name": "Poznámka",
+      "type": "text",
+      "order": 9,
+      "properties": {
+        "hint": "",
+        "singleLine": false
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 85,
+      "name": "Voľno",
+      "type": "boolean",
+      "order": 9,
+      "properties": {},
+      "required": false,
+      "defaultValue": false
+    },
+    {
+      "id": 95,
+      "name": "Podpisy",
+      "type": "entries",
+      "order": 10,
+      "properties": {
+        "library": ")rlXnDjIfij&]tfe2hCO",
+        "multiple": true
+      },
+      "required": false
+    },
+    {
+      "id": 96,
+      "name": "Stav podpisov",
+      "type": "choice",
+      "order": 12,
+      "options": {
+        "1": { "t": "Neodoslaná", "c": 1, "def": false },
+        "2": { "t": "Čaká ", "c": 2, "def": false },
+        "3": { "t": "Čiastočné ", "c": 3, "def": false },
+        "4": { "t": "Hotovo", "c": 4, "def": false },
+        "5": { "t": "Odmietnuté ", "c": 5, "def": false }
+      },
+      "properties": {},
+      "required": false
+    },
+    {
+      "id": 97,
+      "name": "Všetci potvrdili",
+      "type": "boolean",
+      "order": 13,
+      "properties": {},
+      "required": false,
+      "defaultValue": false
+    },
+    {
+      "id": 81,
+      "name": "Počet pracovníkov",
+      "type": "int",
+      "order": 11,
+      "properties": {
+        "unit": "os",
+        "hint": ""
+      },
+      "required": false,
+      "defaultValue": 0
+    },
+    {
+      "id": 18,
+      "name": "Pracovná doba",
+      "type": "double",
+      "role": "status",
+      "order": 12,
+      "properties": {
+        "unit": "h",
+        "hint": "pracovná doba /os"
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 17,
+      "name": "Odpracované",
+      "type": "double",
+      "role": "status",
+      "order": 13,
+      "properties": {
+        "unit": "h",
+        "hint": ""
+      },
+      "required": false,
+      "defaultValue": 0.0
+    },
+    {
+      "id": 87,
+      "name": "Mzdové náklady",
+      "type": "currency",
+      "role": "status",
+      "order": 14,
+      "properties": {
+        "hint": "",
+        "currency": "EUR"
+      },
+      "required": false
+    },
+    {
+      "id": 89,
+      "name": "stav záznamu",
+      "type": "checkboxes",
+      "order": 15,
+      "options": {
+        "1": {
+          "t": "Záväzky",
+          "c": 1,
+          "def": false
+        }
+      },
+      "properties": {
+        "horizontaly": false
+      },
+      "required": false,
+      "defaultValue": []
+    },
+    {
+      "id": 90,
+      "name": "info",
+      "type": "richtext",
+      "order": 16,
+      "properties": {
+        "hint": "",
+        "markdown": true,
+        "singleLine": false
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 94,
+      "name": "Debug_Log",
+      "type": "text",
+      "order": 17,
+      "properties": {
+        "hint": "",
+        "singleLine": false
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 77,
+      "name": "Error_Log",
+      "type": "text",
+      "order": 18,
+      "properties": {
+        "hint": "",
+        "singleLine": false
+      },
+      "required": false,
+      "defaultValue": ""
+    },
+    {
+      "id": 67,
+      "name": "ID",
+      "type": "int",
+      "order": 19,
+      "properties": {
+        "hint": ""
+      },
+      "required": true,
+      "defaultValue": 1
+    },
+    {
+      "id": 93,
+      "name": "view",
+      "type": "choice",
+      "order": 20,
+      "options": {
+        "1": {
+          "t": "Editácia",
+          "c": 1,
+          "def": true
+        },
+        "2": {
+          "t": "Tlač",
+          "c": 2,
+          "def": false
+        },
+        "3": {
+          "t": "Debug",
+          "c": 3,
+          "def": false
+        }
+      },
+      "properties": {},
+      "required": false,
+      "defaultValue": "Editácia"
+    },
+    {
+      "id": 27,
+      "name": "farba záznamu",
+      "type": "color",
+      "order": 21,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 29,
+      "name": "farba pozadia",
+      "type": "color",
+      "order": 22,
+      "properties": {
+        "hint": ""
+      },
+      "required": false
+    },
+    {
+      "id": 48,
+      "name": "zapísal",
+      "type": "user",
+      "order": 23,
+      "options": {
+        "0": {
+          "t": "krajinkamato",
+          "c": 0,
+          "def": false
+        },
+        "1": {
+          "t": "mementokrajinka",
+          "c": 1,
+          "def": false
+        },
+        "2": {
+          "t": "krajinkarasto",
+          "c": 2,
+          "def": false
+        },
+        "3": {
+          "t": "rasto",
+          "c": 3,
+          "def": false
+        }
+      },
+      "properties": {},
+      "required": false
+    },
+    {
+      "id": 70,
+      "name": "dátum zápisu",
+      "type": "datetime",
+      "order": 24,
+      "properties": {
+        "hint": ""
+      },
+      "required": false,
+      "defaultValue": "2026-03-20T17:42:26Z"
+    },
+    {
+      "id": 57,
+      "name": "upravil",
+      "type": "user",
+      "order": 25,
+      "options": {
+        "0": {
+          "t": "krajinkamato",
+          "c": 0,
+          "def": false
+        },
+        "1": {
+          "t": "mementokrajinka",
+          "c": 1,
+          "def": false
+        },
+        "2": {
+          "t": "krajinkarasto",
+          "c": 2,
+          "def": false
+        },
+        "3": {
+          "t": "rasto",
+          "c": 3,
+          "def": false
+        }
+      },
+      "properties": {},
+      "required": false
+    },
+    {
+      "id": 71,
+      "name": "dátum úpravy",
+      "type": "datetime",
+      "order": 26,
+      "properties": {
+        "hint": ""
+      },
+      "required": false,
+      "defaultValue": "2026-03-20T17:42:26Z"
+    }
+  ]
+}

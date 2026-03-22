@@ -1,0 +1,367 @@
+{
+  "library_name": "Pokladňa",
+  "library_id": "g9eS5Ny2E",
+  "last_updated": "2026-03-22T08:15:00.000000",
+  "note": "Generated from Memento API",
+  "fields": [
+    {
+      "id": 0,
+      "name": "Dátum",
+      "type": "date",
+      "required": true,
+      "role": "name"
+    },
+    {
+      "id": 119,
+      "name": "Pohyb",
+      "type": "choice",
+      "required": true,
+      "role": "desc"
+    },
+    {
+      "id": 112,
+      "name": "Úhrada záväzku",
+      "type": "boolean",
+      "required": false
+    },
+    {
+      "id": 118,
+      "name": "Typ záväzku",
+      "type": "choice",
+      "required": false
+    },
+    {
+      "id": 114,
+      "name": "Započítať pohľadávku",
+      "type": "boolean",
+      "required": false
+    },
+    {
+      "id": 117,
+      "name": "Z preplatku vytvoriť",
+      "type": "radio",
+      "required": false
+    },
+    {
+      "id": 120,
+      "name": "---",
+      "type": "subheader",
+      "required": false
+    },
+    {
+      "id": 1,
+      "name": "Z pokladne",
+      "type": "entries",
+      "required": true,
+      "role": "name"
+    },
+    {
+      "id": 47,
+      "name": "Do pokladne",
+      "type": "entries",
+      "required": true,
+      "role": "name"
+    },
+    {
+      "id": 125,
+      "name": "Platbu vykonal",
+      "type": "entries",
+      "required": false
+    },
+    {
+      "id": 126,
+      "name": "Platbu prijal",
+      "type": "entries",
+      "required": false
+    },
+    {
+      "id": 100,
+      "name": "Suma",
+      "type": "double",
+      "required": false,
+      "role": "status"
+    },
+    {
+      "id": 35,
+      "name": "Doklad",
+      "type": "checkboxes",
+      "required": false
+    },
+    {
+      "id": 55,
+      "name": "s DPH",
+      "type": "boolean",
+      "required": false
+    },
+    {
+      "id": 105,
+      "name": "sadzba DPH",
+      "type": "choice",
+      "required": false
+    },
+    {
+      "id": 102,
+      "name": "Suma s DPH",
+      "type": "double",
+      "required": false,
+      "role": "status"
+    },
+    {
+      "id": 101,
+      "name": "DPH",
+      "type": "double",
+      "required": false
+    },
+    {
+      "id": 106,
+      "name": "DPH%",
+      "type": "double",
+      "required": false
+    },
+    {
+      "id": 5,
+      "name": "Popis platby",
+      "type": "text",
+      "required": false,
+      "role": "desc"
+    },
+    {
+      "id": 123,
+      "name": "---",
+      "type": "subheader",
+      "required": false
+    },
+    {
+      "id": 113,
+      "name": "Záväzky",
+      "type": "entries",
+      "required": false,
+      "role": "desc"
+    },
+    {
+      "id": 115,
+      "name": "Pohľadávky",
+      "type": "entries",
+      "required": false
+    },
+    {
+      "id": 43,
+      "name": "Účel príjmu",
+      "type": "choice",
+      "required": true,
+      "role": "status"
+    },
+    {
+      "id": 104,
+      "name": "Účel prevodu",
+      "type": "choice",
+      "required": true,
+      "role": "status"
+    },
+    {
+      "id": 12,
+      "name": "Účel výdaja",
+      "type": "choice",
+      "required": false,
+      "role": "status"
+    },
+    {
+      "id": 124,
+      "name": "Subdodávky",
+      "type": "choice",
+      "required": true,
+      "role": "status"
+    },
+    {
+      "id": 27,
+      "name": "Prevádzková réžia",
+      "type": "choice",
+      "required": true,
+      "role": "status"
+    },
+    {
+      "id": 56,
+      "name": "Finančné poplatky",
+      "type": "choice",
+      "required": false,
+      "role": "status"
+    },
+    {
+      "id": 24,
+      "name": "Zákazka",
+      "type": "entries",
+      "required": false,
+      "role": "desc"
+    },
+    {
+      "id": 20,
+      "name": "Stroj",
+      "type": "entries",
+      "required": false
+    },
+    {
+      "id": 16,
+      "name": "Vozidlo",
+      "type": "entries",
+      "required": false
+    },
+    {
+      "id": 17,
+      "name": "Zamestnanec",
+      "type": "entries",
+      "required": false,
+      "role": "name"
+    },
+    {
+      "id": 9,
+      "name": "Dodávateľ",
+      "type": "entries",
+      "required": false,
+      "role": "name"
+    },
+    {
+      "id": 42,
+      "name": "Klient",
+      "type": "entries",
+      "required": false,
+      "role": "name"
+    },
+    {
+      "id": 57,
+      "name": "Partner",
+      "type": "entries",
+      "required": false,
+      "role": "name"
+    },
+    {
+      "id": 127,
+      "name": "Príjemky materiálu",
+      "type": "entries",
+      "required": false
+    },
+    {
+      "id": 122,
+      "name": "---",
+      "type": "subheader",
+      "required": false
+    },
+    {
+      "id": 21,
+      "name": "Poznámka",
+      "type": "text",
+      "required": false
+    },
+    {
+      "id": 131,
+      "name": "Podpis",
+      "type": "entries",
+      "order": 38,
+      "properties": {
+        "library": ")rlXnDjIfij&]tfe2hCO",
+        "multiple": true
+      },
+      "required": false
+    },
+    {
+      "id": 132,
+      "name": "Potvrdené",
+      "type": "boolean",
+      "order": 39,
+      "properties": {},
+      "required": false,
+      "defaultValue": false
+    },
+    {
+      "id": 133,
+      "name": "Stav podpisu",
+      "type": "choice",
+      "order": 40,
+      "options": {
+        "1": { "t": "Neodoslané", "c": 1, "def": false },
+        "2": { "t": "Čaká ", "c": 2, "def": false },
+        "3": { "t": "Hotovo", "c": 3, "def": false },
+        "4": { "t": "Odmietnuté ", "c": 4, "def": false }
+      },
+      "properties": {},
+      "required": false
+    },
+    {
+      "id": 109,
+      "name": "Debug_Log",
+      "type": "text",
+      "required": false
+    },
+    {
+      "id": 110,
+      "name": "Error_Log",
+      "type": "text",
+      "required": false
+    },
+    {
+      "id": 116,
+      "name": "info",
+      "type": "text",
+      "required": false
+    },
+    {
+      "id": 34,
+      "name": "Foto Dokladu",
+      "type": "image",
+      "required": false
+    },
+    {
+      "id": 37,
+      "name": "Kód",
+      "type": "barcode",
+      "required": false
+    },
+    {
+      "id": 94,
+      "name": "ID",
+      "type": "int",
+      "required": false
+    },
+    {
+      "id": 128,
+      "name": "view",
+      "type": "choice",
+      "required": true
+    },
+    {
+      "id": 92,
+      "name": "farba záznamu",
+      "type": "color",
+      "required": false
+    },
+    {
+      "id": 93,
+      "name": "farba pozadia",
+      "type": "color",
+      "required": false
+    },
+    {
+      "id": 65,
+      "name": "zapísal",
+      "type": "user",
+      "required": false
+    },
+    {
+      "id": 130,
+      "name": "dátum zápisu",
+      "type": "datetime",
+      "required": false
+    },
+    {
+      "id": 72,
+      "name": "upravil",
+      "type": "user",
+      "required": false
+    },
+    {
+      "id": 129,
+      "name": "dátum úpravy",
+      "type": "datetime",
+      "required": false
+    }
+  ]
+}
