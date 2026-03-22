@@ -34,7 +34,7 @@ var Pokladna = (function() {
 
     var MODULE_INFO = {
         name: "Pokladna",
-        version: "1.1.3",
+        version: "1.1.4",
         author: "ASISTANTO",
         description: "Cash book and payment management module",
         library: "Pokladňa",
@@ -43,6 +43,7 @@ var Pokladna = (function() {
         extractedLines: 1114,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.1.4 (2026-03-22) - FIX: requestSign() - create Podpisy via libByName().create() (not Cloud API); set Zamestnanec as linkToEntry; link Pokladňa→Podpisy in-memory; fix 'Čaká ' trailing space",
             "v1.1.3 (2026-03-22) - FIX: requestSign() - remove PATCH Pokladňa→Podpisy (Memento API PATCH may use replace semantics causing field erasure)",
             "v1.1.2 (2026-03-22) - FIX: requestSign() - duplicate check on Stav podpisu; add Zamestnanec+Dátum odoslania to podpisPayload; PATCH link Pokladňa→Podpisy after creation",
             "v1.1.1 (2026-03-22) - FIX: requestSign() - String.fromCharCode() pre ď/ú",
@@ -1155,10 +1156,7 @@ var Pokladna = (function() {
      * @returns {Object} { success, error }
      */
     function requestSign(entry, config, utils) {
-        var MEMENTO_API_BASE = "https://api.mementodatabase.com/v1";
-        var MEMENTO_TOKEN    = "YobxmgbnZ1DTwxyJUIzCLgoAf2Qk0w";
-        var PODPISY_LIB_ID   = "2fNM2Za4G";
-        var N8N_SIGN_URL     = "https://n8n.asistanto.sk/webhook/krajinka-sign";
+        var N8N_SIGN_URL = "https://n8n.asistanto.sk/webhook/krajinka-sign";
 
         try {
             // --- Duplicate check ---
@@ -1166,12 +1164,6 @@ var Pokladna = (function() {
             if (stavPodpisu === "Čaká" || stavPodpisu === "Čaká " || stavPodpisu === "Hotovo") {
                 return { success: false, error: "Podpis u\u017e bol odoslan\u00fd (Stav: " + stavPodpisu + ")" };
             }
-
-            var POKLADNA_LIB_ID = "g9eS5Ny2E";
-            var _now = new Date();
-            var todayStr = _now.getFullYear() + "-" +
-                ("0" + (_now.getMonth() + 1)).slice(-2) + "-" +
-                ("0" + _now.getDate()).slice(-2);
 
             var entryId = entry.id;
             if (!entryId) return { success: false, error: "Chýba entry ID záznamu" };
@@ -1227,38 +1219,30 @@ var Pokladna = (function() {
                 + "\uD83D\uDCDD " + popisStr + NL + NL
                 + "<i>Potvr" + String.fromCharCode(271) + " alebo odmietni t" + String.fromCharCode(250) + "to platbu:</i>";
 
-            // --- Vytvor podpisy záznam cez Memento API ---
-            var podpisPayload = JSON.stringify({
-                fields: [
-                    { name: "Zamestnanec",         value: empId },
-                    { name: "Kni\u017enica",       value: "Pokladňa" },
-                    { name: "Zdroj ID",            value: entryId },
-                    { name: "TG Chat ID",          value: parseFloat(chatId) },
-                    { name: "Stav",                value: "Čaká " },
-                    { name: "D\u00e1tum odoslania", value: todayStr }
-                ]
-            });
-
-            var httpObj = http();
-            httpObj.headers({ "Content-Type": "application/json" });
-            var apiUrl = MEMENTO_API_BASE + "/libraries/" + PODPISY_LIB_ID + "/entries?token=" + MEMENTO_TOKEN;
-            var apiResp = httpObj.post(apiUrl, podpisPayload);
-
-            if (!apiResp || apiResp.code < 200 || apiResp.code >= 300) {
-                return { success: false, error: "Memento API chyba " + (apiResp ? apiResp.code : "no response") };
+            // --- Vytvor podpisy záznam cez Memento JS API ---
+            // libByName().create() vytvára entry v lokálnom DB (sync do cloudu automaticky).
+            // Zamestnanec nastavíme ako správny linkToEntry — žiaden Cloud API PATCH nie je potrebný.
+            var podpisLib = libByName("podpisy");
+            if (!podpisLib) {
+                return { success: false, error: "Kni\u017enica podpisy nenájdená" };
             }
-
-            var apiBody = {};
-            try { apiBody = JSON.parse(apiResp.body); } catch(e) {}
-            var podpisId = apiBody.id || "";
+            var podpisEntry = podpisLib.create({});
+            podpisEntry.set("Zamestnanec", [zamestnanec]);
+            podpisEntry.set("Kni\u017enica", "Pokladňa");
+            podpisEntry.set("Zdroj ID", entryId);
+            podpisEntry.set("TG Chat ID", parseFloat(chatId));
+            podpisEntry.set("Stav", "Čaká");
+            podpisEntry.set("D\u00e1tum odoslania", new Date());
+            var podpisId = podpisEntry.id;
 
             if (!podpisId) {
-                return { success: false, error: "Memento API nevr\u00e1tilo ID podpisu" };
+                return { success: false, error: "Memento nepridelilo ID podpisu" };
             }
 
-            // NOTE: Nerobíme PATCH Pokladňa→Podpisy cez API.
-            // Memento API PATCH môže mať "replace" semantiku a vymazať iné polia.
-            // Link je riešený cez Zdroj ID na Podpisy zázname (text pole = entryId).
+            // Prepoj podpis záznam na tento Pokladňa záznam (in-memory, bez API PATCH)
+            var existPodpis = entry.field("Podpis") || [];
+            if (!Array.isArray(existPodpis)) { existPodpis = []; }
+            entry.set("Podpis", existPodpis.concat([podpisEntry]));
 
             // --- Odošli do N8N ---
             var n8nPayload = JSON.stringify({
