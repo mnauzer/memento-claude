@@ -51,27 +51,33 @@
       "typeVersion": 2,
       "position": [680, 200],
       "parameters": {
-        "jsCode": "const body = $input.first().json.body;\nconst podpisId = body.podpisId || '';\nconst replyMarkup = JSON.stringify({\n  inline_keyboard: [[\n    { text: '\\u2705 Potvrdzujem', callback_data: 'sign_' + podpisId + '_confirm' },\n    { text: '\\u274C Nes\\u00FAhlas\\u00EDm', callback_data: 'sign_' + podpisId + '_reject' }\n  ]]\n});\nreturn [{ json: {\n  podpisId: podpisId,\n  chatId:   String(body.chatId || ''),\n  message:  body.message || '',\n  replyMarkup: replyMarkup\n} }];"
+        "jsCode": "const body = $input.first().json.body;\nconst podpisId = body.podpisId || '';\nconst chatId = String(body.chatId || '');\nconst message = body.message || '';\n\nconst tgBody = JSON.stringify({\n  chat_id: chatId,\n  text: message,\n  parse_mode: 'HTML',\n  reply_markup: {\n    inline_keyboard: [[\n      { text: '\\u2705 Potvrdzujem', callback_data: 'sign_' + podpisId + '_confirm' },\n      { text: '\\u274C Nes\\u00FAhlas\\u00EDm', callback_data: 'sign_' + podpisId + '_reject' }\n    ]]\n  }\n});\n\nreturn [{ json: { podpisId, chatId, tgBody } }];"
       }
     },
     {
       "id": "send-telegram-sign",
       "name": "Send Telegram Sign",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [900, 200],
-      "credentials": {
-        "telegramApi": {
-          "id": "fkblljVSfyq4Yjah",
-          "name": "Greta (@KrajinkaAsistantoBot)"
-        }
-      },
       "parameters": {
-        "chatId": "={{ $json.chatId }}",
-        "text": "={{ $json.message }}",
-        "additionalFields": {
-          "parse_mode": "HTML",
-          "reply_markup": "={{ $json.replyMarkup }}"
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ $json.tgBody }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Content-Type", "value": "application/json"}
+          ]
         }
       }
     },
