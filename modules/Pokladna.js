@@ -1,6 +1,6 @@
 // ==============================================
 // LIBRARY MODULE - Pokladňa (Cash Book)
-// Verzia: 1.0.0 | Dátum: 2026-03-19 | Autor: ASISTANTO
+// Verzia: 1.2.2 | Dátum: 2026-03-22 | Autor: ASISTANTO
 // ==============================================
 // 📋 PURPOSE:
 //    - Reusable module for Cash Book operations
@@ -34,7 +34,7 @@ var Pokladna = (function() {
 
     var MODULE_INFO = {
         name: "Pokladna",
-        version: "1.2.1",
+        version: "1.2.2",
         author: "ASISTANTO",
         description: "Cash book and payment management module",
         library: "Pokladňa",
@@ -43,6 +43,7 @@ var Pokladna = (function() {
         extractedLines: 1114,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.2.2 (2026-03-22) - FIX: requestSign() - always use zamestnanec[0] (Memento entries field returns Kotlin array-like, Array.isArray()=false; was reading raw collection instead of entry object)",
             "v1.2.1 (2026-03-22) - FIX: requestSign() - add _log/_errLog debug; handle zamestnanec array/null defensively; fix 'Čaká ' trailing space in Stav; replace concat with replace on Podpis field",
             "v1.2.0 (2026-03-22) - CHANGE: requestSign() - new message format: plain separators, pohyb icon, popis+ucel, suma after separator, no HTML tags",
             "v1.1.6 (2026-03-22) - FIX: requestSign() - add libCode:'P' to N8N payload; N8N confirm flow v4 uses sign_{sourceId}_P_{action} in callback_data and PATCHes Pokladňa directly (no podpis GET needed)",
@@ -1198,13 +1199,14 @@ var Pokladna = (function() {
             var zamestnanec = entry.field("Zamestnanec");
 
             _log("pohyb=" + pohybField + " suma=" + sumaField + " popis=" + popisField);
-            _log("zamestnanec=" + (zamestnanec ? (Array.isArray(zamestnanec) ? "array[" + zamestnanec.length + "]" : "object id=" + (zamestnanec.id || "?")) : "NULL"));
+            _log("zamestnanec=" + (zamestnanec ? ("type=" + typeof zamestnanec + " [0]=" + (zamestnanec[0] ? "entry" : "undef")) : "NULL"));
 
-            // Defensive: handles both single object (multiple:false) and array
-            if (!zamestnanec || (Array.isArray(zamestnanec) && zamestnanec.length === 0)) {
+            // Memento entries field returns Java/Kotlin array-like - Array.isArray() is unreliable.
+            // Always use [0] index (works for native array, Kotlin list, and single entry object).
+            if (!zamestnanec) {
                 return { success: false, error: "Z\u00e1znam nem\u00e1 priraden\u00fd 'Zamestnanec'" };
             }
-            var zam = Array.isArray(zamestnanec) ? zamestnanec[0] : zamestnanec;
+            var zam = zamestnanec[0] || zamestnanec;
             if (!zam) {
                 return { success: false, error: "Zamestnanec je pr\u00e1zdny" };
             }
