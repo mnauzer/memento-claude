@@ -18,10 +18,10 @@
  */
 
 if (typeof MementoUtils === 'undefined') {
-    message("CHYBA: MementoUtils chýba!");
+    dialog("❌ Chyba závislosti", "Chýba MementoUtils! Skontroluj poradie načítania skriptov.", "OK");
 }
 else if (typeof Pokladna === 'undefined') {
-    message("CHYBA: Pokladna modul chýba!");
+    dialog("❌ Chyba závislosti", "Chýba Pokladna modul! Skontroluj či je script načítaný.", "OK");
 }
 else {
     var currentEntry = entry();
