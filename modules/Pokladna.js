@@ -34,7 +34,7 @@ var Pokladna = (function() {
 
     var MODULE_INFO = {
         name: "Pokladna",
-        version: "1.1.4",
+        version: "1.1.5",
         author: "ASISTANTO",
         description: "Cash book and payment management module",
         library: "Pokladňa",
@@ -43,6 +43,7 @@ var Pokladna = (function() {
         extractedLines: 1114,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.1.5 (2026-03-22) - FIX: requestSign() - send sourceId (entryId) to N8N for callback_data; N8N confirm flow v2 searches by Zdroj ID + fromChatId",
             "v1.1.4 (2026-03-22) - FIX: requestSign() - create Podpisy via libByName().create() (not Cloud API); set Zamestnanec as linkToEntry; link Pokladňa→Podpisy in-memory; fix 'Čaká ' trailing space",
             "v1.1.3 (2026-03-22) - FIX: requestSign() - remove PATCH Pokladňa→Podpisy (Memento API PATCH may use replace semantics causing field erasure)",
             "v1.1.2 (2026-03-22) - FIX: requestSign() - duplicate check on Stav podpisu; add Zamestnanec+Dátum odoslania to podpisPayload; PATCH link Pokladňa→Podpisy after creation",
@@ -1245,9 +1246,12 @@ var Pokladna = (function() {
             entry.set("Podpis", existPodpis.concat([podpisEntry]));
 
             // --- Odošli do N8N ---
+            // DÔLEŽITÉ: N8N request_sign flow musí použiť sourceId v callback_data
+            // Format: "sign_{entryId}_{action}" kde entryId = Pokladňa entry ID
             var n8nPayload = JSON.stringify({
                 type:     "request_sign",
-                podpisId: podpisId,
+                sourceId: entryId,    // ← N8N použije toto pre callback_data
+                podpisId: podpisId,   // ← ponechané pre informáciu
                 chatId:   chatId,
                 message:  msg
             });

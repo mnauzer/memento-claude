@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.3.6",
+        version: "1.3.7",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -47,6 +47,7 @@ var Dochadzka = (function() {
         extractedLines: 528,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.3.7 (2026-03-22) - FIX: requestSign() - send sourceId (entryId) to N8N instead of podpisId; N8N confirm flow v2 searches podpisy by Zdroj ID + fromChatId to avoid local/cloud ID mismatch",
             "v1.3.6 (2026-03-22) - FIX: requestSign() - create Podpisy via libByName().create() (not Cloud API); set Zamestnanec as linkToEntry; link Dochadzka→Podpisy in-memory; fix addDebug→_log bug (sent++ never fired); fix 'Čaká ' trailing space",
             "v1.3.5 (2026-03-22) - FIX: requestSign() - remove PATCH Dochádzka→Podpisy (Memento API PATCH may use replace semantics causing date field erasure)",
             "v1.3.4 (2026-03-22) - FIX: requestSign() - direct local debug logging (bypass utils chain); Zamestnanec PATCH separately; log API response codes+bodies; fix Stav='Čaká' (no space)",
@@ -1213,7 +1214,7 @@ var Dochadzka = (function() {
         var N8N_SIGN_URL = "https://n8n.asistanto.sk/webhook/krajinka-sign";
 
         // Direct debug accumulator — bypasses utils/MementoCore chain (silently fails if config missing)
-        var _dbg = ["[Dochadzka.requestSign v1.3.6]"];
+        var _dbg = ["[Dochadzka.requestSign v1.3.7]"];
         function _log(msg) {
             _dbg.push(msg);
             try { entry.set("Debug_Log", _dbg.join("\n")); } catch(e) {}
@@ -1364,9 +1365,12 @@ var Dochadzka = (function() {
                 createdPodpisy.push(podpisEntry);
 
                 // --- Odošli do N8N ---
+                // DÔLEŽITÉ: N8N request_sign flow musí použiť sourceId (nie podpisId) v callback_data
+                // Format callback_data: "sign_{entryId}_{action}" kde entryId = Dochádzka entry ID
                 var n8nPayload = JSON.stringify({
                     type:     "request_sign",
-                    podpisId: podpisId,
+                    sourceId: entryId,    // ← N8N použije toto pre callback_data (sign_{sourceId}_confirm)
+                    podpisId: podpisId,   // ← ponechané pre informáciu, ale N8N to nepoužíva
                     chatId:   chatId,
                     message:  msg
                 });

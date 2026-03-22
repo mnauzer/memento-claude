@@ -1,5 +1,6 @@
 {
   "name": "✅ Greta Krajinka — Signature Confirm Handler",
+  "_comment": "v2 — 2026-03-22: Use sourceId (Dochádzka/Pokladňa entry ID) instead of podpisId in callback_data. N8N searches podpisy by Zdroj ID + TG Chat ID to find the correct record (avoids local Memento ID vs cloud ID mismatch).",
   "nodes": [
     {
       "id": "tg-trigger",
@@ -61,7 +62,7 @@
       "typeVersion": 2,
       "position": [900, 200],
       "parameters": {
-        "jsCode": "const update = $input.first().json;\nconst query = update.callback_query;\nconst data = query.data || '';\n\n// Expected format: \"sign_{podpisId}_confirm\" or \"sign_{podpisId}_reject\"\nif (!data.startsWith('sign_')) {\n  return [{ json: { skip: true, data } }];\n}\n\n// action is the last segment, podpisId is everything between \"sign_\" and last \"_\"\nconst lastIdx = data.lastIndexOf('_');\nconst action = data.substring(lastIdx + 1);       // 'confirm' or 'reject'\nconst podpisId = data.substring(5, lastIdx);      // after 'sign_', before last '_'\n\nif ((action !== 'confirm' && action !== 'reject') || !podpisId) {\n  return [{ json: { skip: true, data } }];\n}\n\nconst confirmed = action === 'confirm';\nconst callbackQueryId = query.id;\nconst chatId = String(query.message.chat.id);\nconst messageId = query.message.message_id;\nconst originalText = query.message.text || '';\nconst fromFirst = query.from.first_name || '';\nconst fromLast = query.from.last_name || '';\nconst fromName = (fromFirst + ' ' + fromLast).trim();\nconst confirmText = confirmed\n  ? String.fromCharCode(10004) + ' Potvrdené'\n  : String.fromCharCode(10060) + ' Odmietnuté';\n\nreturn [{ json: { action, podpisId, confirmed, callbackQueryId, chatId, messageId, originalText, fromName, confirmText, skip: false } }];"
+        "jsCode": "const update = $input.first().json;\nconst query = update.callback_query;\nconst data = query.data || '';\n\n// Format: \"sign_{sourceEntryId}_{action}\"\n// sourceEntryId = Dochádzka/Pokladňa entry ID (N8N request-sign flow uses payload.sourceId)\n// NOTE: The request-sign N8N flow must use sourceId (not podpisId) in callback_data!\nif (!data.startsWith('sign_')) {\n  return [{ json: { skip: true, data } }];\n}\n\nconst lastIdx = data.lastIndexOf('_');\nconst action = data.substring(lastIdx + 1);      // 'confirm' or 'reject'\nconst sourceId = data.substring(5, lastIdx);     // Dochádzka/Pokladňa entry ID\n\nif ((action !== 'confirm' && action !== 'reject') || !sourceId) {\n  return [{ json: { skip: true, data } }];\n}\n\nconst confirmed = action === 'confirm';\nconst callbackQueryId = query.id;\nconst chatId = String(query.message.chat.id);\nconst messageId = query.message.message_id;\nconst originalText = query.message.text || '';\nconst fromFirst = query.from.first_name || '';\nconst fromLast = query.from.last_name || '';\nconst fromName = (fromFirst + ' ' + fromLast).trim();\nconst fromChatId = String(query.from.id);  // Telegram user ID who clicked\nconst confirmText = confirmed\n  ? String.fromCharCode(10004) + ' Potvrdené'\n  : String.fromCharCode(10060) + ' Odmietnuté';\n\nreturn [{ json: {\n  action, sourceId, confirmed, callbackQueryId, chatId, messageId,\n  originalText, fromName, fromChatId, confirmText, skip: false\n} }];"
       }
     },
     {
@@ -94,40 +95,11 @@
       }
     },
     {
-      "id": "patch-podpis",
-      "name": "PATCH Podpis Stav",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1340, 100],
-      "parameters": {
-        "method": "PATCH",
-        "url": "=https://api.mementodatabase.com/v1/libraries/2fNM2Za4G/entries/{{ $json.podpisId }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "queryAuth",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {"name": "token", "value": "YobxmgbnZ1DTwxyJUIzCLgoAf2Qk0w"}
-          ]
-        },
-        "sendBody": true,
-        "contentType": "json",
-        "body": "={\n  \"fields\": [\n    { \"name\": \"Stav\", \"value\": \"{{ $json.confirmed ? 'Potvrdil' : 'Odmietol' }}\" },\n    { \"name\": \"D\\u00e1tum potvrdenia\", \"value\": \"{{ $now.format('yyyy-MM-dd') }}\" }\n  ]\n}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          }
-        }
-      }
-    },
-    {
       "id": "answer-callback",
       "name": "Answer Callback Query",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1340, 300],
+      "position": [1340, 100],
       "parameters": {
         "method": "POST",
         "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/answerCallbackQuery",
@@ -149,7 +121,7 @@
       "name": "Edit Message Text",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1340, 500],
+      "position": [1340, 300],
       "parameters": {
         "method": "POST",
         "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/editMessageText",
@@ -157,6 +129,152 @@
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{ JSON.stringify({ chat_id: $('Parse Callback').first().json.chatId, message_id: $('Parse Callback').first().json.messageId, text: $('Parse Callback').first().json.originalText + '\\n\\n' + $('Parse Callback').first().json.confirmText + ' — ' + $('Parse Callback').first().json.fromName, parse_mode: 'HTML' }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "get-podpisy",
+      "name": "GET Podpisy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 500],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.mementodatabase.com/v1/libraries/2fNM2Za4G/entries",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {"name": "token", "value": "YobxmgbnZ1DTwxyJUIzCLgoAf2Qk0w"}
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "find-podpis",
+      "name": "Find Podpis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 500],
+      "parameters": {
+        "jsCode": "// Find the podpis entry matching sourceId (Dochádzka/Pokladňa entry ID)\n// and fromChatId (Telegram user who clicked confirm/reject)\nconst response = $input.first().json;\nconst sourceId   = $('Parse Callback').first().json.sourceId;\nconst fromChatId = $('Parse Callback').first().json.fromChatId;\nconst confirmed  = $('Parse Callback').first().json.confirmed;\n\n// Memento API may return array or { entries: [...] }\nconst entries = Array.isArray(response)\n  ? response\n  : (Array.isArray(response.entries) ? response.entries\n     : (Array.isArray(response.data) ? response.data : []));\n\nconst match = entries.find(function(e) {\n  const fields = e.fields || [];\n  var zdrojVal = '';\n  var chatVal  = '';\n  for (var i = 0; i < fields.length; i++) {\n    if (fields[i].name === 'Zdroj ID') zdrojVal = String(fields[i].value || '');\n    if (fields[i].name === 'TG Chat ID') chatVal = String(parseFloat(fields[i].value || 0));\n  }\n  return zdrojVal === String(sourceId) && chatVal === String(parseFloat(fromChatId || 0));\n});\n\nif (!match) {\n  return [{ json: {\n    found: false,\n    sourceId: sourceId,\n    fromChatId: fromChatId,\n    entriesScanned: entries.length\n  }}];\n}\n\n// Read Knižnica to determine source library\nvar kniznica = '';\n(match.fields || []).forEach(function(f) {\n  if (f.name === 'Kni\\u017enica') kniznica = String(f.value || '');\n});\n\n// Map library name → Cloud API library ID + status field name\nvar libMap = {};\nlibMap['Doch\\u00e1dzka'] = { libId: 'zNoMvrv8U', statusField: 'Stav podpisov' };\nlibMap['Pokladňa']      = { libId: 'g9eS5Ny2E', statusField: 'Stav podpisu'  };\nvar lib = libMap[kniznica] || null;\n\nreturn [{ json: {\n  found: true,\n  podpisCloudId:   match.id,\n  stavValue:       confirmed ? 'Potvrdil' : 'Odmietol',\n  sourceId:        sourceId,\n  sourceLibId:     lib ? lib.libId : '',\n  sourceField:     lib ? lib.statusField : '',\n  hasSource:       !!(lib && sourceId),\n  kniznica:        kniznica\n}}];"
+      }
+    },
+    {
+      "id": "is-found",
+      "name": "Is Podpis Found?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1780, 500],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {"caseSensitive": true},
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.found }}",
+                    "rightValue": true,
+                    "operator": {"type": "boolean", "operation": "equals"}
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "found"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "patch-podpis",
+      "name": "PATCH Podpis Stav",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2000, 400],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.mementodatabase.com/v1/libraries/2fNM2Za4G/entries/{{ $json.podpisCloudId }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {"name": "token", "value": "YobxmgbnZ1DTwxyJUIzCLgoAf2Qk0w"}
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\n  \"fields\": [\n    { \"name\": \"Stav\", \"value\": \"{{ $json.stavValue }}\" },\n    { \"name\": \"D\\u00e1tum potvrdenia\", \"value\": \"{{ $now.format('yyyy-MM-dd') }}\" }\n  ]\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "has-source",
+      "name": "Has Source Library?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [2000, 600],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {"caseSensitive": true},
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.hasSource }}",
+                    "rightValue": true,
+                    "operator": {"type": "boolean", "operation": "equals"}
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "has_source"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "patch-source",
+      "name": "PATCH Source Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2220, 600],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.mementodatabase.com/v1/libraries/{{ $json.sourceLibId }}/entries/{{ $json.sourceId }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {"name": "token", "value": "YobxmgbnZ1DTwxyJUIzCLgoAf2Qk0w"}
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\n  \"fields\": [\n    { \"name\": \"{{ $json.sourceField }}\", \"value\": \"{{ $json.stavValue }}\" }\n  ]\n}",
         "options": {
           "response": {
             "response": {
@@ -186,10 +304,31 @@
     "Is Sign Callback?": {
       "main": [
         [
-          {"node": "PATCH Podpis Stav", "type": "main", "index": 0},
           {"node": "Answer Callback Query", "type": "main", "index": 0},
-          {"node": "Edit Message Text", "type": "main", "index": 0}
+          {"node": "Edit Message Text", "type": "main", "index": 0},
+          {"node": "GET Podpisy", "type": "main", "index": 0}
         ],
+        []
+      ]
+    },
+    "GET Podpisy": {
+      "main": [[{"node": "Find Podpis", "type": "main", "index": 0}]]
+    },
+    "Find Podpis": {
+      "main": [[{"node": "Is Podpis Found?", "type": "main", "index": 0}]]
+    },
+    "Is Podpis Found?": {
+      "main": [
+        [
+          {"node": "PATCH Podpis Stav", "type": "main", "index": 0},
+          {"node": "Has Source Library?", "type": "main", "index": 0}
+        ],
+        []
+      ]
+    },
+    "Has Source Library?": {
+      "main": [
+        [{"node": "PATCH Source Status", "type": "main", "index": 0}],
         []
       ]
     }
