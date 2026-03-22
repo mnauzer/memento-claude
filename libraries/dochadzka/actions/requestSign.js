@@ -2,7 +2,7 @@
  * Knižnica:    Dochádzka
  * Názov:       Doch.Action.RequestSign
  * Typ:         Action (Button) — Ultra-Thin Wrapper
- * Verzia:      1.0.0
+ * Verzia:      1.1.0
  * Dátum:       2026-03-22
  *
  * Účel:
@@ -11,13 +11,10 @@
  *
  * Závislosti:
  *   - MementoUtils v8.1+
- *   - Dochadzka modul v1.3+
+ *   - Dochadzka modul v1.3.3+
  *
- * Postup:
- *   1. Pre každého zamestnanca skontroluje Telegram ID
- *   2. Vytvorí podpisy záznam cez Memento Cloud API
- *   3. Odošle N8N webhook → N8N pošle Telegram správu s inline keyboard
- *   4. Nastaví "Stav podpisov" = "Čaká "
+ * DÔLEŽITÉ: dialog() sa volá pred uložením záznamu, takže Debug_Log je prečítaný
+ * predtým než ho triggerBeforeSave.js zmaže!
  */
 
 if (typeof MementoUtils === 'undefined') {
@@ -29,6 +26,7 @@ else if (typeof Dochadzka === 'undefined') {
 else {
     var currentEntry = entry();
     currentEntry.set("Debug_Log", "");
+    currentEntry.set("Error_Log", "");
 
     var result = Dochadzka.requestSign(
         currentEntry,
@@ -36,13 +34,20 @@ else {
         MementoUtils
     );
 
+    // Prečítaj debug PRED uložením záznamu (triggerBeforeSave by ho zmazal)
+    var dbg = currentEntry.field("Debug_Log") || "";
+    var errLog = currentEntry.field("Error_Log") || "";
+
     if (result.success) {
-        var msg = "✅ Odoslané na potvrdenie: " + result.sent + " zamestnanec(i).";
-        if (result.skipped > 0) {
-            msg += "\n⚠️ Preskočení (chýba Telegram ID): " + result.skipped;
-        }
-        message(msg);
+        var txt = "Odoslané: " + result.sent + " zamestnanec(i)";
+        if (result.skipped > 0) txt += "\nPreskočení (chýba TG ID): " + result.skipped;
+        if (result.error) txt += "\n\n⚠️ Čiastočná chyba: " + result.error;
+        if (dbg) txt += "\n\n--- Debug ---\n" + dbg;
+        dialog("✅ Odoslané na potvrdenie", txt, "OK");
     } else {
-        message("Chyba: " + (result.error || "Neznáma chyba"));
+        var txt2 = "Chyba: " + (result.error || "Neznáma chyba");
+        if (errLog) txt2 += "\n\n--- Error Log ---\n" + errLog;
+        if (dbg) txt2 += "\n\n--- Debug ---\n" + dbg;
+        dialog("❌ Chyba", txt2, "OK");
     }
 }
