@@ -38,7 +38,7 @@ var Dochadzka = (function() {
 
     var MODULE_INFO = {
         name: "Dochadzka",
-        version: "1.3.2",
+        version: "1.3.3",
         author: "ASISTANTO",
         description: "Attendance calculation and wage management module",
         library: "Dochádzka",
@@ -47,6 +47,7 @@ var Dochadzka = (function() {
         extractedLines: 528,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.3.3 (2026-03-22) - FIX: requestSign() - duplicate check on Stav podpisov; add Zamestnanec+Dátum odoslania to podpisPayload; PATCH link Dochádzka→Podpisy after creation",
             "v1.3.2 (2026-03-22) - FIX: requestSign() - getHours() instead of getUTCHours() for local Slovakia time; add príplatok/prémia/pokuta to message",
             "v1.3.1 (2026-03-22) - FIX: requestSign() - use String.fromCharCode() for ď/á to avoid Memento JS engine Unicode literal bug",
             "v1.3.0 (2026-03-22) - NEW: requestSign() - send attendance record for employee confirmation via N8N+Telegram",
@@ -1214,6 +1215,18 @@ var Dochadzka = (function() {
         addDebug(entry, "📤 requestSign štartuje");
 
         try {
+            // --- Duplicate check ---
+            var stavPodpisov = (entry.field("Stav podpisov") || "").trim();
+            if (stavPodpisov === "Čaká" || stavPodpisov === "Čaká " || stavPodpisov === "Hotovo") {
+                return { success: false, error: "Podpis u\u017e bol odoslan\u00fd (Stav: " + stavPodpisov + ")" };
+            }
+
+            var DOCHADZKA_LIB_ID = "zNoMvrv8U";
+            var _now = new Date();
+            var todayStr = _now.getFullYear() + "-" +
+                ("0" + (_now.getMonth() + 1)).slice(-2) + "-" +
+                ("0" + _now.getDate()).slice(-2);
+
             var entryId = entry.id;
             if (!entryId) {
                 return { success: false, error: "Chýba entry ID záznamu" };
@@ -1306,10 +1319,12 @@ var Dochadzka = (function() {
                 // --- Vytvor podpisy záznam cez Memento API ---
                 var podpisPayload = JSON.stringify({
                     fields: [
-                        { name: "Knižnica",   value: "Doch\u00e1dzka" },
-                        { name: "Zdroj ID",   value: entryId },
-                        { name: "TG Chat ID", value: parseFloat(chatId) },
-                        { name: "Stav",       value: "Čaká " }
+                        { name: "Zamestnanec",     value: empId },
+                        { name: "Kni\u017enica",   value: "Doch\u00e1dzka" },
+                        { name: "Zdroj ID",        value: entryId },
+                        { name: "TG Chat ID",      value: parseFloat(chatId) },
+                        { name: "Stav",            value: "Čaká " },
+                        { name: "D\u00e1tum odoslania", value: todayStr }
                     ]
                 });
 
@@ -1337,7 +1352,19 @@ var Dochadzka = (function() {
                     continue;
                 }
 
-                addDebug(entry, "   ✅ Podpisy záznam vytvorený: " + podpisId);
+                addDebug(entry, "   ✅ Podpisy z\u00e1znam vytvoren\u00fd: " + podpisId);
+
+                // --- Linkni Dochádzka → Podpisy ---
+                var lhObj = http();
+                lhObj.headers({ "Content-Type": "application/json" });
+                var linkPayload = JSON.stringify({ fields: [{ name: "Podpisy", value: podpisId }] });
+                var linkUrl = MEMENTO_API_BASE + "/libraries/" + DOCHADZKA_LIB_ID + "/entries/" + entryId + "?token=" + MEMENTO_TOKEN;
+                var linkResp = lhObj.patch(linkUrl, linkPayload);
+                if (linkResp && linkResp.code >= 200 && linkResp.code < 300) {
+                    addDebug(entry, "   \u2705 Doch\u00e1dzka\u2192Podpisy linkovan\u00e9");
+                } else {
+                    addDebug(entry, "   \u26A0\uFE0F Link PATCH zlyhal: " + (linkResp ? linkResp.code : "no response"));
+                }
 
                 // --- Odošli do N8N ---
                 var n8nPayload = JSON.stringify({

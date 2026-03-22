@@ -61,7 +61,7 @@
       "typeVersion": 2,
       "position": [900, 200],
       "parameters": {
-        "jsCode": "const update = $input.first().json;\nconst query = update.callback_query;\nconst data = query.data || '';\n\n// Expected format: \"sign_{podpisId}_confirm\" or \"sign_{podpisId}_reject\"\nif (!data.startsWith('sign_')) {\n  return [{ json: { skip: true, data } }];\n}\n\n// action is the last segment, podpisId is everything between \"sign_\" and last \"_\"\nconst lastIdx = data.lastIndexOf('_');\nconst action = data.substring(lastIdx + 1);       // 'confirm' or 'reject'\nconst podpisId = data.substring(5, lastIdx);      // after 'sign_', before last '_'\n\nif ((action !== 'confirm' && action !== 'reject') || !podpisId) {\n  return [{ json: { skip: true, data } }];\n}\n\nconst confirmed = action === 'confirm';\nconst callbackQueryId = query.id;\nconst chatId = String(query.message.chat.id);\nconst messageId = query.message.message_id;\nconst fromFirst = query.from.first_name || '';\nconst fromLast = query.from.last_name || '';\nconst fromName = (fromFirst + ' ' + fromLast).trim();\nconst confirmText = confirmed\n  ? String.fromCharCode(10004) + ' Potvrdené'\n  : String.fromCharCode(10060) + ' Odmietnuté';\n\nreturn [{ json: { action, podpisId, confirmed, callbackQueryId, chatId, messageId, fromName, confirmText, skip: false } }];"
+        "jsCode": "const update = $input.first().json;\nconst query = update.callback_query;\nconst data = query.data || '';\n\n// Expected format: \"sign_{podpisId}_confirm\" or \"sign_{podpisId}_reject\"\nif (!data.startsWith('sign_')) {\n  return [{ json: { skip: true, data } }];\n}\n\n// action is the last segment, podpisId is everything between \"sign_\" and last \"_\"\nconst lastIdx = data.lastIndexOf('_');\nconst action = data.substring(lastIdx + 1);       // 'confirm' or 'reject'\nconst podpisId = data.substring(5, lastIdx);      // after 'sign_', before last '_'\n\nif ((action !== 'confirm' && action !== 'reject') || !podpisId) {\n  return [{ json: { skip: true, data } }];\n}\n\nconst confirmed = action === 'confirm';\nconst callbackQueryId = query.id;\nconst chatId = String(query.message.chat.id);\nconst messageId = query.message.message_id;\nconst originalText = query.message.text || '';\nconst fromFirst = query.from.first_name || '';\nconst fromLast = query.from.last_name || '';\nconst fromName = (fromFirst + ' ' + fromLast).trim();\nconst confirmText = confirmed\n  ? String.fromCharCode(10004) + ' Potvrdené'\n  : String.fromCharCode(10060) + ' Odmietnuté';\n\nreturn [{ json: { action, podpisId, confirmed, callbackQueryId, chatId, messageId, originalText, fromName, confirmText, skip: false } }];"
       }
     },
     {
@@ -145,18 +145,18 @@
       }
     },
     {
-      "id": "remove-buttons",
-      "name": "Remove Inline Keyboard",
+      "id": "edit-message-text",
+      "name": "Edit Message Text",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [1340, 500],
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/editMessageReplyMarkup",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/editMessageText",
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ chat_id: $('Parse Callback').first().json.chatId, message_id: $('Parse Callback').first().json.messageId, reply_markup: {} }) }}",
+        "body": "={{ JSON.stringify({ chat_id: $('Parse Callback').first().json.chatId, message_id: $('Parse Callback').first().json.messageId, text: $('Parse Callback').first().json.originalText + '\\n\\n' + $('Parse Callback').first().json.confirmText + ' — ' + $('Parse Callback').first().json.fromName, parse_mode: 'HTML' }) }}",
         "options": {
           "response": {
             "response": {
@@ -188,7 +188,7 @@
         [
           {"node": "PATCH Podpis Stav", "type": "main", "index": 0},
           {"node": "Answer Callback Query", "type": "main", "index": 0},
-          {"node": "Remove Inline Keyboard", "type": "main", "index": 0}
+          {"node": "Edit Message Text", "type": "main", "index": 0}
         ],
         []
       ]

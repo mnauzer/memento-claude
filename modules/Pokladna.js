@@ -34,7 +34,7 @@ var Pokladna = (function() {
 
     var MODULE_INFO = {
         name: "Pokladna",
-        version: "1.1.1",
+        version: "1.1.2",
         author: "ASISTANTO",
         description: "Cash book and payment management module",
         library: "Pokladňa",
@@ -43,6 +43,7 @@ var Pokladna = (function() {
         extractedLines: 1114,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.1.2 (2026-03-22) - FIX: requestSign() - duplicate check on Stav podpisu; add Zamestnanec+Dátum odoslania to podpisPayload; PATCH link Pokladňa→Podpisy after creation",
             "v1.1.1 (2026-03-22) - FIX: requestSign() - String.fromCharCode() pre ď/ú",
             "v1.1.0 (2026-03-22) - NEW: requestSign() - send payment record for employee confirmation via N8N+Telegram"
         ].join("\n")
@@ -1159,6 +1160,18 @@ var Pokladna = (function() {
         var N8N_SIGN_URL     = "https://n8n.asistanto.sk/webhook/krajinka-sign";
 
         try {
+            // --- Duplicate check ---
+            var stavPodpisu = (entry.field("Stav podpisu") || "").trim();
+            if (stavPodpisu === "Čaká" || stavPodpisu === "Čaká " || stavPodpisu === "Hotovo") {
+                return { success: false, error: "Podpis u\u017e bol odoslan\u00fd (Stav: " + stavPodpisu + ")" };
+            }
+
+            var POKLADNA_LIB_ID = "g9eS5Ny2E";
+            var _now = new Date();
+            var todayStr = _now.getFullYear() + "-" +
+                ("0" + (_now.getMonth() + 1)).slice(-2) + "-" +
+                ("0" + _now.getDate()).slice(-2);
+
             var entryId = entry.id;
             if (!entryId) return { success: false, error: "Chýba entry ID záznamu" };
 
@@ -1216,10 +1229,12 @@ var Pokladna = (function() {
             // --- Vytvor podpisy záznam cez Memento API ---
             var podpisPayload = JSON.stringify({
                 fields: [
-                    { name: "Knižnica",   value: "Pokladňa" },
-                    { name: "Zdroj ID",   value: entryId },
-                    { name: "TG Chat ID", value: parseFloat(chatId) },
-                    { name: "Stav",       value: "Čaká " }
+                    { name: "Zamestnanec",         value: empId },
+                    { name: "Kni\u017enica",       value: "Pokladňa" },
+                    { name: "Zdroj ID",            value: entryId },
+                    { name: "TG Chat ID",          value: parseFloat(chatId) },
+                    { name: "Stav",                value: "Čaká " },
+                    { name: "D\u00e1tum odoslania", value: todayStr }
                 ]
             });
 
@@ -1237,8 +1252,15 @@ var Pokladna = (function() {
             var podpisId = apiBody.id || "";
 
             if (!podpisId) {
-                return { success: false, error: "Memento API nevrátilo ID podpisu" };
+                return { success: false, error: "Memento API nevr\u00e1tilo ID podpisu" };
             }
+
+            // --- Linkni Pokladňa → Podpisy ---
+            var lhObj = http();
+            lhObj.headers({ "Content-Type": "application/json" });
+            var linkPayload = JSON.stringify({ fields: [{ name: "Podpis", value: podpisId }] });
+            var linkUrl = MEMENTO_API_BASE + "/libraries/" + POKLADNA_LIB_ID + "/entries/" + entryId + "?token=" + MEMENTO_TOKEN;
+            lhObj.patch(linkUrl, linkPayload);
 
             // --- Odošli do N8N ---
             var n8nPayload = JSON.stringify({
