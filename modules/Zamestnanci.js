@@ -1,8 +1,8 @@
 /**
  * Module:      Zamestnanci
- * Version:     1.22.0
+ * Version:     1.23.0
  * Author:      ASISTANTO
- * Date:        2026-03-21
+ * Date:        2026-03-22
  *
  * Purpose:
  *   Reusable module for employee wage calculations based on attendance records.
@@ -28,6 +28,10 @@
  *   }
  *
  * Changelog:
+ *   v1.23.0 (2026-03-22) - sendReportToTelegram: delegate to N8N webhook (https://n8n.asistanto.sk/webhook/krajinka-notify)
+ *     - Sends {type: "wage_report", entryId} to N8N which fetches from memento_mirror + sends Telegram with inline keyboard
+ *     - Removed 250+ lines of message-building + direct Telegram HTTP logic from Memento side
+ *     - N8N flow: "Greta Krajinka — Wage Report & Confirm" (ID: uttmJkxyCA5kNFUk)
  *   v1.22.0 (2026-03-21) - sendReportToTelegram: bypass MementoAI, call http() directly
  *     - Root cause: MementoAI often not loaded in action context → sendTelegramMessage silently failed
  *     - New KROK 6: reads bot token via MementoCore.getSettings(), calls http().post() directly
@@ -135,9 +139,9 @@ var Zamestnanci = (function() {
 
     var MODULE_INFO = {
         name: "Zamestnanci",
-        version: "1.21.0",
+        version: "1.23.0",
         author: "ASISTANTO",
-        date: "2026-03-21",
+        date: "2026-03-22",
         library: "zamestnanci",              // → libraries/zamestnanci/fields.json
         externalLibraries: ["sadzby-zamestnancov", "dochadzka", "pokladna"]  // → libraries/*/fields.json
     };
@@ -1242,279 +1246,49 @@ var Zamestnanci = (function() {
         },
 
         /**
-         * Send wage report to employee's Telegram as a monospace-table message.
+         * Send wage report to employee's Telegram via N8N webhook.
          *
-         * ⚠️ telegram parameter MUST be passed from outside the IIFE
-         *    (MementoTelegram cannot be imported inside due to circular dependency).
-         *    Call: Zamestnanci.sendReportToTelegram(entry(), config, utils, MementoTelegram)
-         *
-         * Date range is read from "obdobie" field on employeeEntry.
-         * Employee's Telegram chat ID is read from "Telegram ID" field.
+         * Posts {type: "wage_report", entryId} to N8N which fetches data from
+         * memento_mirror PostgreSQL, builds the message with inline keyboard
+         * (✅ Potvrdzujem / ❌ Nesúhlasím) and sends it via Telegram.
          *
          * @param {Entry}  employeeEntry
-         * @param {Object} config   - MementoConfig object
-         * @param {Object} utils    - MementoUtils object
-         * @param {Object} telegram - MementoTelegram object (direct import)
+         * @param {Object} config   - MementoConfig object (unused, kept for API compat)
+         * @param {Object} utils    - MementoUtils object (unused, kept for API compat)
+         * @param {Object} telegram - (unused, kept for API compat)
          * @returns {Object} { success: boolean, error?: string }
          */
         sendReportToTelegram: function(employeeEntry, config, utils, telegram) {
-            directLog(employeeEntry, "📤 sendReportToTelegram START");
+            directLog(employeeEntry, "📤 sendReportToTelegram → N8N webhook");
             try {
-                if (!telegram) {
-                    return { success: false, error: "MementoTelegram nie je dostupný" };
+                var entryId = employeeEntry.id;
+                if (!entryId) {
+                    directError(employeeEntry, "Chýba entryId záznamu");
+                    return { success: false, error: "Chýba entryId záznamu" };
                 }
+                debugLog(employeeEntry, "   • Entry ID: " + entryId);
 
-                var startTime = new Date();
-                function nowHMS() {
-                    var n = new Date();
-                    var h = n.getHours(), m = n.getMinutes(), s = n.getSeconds();
-                    return (h<10?"0":"")+h+":"+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;
-                }
+                var n8nUrl = "https://n8n.asistanto.sk/webhook/krajinka-notify";
+                var payload = JSON.stringify({ type: "wage_report", entryId: entryId });
+                debugLog(employeeEntry, "   • POST → " + n8nUrl);
 
-                debugLog(employeeEntry, "📤  === sendReportToTelegram ===");
-                debugLog(employeeEntry, "📅  Čas spustenia: " +
-                    startTime.getDate() + "." + (startTime.getMonth()+1) + "." + startTime.getFullYear() +
-                    " " + nowHMS().slice(0,5));
+                var httpObj = http();
+                httpObj.headers({ "Content-Type": "application/json" });
+                var resp = httpObj.post(n8nUrl, payload);
+                debugLog(employeeEntry, "   • HTTP status: " + resp.code);
 
-                // ── KROK 1: Validácia vstupov ────────────────
-                debugLog(employeeEntry, "🛡️  KROK 1: VALIDÁCIA VSTUPOV");
-
-                var chatId = ((employeeEntry.field("Telegram ID") || "") + "").trim();
-                debugLog(employeeEntry, "   • Telegram ID: " + (chatId || "(prázdne)"));
-                if (!chatId) {
-                    directError(employeeEntry, "Chýba Telegram ID", "sendReportToTelegram");
-                    return { success: false, error: "Zamestnanec nem\u00e1 nastaven\u00e9 Telegram ID" };
-                }
-
-                var periodChoice = employeeEntry.field(FIELDS.period);
-                debugLog(employeeEntry, "   • Obdobie: " + (periodChoice || "(prázdne)"));
-                if (!periodChoice) {
-                    directError(employeeEntry, "Chýba pole 'obdobie'", "sendReportToTelegram");
-                    return { success: false, error: "Pole 'obdobie' nie je nastaven\u00e9" };
-                }
-
-                var nick       = employeeEntry.field(FIELDS.nick) || "N/A";
-                var priezvisko = ((employeeEntry.field("Priezvisko") || "") + "").trim();
-                var fullName   = nick + (priezvisko ? " (" + priezvisko + ")" : "");
-                debugLog(employeeEntry, "   • Zamestnanec: " + fullName);
-
-                var dateRange    = calculateDateRange(periodChoice);
-                var dateRangeStr = formatDate(dateRange.startDate) + " \u2013 " + formatDate(dateRange.endDate);
-                debugLog(employeeEntry, "   • Rozsah: " + dateRangeStr);
-                debugLog(employeeEntry, "   \u2705 Validácia OK");
-
-                // ── KROK 2: Záznamy Dochádzky ────────────────
-                debugLog(employeeEntry, "📋  KROK 2: ZÁZNAMY DOCHÁDZKY");
-
-                var dochLinks = employeeEntry.linksFrom("Doch\u00e1dzka", EXTERNAL.dochEmployees);
-                debugLog(employeeEntry, "   • linksFrom Dochádzka: " + dochLinks.length + " celkom");
-                var odpRows = [];
-                var totalOdprac = 0, totalZarob = 0;
-                var skippedOutOfRange = 0, skippedNoMatch = 0;
-
-                for (var i = 0; i < dochLinks.length; i++) {
-                    var doc  = dochLinks[i];
-                    var datum = doc.field(EXTERNAL.dochDate);
-                    if (!datum || datum < dateRange.startDate || datum > dateRange.endDate) {
-                        skippedOutOfRange++;
-                        continue;
-                    }
-
-                    var zams = doc.field(EXTERNAL.dochEmployees);
-                    if (!zams || !zams.length) { skippedNoMatch++; continue; }
-
-                    var found = false;
-                    for (var j = 0; j < zams.length; j++) {
-                        var emp = zams[j];
-                        if (!emp || emp.id !== employeeEntry.id) continue;
-
-                        var odprac = emp.attr(ATTRS.attrWorked)    || 0;
-                        var sadzba = emp.attr(ATTRS.attrHodinovka) || 0;
-                        var dMzda  = emp.attr(ATTRS.attrDailyWage) || 0;
-                        var cas    = formatTime(doc.field(EXTERNAL.dochPrichod)) +
-                                     (doc.field(EXTERNAL.dochOdchod) ? "\u2013" + formatTime(doc.field(EXTERNAL.dochOdchod)) : "");
-
-                        odpRows.push({ datum: datum, cas: cas, odprac: odprac, sadzba: sadzba, celkom: dMzda });
-                        totalOdprac += odprac;
-                        totalZarob  += dMzda;
-                        debugLog(employeeEntry, "   + " + formatDate(datum) + " " + (cas || "--") +
-                            "  " + odprac.toFixed(2) + "h  " + fmtCell(sadzba) + "  =" + fmtCell(dMzda));
-                        found = true;
-                        break;
-                    }
-                    if (!found) skippedNoMatch++;
-                }
-                odpRows.sort(function(a, b) { return a.datum - b.datum; });
-
-                debugLog(employeeEntry, "   • Preskočené (mimo rozsah): " + skippedOutOfRange);
-                debugLog(employeeEntry, "   • Preskočené (bez zhody): " + skippedNoMatch);
-                debugLog(employeeEntry, "   \u2705 Spracovaných: " + odpRows.length + " záz." +
-                    "  Odprac: " + totalOdprac.toFixed(2) + "h  Zarobené: " + fmtCell(totalZarob));
-
-                // ── KROK 3: Záznamy Pokladne ──────────────────
-                debugLog(employeeEntry, "💰  KROK 3: ZÁZNAMY POKLADNE");
-
-                var poklLinks = employeeEntry.linksFrom("Pokladňa", EXTERNAL.poklZamestnanec);
-                debugLog(employeeEntry, "   • linksFrom Pokladňa: " + poklLinks.length + " celkom");
-                var payRows = [];
-                var totalVypl = 0;
-                var skippedPokl = 0;
-
-                for (var i = 0; i < poklLinks.length; i++) {
-                    var pokl  = poklLinks[i];
-                    var datum = pokl.field(EXTERNAL.dochDate);
-                    if (!datum || datum < dateRange.startDate || datum > dateRange.endDate) { skippedPokl++; continue; }
-
-                    var pohyb = (pokl.field(EXTERNAL.poklPohyb) || "").trim();
-                    var ucel  = (pokl.field(EXTERNAL.poklUcelVydaja) || "").trim();
-                    if (pohyb !== "V\u00fddavok" || ucel !== "Mzda") {
-                        debugLog(employeeEntry, "   skip " + formatDate(datum) + " Pohyb=" + pohyb + " Účel=" + ucel);
-                        skippedPokl++;
-                        continue;
-                    }
-
-                    var suma  = pokl.field(EXTERNAL.poklSuma) || 0;
-                    var popis = ((pokl.field(EXTERNAL.poklPopis) || "").trim()) || ucel || "mzda";
-                    payRows.push({ datum: datum, popis: popis, suma: suma });
-                    totalVypl += suma;
-                    debugLog(employeeEntry, "   + " + formatDate(datum) + "  " + popis + "  " + fmtCell(suma));
-                }
-                payRows.sort(function(a, b) { return a.datum - b.datum; });
-
-                debugLog(employeeEntry, "   • Preskočené: " + skippedPokl);
-                debugLog(employeeEntry, "   \u2705 Spracovaných: " + payRows.length + " platieb  Celkom: " + fmtCell(totalVypl));
-
-                // ── KROK 4: Výpočet salda ─────────────────────
-                debugLog(employeeEntry, "🧮  KROK 4: VÝPOČET SALDA");
-
-                var balance      = totalZarob - totalVypl;
-                var balanceEmoji = balance >= 0 ? "\ud83d\udd34" : "\ud83d\udfe2";
-                var balanceWord  = balance >= 0 ? "Nedoplatok" : "Preplatok";
-                debugLog(employeeEntry, "   • Zarobené:  " + fmtCell(totalZarob));
-                debugLog(employeeEntry, "   • Vyplatené: " + fmtCell(totalVypl));
-                debugLog(employeeEntry, "   • " + balanceWord + ": " +
-                    fmtCell(totalZarob) + " \u2212 " + fmtCell(totalVypl) + " = " + fmtCell(Math.abs(balance)));
-
-                // ── KROK 5: Formátovanie správy ───────────────
-                debugLog(employeeEntry, "📝  KROK 5: FORMÁTOVANIE SPRÁVY");
-
-                // Odpracované: Dátum(10) | Od-Do(11) | Hod(5) | Sadzba(7) | Celkom(8)
-                var D=10, C=11, H=5, SA=7, CE=8;
-                var SEP1 = rep("\u2500", D+1+C+1+H+1+SA+1+CE);
-
-                var t1 = padR("D\u00e1tum",D)+" "+padR("Od\u2013Do",C)+" "+padL("Hod",H)+" "+padL("Sadzba",SA)+" "+padL("Celkom",CE)+"\n";
-                t1 += SEP1 + "\n";
-                if (odpRows.length === 0) {
-                    t1 += "(\u017diadne z\u00e1znamy)\n";
+                if (resp.code === 200) {
+                    debugLog(employeeEntry, "   ✅ N8N webhook prijal správu");
+                    debugLog(employeeEntry, "   📋 === KONIEC sendReportToTelegram v" + MODULE_INFO.version + " ===");
+                    return { success: true };
                 } else {
-                    for (var i = 0; i < odpRows.length; i++) {
-                        var r = odpRows[i];
-                        t1 += padR(formatDate(r.datum), D) + " " +
-                              padR(r.cas || "\u2013", C)   + " " +
-                              padL(r.odprac.toFixed(2).replace(".",","), H) + " " +
-                              padL(fmtCell(r.sadzba), SA)  + " " +
-                              padL(fmtCell(r.celkom), CE)  + "\n";
-                    }
+                    var errBody = (resp.body || "").toString().substring(0, 300);
+                    directError(employeeEntry, "N8N webhook error " + resp.code + ": " + errBody);
+                    return { success: false, error: "N8N webhook error " + resp.code };
                 }
-                t1 += SEP1 + "\n";
-                t1 += rep(" ", D+1+C+1+H+1+SA) + " " + padL(fmtCell(totalZarob), CE);
-
-                // Vyplatené: Dátum(10) | Popis(14) | Suma(8)
-                var PO=14, SU=8;
-                var SEP2 = rep("\u2500", D+1+PO+1+SU);
-
-                var t2 = padR("D\u00e1tum",D)+" "+padR("Popis",PO)+" "+padL("Suma",SU)+"\n";
-                t2 += SEP2 + "\n";
-                if (payRows.length === 0) {
-                    t2 += "(\u017diadne platby)\n";
-                } else {
-                    for (var i = 0; i < payRows.length; i++) {
-                        var pr = payRows[i];
-                        t2 += padR(formatDate(pr.datum), D) + " " +
-                              padR(pr.popis, PO)            + " " +
-                              padL(fmtCell(pr.suma), SU)    + "\n";
-                    }
-                }
-                t2 += SEP2 + "\n";
-                t2 += rep(" ", D+1) + padR("Celkom", PO) + " " + padL(fmtCell(totalVypl), SU);
-
-                debugLog(employeeEntry, "   • Tabuľka 1 (odprac.): " + odpRows.length + " riadkov");
-                debugLog(employeeEntry, "   • Tabuľka 2 (platby): " + payRows.length + " riadkov");
-
-                // ── KROK 6: Odoslanie na Telegram ────────────
-                debugLog(employeeEntry, "📨  KROK 6: ODOSLANIE NA TELEGRAM");
-                debugLog(employeeEntry, "   • Chat ID: " + chatId);
-
-                var now = new Date();
-                var msg = "\ud83d\udccb <b>" + escHtml(fullName) + "</b>\n";
-                msg += "\ud83d\udcc5 " + escHtml(dateRangeStr) + "\n\n";
-                msg += "\ud83d\udcbc <b>Odpracovan\u00e9 / Zaroben\u00e9</b>\n";
-                msg += "<pre>" + t1 + "</pre>\n";
-                msg += "\ud83d\udcb0 <b>Vyplaten\u00e9</b>\n";
-                msg += "<pre>" + t2 + "</pre>\n";
-                msg += balanceEmoji + " <b>" + balanceWord + ": " + escHtml(fmtCell(Math.abs(balance))) + "</b>\n\n";
-                msg += "<i>Odoslan\u00e9: " + formatDate(now) + " | Zamestnanci v" + MODULE_INFO.version + "</i>";
-
-                debugLog(employeeEntry, "   • Dĺžka správy: " + msg.length + " znakov");
-
-                // ── Získaj bot token priamo z ASISTANTO Defaults (bypass MementoAI) ──
-                var botToken = null;
-                try {
-                    var tgCore = typeof MementoCore !== 'undefined' ? MementoCore : null;
-                    if (tgCore) {
-                        botToken = tgCore.getSettings("ASISTANTO Defaults", "Telegram Bot API Key");
-                    }
-                } catch (tokenErr) {
-                    debugLog(employeeEntry, "   ⚠️ getSettings error: " + tokenErr.toString());
-                }
-                debugLog(employeeEntry, "   • Bot token: " + (botToken ? "OK (" + botToken.substring(0,10) + "...)" : "CHÝBA!"));
-
-                if (!botToken) {
-                    directError(employeeEntry, "Telegram Bot API token nebol nájdený v ASISTANTO Defaults");
-                    return { success: false, error: "Telegram Bot API token nie je nastavený" };
-                }
-
-                // ── Odošli priamo cez http() — bez MementoAI dependency ──
-                var sendOk = false;
-                try {
-                    var httpObj = http();
-                    httpObj.headers({ "Content-Type": "application/json" });
-                    var tgUrl = "https://api.telegram.org/bot" + botToken + "/sendMessage";
-                    var tgData = JSON.stringify({ chat_id: chatId, text: msg, parse_mode: "HTML" });
-                    var tgResp = httpObj.post(tgUrl, tgData);
-                    debugLog(employeeEntry, "   • HTTP status: " + tgResp.code);
-                    if (tgResp.code === 200) {
-                        sendOk = true;
-                    } else {
-                        var errBody = (tgResp.body || "").toString().substring(0, 300);
-                        directError(employeeEntry, "Telegram API error " + tgResp.code + ": " + errBody);
-                        return { success: false, error: "Telegram API " + tgResp.code + ": " + errBody };
-                    }
-                } catch (tgErr) {
-                    directError(employeeEntry, "HTTP request exception: " + tgErr.toString());
-                    return { success: false, error: tgErr.toString() };
-                }
-
-                debugLog(employeeEntry, "   \u2705 Správa odoslaná na Telegram ID: " + chatId);
-
-                // ── FINÁLNY SÚHRN ────────────────────────────
-                debugLog(employeeEntry, "");
-                debugLog(employeeEntry, "\ud83d\udcca  === FINA\u013dN\u00dd S\u00daHRN ===");
-                debugLog(employeeEntry, "  \u2705 Validácia vstupov");
-                debugLog(employeeEntry, "  \u2705 Záznamy Dochádzky (" + odpRows.length + " záz.)");
-                debugLog(employeeEntry, "  \u2705 Záznamy Pokladne (" + payRows.length + " platieb)");
-                debugLog(employeeEntry, "  \u2705 Výpočet salda (" + balanceWord + ": " + fmtCell(Math.abs(balance)) + ")");
-                debugLog(employeeEntry, "  \u2705 Formátovanie správy");
-                debugLog(employeeEntry, (sendOk ? "  \u2705" : "  \u274c") + " Odoslanie na Telegram");
-                debugLog(employeeEntry, "");
-                debugLog(employeeEntry, "  \u2705 Všetky kroky dokončené úspešne!");
-                debugLog(employeeEntry, "  \u23f1\ufe0f Čas ukončenia: " + nowHMS());
-                debugLog(employeeEntry, "  \ud83d\udccb === KONIEC sendReportToTelegram v" + MODULE_INFO.version + " ===");
-                return { success: true };
 
             } catch (error) {
                 directError(employeeEntry, "sendReportToTelegram: " + error.toString());
-                directError(employeeEntry, "Chyba send report: " + error.toString(), "sendReportToTelegram", error);
                 return { success: false, error: error.toString() };
             }
         }
