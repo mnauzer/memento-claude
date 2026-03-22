@@ -34,7 +34,7 @@ var Pokladna = (function() {
 
     var MODULE_INFO = {
         name: "Pokladna",
-        version: "1.2.0",
+        version: "1.2.1",
         author: "ASISTANTO",
         description: "Cash book and payment management module",
         library: "Pokladňa",
@@ -43,6 +43,7 @@ var Pokladna = (function() {
         extractedLines: 1114,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.2.1 (2026-03-22) - FIX: requestSign() - add _log/_errLog debug; handle zamestnanec array/null defensively; fix 'Čaká ' trailing space in Stav; replace concat with replace on Podpis field",
             "v1.2.0 (2026-03-22) - CHANGE: requestSign() - new message format: plain separators, pohyb icon, popis+ucel, suma after separator, no HTML tags",
             "v1.1.6 (2026-03-22) - FIX: requestSign() - add libCode:'P' to N8N payload; N8N confirm flow v4 uses sign_{sourceId}_P_{action} in callback_data and PATCHes Pokladňa directly (no podpis GET needed)",
             "v1.1.5 (2026-03-22) - FIX: requestSign() - send sourceId (entryId) to N8N for callback_data; N8N confirm flow v2 searches by Zdroj ID + fromChatId",
@@ -1161,39 +1162,64 @@ var Pokladna = (function() {
     function requestSign(entry, config, utils) {
         var N8N_SIGN_URL = "https://n8n.asistanto.sk/webhook/krajinka-sign";
 
+        // Direct debug accumulator — rovnaký pattern ako Dochadzka.requestSign
+        var _dbg = ["[Pokladna.requestSign v1.2.1]"];
+        function _log(msg) {
+            _dbg.push(msg);
+            try { entry.set("Debug_Log", _dbg.join("\n")); } catch(e) {}
+        }
+        function _errLog(msg) {
+            try {
+                var ex = entry.field("Error_Log") || "";
+                entry.set("Error_Log", ex + msg + "\n");
+            } catch(e) {}
+        }
+
+        _log("start");
+
         try {
             // --- Duplicate check ---
             var stavPodpisu = (entry.field("Stav podpisu") || "").trim();
-            if (stavPodpisu === "Čaká" || stavPodpisu === "Čaká " || stavPodpisu === "Hotovo") {
+            _log("stavPodpisu='" + stavPodpisu + "'");
+            if (stavPodpisu === "Čaká" || stavPodpisu === "Hotovo") {
                 return { success: false, error: "Podpis u\u017e bol odoslan\u00fd (Stav: " + stavPodpisu + ")" };
             }
 
             var entryId = entry.id;
-            if (!entryId) return { success: false, error: "Chýba entry ID záznamu" };
+            _log("entryId=" + entryId);
+            if (!entryId) return { success: false, error: "Ch\u00fdba entry ID z\u00e1znamu" };
 
             // --- Čítaj polia záznamu ---
-            var datumField    = entry.field("Dátum");
-            var pohybField    = entry.field("Pohyb");      // "Výdavok", "Príjem", ...
-            var sumaField     = entry.field("Suma");
-            var popisField    = entry.field("Popis platby");
-            var ucelField     = entry.field("Účel výdaja") || entry.field("Účel príjmu") || "";
-            var zamestnanec   = entry.field("Zamestnanec");
+            var datumField  = entry.field("D\u00e1tum");
+            var pohybField  = entry.field("Pohyb");
+            var sumaField   = entry.field("Suma");
+            var popisField  = entry.field("Popis platby");
+            var ucelField   = entry.field("\u00da\u010del v\u00fddaja") || entry.field("\u00da\u010del pr\u00edjmu") || "";
+            var zamestnanec = entry.field("Zamestnanec");
 
-            if (!zamestnanec) {
-                return { success: false, error: "Záznam nemá priradený 'Zamestnanec'" };
+            _log("pohyb=" + pohybField + " suma=" + sumaField + " popis=" + popisField);
+            _log("zamestnanec=" + (zamestnanec ? (Array.isArray(zamestnanec) ? "array[" + zamestnanec.length + "]" : "object id=" + (zamestnanec.id || "?")) : "NULL"));
+
+            // Defensive: handles both single object (multiple:false) and array
+            if (!zamestnanec || (Array.isArray(zamestnanec) && zamestnanec.length === 0)) {
+                return { success: false, error: "Z\u00e1znam nem\u00e1 priraden\u00fd 'Zamestnanec'" };
+            }
+            var zam = Array.isArray(zamestnanec) ? zamestnanec[0] : zamestnanec;
+            if (!zam) {
+                return { success: false, error: "Zamestnanec je pr\u00e1zdny" };
             }
 
-            // zamestnanec je linkToEntry objekt
-            var empId  = zamestnanec.id || "";
-            var nick   = zamestnanec.field ? (zamestnanec.field("Nick") || "") : "";
-            var priezv = zamestnanec.field ? (zamestnanec.field("Priezvisko") || "") : "";
+            var nick   = zam.field ? (zam.field("Nick") || "") : "";
+            var priezv = zam.field ? (zam.field("Priezvisko") || "") : "";
             var empName = (nick + " " + priezv).trim() || "Zamestnanec";
 
-            var chatId = zamestnanec.field ? zamestnanec.field("Telegram ID") : null;
+            var chatId = zam.field ? zam.field("Telegram ID") : null;
             chatId = chatId ? String(chatId).trim() : "";
 
+            _log("emp=" + empName + " chatId=" + chatId);
+
             if (!chatId) {
-                return { success: false, error: "Zamestnanec " + empName + " nemá Telegram ID" };
+                return { success: false, error: "Zamestnanec " + empName + " nem\u00e1 Telegram ID" };
             }
 
             // --- Formátovanie ---
@@ -1213,6 +1239,8 @@ var Pokladna = (function() {
             var sumaStr  = fmtMoney(sumaField);
             var popisStr = popisField || ucelField || pohybField || "platba";
 
+            _log("datum=" + datumStr + " suma=" + sumaStr);
+
             // --- Zostav správu ---
             var NL  = String.fromCharCode(10);
             var ico = pohybField === "V\u00fddavok" ? "\uD83D\uDCB8" : "\uD83D\uDCB0";
@@ -1226,15 +1254,15 @@ var Pokladna = (function() {
                 + NL + "------------------------" + NL
                 + "\uD83D\uDCB6 " + sumaStr;
 
-            // --- Vytvor podpisy záznam cez Memento JS API ---
-            // libByName().create() vytvára entry v lokálnom DB (sync do cloudu automaticky).
-            // Zamestnanec nastavíme ako správny linkToEntry — žiaden Cloud API PATCH nie je potrebný.
+            // --- Vytvor Podpis záznam ---
             var podpisLib = libByName("podpisy");
+            _log("podpisLib=" + (podpisLib ? "found" : "NULL"));
             if (!podpisLib) {
                 return { success: false, error: "Kni\u017enica podpisy nenájdená" };
             }
+
             var podpisEntry = podpisLib.create({});
-            podpisEntry.set("Zamestnanec", [zamestnanec]);
+            podpisEntry.set("Zamestnanec", [zam]);
             podpisEntry.set("Kni\u017enica", "Pokladňa");
             podpisEntry.set("Zdroj ID", entryId);
             podpisEntry.set("TG Chat ID", parseFloat(chatId));
@@ -1242,23 +1270,22 @@ var Pokladna = (function() {
             podpisEntry.set("D\u00e1tum odoslania", new Date());
             var podpisId = podpisEntry.id;
 
+            _log("podpisId=" + podpisId);
+
             if (!podpisId) {
+                _errLog("Memento nepridelilo ID podpisu");
                 return { success: false, error: "Memento nepridelilo ID podpisu" };
             }
 
-            // Prepoj podpis záznam na tento Pokladňa záznam (in-memory, bez API PATCH)
-            var existPodpis = entry.field("Podpis") || [];
-            if (!Array.isArray(existPodpis)) { existPodpis = []; }
-            entry.set("Podpis", existPodpis.concat([podpisEntry]));
+            // Prepoj Podpis → Pokladňa (replace, nie concat — ako Dochádzka v1.3.9)
+            entry.set("Podpis", [podpisEntry]);
 
             // --- Odošli do N8N ---
-            // N8N request_sign flow: callback_data = "sign_{sourceId}_{libCode}_{action}"
-            // libCode "P" = Pokladňa → N8N PATCHuje priamo bez GET podpisu (vyhýba cloud sync delay)
             var n8nPayload = JSON.stringify({
                 type:     "request_sign",
-                sourceId: entryId,    // ← Pokladňa entry cloud ID (pre PATCH Source Status)
-                libCode:  "P",        // ← P = Pokladňa (pre N8N confirm flow mapovanie knižnice)
-                podpisId: podpisId,   // ← lokálny ID podpisu (info only, nespoľahlivý pre cloud PATCH)
+                sourceId: entryId,
+                libCode:  "P",
+                podpisId: podpisId,
                 chatId:   chatId,
                 message:  msg
             });
@@ -1266,17 +1293,22 @@ var Pokladna = (function() {
             var n8nHttpObj = http();
             n8nHttpObj.headers({ "Content-Type": "application/json" });
             var n8nResp = n8nHttpObj.post(N8N_SIGN_URL, n8nPayload);
+            var n8nCode = n8nResp ? n8nResp.code : 0;
+            _log("N8N code=" + n8nCode);
 
-            if (!n8nResp || n8nResp.code < 200 || n8nResp.code >= 300) {
-                return { success: false, error: "N8N webhook error " + (n8nResp ? n8nResp.code : "no response") };
+            if (!n8nResp || n8nCode < 200 || n8nCode >= 300) {
+                _errLog("N8N webhook error " + n8nCode);
+                return { success: false, error: "N8N webhook error " + n8nCode };
             }
 
-            // Aktualizuj stav záznamu
-            entry.set("Stav podpisu", "Čaká");
+            // "Čaká " — trailing space je súčasťou choice labelu v Pokladňa (id:133, option "Čaká ")
+            entry.set("Stav podpisu", "Čaká ");
+            _log("DONE");
 
             return { success: true };
 
         } catch (error) {
+            _errLog("KRITICKÁ CHYBA: " + error.toString());
             return { success: false, error: error.toString() };
         }
     }
