@@ -34,7 +34,7 @@ var Pokladna = (function() {
 
     var MODULE_INFO = {
         name: "Pokladna",
-        version: "1.1.6",
+        version: "1.2.0",
         author: "ASISTANTO",
         description: "Cash book and payment management module",
         library: "Pokladňa",
@@ -43,6 +43,7 @@ var Pokladna = (function() {
         extractedLines: 1114,
         extractedDate: "2026-03-19",
         changelog: [
+            "v1.2.0 (2026-03-22) - CHANGE: requestSign() - new message format: plain separators, pohyb icon, popis+ucel, suma after separator, no HTML tags",
             "v1.1.6 (2026-03-22) - FIX: requestSign() - add libCode:'P' to N8N payload; N8N confirm flow v4 uses sign_{sourceId}_P_{action} in callback_data and PATCHes Pokladňa directly (no podpis GET needed)",
             "v1.1.5 (2026-03-22) - FIX: requestSign() - send sourceId (entryId) to N8N for callback_data; N8N confirm flow v2 searches by Zdroj ID + fromChatId",
             "v1.1.4 (2026-03-22) - FIX: requestSign() - create Podpisy via libByName().create() (not Cloud API); set Zamestnanec as linkToEntry; link Pokladňa→Podpisy in-memory; fix 'Čaká ' trailing space",
@@ -1214,12 +1215,16 @@ var Pokladna = (function() {
 
             // --- Zostav správu ---
             var NL  = String.fromCharCode(10);
-            var ico = pohybField === "Výdavok" ? "\uD83D\uDCB8" : "\uD83D\uDCB0";
-            var msg = ico + " <b>Pokladňa \u2014 " + datumStr + "</b>" + NL
-                + "\uD83D\uDC64 <b>" + empName + "</b>" + NL
-                + "\uD83D\uDCB5 " + (pohybField || "Pohyb") + ": <b>" + sumaStr + "</b>" + NL
-                + "\uD83D\uDCDD " + popisStr + NL + NL
-                + "<i>Potvr" + String.fromCharCode(271) + " alebo odmietni t" + String.fromCharCode(250) + "to platbu:</i>";
+            var ico = pohybField === "V\u00fddavok" ? "\uD83D\uDCB8" : "\uD83D\uDCB0";
+            var msg = "Pokladn\u0148a" + NL
+                + "========================" + NL
+                + "\uD83D\uDCC5 " + datumStr + NL
+                + "\uD83D\uDC64 " + empName + NL
+                + ico + " " + (pohybField || "Pohyb") + NL
+                + "\uD83D\uDCDD " + popisStr
+                + (ucelField && ucelField !== popisStr ? NL + "  \uD83C\uDFF7\uFE0F " + ucelField : "")
+                + NL + "------------------------" + NL
+                + "\uD83D\uDCB6 " + sumaStr;
 
             // --- Vytvor podpisy záznam cez Memento JS API ---
             // libByName().create() vytvára entry v lokálnom DB (sync do cloudu automaticky).
