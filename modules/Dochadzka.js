@@ -1334,7 +1334,7 @@ var Dochadzka = (function() {
                     + "========================" + NL
                     + "\uD83D\uDCC5 " + datumStr + (denStr ? " (" + denStr + ")" : "") + NL
                     + "\uD83D\uDC64 " + empName + NL
-                    + "\u23F0 " + prichodStr + " - " + odchodStr + NL
+                    + "\u23F0 " + prichodStr + " — " + odchodStr + NL
                     + "\uD83D\uDEE0\uFE0F " + fmtHours(odpracovane) + NL
                     + "\uD83D\uDCB6 " + fmtMoney(hodinovka) + "/h"
                     + (priiplatok !== 0 ? NL + "  \u2B50\uFE0F Pr\u00edplatok: +" + fmtMoney(priiplatok) + "/h" : "")
