@@ -3,19 +3,26 @@
   "nodes": [
     {
       "id": "tg-trigger",
-      "name": "Telegram Bot",
-      "type": "n8n-nodes-base.telegramTrigger",
-      "typeVersion": 1.1,
+      "name": "Telegram Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "krajinka-callback-hook",
       "position": [240, 300],
-      "credentials": {
-        "telegramApi": {
-          "id": "fkblljVSfyq4Yjah",
-          "name": "Greta (@KrajinkaAsistantoBot)"
-        }
-      },
       "parameters": {
-        "updates": ["callback_query", "message"],
-        "additionalFields": {}
+        "httpMethod": "POST",
+        "path": "krajinka-callback",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "flatten-update",
+      "name": "Flatten Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "jsCode": "// Extract Telegram update from webhook body wrapper\nreturn [{ json: $input.first().json.body }];"
       }
     },
     {
@@ -23,7 +30,7 @@
       "name": "Is Callback Query?",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [460, 300],
+      "position": [680, 300],
       "parameters": {
         "mode": "rules",
         "rules": {
@@ -52,7 +59,7 @@
       "name": "Parse Callback",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 200],
+      "position": [900, 200],
       "parameters": {
         "jsCode": "const update = $input.first().json;\nconst query = update.callback_query;\nconst data = query.data || '';\n\n// Expected format: \"sign_{podpisId}_confirm\" or \"sign_{podpisId}_reject\"\nif (!data.startsWith('sign_')) {\n  return [{ json: { skip: true, data } }];\n}\n\n// action is the last segment, podpisId is everything between \"sign_\" and last \"_\"\nconst lastIdx = data.lastIndexOf('_');\nconst action = data.substring(lastIdx + 1);       // 'confirm' or 'reject'\nconst podpisId = data.substring(5, lastIdx);      // after 'sign_', before last '_'\n\nif ((action !== 'confirm' && action !== 'reject') || !podpisId) {\n  return [{ json: { skip: true, data } }];\n}\n\nconst confirmed = action === 'confirm';\nconst callbackQueryId = query.id;\nconst chatId = String(query.message.chat.id);\nconst messageId = query.message.message_id;\nconst fromFirst = query.from.first_name || '';\nconst fromLast = query.from.last_name || '';\nconst fromName = (fromFirst + ' ' + fromLast).trim();\nconst confirmText = confirmed\n  ? String.fromCharCode(10004) + ' Potvrdené'\n  : String.fromCharCode(10060) + ' Odmietnuté';\n\nreturn [{ json: { action, podpisId, confirmed, callbackQueryId, chatId, messageId, fromName, confirmText, skip: false } }];"
       }
@@ -62,7 +69,7 @@
       "name": "Is Sign Callback?",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [900, 200],
+      "position": [1120, 200],
       "parameters": {
         "mode": "rules",
         "rules": {
@@ -91,7 +98,7 @@
       "name": "PATCH Podpis Stav",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1120, 100],
+      "position": [1340, 100],
       "parameters": {
         "method": "PATCH",
         "url": "=https://api.mementodatabase.com/v1/libraries/2fNM2Za4G/entries/{{ $json.podpisId }}",
@@ -118,49 +125,53 @@
     {
       "id": "answer-callback",
       "name": "Answer Callback Query",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
-      "position": [1120, 300],
-      "credentials": {
-        "telegramApi": {
-          "id": "fkblljVSfyq4Yjah",
-          "name": "Greta (@KrajinkaAsistantoBot)"
-        }
-      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 300],
       "parameters": {
-        "resource": "callback",
-        "operation": "answerQuery",
-        "queryId": "={{ $('Parse Callback').first().json.callbackQueryId }}",
-        "additionalFields": {
-          "text": "={{ $('Parse Callback').first().json.confirmText }}",
-          "showAlert": false
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/answerCallbackQuery",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ callback_query_id: $('Parse Callback').first().json.callbackQueryId, text: $('Parse Callback').first().json.confirmText, show_alert: false }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
         }
       }
     },
     {
       "id": "remove-buttons",
       "name": "Remove Inline Keyboard",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
-      "position": [1120, 500],
-      "credentials": {
-        "telegramApi": {
-          "id": "fkblljVSfyq4Yjah",
-          "name": "Greta (@KrajinkaAsistantoBot)"
-        }
-      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 500],
       "parameters": {
-        "resource": "message",
-        "operation": "editMessageReplyMarkup",
-        "chatId": "={{ $('Parse Callback').first().json.chatId }}",
-        "messageId": "={{ $('Parse Callback').first().json.messageId }}",
-        "replyMarkup": "replyKeyboardRemove",
-        "additionalFields": {}
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/editMessageReplyMarkup",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ chat_id: $('Parse Callback').first().json.chatId, message_id: $('Parse Callback').first().json.messageId, reply_markup: {} }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       }
     }
   ],
   "connections": {
-    "Telegram Bot": {
+    "Telegram Webhook": {
+      "main": [[{"node": "Flatten Update", "type": "main", "index": 0}]]
+    },
+    "Flatten Update": {
       "main": [[{"node": "Is Callback Query?", "type": "main", "index": 0}]]
     },
     "Is Callback Query?": {
