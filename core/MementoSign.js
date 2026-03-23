@@ -96,6 +96,7 @@
  *     messageTemplate: 'TG Template'   // názov poľa kde je šablóna
  *
  * CHANGELOG:
+ * v1.5.0 (2026-03-23) - NEW: ukladá resolved TG správu do poľa "TG Správa" v Podpis zázname
  * v1.4.0 (2026-03-23) - NEW: {emp.Field} zamestnanec, {@var} templateVars, {Field[n].Sub} index, podmienené riadky
  * v1.3.0 (2026-03-23) - NEW: bodková notácia {LinkedField.SubField} pre linkToEntry polia
  * v1.2.0 (2026-03-22) - NEW: formátovacie modifikátory {Field|date|time|money|number} v _resolveMessage()
@@ -108,8 +109,8 @@ var MementoSign = (function() {
 
     var MODULE_INFO = {
         name: "MementoSign",
-        version: "1.4.0",
-        date: "2026-03-22",
+        version: "1.5.0",
+        date: "2026-03-23",
         description: "Generic Telegram signing protocol — N8N flow is library-agnostic"
     };
 
@@ -179,6 +180,9 @@ var MementoSign = (function() {
 
             // Vyriešenie správy — šablóna má prioritu nad fallback message
             var resolvedMessage = _resolveMessage(sourceEntry, employeeEntry, message, signConfig);
+
+            // Ulož text správy do Podpis záznamu (pole "TG Správa" — text)
+            try { podpisEntry.set("TG Správa", resolvedMessage); } catch(e) {}
 
             // Odošli N8N webhook — minimálny payload (metadata sú v Podpis zázname)
             var payload = JSON.stringify({
