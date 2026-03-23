@@ -21,9 +21,11 @@ if (typeof MementoSign === 'undefined') {
 } else {
 
     var e = entry();
-    var chatId     = e.field("TG Chat ID");
-    var messageId  = e.field("TG Správa ID");
-    var followupId = e.field("TG Follow-up ID");
+    // Safe field access — Memento hádže ReferenceError ak pole nemá hodnotu
+    var safeField = function(name) { try { return e.field(name); } catch(ex) { return null; } };
+    var chatId     = safeField("TG Chat ID");
+    var messageId  = safeField("TG Správa ID");
+    var followupId = safeField("TG Follow-up ID");
 
     var info = "chatId:     " + chatId
              + "\nmessageId:  " + messageId
