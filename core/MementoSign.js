@@ -117,7 +117,7 @@ var MementoSign = (function() {
 
     var MODULE_INFO = {
         name: "MementoSign",
-        version: "1.9.1",
+        version: "1.9.3",
         date: "2026-03-23",
         description: "Generic Telegram signing protocol — N8N flow is library-agnostic"
     };
