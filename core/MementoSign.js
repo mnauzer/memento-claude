@@ -96,6 +96,7 @@
  *     messageTemplate: 'TG Template'   // názov poľa kde je šablóna
  *
  * CHANGELOG:
+ * v1.9.0 (2026-03-23) - NEW: deleteMessage() — maže TG správy cez Bot API; token z ASISTANTO API
  * v1.8.0 (2026-03-23) - NEW: reťazenie modifikátorov — |pos|money, |neg|number atď.; pos/neg sú filtre
  * v1.7.0 (2026-03-23) - NEW: |pos a |neg podmienené formáty — skryjú riadok ak podmienka nesedí
  * v1.6.1 (2026-03-23) - FIX: lowercase "Stav: potvrdené/odmietnuté" — zhoduje sa s reálnou knižnicou
@@ -113,13 +114,38 @@ var MementoSign = (function() {
 
     var MODULE_INFO = {
         name: "MementoSign",
-        version: "1.8.0",
+        version: "1.9.0",
         date: "2026-03-23",
         description: "Generic Telegram signing protocol — N8N flow is library-agnostic"
     };
 
-    var N8N_SIGN_URL = "https://n8n.asistanto.sk/webhook/krajinka-sign";
+    var N8N_SIGN_URL     = "https://n8n.asistanto.sk/webhook/krajinka-sign";
     var PODPISY_LIB_NAME = "podpisy";
+    var TG_API_BASE      = "https://api.telegram.org/bot";
+    var API_LIB_NAME     = "ASISTANTO API";
+    var BOT_ENTRY_NAME   = "Krajinka Bot";  // pole "názov" v ASISTANTO API
+
+    /**
+     * Načíta Bot Token z knižnice ASISTANTO API (pole "Telegram Bot Token").
+     * Token sa nenachádza v kóde — mení sa priamo v Memento zázname.
+     */
+    function _getBotToken() {
+        try {
+            var apiLib = libByName(API_LIB_NAME);
+            if (!apiLib) return null;
+            var entries = apiLib.entries();
+            for (var i = 0; i < entries.length; i++) {
+                var e = entries[i];
+                if (String(e.field('názov') || '').trim() === BOT_ENTRY_NAME) {
+                    var token = String(e.field('Telegram Bot Token') || '').trim();
+                    return token || null;
+                }
+            }
+            return null;
+        } catch(ex) {
+            return null;
+        }
+    }
 
     /**
      * Vytvorí Podpis záznam a odošle N8N webhook pre jedného zamestnanca.
@@ -423,6 +449,47 @@ var MementoSign = (function() {
         return fallbackMessage;
     }
 
+    /**
+     * Zmaže Telegram správu priamo cez Bot API.
+     *
+     * Volá sa z BeforeDelete triggera knižnice podpisy, aby sa pri vymazaní
+     * Podpis záznamu automaticky zmazala aj príslušná TG správa.
+     *
+     * @param {string|number} chatId    Telegram chat ID zamestnanca
+     * @param {string|number} messageId Telegram message_id správy (TG Správa ID)
+     * @returns {{ success: boolean, error: string|null }}
+     */
+    function deleteMessage(chatId, messageId) {
+        try {
+            if (!chatId || !messageId) {
+                return { success: false, error: "chýba chatId alebo messageId" };
+            }
+            var msgId = parseInt(messageId, 10);
+            if (!msgId || msgId <= 0) {
+                return { success: false, error: "neplatné messageId: " + messageId };
+            }
+            var token = _getBotToken();
+            if (!token) {
+                return { success: false, error: "BOT_TOKEN nenájdený v ASISTANTO API ('" + BOT_ENTRY_NAME + "')" };
+            }
+            var url     = TG_API_BASE + token + "/deleteMessage";
+            var payload = JSON.stringify({
+                chat_id:    String(chatId),
+                message_id: msgId
+            });
+            var httpObj = http();
+            httpObj.headers({ "Content-Type": "application/json" });
+            var resp = httpObj.post(url, payload);
+            var code = resp ? resp.code : 0;
+            if (!resp || code < 200 || code >= 300) {
+                return { success: false, error: "TG API error " + code };
+            }
+            return { success: true, error: null };
+        } catch(e) {
+            return { success: false, error: e.toString() };
+        }
+    }
+
     function _err(msg) {
         return { success: false, podpisEntry: null, podpisId: null, error: msg };
     }
@@ -430,7 +497,8 @@ var MementoSign = (function() {
     return {
         info:                MODULE_INFO,
         version:             MODULE_INFO.version,
-        createPodpisAndSend: createPodpisAndSend
+        createPodpisAndSend: createPodpisAndSend,
+        deleteMessage:       deleteMessage
     };
 
 })();
