@@ -69,21 +69,34 @@
  *     {Suma|number}          → "150,00"
  *     {Suma}                 → "150" (bez formátu — raw String)
  *
- *   Bodková notácia pre linkToEntry polia:
- *     {Zamestnanec.Nick}           → field("Nick") na prvom linked entry
- *     {Zamestnanec.Priezvisko}     → field("Priezvisko") na prvom linked entry
- *     {Zákazka.Názov zákazky|...}  → s formátovacím modifikátorom
+ *   Typy placeholderov:
+ *     {FieldName}              → pole zdrojového záznamu
+ *     {LinkedField.SubField}   → pole prvého linked entry
+ *     {LinkedField[n].SubField}→ pole linked entry na indexe n
+ *     {emp.FieldName}          → pole zamestnanca (employeeEntry)
+ *     {@varName}               → premenná z signConfig.templateVars
+ *
+ *   Podmienené riadky:
+ *     Riadok sa automaticky vynechá ak VŠETKY placeholdery na ňom vrátia prázdny string.
+ *     Príklad: "  ⭐️ Príplatok: {@priiplatok}/h" — vynechá sa ak priiplatok = ""
+ *
+ *   signConfig.templateVars — premenné injektované volajúcim modulom:
+ *     signConfig.templateVars = { odpracovane: "8,00 h", hodinovka: "12,00 €", ... }
  *
  *   Príklad šablóny v Memento zázname (pole "TG Template"):
  *     💸 {Pohyb} — {Suma|money}
  *     📅 {Dátum|date}
- *     👤 {Zamestnanec.Nick} {Zamestnanec.Priezvisko}
+ *     👤 {emp.Nick} {emp.Priezvisko}
  *     📋 {Popis platby}
+ *     🛠️ {@odpracovane}
+ *       ⭐️ Príplatok: +{@priiplatok}/h
+ *       ⭐️ Prémia: +{@premie}
  *
  *   signConfig rozšírený:
  *     messageTemplate: 'TG Template'   // názov poľa kde je šablóna
  *
  * CHANGELOG:
+ * v1.4.0 (2026-03-23) - NEW: {emp.Field} zamestnanec, {@var} templateVars, {Field[n].Sub} index, podmienené riadky
  * v1.3.0 (2026-03-23) - NEW: bodková notácia {LinkedField.SubField} pre linkToEntry polia
  * v1.2.0 (2026-03-22) - NEW: formátovacie modifikátory {Field|date|time|money|number} v _resolveMessage()
  * v1.1.0 (2026-03-22) - NEW: _resolveMessage() — template s {FieldName} placeholdermi zo zdrojového záznamu
@@ -95,7 +108,7 @@ var MementoSign = (function() {
 
     var MODULE_INFO = {
         name: "MementoSign",
-        version: "1.3.0",
+        version: "1.4.0",
         date: "2026-03-22",
         description: "Generic Telegram signing protocol — N8N flow is library-agnostic"
     };
@@ -165,7 +178,7 @@ var MementoSign = (function() {
             }
 
             // Vyriešenie správy — šablóna má prioritu nad fallback message
-            var resolvedMessage = _resolveMessage(sourceEntry, message, signConfig);
+            var resolvedMessage = _resolveMessage(sourceEntry, employeeEntry, message, signConfig);
 
             // Odošli N8N webhook — minimálny payload (metadata sú v Podpis zázname)
             var payload = JSON.stringify({
@@ -244,37 +257,90 @@ var MementoSign = (function() {
     }
 
     /**
-     * Vyrieši text správy: šablóna s {FieldName|format} placeholdermi má prioritu.
+     * Vyrieši hodnotu jedného placeholder výrazu.
+     * Podporuje: {Field}, {Link.Sub}, {Link[n].Sub}, {emp.Field}, {@var}
+     */
+    function _resolveField(expr, sourceEntry, employeeEntry, signConfig) {
+        try {
+            // {@varName} — templateVars injektované volajúcim modulom
+            if (expr.charAt(0) === '@') {
+                var vars = (signConfig && signConfig.templateVars) || {};
+                var v = vars[expr.substring(1)];
+                return (v !== null && v !== undefined) ? v : null;
+            }
+
+            // {emp.FieldName} — pole zamestnanca
+            if (expr.substring(0, 4) === 'emp.') {
+                if (!employeeEntry || !employeeEntry.field) return null;
+                return employeeEntry.field(expr.substring(4));
+            }
+
+            // {LinkedField[n].SubField} — indexovaný prístup
+            var bracketIdx = expr.indexOf('[');
+            if (bracketIdx !== -1) {
+                var linkNameB = expr.substring(0, bracketIdx);
+                var rest      = expr.substring(bracketIdx + 1);
+                var closeIdx  = rest.indexOf(']');
+                var idx       = parseInt(rest.substring(0, closeIdx), 10) || 0;
+                var subNameB  = rest.substring(closeIdx + 2); // skip "]."
+                var linkedB   = sourceEntry.field(linkNameB);
+                if (!linkedB || !linkedB[idx] || !linkedB[idx].field) return null;
+                return linkedB[idx].field(subNameB);
+            }
+
+            // {LinkedField.SubField} — prvý linked entry
+            var dotIdx = expr.indexOf('.');
+            if (dotIdx !== -1) {
+                var linkNameD = expr.substring(0, dotIdx);
+                var subNameD  = expr.substring(dotIdx + 1);
+                var linkedD   = sourceEntry.field(linkNameD);
+                if (!linkedD) return null;
+                var linkedEntry = linkedD[0] || linkedD;
+                if (!linkedEntry || !linkedEntry.field) return null;
+                return linkedEntry.field(subNameD);
+            }
+
+            // {FieldName} — priame pole zdrojového záznamu
+            return sourceEntry.field(expr);
+
+        } catch(e) {
+            return null;
+        }
+    }
+
+    /**
+     * Vyrieši text správy zo šablóny s {FieldName|format} placeholdermi.
+     * Riadok sa vynechá ak sú VŠETKY placeholdery na ňom prázdne (podmienené riadky).
      * Fallback: pôvodný message parameter.
      */
-    function _resolveMessage(sourceEntry, fallbackMessage, signConfig) {
+    function _resolveMessage(sourceEntry, employeeEntry, fallbackMessage, signConfig) {
         if (!signConfig.messageTemplate) return fallbackMessage;
         try {
             var template = sourceEntry.field(signConfig.messageTemplate);
             if (!template || String(template).trim() === "") return fallbackMessage;
-            // Regex: {FieldName} alebo {FieldName|format} alebo {LinkedField.SubField|format}
-            return String(template).replace(/\{([^|}]+)(?:\|([^}]+))?\}/g, function(match, fieldExpr, fmt) {
-                try {
-                    var expr = fieldExpr.trim();
-                    var val;
-                    var dotIdx = expr.indexOf('.');
-                    if (dotIdx !== -1) {
-                        // Bodková notácia: {LinkedField.SubField}
-                        var linkName = expr.substring(0, dotIdx).trim();
-                        var subName  = expr.substring(dotIdx + 1).trim();
-                        var linked   = sourceEntry.field(linkName);
-                        if (!linked) return "";
-                        var linkedEntry = linked[0] || linked;
-                        if (!linkedEntry || !linkedEntry.field) return "";
-                        val = linkedEntry.field(subName);
-                    } else {
-                        val = sourceEntry.field(expr);
-                    }
-                    return _formatValue(val, fmt ? fmt.trim() : null);
-                } catch(e) {
-                    return "";
-                }
-            });
+
+            var lines = String(template).split('\n');
+            var resultLines = [];
+
+            for (var l = 0; l < lines.length; l++) {
+                var line = lines[l];
+                var placeholderCount = 0;
+                var emptyCount = 0;
+
+                var resolvedLine = line.replace(/\{([^|}]+)(?:\|([^}]+))?\}/g, function(match, fieldExpr, fmt) {
+                    placeholderCount++;
+                    var val = _resolveField(fieldExpr.trim(), sourceEntry, employeeEntry, signConfig);
+                    var formatted = _formatValue(val, fmt ? fmt.trim() : null);
+                    if (formatted === "") emptyCount++;
+                    return formatted;
+                });
+
+                // Vynechaj riadok ak sú všetky placeholdery prázdne
+                if (placeholderCount > 0 && emptyCount === placeholderCount) continue;
+                resultLines.push(resolvedLine);
+            }
+
+            return resultLines.join('\n');
         } catch(e) {
             return fallbackMessage;
         }
