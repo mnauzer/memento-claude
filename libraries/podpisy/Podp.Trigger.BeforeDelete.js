@@ -2,7 +2,7 @@
  * Knižnica:    podpisy
  * Názov:       Podp.Trigger.BeforeDelete
  * Typ:         Trigger — Before Delete
- * Verzia:      1.5.0
+ * Verzia:      1.6.0
  * Dátum:       2026-03-23
  *
  * Účel:
@@ -20,20 +20,29 @@
  *   "TG Chat ID"      — Telegram chat ID zamestnanca
  *   "TG Správa ID"    — Telegram message_id pôvodnej správy
  *   "TG Follow-up ID" — Telegram message_id force-reply správy (dôvod odmietnutia)
+ *   "Debug_Log"       — diagnostický log (id:27)
  *
  * Poznámky:
  *   - "Čaká " má trailing space (Memento choice label)
- *   - Pre TG mazanie: silent fail — chyba (napr. správa už vymazaná) sa ignoruje
+ *   - v1.6.0: diagnostický log do Debug_Log poľa — namiesto silent fail
  */
 
 var SCRIPT_NAME    = "Podp.Trigger.BeforeDelete";
-var SCRIPT_VERSION = "1.5.0";
+var SCRIPT_VERSION = "1.6.0";
 
 var currentEntry = entry();
 var sf = function(n) { try { return currentEntry.field(n); } catch(ex) { return null; } };
 
+// Diagnostický log — zapíše do Debug_Log poľa
+var debugLines = [];
+function dbg(msg) { debugLines.push(new Date().toISOString().substr(11,8) + " " + msg); }
+
+dbg("▶ " + SCRIPT_NAME + " v" + SCRIPT_VERSION);
+
 // ── 1. Ochrana "Čaká" záznamov ──────────────────────────────────────────────
 var stav = sf("Stav");
+dbg("Stav: [" + stav + "]");
+
 if (stav && String(stav).trim() === "Čaká") {
     var datumOdoslania = sf("Dátum odoslania");
     if (datumOdoslania) {
@@ -41,30 +50,62 @@ if (stav && String(stav).trim() === "Čaká") {
             var d = new Date(datumOdoslania);
             var ageMs = new Date() - d;
             var oneHour = 60 * 60 * 1000;
+            dbg("Čaká vek: " + Math.round(ageMs/1000) + "s");
             if (ageMs < oneHour) {
                 message("⛔ Záznam je v stave 'Čaká' a bol vytvorený pred menej ako 1 hodinou. Počkaj na vybavenie alebo skús neskôr.");
                 cancel();
             }
         } catch(e) {
-            // Ak nevieme overiť vek, radšej neblokujeme
+            dbg("Čaká check error: " + e);
         }
     }
 }
 
 // ── 2. Zmazanie TG správ ─────────────────────────────────────────────────────
 var hasSign = typeof MementoSign !== 'undefined';
+dbg("MementoSign loaded: " + hasSign);
 
-if (hasSign) {
+if (!hasSign) {
+    dbg("⚠️ MementoSign NEDOSTUPNÝ — TG správy sa nemažú!");
+} else {
     try {
         var chatId     = sf("TG Chat ID");
         var messageId  = sf("TG Správa ID");
         var followupId = sf("TG Follow-up ID");
 
-        // Silent fail — výsledok ignorujeme (správa mohla byť vymazaná manuálne)
-        if (chatId && messageId)  { try { MementoSign.deleteMessage(chatId, messageId);  } catch(e) {} }
-        if (chatId && followupId) { try { MementoSign.deleteMessage(chatId, followupId); } catch(e) {} }
+        dbg("chatId: [" + chatId + "] msgId: [" + messageId + "] followupId: [" + followupId + "]");
+
+        if (chatId && messageId) {
+            try {
+                var r1 = MementoSign.deleteMessage(chatId, messageId);
+                dbg("deleteMsg r1: " + JSON.stringify(r1));
+            } catch(e) {
+                dbg("deleteMsg r1 EXCEPTION: " + e);
+            }
+        } else {
+            dbg("⚠️ chatId alebo messageId prázdne — skip msg delete");
+        }
+
+        if (chatId && followupId) {
+            try {
+                var r2 = MementoSign.deleteMessage(chatId, followupId);
+                dbg("deleteMsg r2: " + JSON.stringify(r2));
+            } catch(e) {
+                dbg("deleteMsg r2 EXCEPTION: " + e);
+            }
+        } else {
+            dbg("skip followup (empty)");
+        }
 
     } catch(e) {
-        // Silent fail — nesmie zabrániť vymazaniu záznamu
+        dbg("OUTER EXCEPTION: " + e);
     }
-} // end if (hasSign)
+}
+
+// Zapíš diagnostický log do Debug_Log poľa
+try {
+    currentEntry.set("Debug_Log", debugLines.join("\n"));
+} catch(e) {
+    // set() môže zlyhať v BeforeDelete — skús message
+    message("BD log: " + debugLines.join(" | "));
+}
