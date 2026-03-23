@@ -1,99 +1,122 @@
 {
   "library_name": "podpisy",
   "library_id": "2fNM2Za4G",
-  "last_updated": "2026-03-22T08:15:00.000000",
-  "note": "Centrálna podpisová knižnica. Záznamy sú linksFrom z Dochádzka.Podpisy a Pokladňa.Podpis",
+  "last_updated": "2026-03-23",
+  "note": "Centrálna podpisová knižnica. MementoSign v1.6.0 zapisuje záznamy.",
   "fields": [
     {
       "id": 3,
       "name": "Dátum odoslania",
       "type": "date",
-      "role": "name",
       "order": 0,
-      "properties": { "hint": "Platnosť od" },
-      "required": true
+      "required": false
     },
     {
       "id": 7,
       "name": "Dátum potvrdenia",
       "type": "date",
-      "role": "name",
       "order": 1,
-      "properties": { "hint": "Platnosť od" },
-      "required": true
+      "required": false
     },
     {
       "id": 2,
       "name": "Zamestnanec",
       "type": "entries",
-      "role": "name",
       "order": 2,
-      "properties": {
-        "library": "NKWNzJgL:*tA*i88[tT2",
-        "multiple": false
-      },
-      "required": true
+      "properties": { "multiple": false },
+      "required": false
+    },
+    {
+      "id": 11,
+      "name": "Knižnica",
+      "type": "choice",
+      "order": 3,
+      "note": "Zdrojová knižnica: 'Dochádzka ', 'Pokladňa ', ...",
+      "required": false
     },
     {
       "id": 4,
       "name": "Stav",
       "type": "choice",
-      "order": 3,
+      "order": 4,
       "options": {
-        "1": { "t": "Čaká ", "c": 1, "def": false },
-        "2": { "t": "Potvrdil", "c": 2, "def": false },
-        "3": { "t": "Odmietol", "c": 3, "def": false },
-        "4": { "t": "Zrušené ", "c": 4, "def": false }
+        "1": { "t": "Čaká ",     "c": 1, "def": true  },
+        "2": { "t": "Potvrdil",  "c": 2, "def": false },
+        "3": { "t": "Odmietol",  "c": 3, "def": false },
+        "4": { "t": "Zrušené ",  "c": 4, "def": false }
       },
-      "properties": {},
       "required": false
     },
     {
-      "id": 5,
-      "name": "Knižnica",
-      "type": "text",
-      "order": 4,
-      "properties": { "hint": "", "singleLine": false },
-      "required": false,
-      "defaultValue": "",
-      "note": "Názov zdrojovej knižnice (napr. 'Dochádzka', 'Pokladňa')"
-    },
-    {
-      "id": 6,
-      "name": "Zdroj ID",
+      "id": 10,
+      "name": "Poznámka",
       "type": "text",
       "order": 5,
-      "properties": { "hint": "", "singleLine": false },
-      "required": false,
-      "defaultValue": "",
-      "note": "Entry ID zdrojového záznamu — používa N8N na PATCH"
+      "required": false
     },
     {
       "id": 8,
       "name": "TG Správa ID",
       "type": "double",
       "order": 6,
-      "properties": { "hint": "" },
-      "required": false,
-      "note": "Telegram message_id odoslanej správy — pre editMessageReplyMarkup"
+      "note": "Telegram message_id — pre editMessageReplyMarkup v N8N",
+      "required": false
     },
     {
       "id": 9,
       "name": "TG Chat ID",
       "type": "double",
       "order": 7,
-      "properties": { "hint": "" },
-      "required": false,
-      "note": "Telegram chat_id zamestnanca — pre identifikáciu konverzácie"
+      "note": "Telegram chat_id zamestnanca",
+      "required": false
     },
     {
-      "id": 10,
-      "name": "Poznámka",
+      "id": 6,
+      "name": "Zdroj ID",
       "type": "text",
       "order": 8,
-      "properties": { "hint": "", "singleLine": false },
-      "required": false,
-      "defaultValue": ""
+      "note": "Entry ID zdrojového záznamu — N8N ho používa na PATCH pri potvrdení",
+      "required": false
+    },
+    {
+      "id": 12,
+      "name": "Zdrojová lib ID",
+      "type": "text",
+      "order": 9,
+      "note": "Memento library ID zdrojovej knižnice — N8N číta pri callbacku",
+      "required": false
+    },
+    {
+      "id": 13,
+      "name": "Zdrojový field ID",
+      "type": "text",
+      "order": 10,
+      "note": "Field ID stavu na zdrojovom zázname — N8N nastavuje hodnotu",
+      "required": false
+    },
+    {
+      "id": 14,
+      "name": "Stav: potvrdené",
+      "type": "text",
+      "order": 11,
+      "note": "Hodnota zapísaná do zdrojového záznamu pri potvrdení (napr. 'Hotovo')",
+      "required": false
+    },
+    {
+      "id": 15,
+      "name": "Stav: odmietnuté",
+      "type": "text",
+      "order": 12,
+      "note": "Hodnota zapísaná do zdrojového záznamu pri odmietnutí",
+      "required": false
+    },
+    {
+      "id": 16,
+      "name": "TG Správa",
+      "type": "text",
+      "order": 13,
+      "note": "Resolved text Telegram správy — ukladá MementoSign v1.5.0+",
+      "required": false
     }
   ]
 }

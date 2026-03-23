@@ -96,6 +96,7 @@
  *     messageTemplate: 'TG Template'   // názov poľa kde je šablóna
  *
  * CHANGELOG:
+ * v1.6.1 (2026-03-23) - FIX: lowercase "Stav: potvrdené/odmietnuté" — zhoduje sa s reálnou knižnicou
  * v1.6.0 (2026-03-23) - NEW: TG Šablóny library lookup (priority 2); _processTemplate() extracted
  * v1.5.0 (2026-03-23) - NEW: ukladá resolved TG správu do poľa "TG Správa" v Podpis zázname
  * v1.4.0 (2026-03-23) - NEW: {emp.Field} zamestnanec, {@var} templateVars, {Field[n].Sub} index, podmienené riadky
@@ -110,7 +111,7 @@ var MementoSign = (function() {
 
     var MODULE_INFO = {
         name: "MementoSign",
-        version: "1.6.0",
+        version: "1.6.1",
         date: "2026-03-23",
         description: "Generic Telegram signing protocol — N8N flow is library-agnostic"
     };
@@ -171,8 +172,8 @@ var MementoSign = (function() {
             // Nové metadata polia — N8N ich číta pri callbacku (generic protocol v2)
             podpisEntry.set("Zdrojov\u00e1 lib ID", signConfig.libId);
             podpisEntry.set("Zdrojov\u00fd field ID", String(signConfig.sourceFieldId || ""));
-            podpisEntry.set("Stav: Potvrden\u00e9", signConfig.stavPotvrdene || "");
-            podpisEntry.set("Stav: Odmietnut\u00e9", signConfig.stavOdmietnutie || "");
+            podpisEntry.set("Stav: potvrden\u00e9", signConfig.stavPotvrdene || "");
+            podpisEntry.set("Stav: odmietnut\u00e9", signConfig.stavOdmietnutie || "");
 
             var podpisId = podpisEntry.id;
             if (!podpisId) {
