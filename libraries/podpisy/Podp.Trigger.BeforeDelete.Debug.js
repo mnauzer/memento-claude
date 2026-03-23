@@ -18,13 +18,17 @@ var hasSign = typeof MementoSign !== 'undefined';
 if (!hasSign) {
     message("ERR: chyba MementoSign");
 } else {
-    var chatId    = entry().field("TG Chat ID");
-    var messageId = entry().field("TG Správa ID");
+    try {
+        var chatId    = entry().field("TG Chat ID");
+        var messageId = entry().field("TG Správa ID");
 
-    if (!chatId || !messageId) {
-        message("WARN: chatId=" + chatId + " msgId=" + messageId);
-    } else {
-        var result = MementoSign.deleteMessage(chatId, messageId);
-        message(result.success ? "OK: TG zmazane" : "ERR: " + result.error);
+        if (!chatId || !messageId) {
+            message("WARN: chatId=" + chatId + " msgId=" + messageId);
+        } else {
+            var result = MementoSign.deleteMessage(chatId, messageId);
+            message(result.success ? "OK: TG zmazane" : "ERR: " + result.error);
+        }
+    } catch(e) {
+        message("ERR (exception): " + e.toString());
     }
 }

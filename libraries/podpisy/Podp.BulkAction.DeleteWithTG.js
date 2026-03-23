@@ -2,7 +2,7 @@
  * Knižnica:    podpisy
  * Názov:       Podp.BulkAction.DeleteWithTG
  * Typ:         Bulk Action — vymazanie označených záznamov
- * Verzia:      1.0.0
+ * Verzia:      1.1.0
  * Dátum:       2026-03-23
  *
  * Účel:
@@ -14,8 +14,9 @@
  *   - MementoSign v1.9.0+
  *
  * Polia Podpis záznamu:
- *   "TG Chat ID"    — Telegram chat ID zamestnanca
- *   "TG Správa ID"  — Telegram message_id správy
+ *   "TG Chat ID"      — Telegram chat ID zamestnanca
+ *   "TG Správa ID"    — Telegram message_id pôvodnej správy
+ *   "TG Follow-up ID" — Telegram message_id force-reply správy
  */
 
 // ⚠️ KRITICKÉ: dialog() funguje len na top-leveli action/bulkAction scriptu!
@@ -46,13 +47,17 @@ if (typeof MementoSign === 'undefined') {
             for (var i = 0; i < count; i++) {
                 var e = selectedEntries[i];
                 try {
-                    // Vymaž TG správu (silent fail — mohla byť už vymazaná)
+                    // Vymaž TG správy (silent fail — mohli byť už vymazané)
                     try {
-                        var chatId    = e.field("TG Chat ID");
-                        var messageId = e.field("TG Správa ID");
+                        var chatId     = e.field("TG Chat ID");
+                        var messageId  = e.field("TG Správa ID");
+                        var followupId = e.field("TG Follow-up ID");
                         if (chatId && messageId) {
                             var tgResult = MementoSign.deleteMessage(chatId, messageId);
                             if (tgResult && tgResult.success) tgDeleted++;
+                        }
+                        if (chatId && followupId) {
+                            MementoSign.deleteMessage(chatId, followupId);
                         }
                     } catch(tgErr) {}
 
