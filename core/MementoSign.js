@@ -63,21 +63,28 @@
  *   Fallback: ak pole je prázdne alebo messageTemplate nie je nastavený, použije sa message parameter.
  *
  *   Formátovacie modifikátory (voliteľné, oddelené |):
- *     {Dátum|date}   → "22.03.2026"
- *     {Príchod|time} → "07:30"
- *     {Suma|money}   → "150,00 €"
- *     {Suma|number}  → "150,00"
- *     {Suma}         → "150" (bez formátu — raw String)
+ *     {Dátum|date}           → "22.03.2026"
+ *     {Príchod|time}         → "07:30"
+ *     {Suma|money}           → "150,00 €"
+ *     {Suma|number}          → "150,00"
+ *     {Suma}                 → "150" (bez formátu — raw String)
+ *
+ *   Bodková notácia pre linkToEntry polia:
+ *     {Zamestnanec.Nick}           → field("Nick") na prvom linked entry
+ *     {Zamestnanec.Priezvisko}     → field("Priezvisko") na prvom linked entry
+ *     {Zákazka.Názov zákazky|...}  → s formátovacím modifikátorom
  *
  *   Príklad šablóny v Memento zázname (pole "TG Template"):
  *     💸 {Pohyb} — {Suma|money}
  *     📅 {Dátum|date}
+ *     👤 {Zamestnanec.Nick} {Zamestnanec.Priezvisko}
  *     📋 {Popis platby}
  *
  *   signConfig rozšírený:
  *     messageTemplate: 'TG Template'   // názov poľa kde je šablóna
  *
  * CHANGELOG:
+ * v1.3.0 (2026-03-23) - NEW: bodková notácia {LinkedField.SubField} pre linkToEntry polia
  * v1.2.0 (2026-03-22) - NEW: formátovacie modifikátory {Field|date|time|money|number} v _resolveMessage()
  * v1.1.0 (2026-03-22) - NEW: _resolveMessage() — template s {FieldName} placeholdermi zo zdrojového záznamu
  * v1.0.0 (2026-03-22) - INIT: Generic signing protocol replacing hardcoded libMap in N8N
@@ -88,7 +95,7 @@ var MementoSign = (function() {
 
     var MODULE_INFO = {
         name: "MementoSign",
-        version: "1.2.0",
+        version: "1.3.0",
         date: "2026-03-22",
         description: "Generic Telegram signing protocol — N8N flow is library-agnostic"
     };
@@ -245,10 +252,24 @@ var MementoSign = (function() {
         try {
             var template = sourceEntry.field(signConfig.messageTemplate);
             if (!template || String(template).trim() === "") return fallbackMessage;
-            // Regex: {FieldName} alebo {FieldName|format}
-            return String(template).replace(/\{([^|}]+)(?:\|([^}]+))?\}/g, function(match, fieldName, fmt) {
+            // Regex: {FieldName} alebo {FieldName|format} alebo {LinkedField.SubField|format}
+            return String(template).replace(/\{([^|}]+)(?:\|([^}]+))?\}/g, function(match, fieldExpr, fmt) {
                 try {
-                    var val = sourceEntry.field(fieldName.trim());
+                    var expr = fieldExpr.trim();
+                    var val;
+                    var dotIdx = expr.indexOf('.');
+                    if (dotIdx !== -1) {
+                        // Bodková notácia: {LinkedField.SubField}
+                        var linkName = expr.substring(0, dotIdx).trim();
+                        var subName  = expr.substring(dotIdx + 1).trim();
+                        var linked   = sourceEntry.field(linkName);
+                        if (!linked) return "";
+                        var linkedEntry = linked[0] || linked;
+                        if (!linkedEntry || !linkedEntry.field) return "";
+                        val = linkedEntry.field(subName);
+                    } else {
+                        val = sourceEntry.field(expr);
+                    }
                     return _formatValue(val, fmt ? fmt.trim() : null);
                 } catch(e) {
                     return "";
