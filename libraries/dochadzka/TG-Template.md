@@ -15,4 +15,5 @@
 📊 {emp.obdobie}:
   💵 Zarobené: {emp.Zarobené|money}
   💸 Vyplatené: {emp.Vyplatené|money}
-  🔴 Zostatok: {emp.Preplatok/Nedoplatok|money}
+  🟢 Preplatok: {emp.Preplatok/Nedoplatok|pos}
+  🔴 Nedoplatok: {emp.Preplatok/Nedoplatok|neg}

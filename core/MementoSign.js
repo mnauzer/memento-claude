@@ -96,6 +96,7 @@
  *     messageTemplate: 'TG Template'   // názov poľa kde je šablóna
  *
  * CHANGELOG:
+ * v1.7.0 (2026-03-23) - NEW: |pos a |neg podmienené formáty — skryjú riadok ak podmienka nesedí
  * v1.6.1 (2026-03-23) - FIX: lowercase "Stav: potvrdené/odmietnuté" — zhoduje sa s reálnou knižnicou
  * v1.6.0 (2026-03-23) - NEW: TG Šablóny library lookup (priority 2); _processTemplate() extracted
  * v1.5.0 (2026-03-23) - NEW: ukladá resolved TG správu do poľa "TG Správa" v Podpis zázname
@@ -111,7 +112,7 @@ var MementoSign = (function() {
 
     var MODULE_INFO = {
         name: "MementoSign",
-        version: "1.6.1",
+        version: "1.7.0",
         date: "2026-03-23",
         description: "Generic Telegram signing protocol — N8N flow is library-agnostic"
     };
@@ -257,6 +258,21 @@ var MementoSign = (function() {
         if (fmt === "number") {
             var n = parseFloat(val) || 0;
             return n.toFixed(2).replace(".", ",");
+        }
+
+        // Podmienené formáty — prázdny string skryje riadok (conditional lines)
+        if (fmt === "pos") {
+            // Zobrazí hodnotu ako money len ak > 0, inak "" (skryje riadok)
+            var n = parseFloat(val) || 0;
+            if (n <= 0) return "";
+            return n.toFixed(2).replace(".", ",") + "\u00a0\u20ac";
+        }
+
+        if (fmt === "neg") {
+            // Zobrazí absolútnu hodnotu ako money len ak < 0, inak "" (skryje riadok)
+            var n = parseFloat(val) || 0;
+            if (n >= 0) return "";
+            return Math.abs(n).toFixed(2).replace(".", ",") + "\u00a0\u20ac";
         }
 
         return String(val);
