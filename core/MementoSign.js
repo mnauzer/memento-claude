@@ -96,6 +96,7 @@
  *     messageTemplate: 'TG Template'   // názov poľa kde je šablóna
  *
  * CHANGELOG:
+ * v1.9.1 (2026-03-23) - FIX: _getBotToken() hľadá provider="Telegram" namiesto fixného mena záznamu
  * v1.9.0 (2026-03-23) - NEW: deleteMessage() — maže TG správy cez Bot API; token z ASISTANTO API
  * v1.8.0 (2026-03-23) - NEW: reťazenie modifikátorov — |pos|money, |neg|number atď.; pos/neg sú filtre
  * v1.7.0 (2026-03-23) - NEW: |pos a |neg podmienené formáty — skryjú riadok ak podmienka nesedí
@@ -114,7 +115,7 @@ var MementoSign = (function() {
 
     var MODULE_INFO = {
         name: "MementoSign",
-        version: "1.9.0",
+        version: "1.9.1",
         date: "2026-03-23",
         description: "Generic Telegram signing protocol — N8N flow is library-agnostic"
     };
@@ -126,22 +127,34 @@ var MementoSign = (function() {
     var BOT_ENTRY_NAME   = "Krajinka Bot";  // pole "názov" v ASISTANTO API
 
     /**
-     * Načíta Bot Token z knižnice ASISTANTO API (pole "Telegram Bot Token").
-     * Token sa nenachádza v kóde — mení sa priamo v Memento zázname.
+     * Načíta Bot Token z knižnice ASISTANTO API (pole "Telegram Bot Token", typ text).
+     * Hľadá: 1) záznam s provider="Telegram" a neprázdnym tokenom
+     *         2) fallback: akýkoľvek záznam s neprázdnym "Telegram Bot Token"
+     * Token sa nenachádza v kóde — nastavuje sa priamo v Memento zázname.
      */
     function _getBotToken() {
         try {
             var apiLib = libByName(API_LIB_NAME);
             if (!apiLib) return null;
             var entries = apiLib.entries();
+            var telegramFallback = null;
             for (var i = 0; i < entries.length; i++) {
                 var e = entries[i];
+                // Primárne: hľadaj podľa mena záznamu
                 if (String(e.field('názov') || '').trim() === BOT_ENTRY_NAME) {
                     var token = String(e.field('Telegram Bot Token') || '').trim();
                     return token || null;
                 }
+                // Fallback: akýkoľvek záznam provider=Telegram s tokenom
+                if (!telegramFallback) {
+                    var prov = String(e.field('provider') || '').trim();
+                    if (prov === 'Telegram') {
+                        var t = String(e.field('Telegram Bot Token') || '').trim();
+                        if (t) telegramFallback = t;
+                    }
+                }
             }
-            return null;
+            return telegramFallback;
         } catch(ex) {
             return null;
         }
