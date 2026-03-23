@@ -2,90 +2,62 @@
  * Knižnica:    podpisy
  * Názov:       Podp.Action.DiagTG
  * Typ:         Action — diagnostika TG mazania
- * Verzia:      1.1.0
- * Dátum:       2026-03-23
+ * Verzia:      1.2.0
+ * Dátum:       2026-03-24
+ *
+ * POZOR: Rovno odošle deleteMessage (bez potvrdenia) a zobrazí výsledok.
  */
 
 var _e = entry();
-var _sf = function(n) { try { return _e.field(n); } catch(x) { return "FIELD_ERR:" + n; } };
-var _lines = [];
+var _sf = function(n) { try { return _e.field(n); } catch(x) { return null; } };
 
-_lines.push("=== DIAGNOSTIKA TG MAZANIA ===");
-_lines.push("");
-
-// 1. MementoSign
-var _hasSign = typeof MementoSign !== 'undefined';
-_lines.push("MementoSign: " + (_hasSign ? "NAČÍTANÝ" : "CHÝBA!"));
-
-if (_hasSign) {
-    try { _lines.push("Verzia: " + (MementoSign.version || "?")); } catch(x) { _lines.push("Verzia: ERR " + x); }
-}
-
-// 2. Polia záznamu
 var _chatId = _sf("TG Chat ID");
 var _msgId  = _sf("TG Správa ID");
 var _fupId  = _sf("TG Follow-up ID");
 var _stav   = _sf("Stav");
 
-_lines.push("");
-_lines.push("Stav:       [" + _stav + "]");
-_lines.push("TG Chat ID: [" + _chatId + "]");
-_lines.push("TG Správa ID: [" + _msgId + "]");
-_lines.push("TG Follow-up ID: [" + _fupId + "]");
+var _signVer = "CHÝBA";
+if (typeof MementoSign !== 'undefined') {
+    try { _signVer = MementoSign.version || "?"; } catch(x) {}
+}
 
-if (!_hasSign) {
-    _lines.push("");
-    _lines.push("MementoSign nie je načítaný!");
-    dialog().title("DiagTG").text(_lines.join("\n")).positiveButton("OK", function() { return true; }).show();
+var _out = "MementoSign: v" + _signVer
+    + "\nStav: [" + _stav + "]"
+    + "\nchatId: [" + _chatId + "]"
+    + "\nmsgId: [" + _msgId + "]"
+    + "\nfollowupId: [" + (_fupId || "") + "]";
+
+if (typeof MementoSign === 'undefined') {
+    _out += "\n\nMementoSign CHÝBA!";
 } else if (!_chatId || !_msgId) {
-    _lines.push("");
-    _lines.push("chatId alebo msgId prázdne — nič neodošlem.");
-    dialog().title("DiagTG").text(_lines.join("\n")).positiveButton("OK", function() { return true; }).show();
+    _out += "\n\nchatId alebo msgId prázdne!";
 } else {
-    var _doDelete = false;
-    dialog()
-        .title("DiagTG")
-        .text(_lines.join("\n") + "\n\nOdoslať deleteMessage?")
-        .positiveButton("Odoslať", function() { _doDelete = true; return true; })
-        .negativeButton("Zrušiť", function() { return true; })
-        .show();
+    // Rovno odoslať deleteMessage — bez potvrdenia
+    var _r1 = null;
+    try {
+        _r1 = MementoSign.deleteMessage(_chatId, _msgId);
+    } catch(x) {
+        _r1 = { success: false, error: "EXCEPTION: " + x };
+    }
+    _out += "\n\n--- deleteMessage msgId ---";
+    _out += "\nsuccess: " + (_r1 ? _r1.success : "null");
+    _out += "\nerror: " + (_r1 ? (_r1.error || "žiadna") : "null");
 
-    if (_doDelete) {
-        var _r1 = null;
+    if (_fupId) {
+        var _r2 = null;
         try {
-            _r1 = MementoSign.deleteMessage(_chatId, _msgId);
+            _r2 = MementoSign.deleteMessage(_chatId, _fupId);
         } catch(x) {
-            _r1 = { success: false, error: "EXCEPTION: " + x };
+            _r2 = { success: false, error: "EXCEPTION: " + x };
         }
-
-        var _res = "=== VÝSLEDOK ===\n";
-        _res += "TG Správa ID [" + _msgId + "]: ";
-        _res += _r1 ? ("success=" + _r1.success + " error=" + (_r1.error || "žiadna")) : "NULL";
-
-        if (_fupId) {
-            var _r2 = null;
-            try {
-                _r2 = MementoSign.deleteMessage(_chatId, _fupId);
-            } catch(x) {
-                _r2 = { success: false, error: "EXCEPTION: " + x };
-            }
-            _res += "\nTG Follow-up [" + _fupId + "]: ";
-            _res += _r2 ? ("success=" + _r2.success + " error=" + (_r2.error || "žiadna")) : "NULL";
-        }
-
-        // Zapíš do ASISTANTO Logs
-        try {
-            var _logLib = libByName("ASISTANTO Logs");
-            if (_logLib) {
-                var _log = _logLib.createEntry();
-                _log.set("type", "debug");
-                _log.set("date", new Date());
-                _log.set("memento library", "podpisy");
-                _log.set("script", "Podp.Action.DiagTG");
-                _log.set("text", _lines.join("\n") + "\n\n" + _res);
-            }
-        } catch(x) {}
-
-        dialog().title("DiagTG — Výsledok").text(_res).positiveButton("OK", function() { return true; }).show();
+        _out += "\n\n--- deleteMessage followupId ---";
+        _out += "\nsuccess: " + (_r2 ? _r2.success : "null");
+        _out += "\nerror: " + (_r2 ? (_r2.error || "žiadna") : "null");
     }
 }
+
+// Zapíš do Debug_Log
+try { _e.set("Debug_Log", _out); } catch(x) {}
+
+// Zobraz výsledok
+dialog().title("DiagTG v1.2.0").text(_out).positiveButton("OK", function() { return true; }).show();
