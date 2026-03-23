@@ -11,3 +11,8 @@
 ------------------------
 💰 Denná mzda: {@dennaMzda}
 {@poznamka}
+========================
+📊 {emp.obdobie}:
+  💵 Zarobené: {emp.Zarobené|money}
+  💸 Vyplatené: {emp.Vyplatené|money}
+  🔴 Zostatok: {emp.Preplatok/Nedoplatok|money}
