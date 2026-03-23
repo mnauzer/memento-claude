@@ -2,7 +2,7 @@
  * Knižnica:    podpisy
  * Názov:       Podp.BulkAction.DeleteWithTG
  * Typ:         Bulk Action — vymazanie označených záznamov
- * Verzia:      1.1.0
+ * Verzia:      1.2.0
  * Dátum:       2026-03-23
  *
  * Účel:
@@ -48,9 +48,18 @@ if (typeof MementoSign === 'undefined') {
             for (var i = 0; i < count; i++) {
                 var e = selectedEntries[i];
                 try {
-                    var chatId     = e.field("TG Chat ID");
-                    var messageId  = e.field("TG Správa ID");
-                    var followupId = e.field("TG Follow-up ID");
+                    // chatId z Zamestnanec.Telegram ID (text pole, bez int32 overflow)
+                    var chatId = null;
+                    try {
+                        var zamList = e.field("Zamestnanec");
+                        if (zamList && zamList.length > 0) {
+                            chatId = String(zamList[0].field("Telegram ID") || '');
+                        }
+                    } catch(ex2) {}
+                    if (!chatId) { try { chatId = String(e.field("TG Chat ID") || ''); } catch(ex3) {} }
+
+                    var messageId  = null; try { messageId  = e.field("TG Správa ID");    } catch(ex4) {}
+                    var followupId = null; try { followupId = e.field("TG Follow-up ID"); } catch(ex5) {}
 
                     // DEBUG — pridaj info o prvom zázname
                     if (i === 0) {
