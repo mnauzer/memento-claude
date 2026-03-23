@@ -43,36 +43,47 @@ if (typeof MementoSign === 'undefined') {
             var deleted = 0;
             var tgDeleted = 0;
             var errors = 0;
+            var debugLines = [];  // DEBUG — odstráň po odladení
 
             for (var i = 0; i < count; i++) {
                 var e = selectedEntries[i];
                 try {
-                    // Vymaž TG správy (silent fail — mohli byť už vymazané)
-                    try {
-                        var chatId     = e.field("TG Chat ID");
-                        var messageId  = e.field("TG Správa ID");
-                        var followupId = e.field("TG Follow-up ID");
-                        if (chatId && messageId) {
-                            var tgResult = MementoSign.deleteMessage(chatId, messageId);
-                            if (tgResult && tgResult.success) tgDeleted++;
-                        }
-                        if (chatId && followupId) {
-                            MementoSign.deleteMessage(chatId, followupId);
-                        }
-                    } catch(tgErr) {}
+                    var chatId     = e.field("TG Chat ID");
+                    var messageId  = e.field("TG Správa ID");
+                    var followupId = e.field("TG Follow-up ID");
 
-                    // Vymaž záznam
+                    // DEBUG — pridaj info o prvom zázname
+                    if (i === 0) {
+                        debugLines.push("chatId=" + chatId + " msgId=" + messageId + " followup=" + followupId);
+                    }
+
+                    if (chatId && messageId) {
+                        var tgResult = MementoSign.deleteMessage(chatId, messageId);
+                        if (tgResult && tgResult.success) {
+                            tgDeleted++;
+                        } else {
+                            debugLines.push("ERR main: " + (tgResult ? tgResult.error : "null"));
+                        }
+                    }
+                    if (chatId && followupId) {
+                        var tgR2 = MementoSign.deleteMessage(chatId, followupId);
+                        if (tgR2 && tgR2.success) tgDeleted++;
+                        else debugLines.push("ERR followup: " + (tgR2 ? tgR2.error : "null"));
+                    }
+
                     e.trash();
                     deleted++;
 
                 } catch(err) {
                     errors++;
+                    debugLines.push("EXC: " + err.toString());
                 }
             }
 
             var msg = "Vymazaných: " + deleted + " / " + count;
             if (tgDeleted > 0) msg += "\nTG správy: " + tgDeleted;
             if (errors > 0)    msg += "\nChýb: " + errors;
+            if (debugLines.length > 0) msg += "\n\nDEBUG:\n" + debugLines.join("\n");
             dialog("Hotovo", msg, "OK");
         }
 
