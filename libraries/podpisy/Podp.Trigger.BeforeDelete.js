@@ -2,7 +2,7 @@
  * Knižnica:    podpisy
  * Názov:       Podp.Trigger.BeforeDelete
  * Typ:         Trigger — Before Delete
- * Verzia:      1.3.0
+ * Verzia:      1.4.0
  * Dátum:       2026-03-23
  *
  * Účel:
@@ -13,20 +13,18 @@
  * Závislosti:
  *   - MementoSign v1.9.2+ (deleteMessage)
  *
- * Polia Podpis záznamu:
- *   "Zamestnanec"     — link na Zamestnanec záznam (má "Telegram ID" = chatId)
- *   "TG Chat ID"      — chatId záloha (text pole od v1.9.2 MementoSign)
- *   "TG Správa ID"    — Telegram message_id pôvodnej správy (text)
- *   "TG Follow-up ID" — Telegram message_id force-reply správy (text)
+ * Polia Podpis záznamu (všetky text od 2026-03-23):
+ *   "TG Chat ID"      — Telegram chat ID zamestnanca
+ *   "TG Správa ID"    — Telegram message_id pôvodnej správy
+ *   "TG Follow-up ID" — Telegram message_id force-reply správy (dôvod odmietnutia)
  *
  * Poznámky:
- *   - chatId: primárne z Zamestnanec.Telegram ID, fallback z TG Chat ID
  *   - Silent fail — trigger NESMIE zabrániť vymazaniu záznamu
  *   - Chyba (napr. správa už vymazaná) sa ignoruje
  */
 
 var SCRIPT_NAME    = "Podp.Trigger.BeforeDelete";
-var SCRIPT_VERSION = "1.3.0";
+var SCRIPT_VERSION = "1.4.0";
 
 var hasSign = typeof MementoSign !== 'undefined';
 
@@ -36,19 +34,9 @@ var currentEntry = entry();
 
 try {
     var sf = function(n) { try { return currentEntry.field(n); } catch(ex) { return null; } };
-
-    // chatId z Zamestnanec.Telegram ID — text pole, bez int32 overflow
-    var chatId = null;
-    try {
-        var zamList = currentEntry.field("Zamestnanec");
-        if (zamList && zamList.length > 0) {
-            chatId = String(zamList[0].field("Telegram ID") || '');
-        }
-    } catch(e) {}
-    if (!chatId) chatId = String(sf("TG Chat ID") || ''); // fallback
-
-    var messageId   = sf("TG Správa ID");
-    var followupId  = sf("TG Follow-up ID");
+    var chatId     = sf("TG Chat ID");
+    var messageId  = sf("TG Správa ID");
+    var followupId = sf("TG Follow-up ID");
 
     // Silent fail — výsledok ignorujeme (správa mohla byť vymazaná manuálne)
     if (chatId && messageId)  { try { MementoSign.deleteMessage(chatId, messageId);  } catch(e) {} }

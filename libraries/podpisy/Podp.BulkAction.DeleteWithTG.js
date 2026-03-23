@@ -2,7 +2,7 @@
  * Knižnica:    podpisy
  * Názov:       Podp.BulkAction.DeleteWithTG
  * Typ:         Bulk Action — vymazanie označených záznamov
- * Verzia:      1.2.0
+ * Verzia:      1.3.0
  * Dátum:       2026-03-23
  *
  * Účel:
@@ -11,9 +11,9 @@
  *   nemusí byť spoľahlivý pri bulk operáciách.
  *
  * Závislosti:
- *   - MementoSign v1.9.0+
+ *   - MementoSign v1.9.2+
  *
- * Polia Podpis záznamu:
+ * Polia Podpis záznamu (text od 2026-03-23):
  *   "TG Chat ID"      — Telegram chat ID zamestnanca
  *   "TG Správa ID"    — Telegram message_id pôvodnej správy
  *   "TG Follow-up ID" — Telegram message_id force-reply správy
@@ -40,44 +40,25 @@ if (typeof MementoSign === 'undefined') {
         );
 
         if (confirmed === 0) {
-            var deleted = 0;
+            var deleted  = 0;
             var tgDeleted = 0;
-            var errors = 0;
-            var debugLines = [];  // DEBUG — odstráň po odladení
+            var errors   = 0;
 
             for (var i = 0; i < count; i++) {
                 var e = selectedEntries[i];
                 try {
-                    // chatId z Zamestnanec.Telegram ID (text pole, bez int32 overflow)
-                    var chatId = null;
-                    try {
-                        var zamList = e.field("Zamestnanec");
-                        if (zamList && zamList.length > 0) {
-                            chatId = String(zamList[0].field("Telegram ID") || '');
-                        }
-                    } catch(ex2) {}
-                    if (!chatId) { try { chatId = String(e.field("TG Chat ID") || ''); } catch(ex3) {} }
-
-                    var messageId  = null; try { messageId  = e.field("TG Správa ID");    } catch(ex4) {}
-                    var followupId = null; try { followupId = e.field("TG Follow-up ID"); } catch(ex5) {}
-
-                    // DEBUG — pridaj info o prvom zázname
-                    if (i === 0) {
-                        debugLines.push("chatId=" + chatId + " msgId=" + messageId + " followup=" + followupId);
-                    }
+                    var sf = function(n) { try { return e.field(n); } catch(ex) { return null; } };
+                    var chatId     = sf("TG Chat ID");
+                    var messageId  = sf("TG Správa ID");
+                    var followupId = sf("TG Follow-up ID");
 
                     if (chatId && messageId) {
-                        var tgResult = MementoSign.deleteMessage(chatId, messageId);
-                        if (tgResult && tgResult.success) {
-                            tgDeleted++;
-                        } else {
-                            debugLines.push("ERR main: " + (tgResult ? tgResult.error : "null"));
-                        }
+                        var r1 = MementoSign.deleteMessage(chatId, messageId);
+                        if (r1 && r1.success) tgDeleted++;
                     }
                     if (chatId && followupId) {
-                        var tgR2 = MementoSign.deleteMessage(chatId, followupId);
-                        if (tgR2 && tgR2.success) tgDeleted++;
-                        else debugLines.push("ERR followup: " + (tgR2 ? tgR2.error : "null"));
+                        var r2 = MementoSign.deleteMessage(chatId, followupId);
+                        if (r2 && r2.success) tgDeleted++;
                     }
 
                     e.trash();
@@ -85,14 +66,12 @@ if (typeof MementoSign === 'undefined') {
 
                 } catch(err) {
                     errors++;
-                    debugLines.push("EXC: " + err.toString());
                 }
             }
 
             var msg = "Vymazaných: " + deleted + " / " + count;
             if (tgDeleted > 0) msg += "\nTG správy: " + tgDeleted;
             if (errors > 0)    msg += "\nChýb: " + errors;
-            if (debugLines.length > 0) msg += "\n\nDEBUG:\n" + debugLines.join("\n");
             dialog("Hotovo", msg, "OK");
         }
 

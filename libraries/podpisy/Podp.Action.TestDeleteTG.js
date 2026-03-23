@@ -2,7 +2,7 @@
  * Knižnica:    podpisy
  * Názov:       Podp.Action.TestDeleteTG
  * Typ:         Action — manuálny test mazania TG správy
- * Verzia:      1.1.0
+ * Verzia:      1.2.0
  * Dátum:       2026-03-23
  *
  * Účel:
@@ -11,7 +11,7 @@
  *   Záznam sa NEVYMAŽE — len TG správa.
  *
  * Závislosti:
- *   - MementoSign v1.9.1+
+ *   - MementoSign v1.9.2+
  */
 
 // ⚠️ dialog() len na top-leveli, žiadny 'use strict'
@@ -21,23 +21,12 @@ if (typeof MementoSign === 'undefined') {
 } else {
 
     var e = entry();
-    // Safe field access — Memento hádže ReferenceError ak pole nemá hodnotu
-    var safeField = function(name) { try { return e.field(name); } catch(ex) { return null; } };
+    var sf = function(n) { try { return e.field(n); } catch(ex) { return null; } };
+    var chatId     = sf("TG Chat ID");
+    var messageId  = sf("TG Správa ID");
+    var followupId = sf("TG Follow-up ID");
 
-    // chatId z Zamestnanec.Telegram ID (text pole, bez int32 overflow)
-    var chatId = null;
-    try {
-        var zamList = e.field("Zamestnanec");
-        if (zamList && zamList.length > 0) {
-            chatId = String(zamList[0].field("Telegram ID") || '');
-        }
-    } catch(ex) {}
-    if (!chatId) chatId = String(safeField("TG Chat ID") || ''); // fallback
-
-    var messageId  = safeField("TG Správa ID");
-    var followupId = safeField("TG Follow-up ID");
-
-    var info = "chatId:     " + chatId + " (z Zamestnanec.Telegram ID)"
+    var info = "chatId:     " + chatId
              + "\nmessageId:  " + messageId
              + "\nfollowupId: " + (followupId || "(prázdne)");
 
