@@ -96,6 +96,7 @@
  *     messageTemplate: 'TG Template'   // názov poľa kde je šablóna
  *
  * CHANGELOG:
+ * v1.6.0 (2026-03-23) - NEW: TG Šablóny library lookup (priority 2); _processTemplate() extracted
  * v1.5.0 (2026-03-23) - NEW: ukladá resolved TG správu do poľa "TG Správa" v Podpis zázname
  * v1.4.0 (2026-03-23) - NEW: {emp.Field} zamestnanec, {@var} templateVars, {Field[n].Sub} index, podmienené riadky
  * v1.3.0 (2026-03-23) - NEW: bodková notácia {LinkedField.SubField} pre linkToEntry polia
@@ -109,7 +110,7 @@ var MementoSign = (function() {
 
     var MODULE_INFO = {
         name: "MementoSign",
-        version: "1.5.0",
+        version: "1.6.0",
         date: "2026-03-23",
         description: "Generic Telegram signing protocol — N8N flow is library-agnostic"
     };
@@ -313,16 +314,10 @@ var MementoSign = (function() {
     }
 
     /**
-     * Vyrieši text správy zo šablóny s {FieldName|format} placeholdermi.
-     * Riadok sa vynechá ak sú VŠETKY placeholdery na ňom prázdne (podmienené riadky).
-     * Fallback: pôvodný message parameter.
+     * Spracuje šablónu — nahradí placeholdery, vynechá prázdne podmienené riadky.
      */
-    function _resolveMessage(sourceEntry, employeeEntry, fallbackMessage, signConfig) {
-        if (!signConfig.messageTemplate) return fallbackMessage;
+    function _processTemplate(template, sourceEntry, employeeEntry, signConfig) {
         try {
-            var template = sourceEntry.field(signConfig.messageTemplate);
-            if (!template || String(template).trim() === "") return fallbackMessage;
-
             var lines = String(template).split('\n');
             var resultLines = [];
 
@@ -339,15 +334,56 @@ var MementoSign = (function() {
                     return formatted;
                 });
 
-                // Vynechaj riadok ak sú všetky placeholdery prázdne
                 if (placeholderCount > 0 && emptyCount === placeholderCount) continue;
                 resultLines.push(resolvedLine);
             }
 
             return resultLines.join('\n');
         } catch(e) {
-            return fallbackMessage;
+            return template;
         }
+    }
+
+    /**
+     * Vyrieši text správy — prioritný reťazec:
+     *   1. Per-record pole (signConfig.messageTemplate) — override pre konkrétny záznam
+     *   2. Knižnica "TG Šablóny" — lookup podľa signConfig.kniznicaLabel (pole "Knižnica")
+     *   3. Fallback: pôvodný message parameter
+     */
+    function _resolveMessage(sourceEntry, employeeEntry, fallbackMessage, signConfig) {
+        // Priority 1: per-record override
+        if (signConfig.messageTemplate) {
+            try {
+                var perRecord = sourceEntry.field(signConfig.messageTemplate);
+                if (perRecord && String(perRecord).trim() !== '') {
+                    return _processTemplate(String(perRecord), sourceEntry, employeeEntry, signConfig);
+                }
+            } catch(e) {}
+        }
+
+        // Priority 2: knižnica TG Šablóny
+        if (signConfig.kniznicaLabel) {
+            try {
+                var tgLib = libByName('TG Šablóny');
+                if (tgLib) {
+                    var tgEntries = tgLib.entries();
+                    var targetLabel = String(signConfig.kniznicaLabel).trim();
+                    for (var i = 0; i < tgEntries.length; i++) {
+                        var tgE = tgEntries[i];
+                        if (String(tgE.field('Knižnica') || '').trim() === targetLabel) {
+                            var libTemplate = tgE.field('Šablóna');
+                            if (libTemplate && String(libTemplate).trim() !== '') {
+                                return _processTemplate(String(libTemplate), sourceEntry, employeeEntry, signConfig);
+                            }
+                            break;
+                        }
+                    }
+                }
+            } catch(e) {}
+        }
+
+        // Priority 3: fallback
+        return fallbackMessage;
     }
 
     function _err(msg) {
