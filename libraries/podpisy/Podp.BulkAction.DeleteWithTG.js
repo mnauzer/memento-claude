@@ -2,7 +2,7 @@
  * Knižnica:    podpisy
  * Názov:       Podp.BulkAction.DeleteWithTG
  * Typ:         Bulk Action — vymazanie označených záznamov
- * Verzia:      1.4.0
+ * Verzia:      1.5.0
  * Dátum:       2026-03-23
  *
  * Účel:
@@ -66,13 +66,15 @@ if (typeof MementoSign === 'undefined') {
                 " je v stave 'Čaká' a mladší ako 1 hodina.\nMôžu byť stále spracovávané!";
         }
 
-        var confirmed = dialog(
-            "Vymazať podpisy",
-            confirmMsg,
-            "Vymazať", "Zrušiť"
-        );
+        var confirmed = false;
+        dialog()
+            .title("Vymazať podpisy")
+            .text(confirmMsg)
+            .positiveButton("Vymazať", function() { confirmed = true; return true; })
+            .negativeButton("Zrušiť", function() { return true; })
+            .show();
 
-        if (confirmed === 0) {
+        if (confirmed) {
             var deleted   = 0;
             var tgDeleted = 0;
             var errors    = 0;
@@ -105,7 +107,7 @@ if (typeof MementoSign === 'undefined') {
             var msg = "Vymazaných: " + deleted + " / " + count;
             if (tgDeleted > 0) msg += "\nTG správy: " + tgDeleted;
             if (errors > 0)    msg += "\nChýb: " + errors;
-            dialog("Hotovo", msg, "OK");
+            dialog().title("Hotovo").text(msg).positiveButton("OK", function() { return true; }).show();
         }
 
     }
