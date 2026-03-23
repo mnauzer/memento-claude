@@ -96,6 +96,7 @@
  *     messageTemplate: 'TG Template'   // názov poľa kde je šablóna
  *
  * CHANGELOG:
+ * v1.9.2 (2026-03-23) - FIX: TG Chat ID ukladá ako string (text pole) — bez int32 overflow
  * v1.9.1 (2026-03-23) - FIX: _getBotToken() hľadá provider="Telegram" namiesto fixného mena záznamu
  * v1.9.0 (2026-03-23) - NEW: deleteMessage() — maže TG správy cez Bot API; token z ASISTANTO API
  * v1.8.0 (2026-03-23) - NEW: reťazenie modifikátorov — |pos|money, |neg|number atď.; pos/neg sú filtre
@@ -206,7 +207,7 @@ var MementoSign = (function() {
             podpisEntry.set("Zamestnanec", [employeeEntry]);
             podpisEntry.set("Kni\u017enica", signConfig.kniznicaLabel || "");
             podpisEntry.set("Zdroj ID", sourceEntryId);
-            podpisEntry.set("TG Chat ID", parseFloat(chatIdStr));
+            podpisEntry.set("TG Chat ID", chatIdStr);  // text pole — ukladaj ako string (bez int32 overflow)
             podpisEntry.set("Stav", "Čaká ");
             podpisEntry.set("D\u00e1tum odoslania", new Date());
 
