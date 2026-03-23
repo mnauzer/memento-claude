@@ -96,6 +96,7 @@
  *     messageTemplate: 'TG Template'   // názov poľa kde je šablóna
  *
  * CHANGELOG:
+ * v1.8.0 (2026-03-23) - NEW: reťazenie modifikátorov — |pos|money, |neg|number atď.; pos/neg sú filtre
  * v1.7.0 (2026-03-23) - NEW: |pos a |neg podmienené formáty — skryjú riadok ak podmienka nesedí
  * v1.6.1 (2026-03-23) - FIX: lowercase "Stav: potvrdené/odmietnuté" — zhoduje sa s reálnou knižnicou
  * v1.6.0 (2026-03-23) - NEW: TG Šablóny library lookup (priority 2); _processTemplate() extracted
@@ -112,7 +113,7 @@ var MementoSign = (function() {
 
     var MODULE_INFO = {
         name: "MementoSign",
-        version: "1.7.0",
+        version: "1.8.0",
         date: "2026-03-23",
         description: "Generic Telegram signing protocol — N8N flow is library-agnostic"
     };
@@ -213,69 +214,88 @@ var MementoSign = (function() {
     }
 
     /**
-     * Formátuje hodnotu poľa podľa modifikátora.
-     * Podporované: date, time, money, number
+     * Formátuje hodnotu poľa podľa reťazca modifikátorov (oddelené |).
+     *
+     * Modifikátory sa aplikujú zľava doprava. Ak niektorý vráti "", reťaz sa ukončí
+     * a riadok sa vynechá (conditional lines).
+     *
+     * Terminálne (ukončia reťaz):  date, time, money, number
+     * Filtre (posúvajú hodnotu ďalej):  pos, neg
+     *
+     * Príklady:
+     *   {Suma|money}                → "150,00 €"
+     *   {Suma|neg|money}            → "" ak >= 0, inak "40,00 €" (absolútna hodnota)
+     *   {Suma|pos|money}            → "" ak <= 0, inak "180,00 €"
+     *   {Suma|neg|number}           → "" ak >= 0, inak "40,00"
      */
     function _formatValue(val, fmt) {
         if (val === null || val === undefined) return "";
         if (!fmt) return String(val);
 
-        if (fmt === "date") {
-            try {
-                var d = (val instanceof Date) ? val : new Date(val);
-                if (isNaN(d.getTime())) return String(val);
-                return ("0" + d.getDate()).slice(-2) + "." +
-                       ("0" + (d.getMonth() + 1)).slice(-2) + "." +
-                       d.getFullYear();
-            } catch(e) { return String(val); }
+        var fmts = String(fmt).split('|');
+        var cur  = val;
+
+        for (var i = 0; i < fmts.length; i++) {
+            var f = fmts[i].trim();
+            if (!f) continue;
+
+            if (f === "date") {
+                try {
+                    var d = (cur instanceof Date) ? cur : new Date(cur);
+                    if (isNaN(d.getTime())) return String(cur);
+                    return ("0" + d.getDate()).slice(-2) + "." +
+                           ("0" + (d.getMonth() + 1)).slice(-2) + "." +
+                           d.getFullYear();
+                } catch(e) { return String(cur); }
+            }
+
+            if (f === "time") {
+                try {
+                    if (cur instanceof Date) {
+                        return ("0" + cur.getHours()).slice(-2) + ":" +
+                               ("0" + cur.getMinutes()).slice(-2);
+                    } else if (typeof cur === "number") {
+                        var h = Math.floor(cur / 3600);
+                        var m = Math.floor((cur % 3600) / 60);
+                        return ("0" + h).slice(-2) + ":" + ("0" + m).slice(-2);
+                    } else {
+                        var d = new Date(cur);
+                        if (isNaN(d.getTime())) return String(cur);
+                        return ("0" + d.getHours()).slice(-2) + ":" +
+                               ("0" + d.getMinutes()).slice(-2);
+                    }
+                } catch(e) { return String(cur); }
+            }
+
+            if (f === "money") {
+                if (cur === "" || cur === null || cur === undefined) return "";
+                var n = parseFloat(cur) || 0;
+                return n.toFixed(2).replace(".", ",") + "\u00a0\u20ac";
+            }
+
+            if (f === "number") {
+                if (cur === "" || cur === null || cur === undefined) return "";
+                var n = parseFloat(cur) || 0;
+                return n.toFixed(2).replace(".", ",");
+            }
+
+            // Filtre — vracajú číselný výsledok alebo "" (skryje riadok)
+            if (f === "pos") {
+                var n = parseFloat(cur) || 0;
+                if (n <= 0) return "";
+                cur = n;  // posunie kladnú hodnotu ďalšiemu modifikátoru
+                continue;
+            }
+
+            if (f === "neg") {
+                var n = parseFloat(cur) || 0;
+                if (n >= 0) return "";
+                cur = Math.abs(n);  // posunie absolútnu hodnotu ďalšiemu modifikátoru
+                continue;
+            }
         }
 
-        if (fmt === "time") {
-            try {
-                // Memento time field môže byť Date alebo sekundy od polnoci
-                var d;
-                if (val instanceof Date) {
-                    d = val;
-                } else if (typeof val === "number") {
-                    // sekundy od polnoci → Date (UTC)
-                    var h = Math.floor(val / 3600);
-                    var m = Math.floor((val % 3600) / 60);
-                    return ("0" + h).slice(-2) + ":" + ("0" + m).slice(-2);
-                } else {
-                    d = new Date(val);
-                }
-                if (isNaN(d.getTime())) return String(val);
-                return ("0" + d.getHours()).slice(-2) + ":" +
-                       ("0" + d.getMinutes()).slice(-2);
-            } catch(e) { return String(val); }
-        }
-
-        if (fmt === "money") {
-            var n = parseFloat(val) || 0;
-            return n.toFixed(2).replace(".", ",") + "\u00a0\u20ac";
-        }
-
-        if (fmt === "number") {
-            var n = parseFloat(val) || 0;
-            return n.toFixed(2).replace(".", ",");
-        }
-
-        // Podmienené formáty — prázdny string skryje riadok (conditional lines)
-        if (fmt === "pos") {
-            // Zobrazí hodnotu ako money len ak > 0, inak "" (skryje riadok)
-            var n = parseFloat(val) || 0;
-            if (n <= 0) return "";
-            return n.toFixed(2).replace(".", ",") + "\u00a0\u20ac";
-        }
-
-        if (fmt === "neg") {
-            // Zobrazí absolútnu hodnotu ako money len ak < 0, inak "" (skryje riadok)
-            var n = parseFloat(val) || 0;
-            if (n >= 0) return "";
-            return Math.abs(n).toFixed(2).replace(".", ",") + "\u00a0\u20ac";
-        }
-
-        return String(val);
+        return (cur === null || cur === undefined) ? "" : String(cur);
     }
 
     /**
