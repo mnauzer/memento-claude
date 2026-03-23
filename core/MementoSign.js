@@ -96,6 +96,7 @@
  *     messageTemplate: 'TG Template'   // názov poľa kde je šablóna
  *
  * CHANGELOG:
+ * v1.9.3 (2026-03-23) - NEW: generuje pole "Názov" = kniznicaLabel + dátum zdrojového záznamu
  * v1.9.2 (2026-03-23) - FIX: TG Chat ID ukladá ako string (text pole) — bez int32 overflow
  * v1.9.1 (2026-03-23) - FIX: _getBotToken() hľadá provider="Telegram" namiesto fixného mena záznamu
  * v1.9.0 (2026-03-23) - NEW: deleteMessage() — maže TG správy cez Bot API; token z ASISTANTO API
@@ -210,6 +211,17 @@ var MementoSign = (function() {
             podpisEntry.set("TG Chat ID", chatIdStr);  // text pole — ukladaj ako string (bez int32 overflow)
             podpisEntry.set("Stav", "Čaká ");
             podpisEntry.set("D\u00e1tum odoslania", new Date());
+
+            // Vygeneruj Názov: "Dochádzka 10.3.2026" (kniznicaLabel + dátum zdrojového záznamu)
+            var nazov = String(signConfig.kniznicaLabel || "").trim();
+            try {
+                var datumVal = sourceEntry.field("D\u00e1tum");
+                if (datumVal) {
+                    var d = new Date(datumVal);
+                    nazov += " " + d.getDate() + "." + (d.getMonth() + 1) + "." + d.getFullYear();
+                }
+            } catch(e) {}
+            try { podpisEntry.set("N\u00e1zov", nazov); } catch(e) {}
 
             // Nové metadata polia — N8N ich číta pri callbacku (generic protocol v2)
             podpisEntry.set("Zdrojov\u00e1 lib ID", signConfig.libId);
