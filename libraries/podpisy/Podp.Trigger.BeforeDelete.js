@@ -33,9 +33,10 @@ if (hasSign) {
 var currentEntry = entry();
 
 try {
-    var chatId      = currentEntry.field("TG Chat ID");
-    var messageId   = currentEntry.field("TG Správa ID");
-    var followupId  = currentEntry.field("TG Follow-up ID");
+    var sf = function(n) { try { return currentEntry.field(n); } catch(ex) { return null; } };
+    var chatId      = sf("TG Chat ID");
+    var messageId   = sf("TG Správa ID");
+    var followupId  = sf("TG Follow-up ID");
 
     // Silent fail — výsledok ignorujeme (správa mohla byť vymazaná manuálne)
     if (chatId && messageId)  { try { MementoSign.deleteMessage(chatId, messageId);  } catch(e) {} }
