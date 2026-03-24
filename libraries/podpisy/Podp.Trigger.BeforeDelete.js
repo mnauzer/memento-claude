@@ -2,7 +2,7 @@
  * Knižnica:    podpisy
  * Názov:       Podp.Trigger.BeforeDelete
  * Typ:         Trigger — Before deleting entry (synchronous)
- * Verzia:      6.1.0
+ * Verzia:      6.2.0
  * Dátum:       2026-03-24
  *
  * Účel:
@@ -13,8 +13,8 @@
  * Závislosti: NotificationHub modul (globálny skript)
  *
  * CHANGELOG:
+ *   v6.2.0 — Debug do ASISTANTO Logs (trvalý záznam aj po zmazaní podpisu)
  *   v6.1.0 — Diagnostika cez Debug_Log + záložný log do Notifications
- *   v6.0.1 — Debug logging + message() keď NotificationHub chýba
  *   v6.0.0 — Notifications Hub namiesto ASISTANTO Logs hack
  */
 
@@ -22,22 +22,33 @@ var ce = entry();
 var sf = function(n) { try { return ce.field(n); } catch(x) { return null; } };
 var log = [];
 
-function addLog(msg) {
-    log.push(msg);
-    try { ce.set("Debug_Log", log.join("\n")); } catch(ignore) {}
+// === Debug do ASISTANTO Logs ===
+function writeLog(type, text, variables) {
+    try {
+        var logsLib = libByName("ASISTANTO Logs");
+        if (logsLib) {
+            var logEntry = logsLib.create({});
+            logEntry.set("type", type || "debug");
+            logEntry.set("date", new Date());
+            logEntry.set("memento library", "podpisy");
+            logEntry.set("script", "Podp.Trigger.BeforeDelete");
+            logEntry.set("library", "v6.2.0");
+            logEntry.set("text", text || "");
+            if (variables) {
+                logEntry.set("variables", variables);
+            }
+        }
+    } catch(ignore) {}
 }
-
-addLog("=== BeforeDelete v6.1.0 ===");
 
 // 1. Ochrana "Čaká"
 var stav = sf("Stav");
-addLog("Stav: [" + stav + "]");
 if (stav && String(stav).trim() === "Čaká") {
     var datum = sf("Dátum odoslania");
     if (datum) {
         try {
             if (new Date() - new Date(datum) < 3600000) {
-                addLog("BLOKOVANÉ — Čaká < 1h");
+                writeLog("warn", "Mazanie blokované — Čaká < 1h", "stav=" + stav);
                 message("⛔ Záznam 'Čaká' mladší ako 1h — mazanie blokované.");
                 cancel();
             }
@@ -50,14 +61,11 @@ var chatId     = sf("TG Chat ID");
 var messageId  = sf("TG Správa ID");
 var followupId = sf("TG Follow-up ID");
 
-addLog("chatId: [" + chatId + "]");
-addLog("messageId: [" + messageId + "]");
-addLog("followupId: [" + followupId + "]");
-addLog("NotificationHub: " + (typeof NotificationHub !== 'undefined'));
+var vars = "chatId=[" + chatId + "] messageId=[" + messageId + "] followupId=[" + followupId + "] NH=" + (typeof NotificationHub !== 'undefined');
+writeLog("debug", "BeforeDelete štart", vars);
 
 if (chatId && messageId) {
     if (typeof NotificationHub !== 'undefined') {
-        addLog("NH verzia: " + (NotificationHub.version || "?"));
         try {
             var result = NotificationHub.createNotification({
                 typ: "DELETE",
@@ -66,9 +74,11 @@ if (chatId && messageId) {
                 zdroj: "podpisy",
                 zdrojId: ce.id
             });
-            addLog("createNotification result: " + (result ? "OK (entry created)" : "FAIL (returned null)"));
+            writeLog(result ? "log" : "error",
+                result ? "Notifikácia vytvorená" : "createNotification vrátil null",
+                "entryId=" + ce.id + " NHv=" + (NotificationHub.version || "?"));
         } catch(ex) {
-            addLog("CHYBA createNotification: " + ex.toString());
+            writeLog("error", "createNotification CHYBA: " + ex.toString(), vars);
         }
 
         // Ak existuje follow-up správa, zmaž aj tú
@@ -81,19 +91,17 @@ if (chatId && messageId) {
                     zdroj: "podpisy",
                     zdrojId: ce.id
                 });
-                addLog("Follow-up notification created");
+                writeLog("log", "Follow-up notifikácia vytvorená", "followupId=" + followupId);
             } catch(ex2) {
-                addLog("Follow-up CHYBA: " + ex2.toString());
+                writeLog("error", "Follow-up CHYBA: " + ex2.toString());
             }
         }
     } else {
-        addLog("⚠️ NotificationHub NENÁJDENÝ!");
-        addLog("Skontroluj: Nastavenia → Skripty → NotificationHub.js musí byť PRED BeforeDelete");
+        writeLog("error", "NotificationHub NENÁJDENÝ! Skontroluj globálne skripty a load order.", vars);
 
         // Záložný pokus — priamo cez libByName
         try {
             var notifLib = libByName("Notifications");
-            addLog("libByName('Notifications'): " + (notifLib ? "OK" : "null"));
             if (notifLib) {
                 var n = notifLib.create({});
                 n.set("Typ operácie", "DELETE");
@@ -105,16 +113,14 @@ if (chatId && messageId) {
                 n.set("Zdrojová knižnica", "podpisy");
                 n.set("Zdrojový ID", String(ce.id));
                 n.set("Retry Count", 0);
-                addLog("Záložná notifikácia vytvorená priamo");
+                writeLog("warn", "Záložná notifikácia vytvorená (bez NH)", "chatId=" + chatId);
+            } else {
+                writeLog("error", "libByName('Notifications') vrátil null!");
             }
         } catch(fallbackErr) {
-            addLog("Záložný pokus ZLYHAL: " + fallbackErr.toString());
+            writeLog("error", "Záložný pokus ZLYHAL: " + fallbackErr.toString());
         }
     }
 } else {
-    addLog("ℹ️ Žiadne TG údaje — preskakujem");
-    if (!chatId) addLog("  chatId je prázdny/null");
-    if (!messageId) addLog("  messageId je prázdny/null");
+    writeLog("warn", "Žiadne TG údaje — preskakujem", "chatId=[" + chatId + "] messageId=[" + messageId + "]");
 }
-
-addLog("=== KONIEC ===");
