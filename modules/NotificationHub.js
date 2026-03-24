@@ -53,12 +53,13 @@ var NotificationHub = (function() {
         message: "Správa",
         template: "Šablóna",
         templateData: "Dáta",
-        inlineKeyboard: "Inline Keyboard",
+        inlineKeyboard: "Inline keyboard",
         callbackData: "Callback Data",
         sourceLibrary: "Zdrojová knižnica",
         sourceId: "Zdrojový ID",
         retryCount: "Retry Count",
-        messageSource: "Zdroj správy"
+        messageSource: "Zdroj správy",
+        lastError: "Posledná chyba"
     };
 
     /**
@@ -95,7 +96,7 @@ var NotificationHub = (function() {
             n.set(FIELDS.operationType, params.typ);
             n.set(FIELDS.chatId, String(params.chatId));
             n.set(FIELDS.status, "Čaká");
-            n.set(FIELDS.messageSource, "Automatická");
+            n.set(FIELDS.messageSource, "Automatická ");
 
             // Voliteľné TG polia
             if (params.messageId) {
