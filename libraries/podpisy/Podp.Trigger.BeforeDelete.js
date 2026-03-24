@@ -2,7 +2,7 @@
  * Knižnica:    podpisy
  * Názov:       Podp.Trigger.BeforeDelete
  * Typ:         Trigger — Before deleting entry (synchronous)
- * Verzia:      6.3.0
+ * Verzia:      6.4.0
  * Dátum:       2026-03-24
  *
  * Účel:
@@ -11,8 +11,12 @@
  *
  * Závislosti: NotificationHub modul (globálny skript)
  *
+ * WORKAROUND: entry().field() hádže ReferenceError pre novšie polia.
+ * Riešenie: nájsť entry cez libByName("podpisy").entries() a čítať odtiaľ.
+ *
  * CHANGELOG:
- *   v6.3.0 — Diagnostika: dump VŠETKÝCH polí + test rôznych variácií názvov
+ *   v6.4.0 — WORKAROUND: čítanie polí cez libByName namiesto entry().field()
+ *   v6.3.0 — Diagnostika: dump polí odhalil ReferenceError pre novšie polia
  *   v6.2.0 — Debug do ASISTANTO Logs
  *   v6.0.0 — Notifications Hub namiesto ASISTANTO Logs hack
  */
@@ -28,44 +32,49 @@ function writeLog(type, text, variables) {
         logEntry.set("type", type || "debug");
         logEntry.set("date", new Date());
         logEntry.set("memento library", "podpisy");
-        logEntry.set("script", "BeforeDelete v6.3.0");
+        logEntry.set("script", "BeforeDelete v6.4.0");
         logEntry.set("text", text || "");
         if (variables) logEntry.set("variables", variables);
     } catch(ignore) {}
 }
 
-// Safe field read
-function sf(n) { try { return ce.field(n); } catch(x) { return "ERR:" + x; } }
+// Safe field read — priamo z entry()
+function sf(n) { try { return ce.field(n); } catch(x) { return null; } }
 
-// === DIAGNOSTIKA: prečítaj VŠETKY známe polia ===
-var allFields = [
-    "ID", "Názov", "Stav", "Dátum odoslania", "Poznámka",
-    "TG Chat ID", "TG Správa ID", "TG Follow-up ID", "TG Správa",
-    "Zdroj ID", "Zdrojová lib ID", "Zdrojový field ID",
-    "Debug_Log", "Knižnica"
-];
+// WORKAROUND: čítaj pole cez libByName ak entry().field() zlyhá
+function getField(fieldName) {
+    // Najprv skús priamo
+    var val = sf(fieldName);
+    if (val !== null) return val;
 
-var dump = [];
-for (var i = 0; i < allFields.length; i++) {
-    var val = sf(allFields[i]);
-    if (val !== null && val !== "" && val !== 0) {
-        dump.push(allFields[i] + "=[" + val + "]");
+    // Fallback: nájdi entry v knižnici podľa ID
+    try {
+        var podpisLib = libByName("podpisy");
+        if (!podpisLib) return null;
+        var allEntries = podpisLib.entries();
+        for (var i = 0; i < allEntries.length; i++) {
+            if (allEntries[i].id === ce.id) {
+                return allEntries[i].field(fieldName);
+            }
+        }
+    } catch(ex) {
+        writeLog("error", "getField fallback chyba: " + fieldName, ex.toString());
     }
+    return null;
 }
-writeLog("debug", "FIELD DUMP (" + dump.length + " non-empty)", dump.join(" | "));
 
-// Čítaj TG polia
-var chatId     = sf("TG Chat ID");
-var messageId  = sf("TG Správa ID");
-var followupId = sf("TG Follow-up ID");
+// Čítaj polia
+var stav       = getField("Stav");
+var chatId     = getField("TG Chat ID");
+var messageId  = getField("TG Správa ID");
+var followupId = getField("TG Follow-up ID");
 
-writeLog("debug", "TG polia",
-    "chatId=[" + chatId + "] msgId=[" + messageId + "] followup=[" + followupId + "] NH=" + (typeof NotificationHub !== 'undefined'));
+writeLog("debug", "Polia",
+    "stav=[" + stav + "] chatId=[" + chatId + "] msgId=[" + messageId + "] followup=[" + followupId + "] NH=" + (typeof NotificationHub !== 'undefined'));
 
 // 1. Ochrana "Čaká"
-var stav = sf("Stav");
 if (stav && String(stav).trim() === "Čaká") {
-    var datum = sf("Dátum odoslania");
+    var datum = getField("Dátum odoslania");
     if (datum) {
         try {
             if (new Date() - new Date(datum) < 3600000) {
@@ -90,7 +99,7 @@ if (chatId && messageId) {
             });
             writeLog(result ? "log" : "error",
                 result ? "Notifikácia OK" : "createNotification=null",
-                "NHv=" + (NotificationHub.version || "?"));
+                "chatId=" + chatId + " msgId=" + messageId + " NHv=" + (NotificationHub.version || "?"));
         } catch(ex) {
             writeLog("error", "createNotification CHYBA", ex.toString());
         }
@@ -105,7 +114,7 @@ if (chatId && messageId) {
         }
     } else {
         writeLog("error", "NotificationHub NENÁJDENÝ!");
-        // Záložný pokus
+        // Záložný pokus priamo
         try {
             var notifLib = libByName("Notifications");
             if (notifLib) {
@@ -119,7 +128,7 @@ if (chatId && messageId) {
                 n.set("Zdrojová knižnica", "podpisy");
                 n.set("Zdrojový ID", String(ce.id));
                 n.set("Retry Count", 0);
-                writeLog("warn", "Záložná notifikácia vytvorená priamo");
+                writeLog("warn", "Záložná notifikácia OK");
             }
         } catch(fe) {
             writeLog("error", "Záložný pokus zlyhal", fe.toString());
