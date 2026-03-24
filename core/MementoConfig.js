@@ -1374,7 +1374,15 @@ var MementoConfig = (function() {
                 lastUpdate: "Posledná aktualizácia",
                 messageCount: "Počet správ",
                 retryCount: "Retry Count",
-                lastError: "Posledná chyba"
+                lastError: "Posledná chyba",
+                // Notifications Hub v1.0 — nové polia
+                operationType: "Typ operácie",        // SEND | EDIT | DELETE | STATUS_UPDATE
+                template: "Šablóna",                  // názov šablóny z TG Šablóny
+                templateData: "Dáta",                 // JSON s dátami pre šablónu
+                inlineKeyboard: "Inline Keyboard",    // JSON s TG inline tlačidlami
+                callbackData: "Callback Data",        // identifikácia pre callback
+                sourceLibrary: "Zdrojová knižnica",   // názov zdrojovej knižnice
+                sourceId: "Zdrojový ID"               // entry ID zdrojového záznamu
             },
             // Telegram Groups polia
             telegramGroups: {

@@ -2,13 +2,21 @@
  * Knižnica:    podpisy
  * Názov:       Podp.Trigger.BeforeDelete
  * Typ:         Trigger — Before deleting entry (synchronous)
- * Verzia:      5.0.0
+ * Verzia:      6.0.0
  * Dátum:       2026-03-24
  *
  * Účel:
  *   1. Ochrana "Čaká" záznamov mladších ako 1 hodina
- *   2. Uloží TG dáta do ASISTANTO Logs (script="PENDING_TG_DELETE")
- *      pre AfterDelete trigger (http() tu nefunguje)
+ *   2. Vytvorí DELETE notifikáciu v Notifications Hub
+ *      (N8N spracuje mazanie TG správ serverovo)
+ *
+ * Závislosti: NotificationHub modul
+ *
+ * CHANGELOG:
+ *   v6.0.0 — Notifications Hub namiesto ASISTANTO Logs hack
+ *   v5.0.0 — ASISTANTO Logs queue pre AfterDelete
+ *   v4.0.0 — Globálne premenné (nefungovalo)
+ *   v3.0.0 — Prvý pokus o TG mazanie v BeforeDelete (http() nefunguje)
  */
 
 var ce = entry();
@@ -28,19 +36,28 @@ if (stav && String(stav).trim() === "Čaká") {
     }
 }
 
-// 2. Uloží TG dáta do ASISTANTO Logs pre AfterDelete
+// 2. Vytvor DELETE notifikáciu cez NotificationHub
 var chatId     = sf("TG Chat ID");
 var messageId  = sf("TG Správa ID");
 var followupId = sf("TG Follow-up ID");
 
-if (chatId && messageId) {
-    try {
-        var logsLib = libByName("ASISTANTO Logs");
-        if (logsLib) {
-            var le = logsLib.create({});
-            le.set("script", "PENDING_TG_DELETE");
-            le.set("text", String(chatId) + "|" + String(messageId) + "|" + String(followupId || ""));
-            le.set("memento library", "podpisy");
-        }
-    } catch(e) {}
+if (chatId && messageId && typeof NotificationHub !== 'undefined') {
+    NotificationHub.createNotification({
+        typ: "DELETE",
+        chatId: chatId,
+        messageId: messageId,
+        zdroj: "podpisy",
+        zdrojId: ce.id
+    });
+
+    // Ak existuje follow-up správa, zmaž aj tú
+    if (followupId) {
+        NotificationHub.createNotification({
+            typ: "DELETE",
+            chatId: chatId,
+            messageId: followupId,
+            zdroj: "podpisy",
+            zdrojId: ce.id
+        });
+    }
 }

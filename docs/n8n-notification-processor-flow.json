@@ -1,0 +1,363 @@
+{
+  "name": "📬 Notifications Hub — Processor",
+  "nodes": [
+    {
+      "id": "cron-trigger",
+      "name": "Every 2 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "get-pending",
+      "name": "GET Pending Notifications",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.mementodatabase.com/v1/libraries/mRERW8SrY/entries",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "token", "value": "{{MEMENTO_TOKEN}}" },
+            { "name": "limit", "value": "50" }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "filter-pending",
+      "name": "Filter Čaká + Zlyhalo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "parameters": {
+        "jsCode": "// Filter entries with Status='Čaká' or (Status='Zlyhalo' AND Retry Count < 3)\nconst entries = $input.first().json.entries || [];\nconst pending = [];\n\nfor (const entry of entries) {\n  const fields = entry.fields || [];\n  const getField = (id) => {\n    const f = fields.find(x => x.name === id || x.id === id);\n    return f ? f.value : null;\n  };\n\n  const status = getField('Status');\n  const retryCount = parseInt(getField('Retry Count') || '0', 10);\n\n  if (status === 'Čaká' || (status === 'Zlyhalo' && retryCount < 3)) {\n    pending.push({\n      json: {\n        entryId: entry.id,\n        status: status,\n        operationType: getField('Typ operácie'),\n        chatId: getField('Chat ID'),\n        messageId: getField('Message ID'),\n        threadId: getField('Thread ID'),\n        message: getField('Správa'),\n        template: getField('Šablóna'),\n        templateData: getField('Dáta'),\n        inlineKeyboard: getField('Inline Keyboard'),\n        callbackData: getField('Callback Data'),\n        sourceLibrary: getField('Zdrojová knižnica'),\n        sourceId: getField('Zdrojový ID'),\n        retryCount: retryCount\n      }\n    });\n  }\n}\n\nif (pending.length === 0) {\n  // No pending items — stop workflow\n  return [];\n}\n\nreturn pending;"
+      }
+    },
+    {
+      "id": "switch-type",
+      "name": "Operation Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [920, 300],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.operationType }}",
+                    "rightValue": "DELETE",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "DELETE"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.operationType }}",
+                    "rightValue": "SEND",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "SEND"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.operationType }}",
+                    "rightValue": "EDIT",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "EDIT"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "get-bot-token",
+      "name": "Get Bot Token",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [440, 100],
+      "parameters": {
+        "mode": "manual",
+        "fields": {
+          "values": [
+            {
+              "name": "botToken",
+              "type": "string",
+              "stringValue": "{{BOT_TOKEN}}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "delete-tg-message",
+      "name": "TG deleteMessage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1180, 160],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $('Get Bot Token').first().json.botToken }}/deleteMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "chat_id", "value": "={{ $json.chatId }}" },
+            { "name": "message_id", "value": "={{ $json.messageId }}" }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": { "responseFormat": "json" }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "update-notification-success",
+      "name": "PATCH Status=Odoslané",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1440, 160],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.mementodatabase.com/v1/libraries/mRERW8SrY/entries/{{ $('Operation Type').item.json.entryId }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "token", "value": "{{MEMENTO_TOKEN}}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fields: [{ name: 'Status', value: 'Odoslané' }] }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "check-delete-result",
+      "name": "Delete OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1180, 360],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "handle-error",
+      "name": "Retry Count++",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1440, 460],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.mementodatabase.com/v1/libraries/mRERW8SrY/entries/{{ $('Operation Type').item.json.entryId }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "token", "value": "{{MEMENTO_TOKEN}}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fields: [ { name: 'Status', value: ($('Operation Type').item.json.retryCount >= 2 ? 'Chyba' : 'Zlyhalo') }, { name: 'Retry Count', value: $('Operation Type').item.json.retryCount + 1 }, { name: 'Posledná chyba', value: JSON.stringify($json).substring(0, 500) } ] }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "send-tg-message",
+      "name": "TG sendMessage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1180, 600],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $('Get Bot Token').first().json.botToken }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $json.chatId, text: $json.message || 'No message', parse_mode: 'Markdown', reply_markup: $json.inlineKeyboard ? JSON.parse($json.inlineKeyboard) : undefined }) }}",
+        "options": {
+          "response": {
+            "response": { "responseFormat": "json" }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "save-message-id",
+      "name": "Save Message ID",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1440, 600],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.mementodatabase.com/v1/libraries/mRERW8SrY/entries/{{ $('Operation Type').item.json.entryId }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "token", "value": "{{MEMENTO_TOKEN}}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fields: [ { name: 'Status', value: ($json.ok ? 'Odoslané' : 'Zlyhalo') }, { name: 'Message ID', value: String(($json.result || {}).message_id || '') } ] }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "edit-tg-message",
+      "name": "TG editMessageText",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1180, 820],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $('Get Bot Token').first().json.botToken }}/editMessageText",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $json.chatId, message_id: parseInt($json.messageId, 10), text: $json.message || 'Updated', parse_mode: 'Markdown' }) }}",
+        "options": {
+          "response": {
+            "response": { "responseFormat": "json" }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "update-edit-status",
+      "name": "PATCH Edit Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1440, 820],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.mementodatabase.com/v1/libraries/mRERW8SrY/entries/{{ $('Operation Type').item.json.entryId }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "token", "value": "{{MEMENTO_TOKEN}}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fields: [{ name: 'Status', value: ($json.ok ? 'Odoslané' : 'Zlyhalo') }] }) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Every 2 Minutes": {
+      "main": [
+        [{ "node": "Get Bot Token", "type": "main", "index": 0 }],
+        [{ "node": "GET Pending Notifications", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Bot Token": {
+      "main": [[]]
+    },
+    "GET Pending Notifications": {
+      "main": [
+        [{ "node": "Filter Čaká + Zlyhalo", "type": "main", "index": 0 }]
+      ]
+    },
+    "Filter Čaká + Zlyhalo": {
+      "main": [
+        [{ "node": "Operation Type", "type": "main", "index": 0 }]
+      ]
+    },
+    "Operation Type": {
+      "main": [
+        [{ "node": "TG deleteMessage", "type": "main", "index": 0 }],
+        [{ "node": "TG sendMessage", "type": "main", "index": 0 }],
+        [{ "node": "TG editMessageText", "type": "main", "index": 0 }]
+      ]
+    },
+    "TG deleteMessage": {
+      "main": [
+        [{ "node": "Delete OK?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Delete OK?": {
+      "main": [
+        [{ "node": "PATCH Status=Odoslané", "type": "main", "index": 0 }],
+        [{ "node": "Retry Count++", "type": "main", "index": 0 }]
+      ]
+    },
+    "TG sendMessage": {
+      "main": [
+        [{ "node": "Save Message ID", "type": "main", "index": 0 }]
+      ]
+    },
+    "TG editMessageText": {
+      "main": [
+        [{ "node": "PATCH Edit Status", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    { "name": "notifications" },
+    { "name": "telegram" },
+    { "name": "krajinka" }
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
