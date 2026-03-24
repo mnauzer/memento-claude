@@ -73,12 +73,11 @@ if (hasSign) {
 try {
     var logsLib = libByName("ASISTANTO Logs");
     if (logsLib) {
-        logsLib.create({
-            "script": SCRIPT_NAME,
-            "text": debugLines.join("\n"),
-            "memento library": "podpisy",
-            "line": "v" + SCRIPT_VERSION
-        });
+        var logE = logsLib.create({});
+        logE.set("script", SCRIPT_NAME);
+        logE.set("text", debugLines.join("\n"));
+        logE.set("memento library", "podpisy");
+        logE.set("line", "v" + SCRIPT_VERSION);
     }
 } catch(e) {
     message("Log: " + debugLines.join("|"));
