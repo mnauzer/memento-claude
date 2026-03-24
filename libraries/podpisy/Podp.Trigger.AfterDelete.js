@@ -2,35 +2,31 @@
  * Knižnica:    podpisy
  * Názov:       Podp.Trigger.AfterDelete
  * Typ:         Trigger — After deleting entry (asynchronous)
- * Verzia:      1.0.0
+ * Verzia:      2.0.0
  * Dátum:       2026-03-24
  *
  * Účel:
- *   Po vymazaní (presune do koša) Podpis záznamu zmaže TG správy.
- *   AfterDelete je asynchrónny — http() by mal byť dostupný.
- *
- * Závislosti:
- *   - MementoSign v1.9.2+ (deleteMessage)
+ *   Prečíta TG dáta z globálnej premennej _pendingTgDelete
+ *   (nastavené v BeforeDelete) a zavolá deleteMessage.
+ *   http() funguje v asynchrónnych triggeroch.
  */
 
-var SCRIPT_NAME    = "Podp.AfterDelete";
-var SCRIPT_VERSION = "1.0.0";
-
-var ce = entry();
-var sf = function(n) { try { return ce.field(n); } catch(x) { return null; } };
-
+var SCRIPT_NAME = "Podp.AfterDelete";
 var lines = [];
 function dbg(msg) { lines.push(msg); }
 
-dbg("v" + SCRIPT_VERSION);
+dbg("v2.0.0");
+
+var hasData = typeof _pendingTgDelete !== 'undefined' && _pendingTgDelete !== null;
+dbg("pendingData:" + hasData);
 
 var hasSign = typeof MementoSign !== 'undefined';
 dbg("Sign:" + hasSign);
 
-if (hasSign) {
-    var chatId     = sf("TG Chat ID");
-    var messageId  = sf("TG Správa ID");
-    var followupId = sf("TG Follow-up ID");
+if (hasData && hasSign) {
+    var chatId     = _pendingTgDelete.chatId;
+    var messageId  = _pendingTgDelete.messageId;
+    var followupId = _pendingTgDelete.followupId;
     dbg("chat:[" + chatId + "] msg:[" + messageId + "] fup:[" + followupId + "]");
 
     if (chatId && messageId) {
@@ -48,6 +44,12 @@ if (hasSign) {
             dbg("del fup: ok=" + (r2 ? r2.success : "null") + " err=" + (r2 ? (r2.error || "") : "null"));
         } catch(e) { dbg("del fup EX:" + e); }
     }
+
+    // Vyčisti globálnu premennú
+    _pendingTgDelete = null;
+
+} else if (!hasData) {
+    dbg("žiadne TG dáta z BeforeDelete");
 } else {
     dbg("MementoSign CHÝBA!");
 }
@@ -59,7 +61,6 @@ try {
         var le = logsLib.create({});
         le.set("script", SCRIPT_NAME);
         le.set("memento library", "podpisy");
-        le.set("line", "v" + SCRIPT_VERSION);
         le.set("Debug_Log", lines.join("\n"));
     }
 } catch(e) {}
