@@ -1,6 +1,6 @@
 /**
  * Module:      NotificationHub
- * Verzia:      1.0.0
+ * Verzia:      1.1.0
  * Dátum:       2026-03-24
  * Autor:       ASISTANTO
  *
@@ -28,6 +28,7 @@
  *   });
  *
  * CHANGELOG:
+ *   v1.1.0 (2026-03-24) - Fix: "Správa" pole je REQUIRED — vždy nastaviť (aj "" pre DELETE)
  *   v1.0.0 (2026-03-24) - Inicálna verzia pre Notifications Hub MVP
  */
 
@@ -36,7 +37,7 @@ var NotificationHub = (function() {
 
     var MODULE_INFO = {
         name: "NotificationHub",
-        version: "1.0.0",
+        version: "1.1.0",
         author: "ASISTANTO",
         date: "2026-03-24"
     };
@@ -97,6 +98,8 @@ var NotificationHub = (function() {
             n.set(FIELDS.chatId, String(params.chatId));
             n.set(FIELDS.status, "Čaká");
             n.set(FIELDS.messageSource, "Automatická ");
+            // "Správa" je REQUIRED pole — vždy nastaviť (aj prázdny string pre DELETE)
+            n.set(FIELDS.message, params.text || "");
 
             // Voliteľné TG polia
             if (params.messageId) {
@@ -106,10 +109,7 @@ var NotificationHub = (function() {
                 n.set(FIELDS.threadId, String(params.threadId));
             }
 
-            // Obsah správy
-            if (params.text) {
-                n.set(FIELDS.message, params.text);
-            }
+            // Obsah správy (Správa už nastavená vyššie s fallback na "")
             if (params.sablona) {
                 n.set(FIELDS.template, params.sablona);
             }

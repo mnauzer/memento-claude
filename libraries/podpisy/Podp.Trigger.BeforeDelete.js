@@ -2,7 +2,7 @@
  * Knižnica:    podpisy
  * Názov:       Podp.Trigger.BeforeDelete
  * Typ:         Trigger — Before deleting entry (synchronous)
- * Verzia:      6.0.0
+ * Verzia:      6.0.1
  * Dátum:       2026-03-24
  *
  * Účel:
@@ -13,6 +13,7 @@
  * Závislosti: NotificationHub modul
  *
  * CHANGELOG:
+ *   v6.0.1 — Debug logging + message() keď NotificationHub chýba
  *   v6.0.0 — Notifications Hub namiesto ASISTANTO Logs hack
  *   v5.0.0 — ASISTANTO Logs queue pre AfterDelete
  *   v4.0.0 — Globálne premenné (nefungovalo)
@@ -41,23 +42,37 @@ var chatId     = sf("TG Chat ID");
 var messageId  = sf("TG Správa ID");
 var followupId = sf("TG Follow-up ID");
 
-if (chatId && messageId && typeof NotificationHub !== 'undefined') {
-    NotificationHub.createNotification({
-        typ: "DELETE",
-        chatId: chatId,
-        messageId: messageId,
-        zdroj: "podpisy",
-        zdrojId: ce.id
-    });
+// Debug: zaloguj stav do Debug_Log (ak existuje)
+try {
+    var dbg = "BeforeDelete v6.0.1: chatId=" + chatId + ", msgId=" + messageId +
+              ", NH=" + (typeof NotificationHub !== 'undefined');
+    ce.set("Debug_Log", dbg);
+} catch(ignore) {}
 
-    // Ak existuje follow-up správa, zmaž aj tú
-    if (followupId) {
-        NotificationHub.createNotification({
+if (chatId && messageId) {
+    if (typeof NotificationHub !== 'undefined') {
+        var result = NotificationHub.createNotification({
             typ: "DELETE",
             chatId: chatId,
-            messageId: followupId,
+            messageId: messageId,
             zdroj: "podpisy",
             zdrojId: ce.id
         });
+
+        // Ak existuje follow-up správa, zmaž aj tú
+        if (followupId) {
+            NotificationHub.createNotification({
+                typ: "DELETE",
+                chatId: chatId,
+                messageId: followupId,
+                zdroj: "podpisy",
+                zdrojId: ce.id
+            });
+        }
+    } else {
+        // NotificationHub nie je načítaný — upozorni
+        message("⚠️ NotificationHub nenájdený — TG správa nebude zmazaná");
     }
+} else {
+    // Žiadne TG údaje — nič na mazanie
 }
