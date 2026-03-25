@@ -1,0 +1,187 @@
+# MementoDB Framework
+
+> A plug-and-play JavaScript framework for building business applications on Memento Database (mobile/cloud platform).
+
+## What Is This
+
+A modular JavaScript framework (21 core modules, 153+ public functions) designed for Memento Database - a mobile/cloud database platform. Scripts run server-side inside Memento Database, NOT as Node.js applications.
+
+- **No npm, no build process** - scripts are copy-pasted into Memento Database UI
+- **IIFE pattern** - all modules use `var Module = (function() { return { api }; })();`
+- **No ES6 modules, no async/await** - platform limitations
+- **Available APIs**: `entry()`, `lib()`, `moment()`, `message()`, `dialog()`, HTTP requests
+
+## Architecture
+
+4-level dependency chain with lazy loading:
+
+```
+LEVEL 0: MementoConfig          - Field names, library names, constants, icons
+LEVEL 1: MementoCore            - Logging, safe field access, validation
+LEVEL 2: Focused Utilities      - Time, Date, Validation, Formatting, Calculations
+LEVEL 3: MementoBusiness        - High-level workflows (orchestrates L2 modules)
+LEVEL 4: MementoUtils           - Lazy-loading aggregator/facade (single import point)
+
+SEPARATE (not in aggregator - circular dependency):
+         MementoTelegram        - Telegram Bot API (import directly)
+
+SPECIALIZED:
+         MementoAI              - OpenAI/Claude API integration
+         MementoGPS             - GPS routing, OSRM API
+         MementoSync            - PostgreSQL synchronization
+```
+
+Load order matters: Config -> Core -> L2 utilities -> Business -> Utils -> Your scripts.
+
+## Core Modules
+
+| Module | Version | Purpose | Key Functions |
+|--------|---------|---------|---------------|
+| MementoConfig | 8.0.0 | Central configuration (field names, libraries, icons) | getConfig(), getField(), getLibrary(), getIcon() |
+| MementoCore | 8.0.0 | Foundation: logging, safe field access | addDebug(), addError(), addInfo(), safeGet(), safeSet() |
+| MementoTime | 1.1.0 | Time operations | roundToQuarterHour(), calculateHoursDifference() |
+| MementoDate | 1.0.0 | Calendar utilities (holidays, weekends) | isHoliday(), isWeekend(), isWorkday(), getWeekNumber() |
+| MementoValidation | 1.0.0 | Input validation patterns | validateTime(), validateDate(), validateNumber() |
+| MementoFormatting | 1.1.4 | Display formatters | formatMoney(), formatDuration(), formatEmployeeName() |
+| MementoCalculations | 1.0.0 | Business math | calculateDailyWage(), calculateOvertime(), calculateVAT() |
+| MementoBusiness | 8.4.1 | High-level workflows | getEmployeeDetails(), processEmployee(), createObligation() |
+| MementoUtils | 8.1.0 | Lazy-loading aggregator | checkAllDependencies(), .time, .date, .formatting, etc. |
+| MementoTelegram | 8.2.0 | Telegram Bot API | sendTelegramMessage(), createNotification() |
+| MementoAI | 8.0.0 | AI service integration | callAI(), analyzeImage(), httpRequest() |
+| MementoGPS | 1.1.0 | GPS/routing | calculateOSRMRoute(), calculateAirDistance() |
+
+## Key Patterns
+
+### Config-Driven Field Access (NEVER hardcode field names)
+```javascript
+var config = MementoConfig.getConfig();
+var dateField = config.fields.attendance.date;     // Returns actual field name
+var value = utils.safeGet(entry, dateField, null);  // Safe accessor with default
+```
+
+### Module Structure (IIFE)
+```javascript
+var MyModule = (function() {
+    'use strict';
+    var MODULE_INFO = { name: "MyModule", version: "1.0.0", dependencies: [...] };
+    // Private functions here
+    return {
+        version: MODULE_INFO.version,
+        publicFunction: function(param) { /* ... */ return result; }
+    };
+})();
+```
+
+### Script Structure
+```javascript
+var utils = MementoUtils;
+var currentEntry = entry();
+var CONFIG = utils.createScriptConfig("Script Name", "1.0.0");
+
+// 1. Validate dependencies
+var depCheck = utils.checkAllDependencies();
+if (!depCheck.success) { message("Missing: " + depCheck.missing.join(", ")); cancel(); }
+
+// 2. Validate inputs
+var config = MementoConfig.getConfig();
+var dateValue = utils.safeGet(currentEntry, config.fields.attendance.date, null);
+if (!dateValue) { message("Date required"); cancel(); }
+
+// 3. Business logic
+try {
+    var result = utils.calculations.calculateDailyWage(hours, rate);
+    utils.safeSet(currentEntry, config.fields.attendance.totalWages, result);
+    utils.addInfo(currentEntry, "Calculated", { wage: result }, CONFIG);
+} catch (e) {
+    utils.addError(currentEntry, "Calculation failed", "main", e);
+}
+```
+
+### User Communication
+- `message("text")` - Brief notifications (2 lines, disappears in ~2 seconds)
+- `dialog("title", "body", "OK")` - Detailed info (stays until dismissed, unlimited text)
+- Rule: If more than 2 lines or user needs time to read, use `dialog()`
+
+### Logging
+```javascript
+utils.addDebug(entry, "Processing started", "init");           // Debug_Log field
+utils.addError(entry, "Invalid date", "validateDate", error);  // Error_Log field
+utils.addInfo(entry, "Result", { hours: 8 }, { scriptName: "MyScript" }); // info field
+```
+
+### Telegram (import separately, NOT via utils)
+```javascript
+var telegram = typeof MementoTelegram !== 'undefined' ? MementoTelegram : null;
+if (telegram) { telegram.sendTelegramMessage(chatId, message, options); }
+```
+
+## File Organization
+
+```
+core/                    # 21 universal modules (copy all to Memento Database)
+  MementoConfig.js       # EDIT THIS - your field names, library names, locale
+  MementoCore.js         # DO NOT EDIT - foundation utilities
+  MementoUtils.js        # DO NOT EDIT - aggregator
+  Memento*.js            # DO NOT EDIT - focused utilities
+modules/                 # 28 library-specific reusable modules
+libraries/               # 98 wrapper scripts organized by business domain (27 dirs)
+  dochadzka/             # Attendance tracking
+  pokladna/              # Cash register
+  zakazky/               # Orders
+  kniha-jazd/            # Vehicle logbook
+  cenove-ponuky/         # Price quotes
+  material/              # Materials/inventory
+  zamestnanec/           # Employee management
+  ...
+templates/               # Script template (Template-Script.js v9.0.0)
+docs/                    # Documentation
+```
+
+## Script Naming Convention
+
+Format: `[LibraryPrefix].[Type].[Name].js`
+
+Types: Calc (calculations on save), Trigger (event handlers), Action (manual operations), BulkAction (batch ops), Button (UI buttons), Notif (notifications)
+
+## Configuration Structure (MementoConfig)
+
+MementoConfig.js contains all customer-specific values:
+- `config.libraries.*` - Library names (e.g., "Attendance", "Employee")
+- `config.fields.*` - Field names per library (e.g., fields.attendance.date)
+- `config.fields.common.*` - Shared fields (debugLog, errorLog, info)
+- `config.constants.*` - Business constants (VAT rates, status values)
+- `config.icons.*` - UI icons (100+ emoji definitions)
+- `config.global.*` - Locale settings (timezone, currency, dateFormat)
+- `config.libraryIds.*` - Memento Database library IDs
+- `config.attributes.*` - LinkToEntry field attributes
+
+## Constraints
+
+- No npm packages - only Memento Database built-in JavaScript APIs
+- No Node.js APIs (no fs, path, http, require)
+- No async/await - use callbacks for async operations
+- No ES6 modules - use IIFE pattern exclusively
+- No local testing - must test in Memento Database
+- Load order critical - core modules must load before scripts that use them
+
+## For AI Assistants
+
+When generating scripts for this framework:
+1. ALWAYS read MementoConfig.js first to understand field names
+2. NEVER hardcode field names - use `config.fields.{library}.{field}`
+3. Use `utils.safeGet()` / `utils.safeSet()` for field access
+4. Follow Template-Script.js pattern for new scripts
+5. Use IIFE pattern for new modules
+6. Use `dialog()` for multi-line output (not `message()`)
+7. Import MementoTelegram directly (not via MementoUtils)
+8. Include dependency validation and error handling
+9. Comments in Slovak for business logic (Slovak market app)
+10. Use `lib().title` (property, not method) for library name access
+
+## Productization Status
+
+Currently configured for a Slovak construction company. See PRODUCTIZATION-ROADMAP.md for the plan to make this a generic, localizable product for any small business using Memento Database.
+
+## Detailed Reference
+
+See `llms-full.txt` for complete API reference with all 153+ function signatures.

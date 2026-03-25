@@ -159,6 +159,11 @@ playground.js
 !MEMENTO_NAMING_CONVENTION.md
 !MEMENTO_API_ACCESS.md
 !README.md
+!PRODUCTIZATION-ROADMAP.md
+
+# AI context files (SYNCHRONIZOVANÉ)
+!llms.txt
+!llms-full.txt
 
 # Library dokumentácia (SYNCHRONIZOVANÉ)
 !libraries/**/README.md

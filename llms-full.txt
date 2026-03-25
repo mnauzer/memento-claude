@@ -1,0 +1,609 @@
+# MementoDB Framework - Complete API Reference
+
+> For quick overview, see `llms.txt`. This file contains the full API for all 12 core modules.
+
+## Module: MementoConfig (v8.0.0)
+
+Central configuration - single source of truth for all field names, library names, constants.
+Dependencies: None (foundation module).
+File: `core/MementoConfig.js` (2,081 lines)
+
+### Public API
+
+```
+getConfig() -> Object                              Full CONFIG object
+get(path, defaultValue) -> Any                     Nested path accessor (e.g., "fields.attendance.date")
+getField(category, field) -> String                Field name by category (e.g., getField("attendance", "date"))
+getCommonField(field) -> String                    Common field (debugLog, errorLog, info)
+getLibrary(name) -> String                         Library name by key
+getLibraryId(name) -> String                       Memento API library ID
+getConstant(category, key) -> Any                  Business constant value
+getIcon(name) -> String                            Emoji icon by key
+getAttribute(category, attr) -> Any                LinkToEntry attribute
+getGlobalSetting(key) -> Any                       Locale/global setting
+getAttendanceField(field) -> String                Shortcut for attendance fields
+getWorkRecordField(field) -> String                Shortcut for work record fields
+getEmployeeAttribute(attr) -> Any                  Shortcut for employee attributes
+getSection(sectionName) -> Object                  Full config section
+getAllLibraries() -> Array<String>                  List all library keys
+getAllFields(category) -> Array<String>             List all field keys in category
+hasLibrary(name) -> Boolean                        Check if library exists
+hasField(category, field) -> Boolean               Check if field exists
+getReportConfig(reportType) -> Object              Report type configuration
+getAllReportTypes() -> Array<String>                List report type keys
+hasReportConfig(reportType) -> Boolean             Check if report type exists
+getLibraryModule(moduleName) -> Object             Library module metadata
+getModuleFields(moduleName) -> Object              Module field mappings
+```
+
+### Configuration Sections
+
+```
+config.global          - { timezone, dateFormat, timeFormat, currency, currencySymbol, language }
+config.libraries       - { attendance, workRecords, rideLog, cashBook, employee, orders, quotes, ... }
+config.libraryIds      - { dailyReport: "Tt4pxN4xQ", quotes: "90RmdjWuk", ... }
+config.fields          - { attendance: { date, arrival, departure, employee, ... }, employee: { name, hourlyRate, ... }, ... }
+config.fields.common   - { debugLog: "Debug_Log", errorLog: "Error_Log", info: "info" }
+config.constants       - { status, attendanceTypes, obligationStates, vatRates, workSchedule, ... }
+config.icons           - { success: "✅", error: "❌", warning: "⚠️", ... } (100+ icons)
+config.attributes      - { employees: { wage, position, ... }, ... }
+config.recipientMapping - Telegram recipient type configurations
+config.libraryMapping  - Library-specific Telegram field mappings
+config.reportConfigs   - Report type configurations (work, ride, machines, materials)
+config.libraryModules  - Metadata for reusable modules (Dochadzka, Pokladna, etc.)
+```
+
+---
+
+## Module: MementoCore (v8.0.0)
+
+Foundation utilities: logging, safe field access, validation, formatting.
+Dependencies: MementoConfig.
+File: `core/MementoCore.js` (1,864 lines)
+
+### Logging
+
+```
+addDebug(entry, message, section) -> void           Write to Debug_Log field with timestamp
+addError(entry, message, section, error) -> void    Write to Error_Log field with error details
+addInfo(entry, message, data, metadata) -> void     Write to info field (user-visible results)
+clearLogs(entry) -> void                            Clear Debug_Log, Error_Log, info fields
+```
+
+### Safe Field Access
+
+```
+safeGet(entry, fieldName, defaultValue) -> Any      Read field safely (returns default if null/undefined)
+safeSet(entry, fieldName, value) -> Boolean          Write field safely (returns false on error)
+safeGetAttribute(entry, attrName) -> Any             Read LinkToEntry attribute safely
+safeSetAttribute(entry, attrName, value) -> Boolean  Write LinkToEntry attribute safely
+```
+
+### Validation
+
+```
+validateInputData(entry, requiredFields, options) -> Object {valid, errors}
+    - Section-based: validateInputData(entry, "attendance", options)
+    - Array-based: validateInputData(entry, ["Date", "Arrival"], options)
+validateRequiredFields(entry, fields) -> Boolean     Quick check if all fields have values
+```
+
+### Formatting & Dates
+
+```
+formatDate(date, format) -> String                  Format date using moment.js
+formatTime(time, format) -> String                  Format time
+formatMoney(amount, currency) -> String             Format as currency
+isWeekend(date) -> Boolean                          Check if Saturday/Sunday
+isHoliday(date) -> Boolean                          Check against holiday calendar
+getDayNameSK(date) -> String                        Day name in Slovak
+setDayOfWeekField(entry, dateField, dayField) -> void  Auto-set day name from date
+```
+
+### UI & Records
+
+```
+getIcon(name) -> String                             Get emoji icon from config
+setColor(entry, colorName) -> void                  Set record color
+removeColor(entry) -> void                          Remove record color
+getColor(entry) -> String                           Get current record color
+setColorByCondition(entry, condition, colorName) -> void  Conditional coloring
+convertToHex(colorName) -> String                   Color name to hex
+addRecordIcon(entry, iconName) -> void              Set record icon
+removeRecordIcon(entry) -> void                     Remove record icon
+```
+
+### Utilities
+
+```
+findEntryById(libraryName, id) -> Entry             Find record by ID in another library
+getCurrentUser() -> String                          Get current user name
+findRecordIndex(entries, id) -> Number              Find record position in array
+selectOsobaForm(count) -> String                    Slovak person noun form (1/2-4/5+)
+getPersonCountForm(count) -> String                 Slovak person count form
+renumberLibraryRecords(libraryName, startNumber) -> void  Renumber all records
+showErrorDialog(title, message) -> void             Show error dialog
+showSuccessDialog(title, message) -> void            Show success dialog
+showInfoDialog(title, message) -> void               Show info dialog
+createScriptConfig(scriptName, version) -> Object    Create script configuration object
+```
+
+---
+
+## Module: MementoUtils (v8.1.0)
+
+Lazy-loading aggregator - single import point for all modules.
+Dependencies: MementoCore, MementoConfig (required); all others optional.
+File: `core/MementoUtils.js` (883 lines)
+
+### Public API
+
+```
+checkAllDependencies(silent) -> Object {success, missing, outdated, available}
+```
+
+### Lazy-Loaded Module Properties
+
+```
+.config         -> MementoConfig (Level 0)
+.core           -> MementoCore (Level 1)
+.time           -> MementoTime (Level 2)
+.date           -> MementoDate (Level 2)
+.validation     -> MementoValidation (Level 2)
+.formatting     -> MementoFormatting (Level 2)
+.calculations   -> MementoCalculations (Level 2)
+.business       -> MementoBusiness (Level 3)
+.ai             -> MementoAI (Specialized)
+.gps            -> MementoGPS (Specialized)
+.recordTracking -> MementoRecordTracking (Specialized)
+.idConflictResolver -> MementoIDConflictResolver (Specialized)
+```
+
+### Proxied Functions (backward compatibility from MementoCore)
+
+All MementoCore functions are also accessible directly on utils:
+```
+utils.addDebug(...)     // Same as utils.core.addDebug(...)
+utils.safeGet(...)      // Same as utils.core.safeGet(...)
+utils.formatMoney(...)  // Same as utils.core.formatMoney(...)
+// etc.
+```
+
+---
+
+## Module: MementoBusiness (v8.4.1)
+
+High-level business workflows. Orchestrates Level 2 utility modules.
+Dependencies: MementoCore, MementoConfig, MementoTime, MementoDate, MementoValidation, MementoFormatting, MementoCalculations.
+File: `core/MementoBusiness.js` (1,883 lines)
+
+### Employee Operations
+
+```
+getEmployeeDetails(employeeEntry) -> Object         Extract employee data (name, rate, position, etc.)
+findEmployeeByNick(nickName) -> Entry               Find employee by nickname
+getActiveEmployees() -> Array<Entry>                 Get all active employees
+getEmployeeWageForDate(employee, date) -> Number    Get wage valid for specific date
+findValidSalary(employee, date) -> Object           Find salary record valid for date
+findValidHourlyRate(employee, date) -> Number       Get hourly rate for date
+processEmployee(employee) -> Object {success, data, error}  Process single employee
+processEmployees(employees) -> Array                 Batch process employees
+showProcessingSummary(results) -> void               Show dialog with processing results
+```
+
+### Price Lookups
+
+```
+findValidPrice(category, date) -> Number            Find price valid for date
+findValidItemPrice(item, date) -> Number             Item price for date
+findValidMachinePrice(machine, date) -> Number       Machine price for date
+findValidWorkPrice(workType, date) -> Number          Work type price for date
+```
+
+### Work Time
+
+```
+calculateWorkTime(entry, startField, endField) -> Object {hours, minutes}
+```
+
+### Obligations & Reports
+
+```
+createObligation(data) -> Object {success, obligationId}      Create financial obligation
+updateObligation(obligationId, updates) -> Object {success}    Update obligation
+findExistingObligations(criteria) -> Array<Entry>               Search obligations
+createOrUpdateReport(reportData) -> Object {success, reportId} Create/update report
+createOrUpdateDailyReport(date, data) -> Object {success}      Daily report upsert
+findExistingReport(criteria) -> Entry                           Search for existing report
+```
+
+### Auto-Numbering
+
+```
+generateNextNumber(libraryName, prefix) -> String    Generate next sequential number (e.g., "INV-0042")
+```
+
+---
+
+## Module: MementoTime (v1.1.0)
+
+Time operations. No dependencies (standalone).
+File: `core/MementoTime.js` (369 lines)
+
+### Public API
+
+```
+roundToQuarterHour(time) -> Time                     Round to nearest 15 minutes
+calculateHoursDifference(startTime, endTime) -> Object {hours, minutes, totalMinutes, crossesMidnight}
+calculateBreakTime(startTime, endTime, breakMinutes) -> Object {workHours, breakTime}
+crossesMidnight(startTime, endTime) -> Boolean       Check if time span crosses midnight
+minutesToDecimalHours(minutes) -> Number              Convert minutes to decimal hours (90 -> 1.5)
+decimalHoursToMinutes(hours) -> Number                Convert decimal hours to minutes (1.5 -> 90)
+formatHoursAsTime(decimalHours) -> String             Format as "H:mm" (8.75 -> "8:45")
+formatHoursDisplay(decimalHours, decimals) -> String  Format as "Xh" (6.75 -> "6.75h")
+isValidTime(time) -> Boolean                          Check if valid time value
+```
+
+### Constants
+```
+CONSTANTS.MINUTES_PER_HOUR = 60
+CONSTANTS.HOURS_PER_DAY = 24
+CONSTANTS.QUARTER_HOUR = 15
+```
+
+---
+
+## Module: MementoDate (v1.0.0)
+
+Calendar utilities with holiday support.
+Dependencies: None (optional: MementoConfig for holiday overrides).
+File: `core/MementoDate.js` (527 lines)
+
+### Public API
+
+```
+isHoliday(date) -> Boolean                           Check against holiday calendar
+isWeekend(date) -> Boolean                           Check if Saturday/Sunday
+isWorkday(date) -> Boolean                           Not weekend and not holiday
+getWeekNumber(date) -> Number                        ISO week number
+getWorkdaysInMonth(year, month) -> Number            Count workdays in month
+formatDate(date, format) -> String                   Format date
+parseDate(dateString) -> Date                         Parse date string
+getDateRange(startDate, endDate) -> Object            Date range info
+getHolidaysInYear(year) -> Array<Object>              List holidays for year
+```
+
+### Constants
+```
+SLOVAK_FIXED_HOLIDAYS   - Fixed-date holidays (Jan 1, May 1, etc.)
+EASTER_DATES            - Easter date lookup table
+```
+
+Note: Currently hardcoded with Slovak holidays. See PRODUCTIZATION-ROADMAP.md for localization plan.
+
+---
+
+## Module: MementoValidation (v1.0.0)
+
+Input validation patterns.
+Dependencies: MementoCore (optional).
+File: `core/MementoValidation.js` (571 lines)
+
+### Public API
+
+```
+validateTime(time) -> Object {valid, error}           Validate time value
+validateDate(date) -> Object {valid, error}           Validate date value
+validateNumber(number) -> Object {valid, error}       Validate numeric value
+validateRequired(value) -> Object {valid, error}      Check not null/undefined/empty
+validateRange(value, min, max) -> Object {valid, error}  Check numeric range
+validateEmail(email) -> Object {valid, error}          Validate email format
+validatePhone(phone) -> Object {valid, error}          Validate phone format
+validateEmployee(employee) -> Object {valid, error}    Validate employee entry
+validateWorkHours(hours, options) -> Object {valid, error}  Validate work hours (0-24 range, etc.)
+```
+
+---
+
+## Module: MementoFormatting (v1.1.4)
+
+Display formatters for money, time, text.
+Dependencies: None (optional: MementoCore).
+File: `core/MementoFormatting.js` (618 lines)
+
+### Public API
+
+```
+formatMoney(amount, currency) -> String               Format as currency (1250 -> "1 250,00 €")
+formatNumber(number, decimals) -> String              Format number with decimals
+formatDuration(minutes) -> String                     Format as "Xh Ym" (90 -> "1h 30m")
+formatMinutes(minutes) -> String                      Short minute format
+formatPercent(value, decimals) -> String               Format as percentage
+formatEmployeeName(entry) -> String                    Format employee display name
+formatPhoneNumber(phone) -> String                     Format phone with country code
+formatMarkdown(text) -> String                         Apply Telegram-compatible markdown
+formatList(items, options) -> String                    Format array as bulleted/numbered list
+```
+
+---
+
+## Module: MementoCalculations (v1.0.0)
+
+Business math: wages, overtime, VAT, profitability.
+Dependencies: MementoTime, MementoDate (optional: MementoConfig).
+File: `core/MementoCalculations.js` (639 lines)
+
+### Public API
+
+```
+calculateWorkHours(startTime, endTime) -> Object {hours, minutes, totalMinutes}
+calculateDailyWage(hours, hourlyRate) -> Number        hours * rate
+calculateMonthlyStats(entries) -> Object {totalHours, totalWage, stats}
+calculateBreak(startTime, endTime, breakMinutes) -> Object {workHours, breakTime}
+calculateOvertime(hours, standardHours) -> Number      hours - standard (if positive)
+calculateProfitability(revenue, costs) -> Object {profit, margin, percentage}
+calculateVAT(amount, vatRate) -> Number                amount * rate
+removeVAT(totalAmount, vatRate) -> Object {withoutVAT, vat}   Reverse VAT calculation
+calculateProration(amount, days, totalDays) -> Object {proratedAmount, percentage}
+```
+
+### Constants (configurable via MementoConfig)
+```
+STANDARD_WORK_DAY_HOURS = 8       (from config.constants.workSchedule.standardHours)
+OVERTIME_MULTIPLIER = 1.25        (from config.constants)
+STANDARD_VAT_RATE = 0.20          (from config.constants.vatRates.standard)
+```
+
+---
+
+## Module: MementoTelegram (v8.2.0)
+
+Telegram Bot API integration. NOT aggregated in MementoUtils (circular dependency).
+Dependencies: MementoCore, MementoConfig.
+File: `core/MementoTelegram.js` (1,556 lines)
+
+### IMPORTANT: Import directly, NOT via utils
+```javascript
+var telegram = typeof MementoTelegram !== 'undefined' ? MementoTelegram : null;
+```
+
+### Message Management
+
+```
+createTelegramMessage(content, options) -> Object     Build message object
+editTelegramMessage(chatId, messageId, newContent) -> Boolean
+deleteTelegramMessage(chatId, messageId) -> Boolean
+getBotToken() -> String                                Get bot token from config
+```
+
+### Sending
+
+```
+sendTelegramMessage(chatId, message, options) -> Object {success, messageId}
+sendToTelegram(recipient, message) -> Object {success, messageId}
+sendNotificationEntry(notificationEntry) -> Boolean    Send from notification record
+```
+
+### Recipient Resolution
+
+```
+getTelegramGroup(groupName) -> Object                  Get group chat config
+getTelegramID(individual) -> String                    Get individual's Telegram ID
+getTelegramFromIndividual(individual) -> String         Resolve from individual entry
+getTelegramFromGroup(group) -> String                   Resolve from group entry
+getTelegramFromOrder(order) -> Object                   Resolve from order entry
+```
+
+### Notification Management
+
+```
+createNotification(data) -> Entry                      Create notification record
+createNotificationEntry(data) -> Entry                 Create and link notification
+linkNotification(source, notification) -> Boolean      Link notification to source
+linkNotificationToSource(notification, source) -> Boolean
+cleanupOldNotifications(days) -> Number                Delete old notifications
+getLinkedNotifications(source) -> Array<Entry>          Get notifications for source
+deleteNotificationAndTelegram(notificationEntry) -> Boolean  Delete notification + Telegram message
+```
+
+### Helpers
+
+```
+isNewRecord(entry) -> Boolean                          Check if unsaved record
+checkPermissions(user) -> Boolean                      Check user permissions
+updateStatus(entry, status) -> Boolean                 Update notification status
+detectFormatting(text) -> Object                        Detect markdown formatting
+escapeMarkdown(text) -> String                          Escape special chars
+createInlineKeyboard(buttons) -> Object                 Create inline keyboard markup
+updateSourceEntryInfo(sourceEntry, data) -> void        Update source after send
+updateAfterSuccess(entry, messageId, status) -> void    Update entry after successful send
+```
+
+---
+
+## Module: MementoAI (v8.0.0)
+
+AI service integration (OpenAI GPT-4, Anthropic Claude).
+Dependencies: MementoUtils.
+File: `core/MementoAI.js` (454 lines)
+
+### Public API
+
+```
+httpRequest(method, url, body, headers, options) -> Object {code, body, headers}
+getApiKey(provider) -> String                          Get API key ("openai" or "claude")
+callAI(provider, prompt, model, options) -> Object {success, response, error}
+analyzeImage(imageUrl, prompt, provider) -> Object {success, analysis, error}
+preparePromptWithContext(prompt, context) -> String    Build contextual prompt
+parseAIJson(content) -> Object|null                     Parse JSON from AI response
+```
+
+### Constants
+```
+AI_PROVIDERS = { openai: { baseUrl, defaultModel }, claude: { baseUrl, defaultModel } }
+```
+
+---
+
+## Module: MementoGPS (v1.1.0)
+
+GPS utilities and OSRM routing.
+Dependencies: MementoUtils.
+File: `core/MementoGPS.js` (346 lines)
+
+### Public API
+
+```
+calculateOSRMRoute(points, profile) -> Object {distance, duration, success}
+calculateSegment(point1, point2) -> Object {distance, direction}
+calculateAirDistance(point1, point2) -> Number          Haversine distance in km
+extractGPSFromPlace(place) -> Object {lat, lon}        Extract coordinates from place entry
+toRadians(degrees) -> Number                            Degrees to radians
+callOSRMRoute(coordinates) -> Object {distance, duration, success}
+```
+
+---
+
+## Additional Modules (Specialized)
+
+### MementoRecordTracking (v1.1.0)
+File: `core/MementoRecordTracking.js` (284 lines)
+- Record lifecycle tracking (creation, modification, deletion)
+- Access via `utils.recordTracking`
+
+### MementoIDConflictResolver (v1.1.0)
+File: `core/MementoIDConflictResolver.js` (277 lines)
+- ID conflict resolution for multi-user team environments
+- Access via `utils.idConflictResolver`
+
+### MementoAutoNumber (v1.1.0) - DEPRECATED
+File: `core/MementoAutoNumber.js` (363 lines)
+- Use `MementoBusiness.generateNextNumber()` instead
+
+### MementoVAT (v1.1.0) - DEPRECATED
+File: `core/MementoVAT.js` (642 lines)
+- Use `MementoCalculations.calculateVAT()` instead
+
+### MementoSync (v1.1.0)
+File: `core/MementoSync.js` (697 lines)
+- PostgreSQL synchronization (specialized, import on demand)
+
+### MementoSign (v1.0.0)
+File: `core/MementoSign.js` (530 lines)
+- Digital signature / confirmation workflows
+
+### MementoLogCapture (v1.0.0)
+File: `core/MementoLogCapture.js` (380 lines)
+- Advanced log capture and aggregation
+
+---
+
+## Script Template Pattern
+
+Every script should follow this structure (from Template-Script.js v9.0.0):
+
+```javascript
+// Header: Library, Name, Type, Version, Dependencies
+
+// 1. MODULE INITIALIZATION
+var utils = MementoUtils;
+var currentEntry = entry();
+var CONFIG = utils.createScriptConfig("ScriptName", "1.0.0");
+
+// 2. DEPENDENCY VALIDATION
+function initializeScript() {
+    var depCheck = utils.checkAllDependencies();
+    if (!depCheck.success) {
+        dialog("Missing Dependencies", depCheck.missing.join("\n"), "OK");
+        return { success: false };
+    }
+    return { success: true };
+}
+
+// 3. INPUT VALIDATION
+function validateInputs() {
+    var config = MementoConfig.getConfig();
+    var errors = [];
+    var date = utils.safeGet(currentEntry, config.fields.attendance.date, null);
+    if (!date) errors.push("Date is required");
+    return { valid: errors.length === 0, errors: errors };
+}
+
+// 4. MAIN LOGIC
+function processRecord() {
+    var config = MementoConfig.getConfig();
+    // ... business logic using utils.time, utils.calculations, etc.
+    return { success: true, data: {} };
+}
+
+// 5. EXECUTION
+try {
+    var init = initializeScript();
+    if (!init.success) cancel();
+
+    var validation = validateInputs();
+    if (!validation.valid) {
+        dialog("Validation Error", validation.errors.join("\n"), "OK");
+        cancel();
+    }
+
+    var result = processRecord();
+    if (result.success) {
+        utils.addInfo(currentEntry, "Done", result.data, CONFIG);
+    }
+} catch (e) {
+    utils.addError(currentEntry, "Script failed: " + e.message, "main", e);
+}
+```
+
+---
+
+## Naming Convention Quick Reference
+
+### Library Prefixes
+```
+Doch   = Attendance (Dochádzka)
+Knij   = Vehicle logbook (Kniha jázd)
+Mat    = Materials (Materiál)
+Pokl   = Cash register (Pokladňa)
+Zam    = Employee (Zamestnanec)
+Zak    = Orders (Zákazky)
+Zazp   = Work records (Záznam prác)
+CenPon = Price quotes (Cenové ponuky)
+DenRep = Daily report (Denný report)
+VykPr  = Work report (Výkaz prác)
+```
+
+### Script Types
+```
+Calc       = Calculation (triggers on save)
+Trigger    = Database event handler (BeforeDelete, AfterSave)
+Action     = Manual operation (button/menu)
+BulkAction = Batch operation on multiple records
+Button     = UI button handler
+Notif      = Notification management
+```
+
+### Examples
+```
+Doch.Calc.Main.js          - Main attendance calculation
+Pokl.Action.PayObligations.js - Manual payment action
+Zak.Trigger.AutoNumber.js   - Auto-numbering on new order
+Doch.Notif.Individual.js    - Individual attendance notification
+Mat.BulkAction.UpdatePrices.js - Batch price update
+```
+
+---
+
+## Summary Statistics
+
+| Category | Count |
+|----------|-------|
+| Core modules | 21 |
+| Library-specific modules | 28 |
+| Wrapper scripts | 98 |
+| Library directories | 27 |
+| Public API functions | 153+ |
+| Config field mappings | 1000+ |
+| Icons defined | 100+ |
+| Total codebase | ~663KB |
