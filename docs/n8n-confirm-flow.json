@@ -208,7 +208,7 @@
         440
       ],
       "parameters": {
-        "jsCode": "// GET individual podpis entry -> extract Zdroj ID, Kniznica -> determine source library\nconst podpisEntry = $input.first().json;\nconst confirmed = $('Parse Callback').first().json.confirmed;\n\nconst fields = podpisEntry.fields || [];\nvar zdrojId = '';\nvar kniznica = '';\n\nfields.forEach(function(f) {\n  if (f.name === 'Zdroj ID') zdrojId = String(f.value || '');\n  if (f.name === 'Kni\\u017enica') kniznica = String(f.value || '').trim();\n});\n\nvar libMap = {};\nlibMap['Doch\\u00e1dzka'] = { libId: 'zNoMvrv8U', statusField: 'Stav podpisov' };\nlibMap['Pokladn\\u0148a']   = { libId: 'g9eS5Ny2E', statusField: 'Stav podpisu'  };\nvar lib = libMap[kniznica] || null;\n\nreturn [{ json: {\n  podpisId:    podpisEntry.id,\n  stavValue:   confirmed ? 'Potvrdil' : 'Odmietol',\n  zdrojId:     zdrojId,\n  sourceLibId: lib ? lib.libId : '',\n  sourceField: lib ? lib.statusField : '',\n  hasSource:   !!(lib && zdrojId),\n  kniznica:    kniznica\n}}];"
+        "jsCode": "// Generic protocol v2: read metadata from podpis entry (no hardcoded libMap)\n// Fields read by ID (stable) from the podpisy library:\n//   id=6  : Zdroj ID          — entry ID of source record\n//   id=12 : Zdrojová lib ID   — Memento library ID of source library\n//   id=13 : Zdrojový field ID — numeric field ID of status field on source\n//   id=14 : Stav: potvrdené   — value written to source on confirm\n//   id=15 : Stav: odmietnuté  — value written to source on reject\nconst podpisEntry = $input.first().json;\nconst confirmed   = $('Parse Callback').first().json.confirmed;\n\nconst fields = podpisEntry.fields || [];\nconst getF = (id) => {\n  const f = fields.find(f => f.id === id);\n  return f && f.value !== null && f.value !== undefined ? String(f.value) : '';\n};\n\nconst zdrojId       = getF(6);\nconst sourceLibId   = getF(12);\nconst sourceFieldId = getF(13);  // numeric string, e.g. '96'\nconst stavPotvrdene = getF(14);  // e.g. 'Hotovo'\nconst stavOdmietol  = getF(15);  // e.g. 'Odmietnutá '\n\nconst stavPodpis = confirmed ? 'Potvrdil' : 'Odmietol';       // written to podpis entry\nconst stavValue  = confirmed ? stavPotvrdene : stavOdmietol;  // written to source entry\nconst hasSource  = !!(sourceLibId && zdrojId && sourceFieldId && stavValue);\n\nreturn [{ json: {\n  podpisId:      podpisEntry.id,\n  stavPodpis:    stavPodpis,\n  zdrojId:       zdrojId,\n  sourceLibId:   sourceLibId,\n  sourceFieldId: sourceFieldId,\n  stavValue:     stavValue,\n  hasSource:     hasSource\n}}];"
       }
     },
     {
@@ -234,7 +234,7 @@
         },
         "sendBody": true,
         "contentType": "json",
-        "body": "={\n  \"fields\": [\n    { \"name\": \"Stav\", \"value\": \"{{ $json.stavValue }}\" },\n    { \"name\": \"Dátum potvrdenia\", \"value\": \"{{ $now.format('yyyy-MM-dd') }}\" }\n  ]\n}",
+        "body": "={\n  \"fields\": [\n    { \"id\": 4, \"value\": \"{{ $json.stavPodpis }}\" },\n    { \"id\": 7, \"value\": \"{{ $now.format('yyyy-MM-dd') }}\" }\n  ]\n}",
         "options": {
           "response": {
             "response": {
@@ -304,7 +304,7 @@
         },
         "sendBody": true,
         "contentType": "json",
-        "body": "={\n  \"fields\": [\n    { \"name\": \"{{ $json.sourceField }}\", \"value\": \"{{ $json.stavValue }}\" }\n  ]\n}",
+        "body": "={\n  \"fields\": [\n    { \"id\": {{ $json.sourceFieldId * 1 }}, \"value\": \"{{ $json.stavValue }}\" }\n  ]\n}",
         "options": {
           "response": {
             "response": {
@@ -429,5 +429,5 @@
     "availableInMCP": false
   },
   "staticData": null,
-  "_comment": "v3 — 2026-03-22: Use podpisId (Memento Cloud entry ID) in callback_data. Confirm flow does individual GET by podpisId to get fields (Zdroj ID, Kniznica), then PATCHes both the podpis entry and the source (Dochadzka/Pokladna) entry. Bulk GET API returns entries with empty fields[] so field-based search is not possible."
+  "_comment": "v4 — 2026-03-25: Generic protocol v2 — no hardcoded libMap. Extract Podpis Fields reads fields by ID: 6=Zdroj ID, 12=Zdrojová lib ID, 13=Zdrojový field ID, 14=Stav:potvrdené, 15=Stav:odmietnuté. PATCH uses field IDs (id=4 Stav, id=7 Dátum potvrdenia). Source PATCH uses sourceFieldId (numeric) and stavValue from podpis entry."
 }
